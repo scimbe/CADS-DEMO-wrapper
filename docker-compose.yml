@@ -1,0 +1,54 @@
+# demos.bunsenbrenner.org — deploy the demo-gallery wrapper behind the CADS-Tunnel Browser Plane,
+# following the SAME shape as examples/cookbook-demo (ct-agent onboard + an origin service).
+#
+#   1. Put a fresh single-use join token + your edge/CP values in ./.env (see .env.template).
+#   2. docker compose up -d --build
+#   3. curl https://demos.bunsenbrenner.org/   -> should hit the wrapper.
+#
+# The wrapper serves plain HTTP on :8790; the ct-agent (onboard) terminates the tunnel and
+# proxies to it (CT_AGENT_ORIGIN, proto tcp — per core's guidance, no separate cert/hostname:
+# the hostname is bound to the token server-side).
+services:
+  demos-origin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - LITELLM_BASE_URL=${LITELLM_BASE_URL:?shared litellm proxy base}
+      - LITELLM_API_KEY=${LITELLM_API_KEY:?shared litellm proxy key}
+      - LITELLM_DEFAULT_MODEL=${LITELLM_DEFAULT_MODEL:-local-devstral-small2}
+      - CT_MANIFEST_TRUST_ALLOWLIST=${CT_MANIFEST_TRUST_ALLOWLIST:-1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b}
+    expose:
+      - "8790"          # reachable only via the agent, not published to the host
+    restart: unless-stopped
+
+  demos-agent:
+    # workspace ct-agent image, built from the CADS-Tunnel source (same as cookbook/help-site)
+    build:
+      context: ${CT_TUNNEL_SRC:-../CADS-Tunnel}
+      dockerfile: docker/Dockerfile
+      args:
+        - CRATE=ct-agent
+    environment:
+      - CT_AGENT_CP_URL=${CT_AGENT_CP_URL:-https://bunsenbrenner.org}
+      - CT_AGENT_JOIN_TOKEN=${DEMOS_JOIN_TOKEN:?fresh single-use join token for demos.bunsenbrenner.org}
+      - CT_AGENT_ID=demos-wrapper
+      - CT_AGENT_ORIGIN=demos-origin:8790
+      - CT_AGENT_ORIGIN_PROTO=tcp
+      - CT_AGENT_EDGE=${DEMOS_AGENT_EDGE:-}          # edge host:port, if your plane needs it
+      - CT_AGENT_EDGE_CERT_URL=${DEMOS_AGENT_EDGE_CERT_URL:-}
+      - CT_AGENT_STATE_DIR=/var/lib/ct-agent        # restart-safe onboarding
+      - CT_AGENT_RECONNECT_MAX_ATTEMPTS=0
+    command: ["ct-agent", "onboard"]
+    depends_on:
+      - demos-origin
+    restart: unless-stopped
+    volumes:
+      - demos_agent_state:/var/lib/ct-agent
+
+volumes:
+  demos_agent_state:
+
+networks:
+  default:
+    name: demos-wrapper_default
