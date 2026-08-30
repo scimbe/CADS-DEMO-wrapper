@@ -516,10 +516,12 @@ const FOOT = `<footer><div class="fl">${SUPPORT}</div>
 <div class="attrib"><b>Supported by <a href="https://bunsenbrenner.org" target="_blank" rel="noopener">bunsenbrenner.org</a></b> · served by ${SERVED_BY}</div>
 <div class="fnote">Deterministische Werkzeuge lokal · Sprachmodelle DSGVO-konform in Deutschland, ohne Datenspeicherung · Beispielfotos von <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a></div></footer>`;
 
-const TYPE_LABEL = { 'photo-tool': 'Werkzeug · lokal', 'report-html': 'Report · LLM', 'report-md': 'Vergleich · lokal', image: 'Bild · LLM', timeline: 'Ablauf · lokal', audio: 'Audio', video: 'Video', 'service-proxy': 'Dauerdienst' };
+const TYPE_LABEL = { 'photo-tool': 'Werkzeug · lokal', 'report-html': 'Report · LLM', 'report-md': 'Vergleich · lokal', image: 'Bild · LLM', timeline: 'Ablauf · lokal', audio: 'Audio', video: 'Video', 'service-proxy': 'Dauerdienst', external: 'Studio · live' };
 function indexPage() {
   const cards = Object.entries(DEMOS).map(([slug, d]) => {
     const label = TYPE_LABEL[d.type] || 'Demo';
+    // external: a live interactive app served elsewhere (its own subdomain) — link straight out
+    if (d.type === 'external' && d.externalUrl) return `<a class="dcard" href="${d.externalUrl}" target="_blank" rel="noopener"><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go">Öffnen →</span></a>`;
     if (d.live) return `<a class="dcard" href="/d/${slug}"><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go">Öffnen →</span></a>`;
     return `<div class="dcard soon"><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go soonlbl">bald verfügbar</span></div>`;
   }).join('');
