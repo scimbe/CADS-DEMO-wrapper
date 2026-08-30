@@ -1,0 +1,73 @@
+{
+  "publisher_pubkey": "1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b",
+  "manifest_id": "984f5bcea70bc896828e844d3b3f2c88a8f36d42163ba8668c6b4c738aa314d5",
+  "name": "diagram",
+  "version": "0.1.1",
+  "installer_kind": "binary",
+  "bundle": {
+    "url": "bundle.tar.gz",
+    "sha256": "9336ceb971a23ba8d0d3c6b654308c95f8fa30c5280914dbe4158def653bc4bd",
+    "compose_file": "wrapper.sh"
+  },
+  "env_template": [
+    {
+      "name": "LITELLM_BASE_URL",
+      "required": true,
+      "description": "Base URL of the litellm-proxy (OpenAI-chat-completions-compatible) endpoint the LLM writes Mermaid DSL against, e.g. https-//llm-34a13a96.bunsenbrenner.org/v1"
+    },
+    {
+      "name": "LITELLM_API_KEY",
+      "required": true,
+      "description": "API key for LITELLM_BASE_URL - never share this value in plaintext outside your own config"
+    },
+    {
+      "name": "LITELLM_DEFAULT_MODEL",
+      "required": true,
+      "description": "Model name the litellm-proxy routes to, e.g. local-devstral-small2"
+    },
+    {
+      "name": "PUPPETEER_EXECUTABLE_PATH",
+      "required": false,
+      "description": "Optional absolute path to a system Chrome or Chromium binary for puppeteer to use. If unset, wrapper.sh auto-detects google-chrome-stable, google-chrome, chromium-browser, or chromium on PATH"
+    }
+  ],
+  "verify": {
+    "script": "verify.sh",
+    "timeout_secs": 30
+  },
+  "issued_at": 1788034613,
+  "expires_at": 1819570613,
+  "demo_prompt": {
+    "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+    "parameters": [
+      {
+        "name": "engine",
+        "type": "enum",
+        "options": [
+          "mermaid",
+          "graphviz"
+        ]
+      },
+      {
+        "name": "direction",
+        "type": "enum",
+        "options": [
+          "top_down",
+          "left_right"
+        ]
+      },
+      {
+        "name": "max_attempts",
+        "type": "int",
+        "min": 1,
+        "max": 5
+      }
+    ],
+    "examples": [
+      "als Graphviz",
+      "von links nach rechts",
+      "mehr Korrekturversuche"
+    ]
+  },
+  "signature": "729ca72ef4f72870ebe12c73d34ef230e2d6a5760400ae3e9077d8d70d6e5d68856ded80ceb95e30f8a05eece24d5bf3217533a5a2f4ca9fee42ba934ee8f103"
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "file": "photo1.jpg",
+    "city": "Berlin",
+    "id": "5729760",
+    "photographer": "Viviana Ceballos",
+    "photographer_url": "https://www.pexels.com/@viviana-ceballos-1480481",
+    "pexels_url": "https://www.pexels.com/photo/high-angle-view-of-tiergarten-in-berlin-5729760/"
+  },
+  {
+    "file": "photo2.jpg",
+    "city": "Berlin",
+    "id": "28711733",
+    "photographer": "Marina Endzhirgli",
+    "photographer_url": "https://www.pexels.com/@marina-endzhirgli-725723515",
+    "pexels_url": "https://www.pexels.com/photo/berlin-skyline-with-tv-tower-at-sunset-28711733/"
+  },
+  {
+    "file": "photo3.jpg",
+    "city": "Hamburg",
+    "id": "19082991",
+    "photographer": "Paparazzi Ratzfatzzi",
+    "photographer_url": "https://www.pexels.com/@paparazziratzfatzzi",
+    "pexels_url": "https://www.pexels.com/photo/tourist-part-of-the-port-in-hamburg-on-river-elbe-19082991/"
+  },
+  {
+    "file": "photo4.jpg",
+    "city": "Hamburg",
+    "id": "30331627",
+    "photographer": "Wolfgang Weiser",
+    "photographer_url": "https://www.pexels.com/@wolfgang-weiser-467045605",
+    "pexels_url": "https://www.pexels.com/photo/winter-scene-at-hamburg-port-with-frost-30331627/"
+  },
+  {
+    "file": "photo5.jpg",
+    "city": "Munich",
+    "id": "34422174",
+    "photographer": "Nadtochiy Photography",
+    "photographer_url": "https://www.pexels.com/@nadtochiy-photography-2156881367",
+    "pexels_url": "https://www.pexels.com/photo/historic-european-architecture-in-munich-cityscape-34422174/"
+  },
+  {
+    "file": "photo6.jpg",
+    "city": "Munich",
+    "id": "2127010",
+    "photographer": "Maria Geller",
+    "photographer_url": "https://www.pexels.com/@maria-geller-801267",
+    "pexels_url": "https://www.pexels.com/photo/low-angle-of-gray-concrete-building-2127010/"
+  }
+]

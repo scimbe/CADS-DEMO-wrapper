@@ -1,0 +1,98 @@
+{
+  "publisher_pubkey": "1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b",
+  "manifest_id": "724a891946c9b15eeb1e6ad099b018043729aa6020b87b1b47397b8015277040",
+  "name": "newsletter",
+  "version": "0.1.2",
+  "installer_kind": "binary",
+  "bundle": {
+    "url": "bundle.tar.gz",
+    "sha256": "e2c5172aec10646aea0edf1658244cd8207e08341f4426c79590314ca66b408f",
+    "compose_file": "run.sh"
+  },
+  "env_template": [
+    {
+      "name": "LITELLM_BASE_URL",
+      "required": true,
+      "description": "Base URL of the litellm-proxy OpenAI-compatible endpoint, e.g. http-//127.0.0.1-4001/v1 - the demo hard-requires a real LLM call, there is no no-LLM fallback mode"
+    },
+    {
+      "name": "LITELLM_API_KEY",
+      "required": true,
+      "description": "Scoped litellm-proxy virtual key authorized for the configured model"
+    },
+    {
+      "name": "LITELLM_DEFAULT_MODEL",
+      "required": false,
+      "description": "Model name to request from the litellm-proxy endpoint - optional, defaults to local-devstral-small2 from config/report.yaml if unset"
+    }
+  ],
+  "verify": {
+    "script": "verify.sh",
+    "timeout_secs": 60
+  },
+  "issued_at": 1788034394,
+  "expires_at": 1819570394,
+  "demo_prompt": {
+    "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für eine wöchentliche Wetter-Report-Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder und halte dich strikt an die erlaubten Werte. Antworte NUR mit striktem JSON (keine Erklärung, keine Markdown-Zäune) und nur mit den Feldern, die der Nutzer ändern will.",
+    "parameters": [
+      {
+        "name": "location",
+        "type": "enum",
+        "options": [
+          "Hamburg",
+          "Berlin",
+          "München",
+          "Köln",
+          "Frankfurt",
+          "Stuttgart",
+          "Bremen",
+          "Hannover",
+          "Wien",
+          "Zürich"
+        ]
+      },
+      {
+        "name": "accent_color",
+        "type": "color"
+      },
+      {
+        "name": "font",
+        "type": "enum",
+        "options": [
+          "serif",
+          "sans"
+        ]
+      },
+      {
+        "name": "include",
+        "type": "multiselect",
+        "options": [
+          "temperature",
+          "precipitation",
+          "wind"
+        ],
+        "note": "nur was die Open-Meteo-API liefert"
+      },
+      {
+        "name": "forecast_days",
+        "type": "int",
+        "min": 3,
+        "max": 14
+      },
+      {
+        "name": "language",
+        "type": "enum",
+        "options": [
+          "de",
+          "en"
+        ]
+      }
+    ],
+    "examples": [
+      "Berlin in Blau, ohne Wind",
+      "München, große serifenlose Schrift, nur Temperatur",
+      "Zürich, 10 Tage, auf Englisch"
+    ]
+  },
+  "signature": "035229851db1365bccaffff71f0f0e0943b036382165b6bffbc2b6f05403660cea97a991bcbd51b9b077e730efdcf366871bda077ee67b1a43d8a9ecbaa98801"
+}

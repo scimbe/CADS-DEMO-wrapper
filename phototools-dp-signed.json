@@ -1,0 +1,52 @@
+{
+  "publisher_pubkey": "1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b",
+  "manifest_id": "e787e7506bfae74829d4b7736ca4677f74e8a0e8b030a59c0ad139950816194d",
+  "name": "phototools",
+  "version": "0.1.3",
+  "installer_kind": "binary",
+  "bundle": {
+    "url": "bundle.tar.gz",
+    "sha256": "235b08c804af9ba68683da47ff7ff5600f93656565166e1bff4957084f627b5c",
+    "compose_file": "run.sh"
+  },
+  "env_template": [],
+  "verify": {
+    "script": "verify.sh",
+    "timeout_secs": 60
+  },
+  "issued_at": 1788034613,
+  "expires_at": 1819570613,
+  "demo_prompt": {
+    "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+    "parameters": [
+      {
+        "name": "sort_by",
+        "type": "enum",
+        "options": [
+          "date_then_city",
+          "city_then_date"
+        ]
+      },
+      {
+        "name": "watermark",
+        "type": "enum",
+        "options": [
+          "bunsenbrenner",
+          "hamburg_demo",
+          "none"
+        ]
+      },
+      {
+        "name": "contact_columns",
+        "type": "int",
+        "min": 2,
+        "max": 6
+      }
+    ],
+    "examples": [
+      "nach Ort statt Datum sortieren",
+      "ohne Wasserzeichen, 4 Spalten"
+    ]
+  },
+  "signature": "d677f94242d4ca4220963303cf068842f4075598dcfab8e65c83488d298a484fe31ba7859d8153614a0858d160187212ea199865241d43ff867d68323048a00d"
+}

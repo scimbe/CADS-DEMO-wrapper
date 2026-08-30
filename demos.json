@@ -1,0 +1,521 @@
+{
+  "phototools": {
+    "type": "photo-tool",
+    "name": "phototools",
+    "version": "0.1.2",
+    "title": "Foto-Ordner ordnen",
+    "tagline": "Sortiert einen Foto-Ordner nach Aufnahmedatum und Ort, setzt ein Wasserzeichen und legt einen Kontaktbogen an — lokal, ohne KI.",
+    "blurb": "Wilder Foto-Stapel rein, sauber sortierte Ordner + Kontaktbogen raus.",
+    "manifestDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/tm/manifests/phototools",
+    "inputDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/wrapper/fotos",
+    "outputDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/wrapper/sortiert",
+    "watermark": "bunsenbrenner.org · demo",
+    "photos": [
+      {
+        "file": "photo1.jpg",
+        "city": "Berlin",
+        "date": "15.01.2025",
+        "photographer": "Viviana Ceballos",
+        "photographer_url": "https://www.pexels.com/@viviana-ceballos-1480481",
+        "pexels_url": "https://www.pexels.com/photo/high-angle-view-of-tiergarten-in-berlin-5729760/"
+      },
+      {
+        "file": "photo2.jpg",
+        "city": "Berlin",
+        "date": "15.01.2025",
+        "photographer": "Marina Endzhirgli",
+        "photographer_url": "https://www.pexels.com/@marina-endzhirgli-725723515",
+        "pexels_url": "https://www.pexels.com/photo/berlin-skyline-with-tv-tower-at-sunset-28711733/"
+      },
+      {
+        "file": "photo3.jpg",
+        "city": "Hamburg",
+        "date": "15.01.2025",
+        "photographer": "Paparazzi Ratzfatzzi",
+        "photographer_url": "https://www.pexels.com/@paparazziratzfatzzi",
+        "pexels_url": "https://www.pexels.com/photo/tourist-part-of-the-port-in-hamburg-on-river-elbe-19082991/"
+      },
+      {
+        "file": "photo4.jpg",
+        "city": "Hamburg",
+        "date": "02.06.2025",
+        "photographer": "Wolfgang Weiser",
+        "photographer_url": "https://www.pexels.com/@wolfgang-weiser-467045605",
+        "pexels_url": "https://www.pexels.com/photo/winter-scene-at-hamburg-port-with-frost-30331627/"
+      },
+      {
+        "file": "photo5.jpg",
+        "city": "Munich",
+        "date": "02.06.2025",
+        "photographer": "Nadtochiy Photography",
+        "photographer_url": "https://www.pexels.com/@nadtochiy-photography-2156881367",
+        "pexels_url": "https://www.pexels.com/photo/historic-european-architecture-in-munich-cityscape-34422174/"
+      },
+      {
+        "file": "photo6.jpg",
+        "city": "Munich",
+        "date": "30.11.2025",
+        "photographer": "Maria Geller",
+        "photographer_url": "https://www.pexels.com/@maria-geller-801267",
+        "pexels_url": "https://www.pexels.com/photo/low-angle-of-gray-concrete-building-2127010/"
+      }
+    ],
+    "estSeconds": 8,
+    "live": true,
+    "demo_prompt": {
+      "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+      "parameters": [
+        {
+          "name": "sort_by",
+          "type": "enum",
+          "options": [
+            "date_then_city",
+            "city_then_date"
+          ]
+        },
+        {
+          "name": "watermark",
+          "type": "enum",
+          "options": [
+            "bunsenbrenner",
+            "hamburg_demo",
+            "none"
+          ]
+        },
+        {
+          "name": "contact_columns",
+          "type": "int",
+          "min": 2,
+          "max": 6
+        }
+      ],
+      "examples": [
+        "nach Ort statt Datum sortieren",
+        "ohne Wasserzeichen, 4 Spalten"
+      ]
+    }
+  },
+  "newsletter": {
+    "type": "report-html",
+    "name": "newsletter",
+    "version": "0.1.1",
+    "title": "Wetter-Briefing erstellen",
+    "tagline": "Holt echte Wetterdaten (Open-Meteo), rechnet Kennzahlen und Diagramme, und lässt ein LLM ein faktentreues Kurz-Briefing schreiben — als fertiger HTML-Report.",
+    "blurb": "Standort rein, redaktionelles Wochen-Wetterbriefing als HTML raus.",
+    "manifestDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/tm/manifests/newsletter",
+    "location": "Hamburg, DE",
+    "source": "api.open-meteo.com",
+    "model": "local-devstral-small2",
+    "htmlEntry": "report.html",
+    "outputRel": "report-output",
+    "usesLLM": true,
+    "estSeconds": 95,
+    "live": true,
+    "locations": {
+      "Hamburg": [
+        53.5511,
+        9.9937,
+        "Europe/Berlin"
+      ],
+      "Berlin": [
+        52.52,
+        13.405,
+        "Europe/Berlin"
+      ],
+      "München": [
+        48.1351,
+        11.582,
+        "Europe/Berlin"
+      ],
+      "Köln": [
+        50.9375,
+        6.9603,
+        "Europe/Berlin"
+      ],
+      "Frankfurt": [
+        50.1109,
+        8.6821,
+        "Europe/Berlin"
+      ],
+      "Stuttgart": [
+        48.7758,
+        9.1829,
+        "Europe/Berlin"
+      ],
+      "Bremen": [
+        53.0793,
+        8.8017,
+        "Europe/Berlin"
+      ],
+      "Hannover": [
+        52.3759,
+        9.732,
+        "Europe/Berlin"
+      ],
+      "Wien": [
+        48.2082,
+        16.3738,
+        "Europe/Vienna"
+      ],
+      "Zürich": [
+        47.3769,
+        8.5417,
+        "Europe/Zurich"
+      ]
+    },
+    "demo_prompt": {
+      "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für eine wöchentliche Wetter-Report-Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder und halte dich strikt an die erlaubten Werte. Antworte NUR mit striktem JSON (keine Erklärung, keine Markdown-Zäune) und nur mit den Feldern, die der Nutzer ändern will.",
+      "parameters": [
+        {
+          "name": "location",
+          "type": "enum",
+          "options": [
+            "Hamburg",
+            "Berlin",
+            "München",
+            "Köln",
+            "Frankfurt",
+            "Stuttgart",
+            "Bremen",
+            "Hannover",
+            "Wien",
+            "Zürich"
+          ]
+        },
+        {
+          "name": "accent_color",
+          "type": "color"
+        },
+        {
+          "name": "font",
+          "type": "enum",
+          "options": [
+            "serif",
+            "sans"
+          ]
+        },
+        {
+          "name": "include",
+          "type": "multiselect",
+          "options": [
+            "temperature",
+            "precipitation",
+            "wind"
+          ],
+          "note": "nur was die Open-Meteo-API liefert"
+        },
+        {
+          "name": "forecast_days",
+          "type": "int",
+          "min": 3,
+          "max": 14
+        },
+        {
+          "name": "language",
+          "type": "enum",
+          "options": [
+            "de",
+            "en"
+          ]
+        }
+      ],
+      "examples": [
+        "Berlin in Blau, ohne Wind",
+        "München, große serifenlose Schrift, nur Temperatur",
+        "Zürich, 10 Tage, auf Englisch"
+      ]
+    },
+    "servedBy": "customer"
+  },
+  "contractcheck": {
+    "type": "report-md",
+    "name": "contractcheck",
+    "version": "0.1.0",
+    "title": "Verträge vergleichen",
+    "tagline": "Findet die inhaltlichen Änderungen zwischen zwei Vertragsversionen — Klausel für Klausel, deterministisch, ohne KI.",
+    "blurb": "Zwei Vertrags-PDFs rein, die geänderten Klauseln markiert raus.",
+    "manifestDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/tm/manifests/contractcheck",
+    "entrypoint": "run.sh",
+    "outputRel": ".",
+    "reportMd": "report.md",
+    "story": "Zwei Versionen desselben Vertrags. Klausel 4 (Zahlungsziel) ändert sich von 30 auf 45 Tage — 15 Tage länger aufs Geld warten. Sonst nichts. Der Diff zeigt genau diese Zeile.",
+    "estSeconds": 10,
+    "live": true,
+    "demo_prompt": {
+      "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+      "parameters": [
+        {
+          "name": "focus",
+          "type": "enum",
+          "options": [
+            "all",
+            "payment_only",
+            "changes_only"
+          ]
+        },
+        {
+          "name": "context_lines",
+          "type": "int",
+          "min": 0,
+          "max": 6
+        },
+        {
+          "name": "llm_summary",
+          "type": "enum",
+          "options": [
+            "on",
+            "off"
+          ]
+        }
+      ],
+      "examples": [
+        "nur Zahlungsklauseln",
+        "mit mehr Kontext",
+        "mit KI-Zusammenfassung"
+      ]
+    }
+  },
+  "diagram": {
+    "type": "image",
+    "name": "diagram",
+    "version": "0.1.0",
+    "title": "Diagramm aus Text",
+    "tagline": "Beschreibe ein Diagramm in einem Satz — ein LLM schreibt Mermaid-Code, ein echter Renderer prüft ihn und erzeugt ein PNG; bei Syntaxfehlern korrigiert das LLM anhand der echten Fehlermeldung.",
+    "blurb": "Satz rein, gerendertes Diagramm-Bild raus.",
+    "manifestDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/tm/manifests/diagram",
+    "tool": "bin/diagram.js",
+    "engine": "mermaid",
+    "description": "A flowchart: a visitor opens a demo, the marketplace installs the tool, the tool runs locally, the result is shown.",
+    "usesLLM": true,
+    "model": "local-devstral-small2",
+    "chromePath": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "produces": {
+      "image": "diagram.png",
+      "log": "attempts.json"
+    },
+    "estSeconds": 25,
+    "live": true,
+    "demo_prompt": {
+      "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+      "parameters": [
+        {
+          "name": "engine",
+          "type": "enum",
+          "options": [
+            "mermaid",
+            "graphviz"
+          ]
+        },
+        {
+          "name": "direction",
+          "type": "enum",
+          "options": [
+            "top_down",
+            "left_right"
+          ]
+        },
+        {
+          "name": "max_attempts",
+          "type": "int",
+          "min": 1,
+          "max": 5
+        }
+      ],
+      "examples": [
+        "als Graphviz",
+        "von links nach rechts",
+        "mehr Korrekturversuche"
+      ]
+    }
+  },
+  "temporal-poc": {
+    "type": "timeline",
+    "name": "temporal-poc",
+    "version": "0.1.0",
+    "title": "Absturzsichere Abläufe",
+    "tagline": "Ein Dokument wird gerendert; mitten im Lauf wird der Arbeiter-Prozess hart gekillt. Temporal merkt am ausbleibenden Heartbeat den Ausfall und ein zweiter Arbeiter bringt die Aufgabe automatisch zu Ende.",
+    "blurb": "Arbeiter stürzt mitten in der Aufgabe ab — die Aufgabe läuft trotzdem zu Ende.",
+    "manifestDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/tm/manifests/temporal-poc",
+    "entrypoint": "run.sh",
+    "env": {
+      "RENDER_HOLD_SECONDS": "3"
+    },
+    "produces": {
+      "history": "evidence/event-history.json",
+      "attempts": "poc/.run/attempts.log"
+    },
+    "estSeconds": 45,
+    "live": true,
+    "demo_prompt": {
+      "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+      "parameters": [
+        {
+          "name": "render_hold_seconds",
+          "type": "int",
+          "min": 1,
+          "max": 15
+        }
+      ],
+      "examples": [
+        "langsamer, mehr Haltezeit",
+        "schneller durchlaufen"
+      ]
+    }
+  },
+  "podcast": {
+    "type": "audio",
+    "name": "podcast",
+    "version": "0.1.0",
+    "title": "Podcast-Folge montieren",
+    "tagline": "Mischt Roh-Spuren zu einer Folge (ffmpeg), transkribiert sie mit whisper.cpp und lässt ein LLM Kapitelmarken setzen — mit Prüfung gegen die echten Zeitstempel.",
+    "blurb": "Roh-Spuren rein, fertige Folge mit Kapiteln & Transkript raus.",
+    "manifestDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/tm/manifests/podcast",
+    "staticOut": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/podcastrun/out",
+    "serveExisting": true,
+    "audio": "episode.mp3",
+    "chapters": "chapters.json",
+    "transcript": "transcript.srt",
+    "estSeconds": 6,
+    "live": true,
+    "demo_prompt": {
+      "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+      "parameters": [
+        {
+          "name": "language",
+          "type": "enum",
+          "options": [
+            "de",
+            "en"
+          ]
+        },
+        {
+          "name": "chapters",
+          "type": "enum",
+          "options": [
+            "on",
+            "off"
+          ]
+        },
+        {
+          "name": "announcements",
+          "type": "enum",
+          "options": [
+            "on",
+            "off"
+          ]
+        },
+        {
+          "name": "voice",
+          "type": "enum",
+          "options": [
+            "standard"
+          ]
+        }
+      ],
+      "examples": [
+        "auf Englisch",
+        "ohne Kapitel",
+        "mit Ansagen"
+      ]
+    }
+  },
+  "explainer": {
+    "type": "video",
+    "name": "explainer",
+    "version": "0.1.0",
+    "title": "Erklärvideo aus einem Thema",
+    "tagline": "Ein LLM schreibt ein Storyboard; danach ist alles deterministisch: Text-to-Speech pro Szene, GSAP/HTML-Animation, Headless-Chrome-Render, ffmpeg-Schnitt zum fertigen MP4.",
+    "blurb": "Thema rein, vertontes Erklärvideo raus.",
+    "hasManifest": false,
+    "staticOut": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/explainer2/projects/macos-livetest",
+    "serveExisting": true,
+    "video": "renders/final.mp4",
+    "scenes": "assets/scenes.json",
+    "note": "Noch nicht als Marketplace-Manifest paketiert — läuft aus der Quelle; vorgerendertes echtes Ergebnis (englische Piper-Stimme). Deutsche Mehrstimmen-TTS folgt über den llm2-Channel.",
+    "estSeconds": 6,
+    "live": true,
+    "demo_prompt": {
+      "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für eine Erklärvideo-Demo (Thema → Storyboard → Sprecher → Video). Ändere AUSSCHLIESSLICH die erlaubten Felder und halte dich strikt an die erlaubten Werte. Antworte NUR mit striktem JSON (keine Erklärung, keine Markdown-Zäune) und nur mit den Feldern, die der Nutzer ändern will.",
+      "parameters": [
+        {
+          "name": "language",
+          "type": "enum",
+          "options": [
+            "de",
+            "en"
+          ]
+        },
+        {
+          "name": "voice",
+          "type": "enum",
+          "options": [
+            "primary",
+            "interviewer"
+          ]
+        },
+        {
+          "name": "tone",
+          "type": "enum",
+          "options": [
+            "sachlich",
+            "lehrend",
+            "enthusiastisch"
+          ]
+        },
+        {
+          "name": "scene_count",
+          "type": "int",
+          "min": 4,
+          "max": 6
+        },
+        {
+          "name": "accent_color",
+          "type": "color"
+        }
+      ],
+      "examples": [
+        "auf Englisch, sachlicher Ton",
+        "6 Szenen, enthusiastisch, in Terracotta",
+        "Interviewer-Stimme, lehrender Ton"
+      ]
+    }
+  },
+  "travel": {
+    "type": "service-proxy",
+    "name": "travel",
+    "version": "0.1.0",
+    "title": "Route planen (Bremen)",
+    "tagline": "Ein Dauerdienst: OSRM rechnet die echte Route, ein LLM extrahiert Start/Ziel aus Freitext und formuliert die Wegbeschreibung — mechanisch gegen die echte Route rückgeprüft.",
+    "blurb": "Freitext-Routenwunsch rein, geprüfte Wegbeschreibung raus.",
+    "manifestDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/tm/manifests/travel",
+    "compose": true,
+    "bridgePort": 8789,
+    "needsLLM": true,
+    "runDir": "$HOME/travelrun",
+    "status": "needs-compose",
+    "note": "Compose-Dauerdienst (OSRM Bremen + Bridge). Braucht Docker/colima + Operator-Bestätigung für Subdomain travel.bunsenbrenner.org. Eigene persistente Wrapper-Form, kein Batch.",
+    "estSeconds": 30,
+    "live": false,
+    "demo_prompt": {
+      "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+      "parameters": [
+        {
+          "name": "preference",
+          "type": "enum",
+          "options": [
+            "fastest",
+            "avoid_highways",
+            "avoid_tolls",
+            "shortest_distance",
+            "fastest_alternative"
+          ]
+        }
+      ],
+      "examples": [
+        "Autobahnen meiden",
+        "kürzeste Strecke",
+        "mautfrei"
+      ]
+    }
+  }
+}

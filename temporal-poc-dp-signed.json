@@ -1,0 +1,41 @@
+{
+  "publisher_pubkey": "1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b",
+  "manifest_id": "1e31e4e741705ad63885826838f2cde4da502e5248a0ab31ba371a722fc2c308",
+  "name": "temporal-poc",
+  "version": "0.1.1",
+  "installer_kind": "binary",
+  "bundle": {
+    "url": "bundle.tar.gz",
+    "sha256": "ae0a27c311792b88c9186f9449177334cc58a8684369e2b862e66f333b0a60f6",
+    "compose_file": "run.sh"
+  },
+  "env_template": [
+    {
+      "name": "RENDER_HOLD_SECONDS",
+      "required": false,
+      "description": "Seconds the demo activity holds before completing each attempt - lower to speed the demo up, default 8"
+    }
+  ],
+  "verify": {
+    "script": "verify.sh",
+    "timeout_secs": 30
+  },
+  "issued_at": 1788034613,
+  "expires_at": 1819570613,
+  "demo_prompt": {
+    "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+    "parameters": [
+      {
+        "name": "render_hold_seconds",
+        "type": "int",
+        "min": 1,
+        "max": 15
+      }
+    ],
+    "examples": [
+      "langsamer, mehr Haltezeit",
+      "schneller durchlaufen"
+    ]
+  },
+  "signature": "cccacfb1ba833ca775c5750e5ecbee2de27f7019b38862a990fe46a4fc0dd378a363e4fba72f738475f9dbce2964a24d05b4890987dda93dc59add5a23aa550c"
+}

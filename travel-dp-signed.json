@@ -1,0 +1,57 @@
+{
+  "publisher_pubkey": "1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b",
+  "manifest_id": "56cba853f4aaa1eb9dcd2914ddcc05d04d02fe5d9c18b9e68bd6d275990f6c1e",
+  "name": "travel",
+  "version": "0.1.1",
+  "installer_kind": "compose",
+  "bundle": {
+    "url": "bundle.tar.gz",
+    "sha256": "1876fa51f43878a6e075db508731699c901781e4a374602d88c31626b45b97e3",
+    "compose_file": "compose.yml"
+  },
+  "env_template": [
+    {
+      "name": "LITELLM_BASE_URL",
+      "required": true,
+      "description": "LiteLLM-compatible base URL (e.g. https-//your-litellm-proxy/v1) used for the chat-formatting step - the anti-hallucination check needs a real model call, this demo has no offline fallback for it"
+    },
+    {
+      "name": "LITELLM_API_KEY",
+      "required": true,
+      "description": "API key for LITELLM_BASE_URL - never share this value outside your own local .env"
+    },
+    {
+      "name": "LITELLM_DEFAULT_MODEL",
+      "required": false,
+      "description": "Model name to request from LITELLM_BASE_URL, defaults to local-devstral-small2 if unset"
+    }
+  ],
+  "verify": {
+    "script": "verify.sh",
+    "timeout_secs": 120
+  },
+  "issued_at": 1788034613,
+  "expires_at": 1819570613,
+  "demo_prompt": {
+    "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+    "parameters": [
+      {
+        "name": "preference",
+        "type": "enum",
+        "options": [
+          "fastest",
+          "avoid_highways",
+          "avoid_tolls",
+          "shortest_distance",
+          "fastest_alternative"
+        ]
+      }
+    ],
+    "examples": [
+      "Autobahnen meiden",
+      "kürzeste Strecke",
+      "mautfrei"
+    ]
+  },
+  "signature": "f1f5cc0c176e86b82e8d9c5a2588651b5074fe4acca299233133f46b7f950df775f0fb9dff0228f5e99331fc21d18b2de48215e79ddbec6a8c5da4267a8aa702"
+}

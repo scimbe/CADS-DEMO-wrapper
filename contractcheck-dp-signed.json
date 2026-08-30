@@ -1,0 +1,69 @@
+{
+  "publisher_pubkey": "1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b",
+  "manifest_id": "4b4e7ade75e59ba4000fdc6fd0bccbc62e9a3f665fb0d9c0eb4e889b8561171a",
+  "name": "contractcheck",
+  "version": "0.1.1",
+  "installer_kind": "binary",
+  "bundle": {
+    "url": "bundle.tar.gz",
+    "sha256": "acb1a5136b4006e8251eb691a5ad3268ba8f1684c09af3a37aa2c25fd388c947",
+    "compose_file": "run.sh"
+  },
+  "env_template": [
+    {
+      "name": "LLM_BASE_URL",
+      "required": false,
+      "description": "LiteLLM/OpenAI-compatible base URL for the LLM summary step, e.g. https-//your-endpoint.example.com/v1. Optional - without it (or LLM_API_KEY) run.sh falls back to the tool-computed diff only via --no-llm, no LLM summary produced."
+    },
+    {
+      "name": "LLM_API_KEY",
+      "required": false,
+      "description": "API key for the LLM summary step. Optional, see LLM_BASE_URL."
+    },
+    {
+      "name": "LLM_MODEL_NAME",
+      "required": false,
+      "description": "Model name for the LLM summary step, e.g. local-devstral-small2. Optional, this is also the pipeline's own internal default if unset."
+    }
+  ],
+  "verify": {
+    "script": "verify.sh",
+    "timeout_secs": 30
+  },
+  "issued_at": 1788034613,
+  "expires_at": 1819570613,
+  "demo_prompt": {
+    "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+    "parameters": [
+      {
+        "name": "focus",
+        "type": "enum",
+        "options": [
+          "all",
+          "payment_only",
+          "changes_only"
+        ]
+      },
+      {
+        "name": "context_lines",
+        "type": "int",
+        "min": 0,
+        "max": 6
+      },
+      {
+        "name": "llm_summary",
+        "type": "enum",
+        "options": [
+          "on",
+          "off"
+        ]
+      }
+    ],
+    "examples": [
+      "nur Zahlungsklauseln",
+      "mit mehr Kontext",
+      "mit KI-Zusammenfassung"
+    ]
+  },
+  "signature": "0916fa7d5fba9e530a8282b2f5add08655c718f81edd2883daf06a5a91b21cfa32b97bcc7b513b8c1d82fbc08f5fb0354fd16d4d23ae50123d3a290928060f0c"
+}

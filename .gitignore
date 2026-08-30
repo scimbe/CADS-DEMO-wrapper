@@ -1,0 +1,9 @@
+.env
+.env.local
+*.key
+.pexels-key
+.registry-token
+work/
+node_modules/
+*.log
+*.png
