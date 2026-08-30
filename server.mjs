@@ -468,6 +468,11 @@ details.tech summary::before{content:"▸";color:var(--teal)}details.tech[open] 
 .note .t{font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-ink);font-weight:600;padding-top:2px;white-space:nowrap}.note b{color:var(--ink)}
 .prov{margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:11px;font-size:.8rem;color:var(--muted2)}
 .prov .ok{color:var(--teal-ink);font-weight:600}.prov .sim{color:var(--terra-ink)}.prov .sep{color:var(--border)}
+.capbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:16px 0 2px}
+.caplabel{color:var(--muted);font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;margin-right:2px}
+.capchip{display:inline-flex;align-items:center;gap:6px;padding:.26rem .62rem;border-radius:999px;border:1px solid var(--border);background:var(--card);font-size:.78rem;color:var(--muted2)}
+.capchip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+.cap-free::before{background:#2f8a5f}.cap-busy::before{background:var(--terra)}.cap-info::before{background:var(--teal)}.cap-un{color:var(--muted)}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;margin-top:26px}
 .dcard{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:13px;padding:20px 22px;box-shadow:0 1px 2px rgba(19,26,44,.03);text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
 .dcard:hover{border-color:var(--teal);transform:translateY(-2px)}
@@ -532,8 +537,30 @@ ${appbar('Marktplatz / <b>Demos</b>')}
   <div class="eyebrow"><span class="lead">—</span>Marktplatz · besuchbare Demos</div>
   <h1>Werkzeuge zum Ausprobieren, direkt aus dem Marktplatz.</h1>
   <p class="lede">Jede Demo wird über den echten Marktplatz-Weg installiert. Die <b>deterministischen Werkzeuge laufen lokal</b> auf diesem Rechner; wo ein Sprachmodell nötig ist, läuft es auf <b>DSGVO-konformen Servern in Deutschland</b> — kleine Modelle, die zu keinem Zeitpunkt Daten speichern. Klick eine an und probier sie aus.</p>
+  <div id="capbar" class="capbar" hidden></div>
   <div class="cards">${cards}</div>
-</div>${FOOT}</body></html>`;
+</div>${FOOT}
+<script>
+(function(){
+  var bar=document.getElementById('capbar'); if(!bar) return;
+  function chip(label,cls,txt){return '<span class="capchip '+cls+'">'+label+': '+txt+'</span>';}
+  function fmt(p){return (p||p===0)?(' · ~'+Number(p).toFixed(1)+' s'):'';}
+  async function poll(){
+    try{
+      var j=await (await fetch('/api/status')).json();
+      if(!j||!j.ok){ bar.innerHTML='<span class="capchip cap-un">Auslastung momentan nicht abrufbar</span>'; bar.hidden=false; return; }
+      var s=j.svc||{}, parts=[];
+      var tts=s['audio_generation.primary'];
+      if(tts){ var busy=(tts.active+tts.queued)>0; parts.push(chip('Sprachausgabe', busy?'cap-busy':'cap-free', (busy?('ausgelastet · '+tts.queued+' in Warteschlange'):'frei')+fmt(tts.p50))); }
+      var ol=s.ollama;
+      if(ol){ parts.push(chip('Sprachmodell','cap-info',((ol.models&&ol.models.length)?ol.models.join(', '):'geladen')+(ol.parallel?(' · '+ol.parallel+'× parallel'):''))); }
+      if(parts.length){ bar.innerHTML='<span class="caplabel">Aktuelle KI-Dienst-Auslastung</span>'+parts.join(''); bar.hidden=false; }
+    }catch(e){ /* keep whatever is shown; never break the page */ }
+  }
+  poll(); setInterval(poll, 15000);
+})();
+</script>
+</body></html>`;
 }
 
 const CLIENT = `
@@ -821,10 +848,40 @@ ${appbar(`<a href="/">Marktplatz</a> / <b>${d.name}</b>`)}
 </div>${FOOT}</body></html>`;
 }
 
+// Live capacity indicator: server-side proxy of llm2's read-only /status (avoids CORS; the flaky
+// TLS-TCP endpoint can time out, so we retry once and degrade gracefully — never break the page).
+let _statusCache = { t: 0, data: null };
+async function fetchStatus() {
+  const now = Date.now();
+  if (_statusCache.data && now - _statusCache.t < 10000) return _statusCache.data;   // 10s cache
+  for (let i = 0; i < 2; i++) {
+    try {
+      const c = new AbortController(); const to = setTimeout(() => c.abort(), 8000);
+      const r = await fetch('https://site-f29c55da.bunsenbrenner.org/status', { signal: c.signal });
+      clearTimeout(to);
+      if (r.ok) { const j = await r.json(); _statusCache = { t: now, data: j }; return j; }
+    } catch { /* retry once, then give up */ }
+  }
+  return null;
+}
+function handleStatus(res) {
+  fetchStatus().then((j) => {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+    if (!j) { res.end(JSON.stringify({ ok: false })); return; }
+    const svc = {};
+    for (const [k, v] of Object.entries(j)) {
+      if (k === 'ollama_backed' && v) { svc.ollama = { models: v.loaded_models || [], parallel: v.num_parallel_configured }; continue; }
+      if (v && typeof v === 'object' && 'active_requests' in v) svc[k] = { active: v.active_requests, queued: v.queued_requests, p50: v.p50_latency_s };
+    }
+    res.end(JSON.stringify({ ok: true, svc }));
+  }).catch(() => { try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false })); } catch {} });
+}
+
 http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
   if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage()); return; }
+  if (p === '/api/status') { handleStatus(res); return; }
   if (p === '/api/start') { handleStart(req, res, url); return; }
   if (p === '/api/plan' && req.method === 'POST') { handlePlan(req, res, url); return; }
   const dm = p.match(/^\/d\/([a-z0-9-]+)\/out\/(.+)$/);
