@@ -1,4 +1,14 @@
 {
+  "flappy": {
+    "type": "external",
+    "name": "flappy",
+    "version": "0.1.0",
+    "title": "Flappy-Spiel bauen",
+    "tagline": "Ein Live-Studio: Du stellst dein Flappy-Bird ein, und eine echte Rollen-Ketten-Pipeline über den Tunnel baut daraus dein spielbares Spiel — payload-blind am Edge.",
+    "blurb": "Spiel einstellen, Pipeline baut es, direkt im Browser spielen.",
+    "externalUrl": "https://flappy-demo.bunsenbrenner.org/",
+    "live": true
+  },
   "phototools": {
     "type": "photo-tool",
     "name": "phototools",
