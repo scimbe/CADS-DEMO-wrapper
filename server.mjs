@@ -673,7 +673,7 @@ function photoToolPage(slug) {
   const controls = `<span class="setting"><span class="k">Sortieren</span><span class="v">Datum · Ort</span></span>
     <span class="setting"><span class="k">Wasserzeichen</span><span class="v on">an</span></span>
     <button class="btn btn-primary run" data-fresh="0">Organisieren ▸</button>
-    <button class="btn btn-ghost run" data-fresh="1">Werkzeug neu installieren</button>`;
+    ${installLink}`;
   const body = `
   <div class="io"><span>Eingang</span><span class="path">fotos/</span><span class="ar">→</span><span>Werkzeug</span><span class="path">phototools organize</span><span class="ar">→</span><span>Ausgabe</span><span class="path">sortiert/</span></div>
   <div class="grid2">
@@ -710,7 +710,7 @@ function reportHtmlPage(slug, lang) {
     <span class="setting"><span class="k">Quelle</span><span class="v">${d.source}</span></span>
     <span class="setting"><span class="k">Modell</span><span class="v on">${d.model}</span></span>
     <button class="btn btn-primary run" data-fresh="0">Briefing erstellen ▸</button>
-    <button class="btn btn-ghost run" data-fresh="1">Werkzeug neu installieren</button>`;
+    ${installLink}`;
   const body = `
   <p class="lede" style="margin:2px 0 16px">Diese Demo zeigt, wie sich ein Sprachmodell <b>faktentreu</b> einsetzen lässt: Es holt echte Wetterdaten für ${d.location} von Open-Meteo, rechnet daraus Kennzahlen und Diagramme mit gewöhnlichem Code und lässt das LLM nur den <b>Fließtext</b> schreiben — jede Zahl darin wird automatisch gegen die Rohdaten geprüft. Das Ergebnis ist ein fertiger, redaktioneller Wochen­report als HTML (und PDF), wie ihn ein Team ohne manuelle Arbeit jede Woche verschicken könnte.</p>
   <p class="subtle" style="margin:-6px 0 14px">Sprache oben rechts umschaltbar (DE/EN): das LLM schreibt den Report in der gewählten Sprache — über denselben DSGVO-konformen Endpunkt in Deutschland.</p>
@@ -737,7 +737,11 @@ function outBlock(steps, placeholder, panels, note, prov) {
   </main>${note || ''}
   <div class="prov">${prov || '<span>Bereitgestellt über den <b>Marktplatz</b></span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>Signatur/Registry <span class="sim">Demo</span></span>'}</div>`;
 }
-const runBtns = (primary) => `<button class="btn btn-primary run" data-fresh="0">${primary}</button><button class="btn btn-ghost run" data-fresh="1">Werkzeug neu installieren</button>`;
+// How-to for running/customizing a demo on your own machine (marketplace docs). Replaces the old
+// "Werkzeug neu installieren" button, which the operator asked to swap for a real install guide link.
+const HOWTO_URL = 'https://scimbe.github.io/CADS-agent-marketplace-docs/how-to/install-and-customize-a-demo/';
+const installLink = `<a class="btn btn-ghost" href="${HOWTO_URL}" target="_blank" rel="noopener">Lokal installieren &amp; anpassen ↗</a>`;
+const runBtns = (primary) => `<button class="btn btn-primary run" data-fresh="0">${primary}</button>${installLink}`;
 const NOTE = (tag, html) => `<div class="note"><span class="t">${tag}</span><div>${html}</div></div>`;
 
 const UPLOAD_CLIENT = `
