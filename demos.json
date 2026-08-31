@@ -347,14 +347,6 @@
           ]
         },
         {
-          "name": "direction",
-          "type": "enum",
-          "options": [
-            "top_down",
-            "left_right"
-          ]
-        },
-        {
           "name": "max_attempts",
           "type": "int",
           "min": 1,
@@ -363,7 +355,6 @@
       ],
       "examples": [
         "als Graphviz",
-        "von links nach rechts",
         "mehr Korrekturversuche"
       ]
     }

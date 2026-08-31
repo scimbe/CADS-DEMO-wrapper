@@ -276,8 +276,13 @@ function invokeReportMd(slug, rec, emit, stage, done, reg) {
 }
 
 // ---- invoke: image (diagram) -------------------------------------------------------------------
-function invokeImage(slug, rec, emit, stage, done, reg) {
+function invokeImage(slug, rec, emit, stage, done, reg, cfg = {}) {
   const d = DEMOS[slug];
+  // Visitor-supplied inputs (validated): the free-text diagram description drives --description; the
+  // tune-resolved engine/max_attempts drive their flags. Anything absent falls back to the demo default.
+  const desc = (cfg && typeof cfg.description === 'string' && cfg.description.trim()) ? cfg.description.trim().slice(0, 600) : d.description;
+  const engine = (cfg && (cfg.engine === 'mermaid' || cfg.engine === 'graphviz')) ? cfg.engine : d.engine;
+  const maxAtt = (cfg && Number.isInteger(cfg.max_attempts)) ? String(Math.max(1, Math.min(5, cfg.max_attempts))) : '3';
   stage('process', 'Diagramm erzeugen');
   if (!ENV.LITELLM_BASE_URL) { emit('fail', 'LLM-Zugang fehlt (LITELLM_*) — diagram braucht das Modell'); return done(null); }
   emit('step', 'Abhängigkeiten (mermaid-cli) installieren — npm ci');
@@ -288,7 +293,7 @@ function invokeImage(slug, rec, emit, stage, done, reg) {
   emit('ok', `LLM-Endpunkt · Modell ${d.model}`);
   const env = { PATH: process.env.PATH, HOME: rec.workDir, PUPPETEER_SKIP_DOWNLOAD: 'true', PUPPETEER_EXECUTABLE_PATH: d.chromePath,
     LITELLM_BASE_URL: ENV.LITELLM_BASE_URL, LITELLM_API_KEY: ENV.LITELLM_API_KEY, LITELLM_DEFAULT_MODEL: ENV.LITELLM_DEFAULT_MODEL || d.model };
-  const args = [join(rec.workDir, d.tool), 'generate', '--description', d.description, '--engine', d.engine, '--out', 'diagram.png', '--max-attempts', '3', '--attempts-log', 'attempts.json'];
+  const args = [join(rec.workDir, d.tool), 'generate', '--description', desc, '--engine', engine, '--out', 'diagram.png', '--max-attempts', maxAtt, '--attempts-log', 'attempts.json'];
   const child = spawn('node', args, { cwd: rec.workDir, env });
   if (reg) reg(child);
   let o = ''; const on = (b) => { const s = b.toString(); o += s; s.split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200))); };
@@ -298,7 +303,7 @@ function invokeImage(slug, rec, emit, stage, done, reg) {
     if (code !== 0 || !existsSync(img)) { emit('fail', `Diagramm nicht erzeugt (exit ${code})`); return done(null); }
     rec.outputDir = rec.workDir;
     emit('real', 'echt · Diagramm-PNG erzeugt');
-    done({ render: 'image', title: 'Erzeugtes Diagramm (Mermaid → PNG)', image: `/d/${slug}/out/diagram.png?t=${Date.now()}`, desc: d.description });
+    done({ render: 'image', title: 'Erzeugtes Diagramm (Mermaid → PNG)', image: `/d/${slug}/out/diagram.png?t=${Date.now()}`, desc });
   });
 }
 
@@ -377,7 +382,7 @@ function handleStart(req, res, url) {
   if (d.type === 'photo-tool') invokePhotoTool(slug, rec, emit, stage, cb, reg);
   else if (d.type === 'report-html') invokeReportHtml(slug, rec, emit, stage, cb, reg, lang, cfg);
   else if (d.type === 'report-md') invokeReportMd(slug, rec, emit, stage, cb, reg);
-  else if (d.type === 'image') invokeImage(slug, rec, emit, stage, cb, reg);
+  else if (d.type === 'image') invokeImage(slug, rec, emit, stage, cb, reg, cfg);
   else if (d.type === 'timeline') invokeTimeline(slug, rec, emit, stage, cb, reg);
   else if (d.type === 'audio' || d.type === 'video') invokeServeMedia(slug, rec, emit, stage, cb);
   else { emit('fail', 'Unbekannter Demo-Typ'); cb(null); }
@@ -508,6 +513,9 @@ details.tech summary::before{content:"▸";color:var(--teal)}details.tech[open] 
 .tune-row{display:flex;gap:10px;flex-wrap:wrap}
 .tuneinput{flex:1;min-width:240px;border:1px solid var(--border);border-radius:8px;padding:.6rem .8rem;font:400 .95rem var(--sans);color:var(--ink);background:var(--bg)}
 .tuneinput:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(47,138,125,.12)}
+.descfield{display:block;margin:2px 0 14px}.descfield .dl{display:block;font-size:.82rem;color:var(--muted2);margin-bottom:6px}
+.descinput{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:8px;padding:.6rem .8rem;font:400 .95rem var(--sans);color:var(--ink);background:var(--bg);resize:vertical}
+.descinput:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(47,138,125,.12)}
 .tune-ex{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
 .exlbl{font-size:.76rem;color:var(--muted)}
 .exchip{font:500 .78rem var(--sans);color:var(--muted2);background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:.3rem .7rem;cursor:pointer}
@@ -600,7 +608,10 @@ document.querySelectorAll('button.run').forEach(btn=>btn.addEventListener('click
   const tick=()=>{if(done)return;const el=(Date.now()-t0)/1000;bar.style.width=Math.min(95,el/est*100)+'%';ptxt.textContent='läuft … '+Math.round(el)+'s von ~'+est+'s erwartet';};
   const iv=setInterval(tick,400);tick();
   const line=(c,t)=>{const e=document.createElement('span');e.className='l '+c;e.textContent=t;log.appendChild(e);log.scrollTop=log.scrollHeight};
-  const es=new EventSource('/api/start?demo='+encodeURIComponent(slug)+'&fresh='+fresh+'&lang='+(wrap.dataset.lang||'de')+(window.__cfg?'&cfg='+encodeURIComponent(window.__cfg):''));
+  var _cfg={}; try{ if(window.__cfg) _cfg=JSON.parse(decodeURIComponent(escape(atob(window.__cfg)))); }catch(e){}
+  var _di=document.querySelector('.descinput'); if(_di && _di.value.trim()) _cfg.description=_di.value.trim();
+  var _cfgP=Object.keys(_cfg).length?('&cfg='+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(_cfg)))))):'';
+  const es=new EventSource('/api/start?demo='+encodeURIComponent(slug)+'&fresh='+fresh+'&lang='+(wrap.dataset.lang||'de')+_cfgP);
   const stop=(ok,txt,terra)=>{if(done)return;done=true;clearInterval(iv);bar.style.width='100%';if(terra)bar.style.background='var(--terra)';ptxt.textContent=txt;if(cancel){cancel.remove();cancel=null;}document.querySelectorAll('button.run').forEach(b=>b.disabled=false);try{es.close()}catch(e){}};
   cancel.addEventListener('click',()=>{const s=Math.round((Date.now()-t0)/1000);line('warn','Abgebrochen durch Nutzer nach '+s+'s.');
     const a=[...out.querySelectorAll('.st')].find(x=>!x.classList.contains('done'));if(a)a.className='st error';
@@ -783,11 +794,11 @@ function reportMdPage(slug) {
   const body = `
   <p class="lede" style="margin:2px 0 16px">${d.story}</p>
   <div class="io"><span>Eingang</span><span class="path">contract_v1.pdf · contract_v2.pdf</span><span class="ar">→</span><span>Werkzeug</span><span class="path">pdftotext · difflib · pdftoppm · Vision</span><span class="ar">→</span><span>Ausgabe</span><span class="path">report.md</span></div>
+  ${upload}
   ${outBlock(['Installieren', 'Vergleichen', 'Fertig'],
     'Noch nicht verglichen — klick <b style="color:var(--ink)">&nbsp;Vergleichen&nbsp;</b>, dann siehst du den <b>Text-Unterschied</b> Klausel für Klausel und einen <b>Bildvergleich</b> der Seiten.',
     `<section class="panel res-report" hidden><div class="ph"><h2>Vergleich (Text + Bild)</h2><span><a class="chip pdflink" href="#" target="_blank" hidden>PDF</a> <a class="chip openrep" href="#" target="_blank">In neuem Tab</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>`,
-    NOTE('Text deterministisch · Bild per Vision', 'Der <b>Text-Vergleich</b> ist deterministisch: <b>pdftotext</b> liest beide PDFs, Pythons <b>difflib</b> rechnet die Zeilenunterschiede (kein Modell entscheidet, was sich geändert hat); eine kurze <b>LLM-Zusammenfassung</b> fasst sie zusammen. Der <b>Bild-Vergleich</b> rendert jede Seite (<b>pdftoppm</b>) und lässt ein <b>Vision-Modell</b> die visuellen Unterschiede beschreiben — byte-gleiche Seiten werden ohne Modellaufruf als identisch erkannt.'))}
-  ${upload}`;
+    NOTE('Text deterministisch · Bild per Vision', 'Der <b>Text-Vergleich</b> ist deterministisch: <b>pdftotext</b> liest beide PDFs, Pythons <b>difflib</b> rechnet die Zeilenunterschiede (kein Modell entscheidet, was sich geändert hat); eine kurze <b>LLM-Zusammenfassung</b> fasst sie zusammen. Der <b>Bild-Vergleich</b> rendert jede Seite (<b>pdftoppm</b>) und lässt ein <b>Vision-Modell</b> die visuellen Unterschiede beschreiben — byte-gleiche Seiten werden ohne Modellaufruf als identisch erkannt.'))}`;
   return toolShell(slug, { controls, body });
 }
 
@@ -796,7 +807,10 @@ function imagePage(slug) {
   const controls = `<span class="setting"><span class="k">Engine</span><span class="v">${d.engine}</span></span><span class="setting"><span class="k">Modell</span><span class="v on">${d.model}</span></span>${runBtns('Diagramm erzeugen ▸')}`;
   const body = `
   <p class="lede" style="margin:2px 0 14px">${d.tagline}</p>
-  <div class="io"><span>Beschreibung</span><span class="path">„${d.description.slice(0, 48)}…"</span><span class="ar">→</span><span>LLM → Mermaid</span><span class="ar">→</span><span>Renderer</span><span class="ar">→</span><span class="path">diagram.png</span></div>
+  <label class="descfield"><span class="dl">Deine Beschreibung — schreib in einem Satz, was das Diagramm zeigen soll:</span>
+  <textarea class="descinput" rows="3" maxlength="600" placeholder="z. B. Ein Flussdiagramm: Nutzer öffnet die Demo, der Marktplatz installiert das Werkzeug, es läuft lokal, das Ergebnis wird gezeigt.">${d.description}</textarea></label>
+  ${tuneBlock(slug)}
+  <div class="io"><span>Beschreibung</span><span class="ar">→</span><span>LLM → ${d.engine === 'graphviz' ? 'Graphviz' : 'Mermaid'}</span><span class="ar">→</span><span>Renderer prüft</span><span class="ar">→</span><span class="path">diagram.png</span></div>
   ${outBlock(['Installieren', 'Diagramm erzeugen', 'Fertig'],
     'Noch kein Diagramm — klick <b style="color:var(--ink)">&nbsp;Diagramm erzeugen&nbsp;</b>. Das LLM schreibt Mermaid-Code, der Renderer prüft ihn und macht ein PNG.',
     `<section class="panel res-image" hidden><div class="ph"><h2>Erzeugtes Diagramm</h2><a class="chip openimg" href="#" target="_blank">Öffnen</a></div><div class="sheetwrap"><img class="resimg" alt="Diagramm"/></div></section>`,
