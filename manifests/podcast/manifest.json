@@ -1,0 +1,51 @@
+{
+  "publisher_pubkey": "48a56a4442269b71bcc09a4bb556c6035cf1cb9170c68e2663974418197764b9",
+  "manifest_id": "b6b9305cdb5123e497892675e6588dfb4daef61d830d41c8d70b63fdb0c160dd",
+  "name": "podcast",
+  "version": "0.1.0",
+  "installer_kind": "binary",
+  "bundle": {
+    "url": "bundle.tar.gz",
+    "sha256": "a624ed5fa9f59700225bb730432725cfac25bb1a57898c6671ba7ef16b269cc6",
+    "compose_file": "run.sh"
+  },
+  "env_template": [
+    {
+      "name": "LLM_BASE_URL",
+      "required": true,
+      "description": "Base URL of the OpenAI-SDK-compatible chat endpoint used for stage 3 chapter-marking, e.g. a litellm-proxy /v1 endpoint"
+    },
+    {
+      "name": "LLM_API_KEY",
+      "required": true,
+      "description": "API key for LLM_BASE_URL, used only for stage 3 chapter-marking, never touches ffmpeg or whisper.cpp"
+    },
+    {
+      "name": "LLM_MODEL",
+      "required": true,
+      "description": "Model name to request at LLM_BASE_URL for chapter-marking"
+    },
+    {
+      "name": "WHISPER_CLI_PATH",
+      "required": true,
+      "description": "Absolute path to a built whisper.cpp whisper-cli binary, pinned tag b4938 upstream"
+    },
+    {
+      "name": "WHISPER_MODEL_PATH",
+      "required": true,
+      "description": "Absolute path to the downloaded ggml-tiny.en.bin whisper.cpp model"
+    },
+    {
+      "name": "PODCAST_PYTHON_BIN",
+      "required": false,
+      "description": "Path to a python3 interpreter with openai pip-installed, defaults to python3 on PATH"
+    }
+  ],
+  "verify": {
+    "script": "verify.sh",
+    "timeout_secs": 60
+  },
+  "issued_at": 1787954024,
+  "expires_at": 1819490024,
+  "signature": "109e7a1c89b86f29f08d6459e6c22acaca0e72a1754c8e8e1fc1af18d9cbea45a622c20fae259c6e311c8db5220a7e72834d646abc2918f36bd2a4bb7c624409"
+}

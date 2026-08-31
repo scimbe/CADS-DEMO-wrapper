@@ -1,0 +1,26 @@
+{
+  "publisher_pubkey": "8e39643ed119772d4ae2efe75c583561edd2f93fd40a2d902954231556f4503a",
+  "manifest_id": "a654c3ade979c4a09c76bde51e0fe5c1e16df2d27f73f9e4362037cafc105e8b",
+  "name": "temporal-poc",
+  "version": "0.1.0",
+  "installer_kind": "binary",
+  "bundle": {
+    "url": "bundle.tar.gz",
+    "sha256": "ae0a27c311792b88c9186f9449177334cc58a8684369e2b862e66f333b0a60f6",
+    "compose_file": "run.sh"
+  },
+  "env_template": [
+    {
+      "name": "RENDER_HOLD_SECONDS",
+      "required": false,
+      "description": "Seconds the demo activity holds before completing each attempt - lower to speed the demo up, default 8"
+    }
+  ],
+  "verify": {
+    "script": "verify.sh",
+    "timeout_secs": 30
+  },
+  "issued_at": 1787953122,
+  "expires_at": 1819489122,
+  "signature": "d08940fd6c023d6da6cf7828f45cb2b2cee3ade503a882f7cb2a8519852c9cf9fa94c1a620c8db4d6d098f8ca52a37295b0b1e45ec70f36f484da62257f41305"
+}

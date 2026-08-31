@@ -1,0 +1,41 @@
+{
+  "publisher_pubkey": "6a854c2f9572d4e16001f3c7015e01e774f02a6a22c263bef59810236cc75a6d",
+  "manifest_id": "e01d0c18ffa1654b2ea07da06a9d4addd2bb571fd015c9657244971dcb23fa57",
+  "name": "diagram",
+  "version": "0.1.0",
+  "installer_kind": "binary",
+  "bundle": {
+    "url": "bundle.tar.gz",
+    "sha256": "9336ceb971a23ba8d0d3c6b654308c95f8fa30c5280914dbe4158def653bc4bd",
+    "compose_file": "wrapper.sh"
+  },
+  "env_template": [
+    {
+      "name": "LITELLM_BASE_URL",
+      "required": true,
+      "description": "Base URL of the litellm-proxy (OpenAI-chat-completions-compatible) endpoint the LLM writes Mermaid DSL against, e.g. https://llm-34a13a96.bunsenbrenner.org/v1"
+    },
+    {
+      "name": "LITELLM_API_KEY",
+      "required": true,
+      "description": "API key for LITELLM_BASE_URL - never share this value in plaintext outside your own config"
+    },
+    {
+      "name": "LITELLM_DEFAULT_MODEL",
+      "required": true,
+      "description": "Model name the litellm-proxy routes to, e.g. local-devstral-small2"
+    },
+    {
+      "name": "PUPPETEER_EXECUTABLE_PATH",
+      "required": false,
+      "description": "Optional absolute path to a system Chrome or Chromium binary for puppeteer to use. If unset, wrapper.sh auto-detects google-chrome-stable, google-chrome, chromium-browser, or chromium on PATH"
+    }
+  ],
+  "verify": {
+    "script": "verify.sh",
+    "timeout_secs": 30
+  },
+  "issued_at": 1787953238,
+  "expires_at": 1819489238,
+  "signature": "f75412cbe4a126a61fedfe870e58ce34b7ae15a0340064250934e166ea5b8da2ad0ce066a80052f4d9150213c913bb99b0aa0b08774f03e001fe681fda44e900"
+}

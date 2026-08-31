@@ -1,0 +1,36 @@
+{
+  "publisher_pubkey": "77800a1611b6efe32f8c653e23a7d1a737bad44ec143fa739c57e13add968ac4",
+  "manifest_id": "fd2bd0983825249a6bd6ff54126aec6fbbb87de8337014418e642cd3c6060d48",
+  "name": "contractcheck",
+  "version": "0.1.0",
+  "installer_kind": "binary",
+  "bundle": {
+    "url": "bundle.tar.gz",
+    "sha256": "bbc32c37c06fb990eb7ee5f7f23359d0a6337a15223514d20246251ebf981bb8",
+    "compose_file": "run.sh"
+  },
+  "env_template": [
+    {
+      "name": "LLM_BASE_URL",
+      "required": false,
+      "description": "LiteLLM/OpenAI-compatible base URL for the LLM summary step, e.g. https://your-endpoint.example.com/v1. Optional - without it (or LLM_API_KEY) run.sh falls back to the tool-computed diff only via --no-llm, no LLM summary produced."
+    },
+    {
+      "name": "LLM_API_KEY",
+      "required": false,
+      "description": "API key for the LLM summary step. Optional, see LLM_BASE_URL."
+    },
+    {
+      "name": "LLM_MODEL_NAME",
+      "required": false,
+      "description": "Model name for the LLM summary step, e.g. local-devstral-small2. Optional, this is also the pipeline's own internal default if unset."
+    }
+  ],
+  "verify": {
+    "script": "verify.sh",
+    "timeout_secs": 30
+  },
+  "issued_at": 1787953069,
+  "expires_at": 1819489069,
+  "signature": "1a8040d3801e28245a6aee5fcbf7536c01aec3e4221a23e41d1f0e7fe1809b1e082b713f89e39cbb420ffdb0fc75e25968dab64d450eb287ea865f168f753408"
+}

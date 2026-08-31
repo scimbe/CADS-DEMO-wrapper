@@ -13,7 +13,7 @@ import { readFileSync, writeFileSync, existsSync, rmSync, mkdirSync, createReadS
 import { createHash } from 'node:crypto';
 import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, extname } from 'node:path';
+import { dirname, join, extname, isAbsolute } from 'node:path';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const DEMOS = JSON.parse(readFileSync(join(__dir, 'demos.json'), 'utf8'));
@@ -47,8 +47,13 @@ const STAMP = {
 // ---- install seam (shared, sim->real) ----------------------------------------------------------
 function installActivate(slug, emit, stage) {
   const d = DEMOS[slug];
-  const manifest = JSON.parse(readFileSync(join(d.manifestDir, 'manifest.json'), 'utf8'));
-  const bundlePath = join(d.manifestDir, 'bundle.tar.gz');
+  // manifestDir may be repo-relative (bundled in the image at manifests/<slug>, so it works on any
+  // host) or an absolute path (legacy/local dev). Resolve relative paths against the wrapper dir —
+  // this is what makes the bundle demos portable to the hosting machine (they used to point at a
+  // local scratchpad path that only existed on the author's laptop -> "Abbruch bei der Installation").
+  const md = isAbsolute(d.manifestDir) ? d.manifestDir : join(__dir, d.manifestDir);
+  const manifest = JSON.parse(readFileSync(join(md, 'manifest.json'), 'utf8'));
+  const bundlePath = join(md, 'bundle.tar.gz');
   stage('install', 'Installieren');
   emit('step', `Manifest beziehen — ${manifest.name} v${manifest.version}`);
   emit('sim', 'simuliert · Registry ist live (registry.bunsenbrenner.org), aber dieses Manifest ist noch nicht publiziert (blockiert von #37/#38) — lokal geladen');
