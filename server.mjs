@@ -253,7 +253,9 @@ function invokeReportMd(slug, rec, emit, stage, done, reg) {
   emit('step', 'Werkzeug ausführen — run.sh (pdftotext → difflib-Vergleich → Markdown-Report)');
   emit('ok', 'deterministisch · pdftotext liest die PDFs, difflib rechnet den Unterschied — keine KI im Kernpfad');
   const runPath = join(rec.workDir, d.entrypoint); spawnSync('chmod', ['+x', runPath]);
-  const child = spawn(runPath, [], { cwd: rec.workDir, env: { PATH: process.env.PATH, HOME: rec.workDir, CT_MANIFEST_PROJECT_NAME: `${slug}-demo` } });
+  // pass the LLM creds so contractcheck's `compare` can run its LLM text-summary + the visual (vision) comparison
+  const child = spawn(runPath, [], { cwd: rec.workDir, env: { PATH: process.env.PATH, HOME: rec.workDir, CT_MANIFEST_PROJECT_NAME: `${slug}-demo`,
+    LLM_BASE_URL: process.env.LITELLM_BASE_URL || '', LLM_API_KEY: process.env.LITELLM_API_KEY || '', LLM_MODEL: process.env.LITELLM_DEFAULT_MODEL || '' } });
   if (reg) reg(child);
   let o = ''; const on = (b) => { const s = b.toString(); o += s; s.split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200))); };
   child.stdout.on('data', on); child.stderr.on('data', on);
@@ -729,11 +731,11 @@ function reportMdPage(slug) {
   const controls = runBtns('Vergleichen ▸');
   const body = `
   <p class="lede" style="margin:2px 0 16px">${d.story}</p>
-  <div class="io"><span>Eingang</span><span class="path">contract_v1.pdf · contract_v2.pdf</span><span class="ar">→</span><span>Werkzeug</span><span class="path">pdftotext · difflib</span><span class="ar">→</span><span>Ausgabe</span><span class="path">report.md</span></div>
+  <div class="io"><span>Eingang</span><span class="path">contract_v1.pdf · contract_v2.pdf</span><span class="ar">→</span><span>Werkzeug</span><span class="path">pdftotext · difflib · pdftoppm · Vision</span><span class="ar">→</span><span>Ausgabe</span><span class="path">report.md</span></div>
   ${outBlock(['Installieren', 'Vergleichen', 'Fertig'],
-    'Noch nicht verglichen — klick <b style="color:var(--ink)">&nbsp;Vergleichen&nbsp;</b>, dann siehst du Klausel für Klausel den Unterschied.',
-    `<section class="panel res-report" hidden><div class="ph"><h2>Vergleich</h2><span><a class="chip pdflink" href="#" target="_blank" hidden>PDF</a> <a class="chip openrep" href="#" target="_blank">In neuem Tab</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>`,
-    NOTE('Ohne KI', 'Der Vergleich ist rein deterministisch: <b>pdftotext</b> liest beide Vertrags-PDFs, Pythons <b>difflib</b> rechnet die Zeilenunterschiede. Kein Modell entscheidet, was sich geändert hat.'))}`;
+    'Noch nicht verglichen — klick <b style="color:var(--ink)">&nbsp;Vergleichen&nbsp;</b>, dann siehst du den <b>Text-Unterschied</b> Klausel für Klausel und einen <b>Bildvergleich</b> der Seiten.',
+    `<section class="panel res-report" hidden><div class="ph"><h2>Vergleich (Text + Bild)</h2><span><a class="chip pdflink" href="#" target="_blank" hidden>PDF</a> <a class="chip openrep" href="#" target="_blank">In neuem Tab</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>`,
+    NOTE('Text deterministisch · Bild per Vision', 'Der <b>Text-Vergleich</b> ist deterministisch: <b>pdftotext</b> liest beide PDFs, Pythons <b>difflib</b> rechnet die Zeilenunterschiede (kein Modell entscheidet, was sich geändert hat); eine kurze <b>LLM-Zusammenfassung</b> fasst sie zusammen. Der <b>Bild-Vergleich</b> rendert jede Seite (<b>pdftoppm</b>) und lässt ein <b>Vision-Modell</b> die visuellen Unterschiede beschreiben — byte-gleiche Seiten werden ohne Modellaufruf als identisch erkannt.'))}`;
   return toolShell(slug, { controls, body });
 }
 
