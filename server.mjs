@@ -408,10 +408,11 @@ function resolveOut(slug) {
 
 // ---- shared design system ----------------------------------------------------------------------
 const BB_CSS = `
-:root{--bg:#F5F7FB;--card:#FFFFFF;--ink:#131A2C;--muted:#5B6478;--muted2:#333D54;--teal:#2F8A7D;--teal-ink:#1F6B60;--terra:#B8672F;--terra-ink:#9A531F;--border:#D7DEEC;--panel:#EEF1F8;--panel2:#E7ECF5;--serif:ui-serif,Georgia,"Iowan Old Style","Palatino Linotype",serif;--sans:-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+:root{--bg:#0c111d;--card:#141b2c;--ink:#eef1f7;--muted:#8a93ad;--muted2:#c3c9db;--teal:#5fb8ab;--teal-ink:#8fd6c9;--terra:#d98a4f;--terra-ink:#e0a458;--border:#2a3450;--panel:#1a2338;--panel2:#212a41;--bg-blur:rgba(12,17,29,.85);--on-accent:#0c111d;--serif:ui-serif,Georgia,"Iowan Old Style","Palatino Linotype",serif;--sans:-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+@media (prefers-color-scheme: light){:root{--bg:#F5F7FB;--card:#FFFFFF;--ink:#131A2C;--muted:#5B6478;--muted2:#333D54;--teal:#2F8A7D;--teal-ink:#1F6B60;--terra:#B8672F;--terra-ink:#9A531F;--border:#D7DEEC;--panel:#EEF1F8;--panel2:#E7ECF5;--bg-blur:rgba(245,247,251,.85);--on-accent:#ffffff}}
 *{box-sizing:border-box}a{color:var(--teal-ink);text-decoration:none}a:hover{color:var(--teal)}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:44px 44px;background-position:-1px -1px}
-.appbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(245,247,251,.85);backdrop-filter:blur(6px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
+.appbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:var(--bg-blur);backdrop-filter:blur(6px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
 .appbar .l{display:flex;align-items:center;gap:16px}
 .brand{font-weight:700;font-size:1rem;letter-spacing:-.01em;display:flex;align-items:center;gap:.5ch;color:var(--ink);text-decoration:none}.brand:hover{color:var(--ink)}
 .brand .dot{color:var(--terra)}.brand .tld{color:var(--muted);font-weight:600}
@@ -429,7 +430,7 @@ h1{font-family:var(--serif);font-weight:600;font-size:2.3rem;line-height:1.1;let
 .setting{display:flex;align-items:center;gap:8px;font-size:.82rem;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.42rem .7rem}
 .setting .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.setting .v{font-weight:600}.setting .v.on{color:var(--teal-ink)}
 .btn{font:600 .92rem var(--sans);border-radius:9px;padding:.62rem 1.2rem;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:.5ch}
-.btn-primary{background:var(--terra);color:#fff}.btn-primary:hover{background:var(--terra-ink)}
+.btn-primary{background:var(--terra);color:var(--on-accent)}.btn-primary:hover{background:var(--terra-ink)}
 .btn-ghost{background:var(--card);color:var(--muted2);border:1px solid var(--border)}.btn-ghost:hover{color:var(--ink)}
 .btn:disabled{opacity:.55;cursor:progress}
 .io{display:flex;align-items:center;gap:10px;margin:16px 0 4px;font-family:var(--mono);font-size:.78rem;color:var(--muted2);flex-wrap:wrap}
@@ -469,8 +470,8 @@ details.tx summary{cursor:pointer;font-size:.85rem;color:var(--muted2);font-weig
 .stepper{display:flex;gap:10px;margin:16px 0 4px;flex-wrap:wrap}
 .st{display:flex;align-items:center;gap:9px;font-size:.88rem;color:var(--muted);padding:7px 13px;border:1px solid var(--border);border-radius:999px;background:var(--card)}
 .st .n{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--border);display:grid;place-items:center;font:600 .7rem var(--mono);color:var(--muted)}
-.st.active{border-color:var(--teal);color:var(--ink);box-shadow:0 0 0 3px rgba(47,138,125,.1)}.st.active .n,.st.done .n{border-color:var(--teal);background:var(--teal);color:#fff}
-.st.done{color:var(--ink)}.st.error{border-color:var(--terra);color:var(--terra-ink)}.st.error .n{border-color:var(--terra);background:var(--terra);color:#fff}
+.st.active{border-color:var(--teal);color:var(--ink);box-shadow:0 0 0 3px rgba(47,138,125,.1)}.st.active .n,.st.done .n{border-color:var(--teal);background:var(--teal);color:var(--on-accent)}
+.st.done{color:var(--ink)}.st.error{border-color:var(--terra);color:var(--terra-ink)}.st.error .n{border-color:var(--terra);background:var(--terra);color:var(--on-accent)}
 details.tech{margin-top:12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);overflow:hidden}
 details.tech summary{cursor:pointer;padding:11px 15px;font-size:.86rem;color:var(--muted2);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
 details.tech summary::-webkit-details-marker{display:none}
@@ -505,7 +506,7 @@ details.tech summary::before{content:"▸";color:var(--teal)}details.tech[open] 
 .pmeta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:9px;font-family:var(--mono);font-size:.75rem;color:var(--muted)}
 .btn-cancel{font:600 .8rem var(--sans);color:var(--terra-ink);background:var(--card);border:1px solid var(--border);border-radius:7px;padding:.34rem .8rem;cursor:pointer}.btn-cancel:hover{border-color:var(--terra)}
 .langtoggle{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;font-family:var(--mono);font-size:.74rem}
-.langtoggle a{padding:.42rem .6rem;color:var(--muted);text-decoration:none;background:var(--card)}.langtoggle a.on{background:var(--teal);color:#fff}
+.langtoggle a{padding:.42rem .6rem;color:var(--muted);text-decoration:none;background:var(--card)}.langtoggle a.on{background:var(--teal);color:var(--on-accent)}
 .tune{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:4px 0 18px}
 .tune-h{display:flex;flex-direction:column;gap:3px;margin-bottom:12px}
 .teyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-ink);font-weight:600}
@@ -532,6 +533,7 @@ footer{margin:34px auto 40px;max-width:1120px;padding:20px 28px 0;border-top:1px
 footer{flex-direction:column;align-items:flex-start}
 footer .fl{display:flex;gap:18px;flex-wrap:wrap;align-items:center}footer a{color:var(--muted2)}footer .support{color:var(--terra-ink);font-weight:600}footer .fnote{color:var(--muted)}
 footer .attrib{color:var(--muted2)}footer .attrib b{color:var(--ink);font-weight:600}footer .attrib a{color:var(--teal-ink)}
+.m-toggle{display:none;margin:16px 0 2px;font:600 .85rem var(--sans);color:var(--muted2);background:var(--card);border:1px solid var(--border);border-radius:9px;padding:.5rem 1rem;cursor:pointer;align-items:center;gap:.5ch}.m-toggle:hover{color:var(--ink);border-color:var(--teal)}@media(max-width:640px){.m-toggle{display:inline-flex}body:not(.m-open) .io,body:not(.m-open) .note,body:not(.m-open) .prov,body:not(.m-open) .capbar,body:not(.m-open) .caplabel,body:not(.m-open) details.tech,body:not(.m-open) .tune-ex,body:not(.m-open) .grid2>aside{display:none!important}}
 `;
 
 function appbar(crumb) {
@@ -587,6 +589,8 @@ ${appbar('Marktplatz / <b>Demos</b>')}
 }
 
 const CLIENT = `
+// Mobile-minimal view: on narrow screens the secondary blocks are hidden until the visitor asks.
+(function(){var mt=document.querySelector('.m-toggle');if(!mt)return;mt.addEventListener('click',function(){var o=document.body.classList.toggle('m-open');mt.setAttribute('aria-expanded',o?'true':'false');mt.textContent=o?'weniger anzeigen \u25b4':'mehr anzeigen \u25be';});})();
 document.querySelectorAll('button.run').forEach(btn=>btn.addEventListener('click',()=>{
   const wrap=document.querySelector('.wrap');const slug=wrap.dataset.slug;const fresh=btn.dataset.fresh;
   const out=document.querySelector('.out');const stepper=out.querySelector('.stepper');const log=out.querySelector('.log');
@@ -672,6 +676,7 @@ function toolShell(slug, inner, lang) {
 ${appbar(`<a href="/">Marktplatz</a> / <b>${d.name}</b>`)}
 <div class="wrap" data-slug="${slug}" data-est="${d.estSeconds || 20}" data-lang="${lang || 'de'}">
   <div class="toolbar"><div><h1>${d.title}</h1><p>${d.tagline}</p></div><div class="controls">${toggle}${inner.controls}</div></div>
+  <button class="m-toggle" type="button" aria-expanded="false">mehr anzeigen ▾</button>
   ${inner.body}
 </div>${FOOT}<script>${CLIENT}</script></body></html>`;
 }
