@@ -475,6 +475,13 @@ details.tech summary::before{content:"▸";color:var(--teal)}details.tech[open] 
 .capchip{display:inline-flex;align-items:center;gap:6px;padding:.26rem .62rem;border-radius:999px;border:1px solid var(--border);background:var(--card);font-size:.78rem;color:var(--muted2)}
 .capchip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted);flex:0 0 auto}
 .cap-free::before{background:#2f8a5f}.cap-busy::before{background:var(--terra)}.cap-info::before{background:var(--teal)}.cap-un{color:var(--muted)}
+.upcmp{margin:22px 0 4px;padding:16px 18px;border:1px dashed var(--border);border-radius:12px;background:var(--card)}
+.upttl{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px}
+.uprow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.upf{display:flex;flex-direction:column;gap:5px;font-size:.82rem;color:var(--muted2)}
+.upf input[type=file]{font:inherit;font-size:.78rem;max-width:230px}
+.upmsg{margin-top:10px;font-size:.82rem;color:var(--muted2);min-height:1.1em}
+.res-upreport{margin-top:14px}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;margin-top:26px}
 .dcard{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:13px;padding:20px 22px;box-shadow:0 1px 2px rgba(19,26,44,.03);text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
 .dcard:hover{border-color:var(--teal);transform:translateY(-2px)}
@@ -726,16 +733,50 @@ function outBlock(steps, placeholder, panels, note, prov) {
 const runBtns = (primary) => `<button class="btn btn-primary run" data-fresh="0">${primary}</button><button class="btn btn-ghost run" data-fresh="1">Werkzeug neu installieren</button>`;
 const NOTE = (tag, html) => `<div class="note"><span class="t">${tag}</span><div>${html}</div></div>`;
 
+const UPLOAD_CLIENT = `
+(function(){
+  var btn=document.getElementById('upbtn'); if(!btn) return;
+  var msg=document.getElementById('upmsg'), fa=document.getElementById('pdfa'), fb=document.getElementById('pdfb');
+  var panel=document.querySelector('.res-upreport'), frame=document.querySelector('.upframe');
+  function b64(file){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result)};r.onerror=rej;r.readAsDataURL(file);});}
+  btn.addEventListener('click',async function(){
+    if(!fa.files[0]||!fb.files[0]){msg.textContent='Bitte zwei PDF-Dateien wählen.';return;}
+    if(fa.files[0].size>16e6||fb.files[0].size>16e6){msg.textContent='Jede Datei höchstens ~16 MB.';return;}
+    btn.disabled=true; msg.textContent='Vergleiche … (Text-Diff + Bildvergleich, kann ~20–40 s dauern)';
+    try{
+      var a=await b64(fa.files[0]), b=await b64(fb.files[0]);
+      var r=await fetch('/api/upload-compare',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({a:a,b:b})});
+      var j=await r.json();
+      if(!j.ok){msg.textContent='Fehler: '+(j.error||'unbekannt');btn.disabled=false;return;}
+      frame.srcdoc=j.html; panel.hidden=false; msg.textContent='Fertig — Ihr Vergleich unten.'; panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    }catch(e){msg.textContent='Netzwerkfehler: '+e.message;}
+    btn.disabled=false;
+  });
+})();`;
+
 function reportMdPage(slug) {
   const d = DEMOS[slug];
   const controls = runBtns('Vergleichen ▸');
+  const upload = slug === 'contractcheck' ? `
+  <div class="upcmp">
+    <div class="upttl">Oder eigene zwei PDFs vergleichen</div>
+    <div class="uprow">
+      <label class="upf">Dokument A (PDF)<input type="file" id="pdfa" accept="application/pdf,.pdf"></label>
+      <label class="upf">Dokument B (PDF)<input type="file" id="pdfb" accept="application/pdf,.pdf"></label>
+      <button class="btn btn-primary" id="upbtn" type="button">Eigene PDFs vergleichen ▸</button>
+    </div>
+    <div class="upmsg" id="upmsg"></div>
+    <section class="panel res-upreport" hidden><div class="ph"><h2>Ihr Vergleich (Text + Bild)</h2></div><div class="sheetwrap"><iframe class="upframe" title="Ihr Vergleich"></iframe></div></section>
+  </div>
+  <script>${UPLOAD_CLIENT}</script>` : '';
   const body = `
   <p class="lede" style="margin:2px 0 16px">${d.story}</p>
   <div class="io"><span>Eingang</span><span class="path">contract_v1.pdf · contract_v2.pdf</span><span class="ar">→</span><span>Werkzeug</span><span class="path">pdftotext · difflib · pdftoppm · Vision</span><span class="ar">→</span><span>Ausgabe</span><span class="path">report.md</span></div>
   ${outBlock(['Installieren', 'Vergleichen', 'Fertig'],
     'Noch nicht verglichen — klick <b style="color:var(--ink)">&nbsp;Vergleichen&nbsp;</b>, dann siehst du den <b>Text-Unterschied</b> Klausel für Klausel und einen <b>Bildvergleich</b> der Seiten.',
     `<section class="panel res-report" hidden><div class="ph"><h2>Vergleich (Text + Bild)</h2><span><a class="chip pdflink" href="#" target="_blank" hidden>PDF</a> <a class="chip openrep" href="#" target="_blank">In neuem Tab</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>`,
-    NOTE('Text deterministisch · Bild per Vision', 'Der <b>Text-Vergleich</b> ist deterministisch: <b>pdftotext</b> liest beide PDFs, Pythons <b>difflib</b> rechnet die Zeilenunterschiede (kein Modell entscheidet, was sich geändert hat); eine kurze <b>LLM-Zusammenfassung</b> fasst sie zusammen. Der <b>Bild-Vergleich</b> rendert jede Seite (<b>pdftoppm</b>) und lässt ein <b>Vision-Modell</b> die visuellen Unterschiede beschreiben — byte-gleiche Seiten werden ohne Modellaufruf als identisch erkannt.'))}`;
+    NOTE('Text deterministisch · Bild per Vision', 'Der <b>Text-Vergleich</b> ist deterministisch: <b>pdftotext</b> liest beide PDFs, Pythons <b>difflib</b> rechnet die Zeilenunterschiede (kein Modell entscheidet, was sich geändert hat); eine kurze <b>LLM-Zusammenfassung</b> fasst sie zusammen. Der <b>Bild-Vergleich</b> rendert jede Seite (<b>pdftoppm</b>) und lässt ein <b>Vision-Modell</b> die visuellen Unterschiede beschreiben — byte-gleiche Seiten werden ohne Modellaufruf als identisch erkannt.'))}
+  ${upload}`;
   return toolShell(slug, { controls, body });
 }
 
@@ -879,11 +920,48 @@ function handleStatus(res) {
   }).catch(() => { try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false })); } catch {} });
 }
 
+// contractcheck: compare TWO user-uploaded PDFs (base64 JSON, no multipart parsing needed).
+function handleUploadCompare(req, res) {
+  const reply = (code, obj) => { try { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj)); } catch {} };
+  let body = ''; let tooBig = false;
+  req.on('data', (c) => { body += c; if (body.length > 24 * 1024 * 1024) { tooBig = true; req.destroy(); } });
+  req.on('end', () => {
+    if (tooBig) return reply(413, { error: 'Dateien zu groß (max. ~16 MB je PDF).' });
+    let a, b; try { const j = JSON.parse(body); a = j.a; b = j.b; } catch { return reply(400, { error: 'Ungültige Anfrage.' }); }
+    const decode = (s) => { const m = String(s || '').match(/^data:[^;]*;base64,(.*)$/s); try { return Buffer.from(m ? m[1] : String(s || ''), 'base64'); } catch { return Buffer.alloc(0); } };
+    const bufA = decode(a), bufB = decode(b);
+    if (bufA.slice(0, 5).toString() !== '%PDF-' || bufB.slice(0, 5).toString() !== '%PDF-') return reply(400, { error: 'Bitte zwei gültige PDF-Dateien hochladen.' });
+    let rec = activated.get('contractcheck');
+    if (!rec) { try { rec = installActivate('contractcheck', () => {}, () => {}); } catch { return reply(500, { error: 'Werkzeug konnte nicht vorbereitet werden.' }); } }
+    const wd = rec.workDir;
+    const up = join(WORK, '_uploads', String(process.pid) + '-' + reqSeq++);
+    try { mkdirSync(up, { recursive: true }); } catch {}
+    const pa = join(up, 'a.pdf'), pb = join(up, 'b.pdf'), rep = join(up, 'report.md');
+    try { writeFileSync(pa, bufA); writeFileSync(pb, bufB); } catch { return reply(500, { error: 'Konnte Uploads nicht ablegen.' }); }
+    const key = process.env.LITELLM_API_KEY || '';
+    const env = { PATH: process.env.PATH, HOME: wd, PYTHONPATH: join(wd, 'vendor'),
+      LLM_BASE_URL: process.env.LITELLM_BASE_URL || '', LLM_API_KEY: key, LLM_MODEL: process.env.LITELLM_DEFAULT_MODEL || '' };
+    const args = [join(wd, 'src', 'pipeline.py'), 'compare', '--old', pa, '--new', pb, '--report', rep];
+    if (!key) args.push('--no-llm', '--no-vision');
+    const child = spawn('python3', args, { cwd: wd, env });
+    let err = ''; child.stderr.on('data', (d) => { err += d; });
+    child.on('error', () => reply(500, { error: 'python3 nicht verfügbar.' }));
+    child.on('close', (code) => {
+      try {
+        if (!existsSync(rep)) return reply(500, { error: 'Vergleich fehlgeschlagen' + (err ? (': ' + err.slice(-160)) : ' (exit ' + code + ').') });
+        reply(200, { ok: true, html: md2html(readFileSync(rep, 'utf8')) });
+      } finally { try { rmSync(up, { recursive: true, force: true }); } catch {} }
+    });
+  });
+}
+let reqSeq = 0;
+
 http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
   if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage()); return; }
   if (p === '/api/status') { handleStatus(res); return; }
+  if (p === '/api/upload-compare' && req.method === 'POST') { handleUploadCompare(req, res); return; }
   if (p === '/api/start') { handleStart(req, res, url); return; }
   if (p === '/api/plan' && req.method === 'POST') { handlePlan(req, res, url); return; }
   const dm = p.match(/^\/d\/([a-z0-9-]+)\/out\/(.+)$/);
