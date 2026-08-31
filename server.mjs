@@ -404,7 +404,7 @@ function serveFile(res, path) {
 function resolveOut(slug) {
   const rec = activated.get(slug); if (rec && rec.outputDir) return rec.outputDir;
   const d = DEMOS[slug]; if (!d) return null;
-  if (d.staticOut) return d.staticOut;
+  if (d.staticOut) return isAbsolute(d.staticOut) ? d.staticOut : join(__dir, d.staticOut);   // repo-relative -> portable to any host (same fix class as #10)
   if (d.type === 'photo-tool') return d.outputDir;
   if (d.type === 'report-html') return join(WORK, slug, d.outputRel);
   if (d.type === 'report-md' || d.type === 'image' || d.type === 'timeline') return join(WORK, slug);

@@ -1,0 +1,65 @@
+{
+	"systeminfo": "WHISPER : COREML = 0 | OPENVINO = 0 | MTL : EMBED_LIBRARY = 1 | CPU : NEON = 1 | ARM_FMA = 1 | MATMUL_INT8 = 1 | DOTPROD = 1 | ACCELERATE = 1 | OPENMP = 1 | REPACK = 1 | ",
+	"model": {
+		"type": "tiny",
+		"multilingual": false,
+		"vocab": 51864,
+		"audio": {
+			"ctx": 1500,
+			"state": 384,
+			"head": 6,
+			"layer": 4
+		},
+		"text": {
+			"ctx": 448,
+			"state": 384,
+			"head": 6,
+			"layer": 4
+		},
+		"mels": 80,
+		"ftype": 1
+	},
+	"params": {
+		"model": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/whisper-models/ggml-tiny.en.bin",
+		"language": "en",
+		"translate": false
+	},
+	"result": {
+		"language": "en"
+	},
+	"transcription": [
+		{
+			"timestamps": {
+				"from": "00:00:00,000",
+				"to": "00:00:06,800"
+			},
+			"offsets": {
+				"from": 0,
+				"to": 6800
+			},
+			"text": " Our platform uses a zero-trust tunnel, so that no server ever exposes an open port to the internet."
+		},
+		{
+			"timestamps": {
+				"from": "00:00:07,880",
+				"to": "00:00:14,240"
+			},
+			"offsets": {
+				"from": 7880,
+				"to": 14240
+			},
+			"text": " The Agent Marketplace lets developers publish signed manifests that install new tools automatically."
+		},
+		{
+			"timestamps": {
+				"from": "00:00:15,360",
+				"to": "00:00:22,160"
+			},
+			"offsets": {
+				"from": 15360,
+				"to": 22160
+			},
+			"text": " Sort Arena is a small demo that visualizes sorting algorithms racing against each other in real time."
+		}
+	]
+}
