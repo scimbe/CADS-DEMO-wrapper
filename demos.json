@@ -9,6 +9,16 @@
     "externalUrl": "https://flappy-demo.bunsenbrenner.org/",
     "live": true
   },
+  "callcenter": {
+    "type": "external",
+    "name": "callcenter",
+    "version": "0.1.0",
+    "title": "Deutschlandatlas Sprach-Callcenter",
+    "tagline": "Ein Sprach-Callcenter über den Tunnel: Du fragst Thorsten nach Regionaldaten, eine geführte Dialog-State-Machine holt live echte Zahlen aus dem Deutschlandatlas — geerdet gesprochen, mit sinnvollen Rückfragen und aktiver Weiterführung.",
+    "blurb": "Frage stellen, Thorsten antwortet gesprochen mit echten, live abgefragten Regionaldaten.",
+    "externalUrl": "https://callcenter-34a13a96.bunsenbrenner.org/",
+    "live": true
+  },
   "phototools": {
     "type": "photo-tool",
     "name": "phototools",
