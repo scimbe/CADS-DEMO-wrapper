@@ -19,6 +19,12 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const DEMOS = JSON.parse(readFileSync(join(__dir, 'demos.json'), 'utf8'));
 const WORK = join(__dir, 'work');
 const PORT = Number(process.env.PORT || 8790);
+// Default 0.0.0.0, not 127.0.0.1: a container bound to its own loopback is unreachable
+// through Docker's port-publish NAT (the compose file's co-located ct-agent sidecar never hit
+// this, since container-to-container traffic on the shared bridge network doesn't go through
+// that NAT) -- caught deploying standalone (host ct-agent -> published port) where GET / just
+// hung/connection-refused despite the container logging "wrapper on http://127.0.0.1:8790".
+const HOST = process.env.HOST || '0.0.0.0';
 const activated = new Map(); // slug -> { workDir, manifest, outputDir }
 const sha256File = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
 
@@ -975,4 +981,4 @@ http.createServer((req, res) => {
     const html = d.live && PAGES[d.type] ? PAGES[d.type](slug) : soonPage(slug);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(html); return; }
   res.writeHead(404).end('not found');
-}).listen(PORT, '127.0.0.1', () => console.log(`wrapper on http://127.0.0.1:${PORT}`));
+}).listen(PORT, HOST, () => console.log(`wrapper on http://${HOST}:${PORT}`));
