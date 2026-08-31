@@ -9,6 +9,36 @@
     "externalUrl": "https://flappy-demo.bunsenbrenner.org/",
     "live": true
   },
+  "callcenter": {
+    "type": "external",
+    "name": "callcenter",
+    "version": "0.1.0",
+    "title": "Deutschlandatlas Sprach-Callcenter",
+    "tagline": "Ein Sprach-Callcenter über den Tunnel: Du fragst Thorsten nach Regionaldaten, eine geführte Dialog-State-Machine holt live echte Zahlen aus dem Deutschlandatlas — geerdet gesprochen, mit sinnvollen Rückfragen und aktiver Weiterführung.",
+    "blurb": "Frage stellen, Thorsten antwortet gesprochen mit echten, live abgefragten Regionaldaten.",
+    "externalUrl": "https://callcenter-34a13a96.bunsenbrenner.org/",
+    "live": true
+  },
+  "keyforge": {
+    "type": "external",
+    "name": "keyforge",
+    "version": "0.1.0",
+    "title": "KeyForge — Manifeste signieren & prüfen",
+    "tagline": "Signiere und verifiziere CADS-Manifeste vollständig im Browser.",
+    "blurb": "Holder-Identität erzeugen, ein Manifest signieren und ein echtes, vom Publisher signiertes Manifest live aus der Registry verifizieren — kein serverseitiges Vertrauen, die gesamte Krypto läuft clientseitig via WASM.",
+    "externalUrl": "https://keyforge-34a13a96.bunsenbrenner.org",
+    "live": true
+  },
+  "firmware-lab": {
+    "type": "external",
+    "name": "firmware-lab",
+    "version": "0.1.0",
+    "title": "Firmware-Lab — Embedded-IDE im Browser",
+    "tagline": "Eine komplette Embedded-Entwicklungsumgebung im Browser — ohne lokale Toolchain-Installation.",
+    "blurb": "Browser-basiertes VS Code (code-server) mit OpenOCD, der arm-none-eabi-Toolchain und cortex-debug — vorinstalliert für STM32-Firmware. Flash dein eigenes ST-Link-Board direkt aus dem Browser via WebUSB, keine serverseitige Hardware nötig. Tutor-Modus (geführte Übungen) noch in früher Form; cads zeros verbesserte Version ist in Arbeit.",
+    "externalUrl": "https://firmware-lab-34a13a96.bunsenbrenner.org",
+    "live": true
+  },
   "phototools": {
     "type": "photo-tool",
     "name": "phototools",
@@ -527,5 +557,15 @@
         "mautfrei"
       ]
     }
+  },
+  "sound_generation": {
+    "type": "audio",
+    "name": "sound_generation",
+    "version": "0.1.0",
+    "title": "Sound-Generierung",
+    "tagline": "Aus einer kurzen Beschreibung Klänge und Audio erzeugen — über den Agenten-Channel.",
+    "blurb": "Prompt eingeben, der Dienst erzeugt daraus Audio.",
+    "live": false,
+    "note": "UI in Vorbereitung — die Audio-Capability läuft bereits über llm2s Channel."
   }
 }
