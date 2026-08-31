@@ -1,0 +1,40 @@
+{
+  "voice": "piper/en_US-lessac-medium (generic stock voice)",
+  "scenes": [
+    {
+      "scene": 1,
+      "title": "The Problem with Traditional Access",
+      "narration": "Many applications expose ports on origin servers, creating attack surfaces. Hackers scan for open ports, and if they find one, they can exploit vulnerabilities. This leaves your infrastructure at risk.",
+      "audio": "assets/scene-01.wav",
+      "duration": 12.144036
+    },
+    {
+      "scene": 2,
+      "title": "What Is a Zero-Trust Tunnel?",
+      "narration": "A zero-trust tunnel creates an encrypted pathway between a client and a server without exposing the server’s ports. Instead of opening ports on the origin host, the tunnel brokers connections securely.",
+      "audio": "assets/scene-02.wav",
+      "duration": 11.203628
+    },
+    {
+      "scene": 3,
+      "title": "How the Tunnel Works",
+      "narration": "The client connects to a relay server, which then forwards traffic to the origin host over a secure channel. The origin host never needs to expose its ports directly to the internet.",
+      "audio": "assets/scene-03.wav",
+      "duration": 9.427302
+    },
+    {
+      "scene": 4,
+      "title": "Benefits of Zero-Trust Tunnels",
+      "narration": "Zero-trust tunnels reduce attack surfaces by eliminating exposed ports. They also enforce strict identity verification, ensuring only authorized users and devices can access resources.",
+      "audio": "assets/scene-04.wav",
+      "duration": 11.284898
+    },
+    {
+      "scene": 5,
+      "title": "Summary",
+      "narration": "Zero-trust tunnels improve security by removing exposed ports and enforcing strict access controls. This approach minimizes risk while maintaining secure, reliable connections.",
+      "audio": "assets/scene-05.wav",
+      "duration": 10.762449
+    }
+  ]
+}
