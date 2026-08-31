@@ -78,7 +78,7 @@ function invokePhotoTool(slug, rec, emit, stage, done, reg) {
   emit('ok', 'exiftool liest EXIF · Gazetteer GPS→Stadt · Dateien verschieben · ImageMagick Wasserzeichen+Kontaktbogen — keine KI');
   rmSync(d.outputDir, { recursive: true, force: true });
   const toolDir = join(rec.workDir, 'phototools');
-  const args = [join(toolDir, 'bin', 'phototools.js'), 'organize', d.inputDir, '--out', d.outputDir, '--watermark-text', d.watermark, '--contact-sheet'];
+  const args = [join(toolDir, 'bin', 'phototools.js'), 'organize', d.inputDir, '--out', d.outputDir, '--watermark-text', d.watermark, '--contact-sheet', '--gallery'];
   const child = spawn('node', args, { cwd: toolDir, env: { PATH: process.env.PATH, HOME: rec.workDir, CT_MANIFEST_PROJECT_NAME: `${slug}-demo` } });
   if (reg) reg(child);
   let o = ''; const on = (b) => { const s = b.toString(); o += s; s.split('\n').filter(Boolean).forEach((l) => emit('run', l)); };
@@ -91,7 +91,7 @@ function invokePhotoTool(slug, rec, emit, stage, done, reg) {
     const m = JSON.parse(readFileSync(manPath, 'utf8'));
     const byFolder = new Map();
     for (const e of m.entries || []) { const f = e.destRelPath.split('/').slice(0, 2).join('/'); byFolder.set(f, (byFolder.get(f) || 0) + 1); }
-    done({ render: 'photo-tool', count: m.count, folders: [...byFolder.entries()].map(([path, count]) => ({ path, count })), contact: `/d/${slug}/out/contact-sheet.jpg?t=${Date.now()}` });
+    done({ render: 'photo-tool', count: m.count, folders: [...byFolder.entries()].map(([path, count]) => ({ path, count })), contact: `/d/${slug}/out/contact-sheet.jpg?t=${Date.now()}`, gallery: existsSync(join(d.outputDir, 'gallery.html')) ? `/d/${slug}/out/gallery.html?t=${Date.now()}` : null });
   });
 }
 
@@ -609,7 +609,8 @@ document.querySelectorAll('button.run').forEach(btn=>btn.addEventListener('click
       const tree=rt.querySelector('.tree');tree.innerHTML='';
       for(const f of r.folders){const p=f.path.split('/');const row=document.createElement('div');row.className='frow';
         row.innerHTML='<span class="car">▸</span><span class="yr">'+p[0]+' /</span><span class="fold">'+p[1]+'</span><span class="n">'+f.count+(f.count>1?' Fotos':' Foto')+'</span>';tree.appendChild(row)}
-      rt.hidden=false;rs.querySelector('img').src=r.contact;rs.hidden=false;}
+      rt.hidden=false;rs.querySelector('img').src=r.contact;rs.hidden=false;
+      var g=rs.querySelector('.opengal');if(g){if(r.gallery){g.href=r.gallery;g.style.display='';}else{g.style.display='none';}}}
     else if(r.render==='report-html'){const s=out.querySelector('.res-report');const fr=s.querySelector('iframe');fr.src=r.reportUrl;s.hidden=false;
       s.querySelector('.openrep').href=r.reportUrl;const pl=s.querySelector('.pdflink');if(r.pdf){pl.href=r.pdf;pl.hidden=false}else if(pl)pl.hidden=true;}
     else if(r.render==='image'){const s=out.querySelector('.res-image');s.querySelector('.resimg').src=r.image;s.querySelector('.openimg').href=r.image;s.hidden=false;}
@@ -675,7 +676,7 @@ function photoToolPage(slug) {
       <div class="stepper" hidden><div class="st" data-step="install"><span class="n">1</span> Installieren</div><div class="st" data-step="process"><span class="n">2</span> Fotos verarbeiten</div><div class="st" data-step="done"><span class="n">3</span> Fertig</div></div>
       <div class="placeholder">Noch nicht organisiert — klick <b style="color:var(--ink)">&nbsp;Organisieren&nbsp;</b>, und die 6 Fotos landen sortiert in <span style="font-family:var(--mono)">&nbsp;sortiert/</span>.</div>
       <section class="panel res-tree" hidden><div class="ph"><h2>Sortierte Ordner</h2><span class="count"></span></div><div class="tree"></div></section>
-      <section class="panel res-sheet" hidden><div class="ph"><h2>Kontaktbogen</h2><a class="chip openrep" href="#" target="_blank">Öffnen</a></div><div class="sheetwrap"><img alt="Kontaktbogen"/></div></section>
+      <section class="panel res-sheet" hidden><div class="ph"><h2>Kontaktbogen</h2><span><a class="chip opengal" href="#" target="_blank" style="display:none">🖼 Galerie (Lightbox)</a> <a class="chip openrep" href="#" target="_blank">Öffnen</a></span></div><div class="sheetwrap"><img alt="Kontaktbogen"/></div></section>
       <details class="tech" hidden><summary>Technische Details — Installation &amp; Werkzeuglauf</summary><div class="log"></div></details>
     </main>
   </div>
