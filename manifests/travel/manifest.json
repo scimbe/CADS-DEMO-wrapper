@@ -1,0 +1,36 @@
+{
+  "publisher_pubkey": "eef0a6bef8771dd38e67302dcefb786f7b480ddd5d14249adc55efb0341250eb",
+  "manifest_id": "87b41f6ad4dc15e8f3092558baae699263d6d5da5e7667c299842996e373d61c",
+  "name": "travel",
+  "version": "0.1.0",
+  "installer_kind": "compose",
+  "bundle": {
+    "url": "bundle.tar.gz",
+    "sha256": "1876fa51f43878a6e075db508731699c901781e4a374602d88c31626b45b97e3",
+    "compose_file": "compose.yml"
+  },
+  "env_template": [
+    {
+      "name": "LITELLM_BASE_URL",
+      "required": true,
+      "description": "LiteLLM-compatible base URL (e.g. https://your-litellm-proxy/v1) used for the chat-formatting step - the anti-hallucination check needs a real model call, this demo has no offline fallback for it"
+    },
+    {
+      "name": "LITELLM_API_KEY",
+      "required": true,
+      "description": "API key for LITELLM_BASE_URL - never share this value outside your own local .env"
+    },
+    {
+      "name": "LITELLM_DEFAULT_MODEL",
+      "required": false,
+      "description": "Model name to request from LITELLM_BASE_URL, defaults to local-devstral-small2 if unset"
+    }
+  ],
+  "verify": {
+    "script": "verify.sh",
+    "timeout_secs": 120
+  },
+  "issued_at": 1787953176,
+  "expires_at": 1819489176,
+  "signature": "2da898a49ea4ed9a99556cbfc5648e4f4cb794f6a87027b25bc49e97d6b3824bb4e4b6e095dc7cd8a0720ff46dc8cb4da1c3968b767ad5016ae0ee8838c2d305"
+}

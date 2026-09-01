@@ -534,7 +534,7 @@
     "title": "Route planen (Bremen)",
     "tagline": "Ein Dauerdienst: OSRM rechnet die echte Route, ein LLM extrahiert Start/Ziel aus Freitext und formuliert die Wegbeschreibung — mechanisch gegen die echte Route rückgeprüft.",
     "blurb": "Freitext-Routenwunsch rein, geprüfte Wegbeschreibung raus.",
-    "manifestDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/tm/manifests/travel",
+    "manifestDir": "manifests/travel",
     "compose": true,
     "bridgePort": 8789,
     "needsLLM": true,
