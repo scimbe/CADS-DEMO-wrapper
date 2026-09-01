@@ -555,20 +555,57 @@ const TYPE_LABEL = { 'photo-tool': 'Werkzeug · lokal', 'report-html': 'Report �
 function indexPage() {
   const cards = Object.entries(DEMOS).map(([slug, d]) => {
     const label = TYPE_LABEL[d.type] || 'Demo';
+    // Content search index: match on the demo's actual text, not just the title -- tagline, blurb,
+    // description, notes, tool/engine names + the slug/type-label. Lower-cased, attribute-safe.
+    const ds = ` data-search="${[d.title, d.name, slug, label, d.tagline, d.blurb, d.description, d.note, d.story, d.tool, d.engine, d.demo_prompt]
+      .filter(Boolean).join(' ').toLowerCase().replace(/[&<>"]/g, ' ').replace(/\s+/g, ' ').trim()}"`;
     // external: a live interactive app served elsewhere (its own subdomain) — link straight out
-    if (d.type === 'external' && d.externalUrl) return `<a class="dcard" href="${d.externalUrl}" target="_blank" rel="noopener"><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go">Öffnen →</span></a>`;
-    if (d.live) return `<a class="dcard" href="/d/${slug}"><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go">Öffnen →</span></a>`;
-    return `<div class="dcard soon"><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go soonlbl">bald verfügbar</span></div>`;
+    if (d.type === 'external' && d.externalUrl) return `<a class="dcard"${ds} href="${d.externalUrl}" target="_blank" rel="noopener"><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go">Öffnen →</span></a>`;
+    if (d.live) return `<a class="dcard"${ds} href="/d/${slug}"><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go">Öffnen →</span></a>`;
+    return `<div class="dcard soon"${ds}><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go soonlbl">bald verfügbar</span></div>`;
   }).join('');
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Marktplatz-Demos · Bunsenbrenner.org</title><style>${BB_CSS}</style></head><body>
+<title>Marktplatz-Demos · Bunsenbrenner.org</title><style>${BB_CSS}
+.searchbar{display:flex;align-items:center;gap:12px;margin-top:24px}
+.searchbar input{flex:1;min-width:0;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--ink);font:inherit;font-size:.98rem;padding:.7rem .95rem}
+.searchbar input::placeholder{color:var(--muted)}
+.searchbar input:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal)}
+.searchbar .scount{color:var(--muted);font-size:.82rem;white-space:nowrap}
+.noresults{margin-top:22px;color:var(--muted2);font-size:.95rem;padding:18px;border:1.5px dashed var(--border);border-radius:12px;background:var(--card);text-align:center}
+.noresults button{margin-left:8px;background:var(--card);color:var(--teal-ink);border:1px solid var(--border);border-radius:8px;padding:.35rem .7rem;font:inherit;cursor:pointer}
+.noresults button:hover{color:var(--ink)}
+@media(max-width:640px){.searchbar .scount{display:none}}
+</style></head><body>
 ${appbar('Marktplatz / <b>Demos</b>')}
 <div class="wrap">
   <div class="eyebrow"><span class="lead">—</span>Marktplatz · besuchbare Demos</div>
   <h1>Werkzeuge zum Ausprobieren, direkt aus dem Marktplatz.</h1>
   <p class="lede">Jede Demo wird über den echten Marktplatz-Weg installiert. Die <b>deterministischen Werkzeuge laufen lokal</b> auf diesem Rechner; wo ein Sprachmodell nötig ist, läuft es auf <b>DSGVO-konformen Servern in Deutschland</b> — kleine Modelle, die zu keinem Zeitpunkt Daten speichern. Klick eine an und probier sie aus.</p>
   <div id="capbar" class="capbar" hidden></div>
-  <div class="cards">${cards}</div>
+  <div class="searchbar"><input type="search" id="demoSearch" placeholder="Demos durchsuchen — Inhalt, nicht nur Titel …" aria-label="Demos durchsuchen" autocomplete="off" spellcheck="false"><span class="scount" id="scount"></span></div>
+  <div class="cards" id="cards">${cards}</div>
+  <div class="noresults" id="noresults" hidden>Keine Demo passt zu „<span id="nrq"></span>". <button type="button" id="nrclear">Zurücksetzen</button></div>
+  <script>
+  (function(){
+    var inp=document.getElementById('demoSearch'); if(!inp) return;
+    var cards=[].slice.call(document.querySelectorAll('#cards .dcard'));
+    var nr=document.getElementById('noresults'), nrq=document.getElementById('nrq'), clr=document.getElementById('nrclear'), sc=document.getElementById('scount');
+    function apply(){
+      var q=inp.value.trim().toLowerCase();
+      var toks=q.split(/\\s+/).filter(Boolean);
+      var shown=0;
+      cards.forEach(function(c){
+        var hay=c.getAttribute('data-search')||'';
+        var ok=!toks.length||toks.every(function(t){return hay.indexOf(t)!==-1;});
+        c.style.display=ok?'':'none'; if(ok)shown++;
+      });
+      if(sc) sc.textContent=q?(shown+' von '+cards.length):'';
+      if(nr){ if(q&&shown===0){ nr.hidden=false; if(nrq)nrq.textContent=inp.value.trim(); } else nr.hidden=true; }
+    }
+    inp.addEventListener('input',apply);
+    if(clr)clr.addEventListener('click',function(){inp.value='';apply();inp.focus();});
+  })();
+  </script>
 </div>${FOOT}
 <script>
 (function(){
