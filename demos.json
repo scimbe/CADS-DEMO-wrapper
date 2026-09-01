@@ -543,7 +543,7 @@
     "status": "needs-compose",
     "note": "Compose-Dauerdienst (OSRM Bremen + Bridge). Braucht Docker/colima + Operator-Bestätigung für Subdomain travel.bunsenbrenner.org. Eigene persistente Wrapper-Form, kein Batch.",
     "estSeconds": 30,
-    "live": true,
+    "live": false,
     "demo_prompt": {
       "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
       "parameters": [
