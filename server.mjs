@@ -541,15 +541,22 @@ footer .attrib{color:var(--muted2)}footer .attrib b{color:var(--ink);font-weight
 .m-toggle{display:none;margin:16px 0 2px;font:600 .85rem var(--sans);color:var(--muted2);background:var(--card);border:1px solid var(--border);border-radius:9px;padding:.5rem 1rem;cursor:pointer;align-items:center;gap:.5ch}.m-toggle:hover{color:var(--ink);border-color:var(--teal)}@media(max-width:640px){.m-toggle{display:inline-flex}body:not(.m-open) .io,body:not(.m-open) .note,body:not(.m-open) .prov,body:not(.m-open) .capbar,body:not(.m-open) .caplabel,body:not(.m-open) details.tech,body:not(.m-open) .tune-ex,body:not(.m-open) .grid2>aside{display:none!important}}
 `;
 
-function appbar(crumb) {
+function appbar(crumb, lang) {
+  const t = tr(lang);
   return `<header class="appbar"><div class="l"><a class="brand" href="https://bunsenbrenner.org"><span class="dot">◆</span>Bunsenbrenner<span class="tld">.org</span></a>
-    <span class="crumb">${crumb}</span></div><span class="chip"><span class="d"></span>lokal aktiv · offline</span></header>`;
+    <span class="crumb">${crumb}</span></div><span class="chip"><span class="d"></span>${t('lokal aktiv · offline','running locally · offline')}</span></header>`;
 }
-const SUPPORT = `<a class="support" href="https://steady.page/plans/77a32d9c-c399-4ca1-9515-7a628c7a9413" target="_blank" rel="noopener">Als Mitglied unterstützen →</a><a class="support" href="https://buymeacoffee.com/bunsenbrenner" target="_blank" rel="noopener">Buy me a coffee →</a><a href="https://github.com/scimbe/CADS-Tunnel" target="_blank" rel="noopener">GitHub</a><a href="https://bunsenbrenner.org/legal-notice" target="_blank" rel="noopener">Legal Notice</a><a href="https://bunsenbrenner.org/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a><a href="https://bunsenbrenner.org/terms-of-use" target="_blank" rel="noopener">Terms of Use</a>`;
+function support(lang) {
+  const t = tr(lang);
+  return `<a class="support" href="https://steady.page/plans/77a32d9c-c399-4ca1-9515-7a628c7a9413" target="_blank" rel="noopener">${t('Als Mitglied unterstützen →','Support as a member →')}</a><a class="support" href="https://buymeacoffee.com/bunsenbrenner" target="_blank" rel="noopener">Buy me a coffee →</a><a href="https://github.com/scimbe/CADS-Tunnel" target="_blank" rel="noopener">GitHub</a><a href="https://bunsenbrenner.org/legal-notice" target="_blank" rel="noopener">Legal Notice</a><a href="https://bunsenbrenner.org/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a><a href="https://bunsenbrenner.org/terms-of-use" target="_blank" rel="noopener">Terms of Use</a>`;
+}
 const SERVED_BY = process.env.SERVED_BY || 'customer';
-const FOOT = `<footer><div class="fl">${SUPPORT}</div>
+function foot(lang) {
+  const t = tr(lang);
+  return `<footer><div class="fl">${support(lang)}</div>
 <div class="attrib"><b>Supported by <a href="https://bunsenbrenner.org" target="_blank" rel="noopener">bunsenbrenner.org</a></b> · served by ${SERVED_BY}</div>
-<div class="fnote">Deterministische Werkzeuge lokal · Sprachmodelle DSGVO-konform in Deutschland, ohne Datenspeicherung · Beispielfotos von <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a></div></footer>`;
+<div class="fnote">${t('Deterministische Werkzeuge lokal · Sprachmodelle DSGVO-konform in Deutschland, ohne Datenspeicherung · Beispielfotos von','Deterministic tools run locally · language models GDPR-compliant in Germany, no data retention · sample photos by')} <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a></div></footer>`;
+}
 
 const TYPE_LABEL = { 'photo-tool': 'Werkzeug · lokal', 'report-html': 'Report · LLM', 'report-md': 'Vergleich · lokal', image: 'Bild · LLM', timeline: 'Ablauf · lokal', audio: 'Audio', video: 'Video', 'service-proxy': 'Dauerdienst', external: 'Studio · live' };
 function indexPage() {
@@ -606,7 +613,7 @@ ${appbar('Marktplatz / <b>Demos</b>')}
     if(clr)clr.addEventListener('click',function(){inp.value='';apply();inp.focus();});
   })();
   </script>
-</div>${FOOT}
+</div>${foot('de')}
 <script>
 (function(){
   var bar=document.getElementById('capbar'); if(!bar) return;
@@ -632,7 +639,7 @@ ${appbar('Marktplatz / <b>Demos</b>')}
 
 const CLIENT = `
 // Mobile-minimal view: on narrow screens the secondary blocks are hidden until the visitor asks.
-(function(){var mt=document.querySelector('.m-toggle');if(!mt)return;mt.addEventListener('click',function(){var o=document.body.classList.toggle('m-open');mt.setAttribute('aria-expanded',o?'true':'false');mt.textContent=o?'weniger anzeigen \u25b4':'mehr anzeigen \u25be';});})();
+(function(){var mt=document.querySelector('.m-toggle');if(!mt)return;mt.addEventListener('click',function(){var o=document.body.classList.toggle('m-open');var en=document.documentElement.lang==='en';mt.setAttribute('aria-expanded',o?'true':'false');mt.textContent=o?(en?'show less \u25b4':'weniger anzeigen \u25b4'):(en?'show more \u25be':'mehr anzeigen \u25be');});})();
 document.querySelectorAll('button.run').forEach(btn=>btn.addEventListener('click',()=>{
   const wrap=document.querySelector('.wrap');const slug=wrap.dataset.slug;const fresh=btn.dataset.fresh;
   const out=document.querySelector('.out');const stepper=out.querySelector('.stepper');const log=out.querySelector('.log');
@@ -710,96 +717,108 @@ document.querySelectorAll('button.run').forEach(btn=>btn.addEventListener('click
 })();
 `;
 
+// --- i18n: German is the source/default. tr(lang) returns a picker (de,en)=> that
+// chooses the English string in EN mode and always falls back to German, so a missing
+// translation can never blank the page. di() picks a per-demo *_en field the same way.
+const tr = (lang) => (de, en) => (lang === 'en' && en != null ? en : de);
+const di = (d, field, lang) => (lang === 'en' && d[field + '_en'] != null ? d[field + '_en'] : d[field]);
+
 function toolShell(slug, inner, lang) {
   const d = DEMOS[slug];
-  const toggle = lang ? `<span class="langtoggle" title="Sprache umschalten"><a href="?lang=de"${lang === 'de' ? ' class="on"' : ''}>DE</a><a href="?lang=en"${lang === 'en' ? ' class="on"' : ''}>EN</a></span>` : '';
-  return `<!doctype html><html lang="${lang || 'de'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${d.title} · Bunsenbrenner.org</title><style>${BB_CSS}</style></head><body>
-${appbar(`<a href="/">Marktplatz</a> / <b>${d.name}</b>`)}
-<div class="wrap" data-slug="${slug}" data-est="${d.estSeconds || 20}" data-lang="${lang || 'de'}">
-  <div class="toolbar"><div><h1>${d.title}</h1><p>${d.tagline}</p></div><div class="controls">${toggle}${inner.controls}</div></div>
-  <button class="m-toggle" type="button" aria-expanded="false">mehr anzeigen ▾</button>
+  const t = tr(lang);
+  lang = lang === 'en' ? 'en' : 'de';
+  const toggle = `<span class="langtoggle" title="${t('Sprache umschalten','Switch language')}"><a href="?lang=de"${lang === 'de' ? ' class="on"' : ''}>DE</a><a href="?lang=en"${lang === 'en' ? ' class="on"' : ''}>EN</a></span>`;
+  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${di(d, 'title', lang)} · Bunsenbrenner.org</title><style>${BB_CSS}</style></head><body>
+${appbar(`<a href="/">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang)}
+<div class="wrap" data-slug="${slug}" data-est="${d.estSeconds || 20}" data-lang="${lang}">
+  <div class="toolbar"><div><h1>${di(d, 'title', lang)}</h1><p>${di(d, 'tagline', lang)}</p></div><div class="controls">${toggle}${inner.controls}</div></div>
+  <button class="m-toggle" type="button" aria-expanded="false">${t('mehr anzeigen ▾','show more ▾')}</button>
   ${inner.body}
-</div>${FOOT}<script>${CLIENT}</script></body></html>`;
+</div>${foot(lang)}<script>${CLIENT}</script></body></html>`;
 }
 
-function photoToolPage(slug) {
+function photoToolPage(slug, lang) {
   const d = DEMOS[slug];
+  const t = tr(lang);
   const tray = d.photos.map((p) => `<div class="prow"><img src="/assets/thumbs/${p.file}" alt="${p.city}"/>
-    <div><div class="pn">${p.file}</div><div class="pt"><span><span class="lab">Datum</span>${p.date}</span><span><span class="lab">Ort</span>${p.city}</span></div>
-    <div class="credit">Foto: <a href="${p.pexels_url}" target="_blank" rel="noopener">${p.photographer}</a> · Pexels</div></div></div>`).join('');
-  const controls = `<span class="setting"><span class="k">Sortieren</span><span class="v">Datum · Ort</span></span>
-    <span class="setting"><span class="k">Wasserzeichen</span><span class="v on">an</span></span>
-    <button class="btn btn-primary run" data-fresh="0">Organisieren ▸</button>
-    ${installLink}`;
+    <div><div class="pn">${p.file}</div><div class="pt"><span><span class="lab">${t('Datum','Date')}</span>${p.date}</span><span><span class="lab">${t('Ort','Place')}</span>${p.city}</span></div>
+    <div class="credit">${t('Foto','Photo')}: <a href="${p.pexels_url}" target="_blank" rel="noopener">${p.photographer}</a> · Pexels</div></div></div>`).join('');
+  const controls = `<span class="setting"><span class="k">${t('Sortieren','Sort by')}</span><span class="v">${t('Datum · Ort','Date · Place')}</span></span>
+    <span class="setting"><span class="k">${t('Wasserzeichen','Watermark')}</span><span class="v on">${t('an','on')}</span></span>
+    <button class="btn btn-primary run" data-fresh="0">${t('Organisieren ▸','Organize ▸')}</button>
+    ${installLink(lang)}`;
   const body = `
-  <div class="io"><span>Eingang</span><span class="path">fotos/</span><span class="ar">→</span><span>Werkzeug</span><span class="path">phototools organize</span><span class="ar">→</span><span>Ausgabe</span><span class="path">sortiert/</span></div>
+  <div class="io"><span>${t('Eingang','Input')}</span><span class="path">fotos/</span><span class="ar">→</span><span>${t('Werkzeug','Tool')}</span><span class="path">phototools organize</span><span class="ar">→</span><span>${t('Ausgabe','Output')}</span><span class="path">sortiert/</span></div>
   <div class="grid2">
-    <aside class="panel"><div class="ph"><h2>Eingang</h2><span class="count">6 Fotos · fotos/</span></div><div class="tray">${tray}</div></aside>
+    <aside class="panel"><div class="ph"><h2>${t('Eingang','Input')}</h2><span class="count">${t('6 Fotos · fotos/','6 photos · fotos/')}</span></div><div class="tray">${tray}</div></aside>
     <main class="out">
-      <div class="stepper" hidden><div class="st" data-step="install"><span class="n">1</span> Installieren</div><div class="st" data-step="process"><span class="n">2</span> Fotos verarbeiten</div><div class="st" data-step="done"><span class="n">3</span> Fertig</div></div>
-      <div class="placeholder">Noch nicht organisiert — klick <b style="color:var(--ink)">&nbsp;Organisieren&nbsp;</b>, und die 6 Fotos landen sortiert in <span style="font-family:var(--mono)">&nbsp;sortiert/</span>.</div>
-      <section class="panel res-tree" hidden><div class="ph"><h2>Sortierte Ordner</h2><span class="count"></span></div><div class="tree"></div></section>
-      <section class="panel res-sheet" hidden><div class="ph"><h2>Kontaktbogen</h2><span><a class="chip opengal" href="#" target="_blank" style="display:none">🖼 Galerie (Lightbox)</a> <a class="chip openrep" href="#" target="_blank">Öffnen</a></span></div><div class="sheetwrap"><img alt="Kontaktbogen"/></div></section>
-      <details class="tech" hidden><summary>Technische Details — Installation &amp; Werkzeuglauf</summary><div class="log"></div></details>
+      <div class="stepper" hidden><div class="st" data-step="install"><span class="n">1</span> ${t('Installieren','Install')}</div><div class="st" data-step="process"><span class="n">2</span> ${t('Fotos verarbeiten','Process photos')}</div><div class="st" data-step="done"><span class="n">3</span> ${t('Fertig','Done')}</div></div>
+      <div class="placeholder">${t('Noch nicht organisiert — klick <b style="color:var(--ink)">&nbsp;Organisieren&nbsp;</b>, und die 6 Fotos landen sortiert in <span style="font-family:var(--mono)">&nbsp;sortiert/</span>.','Not organized yet — click <b style="color:var(--ink)">&nbsp;Organize&nbsp;</b>, and the 6 photos land sorted into <span style="font-family:var(--mono)">&nbsp;sortiert/</span>.')}</div>
+      <section class="panel res-tree" hidden><div class="ph"><h2>${t('Sortierte Ordner','Sorted folders')}</h2><span class="count"></span></div><div class="tree"></div></section>
+      <section class="panel res-sheet" hidden><div class="ph"><h2>${t('Kontaktbogen','Contact sheet')}</h2><span><a class="chip opengal" href="#" target="_blank" style="display:none">🖼 ${t('Galerie (Lightbox)','Gallery (lightbox)')}</a> <a class="chip openrep" href="#" target="_blank">${t('Öffnen','Open')}</a></span></div><div class="sheetwrap"><img alt="${t('Kontaktbogen','Contact sheet')}"/></div></section>
+      <details class="tech" hidden><summary>${t('Technische Details — Installation &amp; Werkzeuglauf','Technical details — installation &amp; tool run')}</summary><div class="log"></div></details>
     </main>
   </div>
-  <div class="note"><span class="t">Ohne KI</span><div>Kein Modell „schaut" die Fotos an. <b>exiftool</b> liest die Metadaten der Kamera, ein <b>Gazetteer</b> übersetzt GPS→Stadt, <b>ImageMagick</b> setzt Wasserzeichen &amp; Kontaktbogen. Die Beispiel-Fotos stammen von <b>Pexels</b> und tragen kein Kamera-GPS — dafür sind ihnen Beispiel-Metadaten aufgeprägt (offengelegt); ein echtes Handyfoto bringt Datum &amp; Ort selbst mit.</div></div>
-  <div class="prov"><span>Bereitgestellt über den <b>Marktplatz</b></span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>Signatur/Registry <span class="sim">Demo</span></span></div>`;
-  return toolShell(slug, { controls, body });
+  <div class="note"><span class="t">${t('Ohne KI','No AI')}</span><div>${t('Kein Modell „schaut" die Fotos an. <b>exiftool</b> liest die Metadaten der Kamera, ein <b>Gazetteer</b> übersetzt GPS→Stadt, <b>ImageMagick</b> setzt Wasserzeichen &amp; Kontaktbogen. Die Beispiel-Fotos stammen von <b>Pexels</b> und tragen kein Kamera-GPS — dafür sind ihnen Beispiel-Metadaten aufgeprägt (offengelegt); ein echtes Handyfoto bringt Datum &amp; Ort selbst mit.','No model „looks at" the photos. <b>exiftool</b> reads the camera metadata, a <b>gazetteer</b> maps GPS→city, <b>ImageMagick</b> adds the watermark &amp; contact sheet. The sample photos come from <b>Pexels</b> and carry no camera GPS — instead sample metadata was stamped onto them (disclosed); a real phone photo brings its own date &amp; place.')}</div></div>
+  <div class="prov"><span>${t('Bereitgestellt über den <b>Marktplatz</b>','Provided via the <b>Marketplace</b>')}</span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>${t('Signatur/Registry','Signature/Registry')} <span class="sim">Demo</span></span></div>`;
+  return toolShell(slug, { controls, body }, lang);
 }
 
-function tuneBlock(slug) {
+function tuneBlock(slug, lang) {
   const dp = DEMOS[slug] && DEMOS[slug].demo_prompt;
   if (!dp) return '';
+  const t = tr(lang);
   const ex = (dp.examples || []).map((e) => `<button class="exchip" type="button">${e}</button>`).join('');
   const params = dp.parameters.map((p) => p.name).join(' · ');
   return `<section class="tune">
-    <div class="tune-h"><span class="teyebrow">◆ Anpassen per Prompt</span><span class="tsub">Schreib, was anders sein soll — unser DSGVO-LLM setzt es um, aber nur innerhalb fester Regeln (${params}). Vor dem Ausführen siehst du die aufgelöste Anpassung und kannst sie zurückhalten.</span></div>
-    <div class="tune-row"><input class="tuneinput" type="text" placeholder="z. B. Berlin in Blau, ohne Wind, große serifenlose Schrift"/><button class="btn btn-ghost tunebtn" type="button">Vorschau ansehen</button></div>
-    <div class="tune-ex"><span class="exlbl">Beispiele:</span>${ex}</div>
+    <div class="tune-h"><span class="teyebrow">◆ ${t('Anpassen per Prompt','Customize by prompt')}</span><span class="tsub">${t(`Schreib, was anders sein soll — unser DSGVO-LLM setzt es um, aber nur innerhalb fester Regeln (${params}). Vor dem Ausführen siehst du die aufgelöste Anpassung und kannst sie zurückhalten.`, `Write what should be different — our GDPR LLM applies it, but only within fixed rules (${params}). Before running you see the resolved change and can hold it back.`)}</span></div>
+    <div class="tune-row"><input class="tuneinput" type="text" placeholder="${t('z. B. Berlin in Blau, ohne Wind, große serifenlose Schrift','e.g. Berlin in blue, no wind, large sans-serif type')}"/><button class="btn btn-ghost tunebtn" type="button">${t('Vorschau ansehen','Preview')}</button></div>
+    <div class="tune-ex"><span class="exlbl">${t('Beispiele:','Examples:')}</span>${ex}</div>
     <div class="tunepreview" hidden></div>
   </section>`;
 }
 
 function reportHtmlPage(slug, lang) {
   const d = DEMOS[slug];
-  const controls = `<span class="setting"><span class="k">Standort</span><span class="v">${d.location}</span></span>
-    <span class="setting"><span class="k">Quelle</span><span class="v">${d.source}</span></span>
-    <span class="setting"><span class="k">Modell</span><span class="v on">${d.model}</span></span>
-    <button class="btn btn-primary run" data-fresh="0">Briefing erstellen ▸</button>
-    ${installLink}`;
+  const t = tr(lang);
+  const controls = `<span class="setting"><span class="k">${t('Standort','Location')}</span><span class="v">${d.location}</span></span>
+    <span class="setting"><span class="k">${t('Quelle','Source')}</span><span class="v">${d.source}</span></span>
+    <span class="setting"><span class="k">${t('Modell','Model')}</span><span class="v on">${d.model}</span></span>
+    <button class="btn btn-primary run" data-fresh="0">${t('Briefing erstellen ▸','Create briefing ▸')}</button>
+    ${installLink(lang)}`;
   const body = `
-  <p class="lede" style="margin:2px 0 16px">Diese Demo zeigt, wie sich ein Sprachmodell <b>faktentreu</b> einsetzen lässt: Es holt echte Wetterdaten für ${d.location} von Open-Meteo, rechnet daraus Kennzahlen und Diagramme mit gewöhnlichem Code und lässt das LLM nur den <b>Fließtext</b> schreiben — jede Zahl darin wird automatisch gegen die Rohdaten geprüft. Das Ergebnis ist ein fertiger, redaktioneller Wochen­report als HTML (und PDF), wie ihn ein Team ohne manuelle Arbeit jede Woche verschicken könnte.</p>
-  <p class="subtle" style="margin:-6px 0 14px">Sprache oben rechts umschaltbar (DE/EN): das LLM schreibt den Report in der gewählten Sprache — über denselben DSGVO-konformen Endpunkt in Deutschland.</p>
-  ${tuneBlock(slug)}
-  <div class="io"><span>Eingang</span><span class="path">${d.source}</span><span class="ar">→</span><span>Werkzeug</span><span class="path">Kennzahlen · Diagramme · LLM-Narrativ</span><span class="ar">→</span><span>Ausgabe</span><span class="path">report.html</span></div>
+  <p class="lede" style="margin:2px 0 16px">${t(`Diese Demo zeigt, wie sich ein Sprachmodell <b>faktentreu</b> einsetzen lässt: Es holt echte Wetterdaten für ${d.location} von Open-Meteo, rechnet daraus Kennzahlen und Diagramme mit gewöhnlichem Code und lässt das LLM nur den <b>Fließtext</b> schreiben — jede Zahl darin wird automatisch gegen die Rohdaten geprüft. Das Ergebnis ist ein fertiger, redaktioneller Wochenreport als HTML (und PDF), wie ihn ein Team ohne manuelle Arbeit jede Woche verschicken könnte.`,`This demo shows how a language model can be used <b>faithfully to the facts</b>: it fetches real weather data for ${d.location} from Open-Meteo, computes metrics and charts from it with ordinary code, and lets the LLM write only the <b>prose</b> — every number in it is checked automatically against the raw data. The result is a finished, editorial weekly report as HTML (and PDF) that a team could send every week with no manual work.`)}</p>
+  <p class="subtle" style="margin:-6px 0 14px">${t('Sprache oben rechts umschaltbar (DE/EN): das LLM schreibt den Report in der gewählten Sprache — über denselben DSGVO-konformen Endpunkt in Deutschland.','Switch the language top right (DE/EN): the LLM writes the report in the chosen language — via the same GDPR-compliant endpoint in Germany.')}</p>
+  ${tuneBlock(slug, lang)}
+  <div class="io"><span>${t('Eingang','Input')}</span><span class="path">${d.source}</span><span class="ar">→</span><span>${t('Werkzeug','Tool')}</span><span class="path">${t('Kennzahlen · Diagramme · LLM-Narrativ','Metrics · charts · LLM narrative')}</span><span class="ar">→</span><span>${t('Ausgabe','Output')}</span><span class="path">report.html</span></div>
   <main class="out" style="margin-top:14px">
-    <div class="stepper" hidden><div class="st" data-step="install"><span class="n">1</span> Installieren</div><div class="st" data-step="process"><span class="n">2</span> Report erstellen</div><div class="st" data-step="done"><span class="n">3</span> Fertig</div></div>
-    <div class="placeholder">Noch kein Briefing — klick <b style="color:var(--ink)">&nbsp;Briefing erstellen&nbsp;</b>. Holt echte Wetterdaten für ${d.location}, rechnet Kennzahlen &amp; Diagramme und lässt ein LLM ein faktentreues Kurz-Briefing schreiben.</div>
-    <section class="panel res-report" hidden><div class="ph"><h2>Wetter-Briefing</h2><span><a class="chip pdflink" href="#" target="_blank" hidden>PDF</a> <a class="chip openrep" href="#" target="_blank">In neuem Tab</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>
-    <details class="tech" hidden><summary>Technische Details — Installation &amp; Werkzeuglauf</summary><div class="log"></div></details>
+    <div class="stepper" hidden><div class="st" data-step="install"><span class="n">1</span> ${t('Installieren','Install')}</div><div class="st" data-step="process"><span class="n">2</span> ${t('Report erstellen','Build report')}</div><div class="st" data-step="done"><span class="n">3</span> ${t('Fertig','Done')}</div></div>
+    <div class="placeholder">${t(`Noch kein Briefing — klick <b style="color:var(--ink)">&nbsp;Briefing erstellen&nbsp;</b>. Holt echte Wetterdaten für ${d.location}, rechnet Kennzahlen &amp; Diagramme und lässt ein LLM ein faktentreues Kurz-Briefing schreiben.`,`No briefing yet — click <b style="color:var(--ink)">&nbsp;Create briefing&nbsp;</b>. Fetches real weather data for ${d.location}, computes metrics &amp; charts and lets an LLM write a fact-faithful short briefing.`)}</div>
+    <section class="panel res-report" hidden><div class="ph"><h2>${t('Wetter-Briefing','Weather briefing')}</h2><span><a class="chip pdflink" href="#" target="_blank" hidden>PDF</a> <a class="chip openrep" href="#" target="_blank">${t('In neuem Tab','In new tab')}</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>
+    <details class="tech" hidden><summary>${t('Technische Details — Installation &amp; Werkzeuglauf','Technical details — installation &amp; tool run')}</summary><div class="log"></div></details>
   </main>
-  <div class="note"><span class="t">Faktentreu</span><div>Das LLM schreibt <b>nur den Fließtext</b> — aus eingefrorenen Fakten (Open-Meteo). Ein <b>narrative_guard</b> prüft, dass keine Zahl erfunden wird; Kennzahlen, Tabellen und Diagramme kommen aus deterministischem Code, nicht aus dem Modell. Quelle &amp; Roh-Hash stehen im Report.</div></div>
-  <div class="prov"><span>Bereitgestellt über den <b>Marktplatz</b></span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>Signatur/Registry <span class="sim">Demo</span></span></div>`;
+  <div class="note"><span class="t">${t('Faktentreu','Fact-faithful')}</span><div>${t('Das LLM schreibt <b>nur den Fließtext</b> — aus eingefrorenen Fakten (Open-Meteo). Ein <b>narrative_guard</b> prüft, dass keine Zahl erfunden wird; Kennzahlen, Tabellen und Diagramme kommen aus deterministischem Code, nicht aus dem Modell. Quelle &amp; Roh-Hash stehen im Report.','The LLM writes <b>only the prose</b> — from frozen facts (Open-Meteo). A <b>narrative_guard</b> checks that no number is invented; metrics, tables and charts come from deterministic code, not from the model. Source &amp; raw hash are in the report.')}</div></div>
+  <div class="prov"><span>${t('Bereitgestellt über den <b>Marktplatz</b>','Provided via the <b>Marketplace</b>')}</span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>${t('Signatur/Registry','Signature/Registry')} <span class="sim">Demo</span></span></div>`;
   return toolShell(slug, { controls, body }, lang);
 }
 
-function outBlock(steps, placeholder, panels, note, prov) {
+function outBlock(steps, placeholder, panels, note, prov, lang) {
+  const t = tr(lang);
   const st = steps.map((s, i) => `<div class="st" data-step="${['install', 'process', 'done'][i]}"><span class="n">${i + 1}</span> ${s}</div>`).join('');
   return `<main class="out" style="margin-top:14px">
     <div class="stepper" hidden>${st}</div>
     <div class="placeholder">${placeholder}</div>
     ${panels}
-    <details class="tech" hidden><summary>Technische Details — Installation &amp; Werkzeuglauf</summary><div class="log"></div></details>
+    <details class="tech" hidden><summary>${t('Technische Details — Installation &amp; Werkzeuglauf','Technical details — installation &amp; tool run')}</summary><div class="log"></div></details>
   </main>${note || ''}
-  <div class="prov">${prov || '<span>Bereitgestellt über den <b>Marktplatz</b></span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>Signatur/Registry <span class="sim">Demo</span></span>'}</div>`;
+  <div class="prov">${prov || t('<span>Bereitgestellt über den <b>Marktplatz</b></span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>Signatur/Registry <span class="sim">Demo</span></span>','<span>Provided via the <b>Marketplace</b></span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>Signature/Registry <span class="sim">Demo</span></span>')}</div>`;
 }
 // How-to for running/customizing a demo on your own machine (marketplace docs). Replaces the old
 // "Werkzeug neu installieren" button, which the operator asked to swap for a real install guide link.
 const HOWTO_URL = 'https://scimbe.github.io/CADS-agent-marketplace-docs/how-to/install-and-customize-a-demo/';
-const installLink = `<a class="btn btn-ghost" href="${HOWTO_URL}" target="_blank" rel="noopener">Lokal installieren &amp; anpassen ↗</a>`;
-const runBtns = (primary) => `<button class="btn btn-primary run" data-fresh="0">${primary}</button>${installLink}`;
+const installLink = (lang) => `<a class="btn btn-ghost" href="${HOWTO_URL}" target="_blank" rel="noopener">${tr(lang)('Lokal installieren &amp; anpassen ↗','Install &amp; customize locally ↗')}</a>`;
+const runBtns = (primary, lang) => `<button class="btn btn-primary run" data-fresh="0">${primary}</button>${installLink(lang)}`;
 const NOTE = (tag, html) => `<div class="note"><span class="t">${tag}</span><div>${html}</div></div>`;
 
 const UPLOAD_CLIENT = `
@@ -823,87 +842,92 @@ const UPLOAD_CLIENT = `
   });
 })();`;
 
-function reportMdPage(slug) {
+function reportMdPage(slug, lang) {
   const d = DEMOS[slug];
-  const controls = runBtns('Vergleichen ▸');
+  const t = tr(lang);
+  const controls = runBtns(t('Vergleichen ▸','Compare ▸'), lang);
   const upload = slug === 'contractcheck' ? `
   <div class="upcmp">
-    <div class="upttl">Oder eigene zwei PDFs vergleichen</div>
+    <div class="upttl">${t('Oder eigene zwei PDFs vergleichen','Or compare your own two PDFs')}</div>
     <div class="uprow">
-      <label class="upf">Dokument A (PDF)<input type="file" id="pdfa" accept="application/pdf,.pdf"></label>
-      <label class="upf">Dokument B (PDF)<input type="file" id="pdfb" accept="application/pdf,.pdf"></label>
-      <button class="btn btn-primary" id="upbtn" type="button">Eigene PDFs vergleichen ▸</button>
+      <label class="upf">${t('Dokument A (PDF)','Document A (PDF)')}<input type="file" id="pdfa" accept="application/pdf,.pdf"></label>
+      <label class="upf">${t('Dokument B (PDF)','Document B (PDF)')}<input type="file" id="pdfb" accept="application/pdf,.pdf"></label>
+      <button class="btn btn-primary" id="upbtn" type="button">${t('Eigene PDFs vergleichen ▸','Compare my PDFs ▸')}</button>
     </div>
     <div class="upmsg" id="upmsg"></div>
-    <section class="panel res-upreport" hidden><div class="ph"><h2>Ihr Vergleich (Text + Bild)</h2></div><div class="sheetwrap"><iframe class="upframe" title="Ihr Vergleich"></iframe></div></section>
+    <section class="panel res-upreport" hidden><div class="ph"><h2>${t('Ihr Vergleich (Text + Bild)','Your comparison (text + image)')}</h2></div><div class="sheetwrap"><iframe class="upframe" title="${t('Ihr Vergleich','Your comparison')}"></iframe></div></section>
   </div>
   <script>${UPLOAD_CLIENT}</script>` : '';
   const body = `
-  <p class="lede" style="margin:2px 0 16px">${d.story}</p>
-  <div class="io"><span>Eingang</span><span class="path">contract_v1.pdf · contract_v2.pdf</span><span class="ar">→</span><span>Werkzeug</span><span class="path">pdftotext · difflib · pdftoppm · Vision</span><span class="ar">→</span><span>Ausgabe</span><span class="path">report.md</span></div>
+  <p class="lede" style="margin:2px 0 16px">${di(d, 'story', lang)}</p>
+  <div class="io"><span>${t('Eingang','Input')}</span><span class="path">contract_v1.pdf · contract_v2.pdf</span><span class="ar">→</span><span>${t('Werkzeug','Tool')}</span><span class="path">pdftotext · difflib · pdftoppm · Vision</span><span class="ar">→</span><span>${t('Ausgabe','Output')}</span><span class="path">report.md</span></div>
   ${upload}
-  ${outBlock(['Installieren', 'Vergleichen', 'Fertig'],
-    'Noch nicht verglichen — klick <b style="color:var(--ink)">&nbsp;Vergleichen&nbsp;</b>, dann siehst du den <b>Text-Unterschied</b> Klausel für Klausel und einen <b>Bildvergleich</b> der Seiten.',
-    `<section class="panel res-report" hidden><div class="ph"><h2>Vergleich (Text + Bild)</h2><span><a class="chip pdflink" href="#" target="_blank" hidden>PDF</a> <a class="chip openrep" href="#" target="_blank">In neuem Tab</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>`,
-    NOTE('Text deterministisch · Bild per Vision', 'Der <b>Text-Vergleich</b> ist deterministisch: <b>pdftotext</b> liest beide PDFs, Pythons <b>difflib</b> rechnet die Zeilenunterschiede (kein Modell entscheidet, was sich geändert hat); eine kurze <b>LLM-Zusammenfassung</b> fasst sie zusammen. Der <b>Bild-Vergleich</b> rendert jede Seite (<b>pdftoppm</b>) und lässt ein <b>Vision-Modell</b> die visuellen Unterschiede beschreiben — byte-gleiche Seiten werden ohne Modellaufruf als identisch erkannt.'))}`;
-  return toolShell(slug, { controls, body });
+  ${outBlock([t('Installieren','Install'), t('Vergleichen','Compare'), t('Fertig','Done')],
+    t('Noch nicht verglichen — klick <b style="color:var(--ink)">&nbsp;Vergleichen&nbsp;</b>, dann siehst du den <b>Text-Unterschied</b> Klausel für Klausel und einen <b>Bildvergleich</b> der Seiten.','Not compared yet — click <b style="color:var(--ink)">&nbsp;Compare&nbsp;</b>, then you see the <b>text difference</b> clause by clause and an <b>image comparison</b> of the pages.'),
+    `<section class="panel res-report" hidden><div class="ph"><h2>${t('Vergleich (Text + Bild)','Comparison (text + image)')}</h2><span><a class="chip pdflink" href="#" target="_blank" hidden>PDF</a> <a class="chip openrep" href="#" target="_blank">${t('In neuem Tab','In new tab')}</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>`,
+    NOTE(t('Text deterministisch · Bild per Vision','Text deterministic · image via vision'), t('Der <b>Text-Vergleich</b> ist deterministisch: <b>pdftotext</b> liest beide PDFs, Pythons <b>difflib</b> rechnet die Zeilenunterschiede (kein Modell entscheidet, was sich geändert hat); eine kurze <b>LLM-Zusammenfassung</b> fasst sie zusammen. Der <b>Bild-Vergleich</b> rendert jede Seite (<b>pdftoppm</b>) und lässt ein <b>Vision-Modell</b> die visuellen Unterschiede beschreiben — byte-gleiche Seiten werden ohne Modellaufruf als identisch erkannt.','The <b>text comparison</b> is deterministic: <b>pdftotext</b> reads both PDFs, Python difflib computes the line differences (no model decides what changed); a short <b>LLM summary</b> sums them up. The <b>image comparison</b> renders each page (<b>pdftoppm</b>) and lets a <b>vision model</b> describe the visual differences — byte-identical pages are recognized as identical without a model call.')), undefined, lang)}`;
+  return toolShell(slug, { controls, body }, lang);
 }
 
-function imagePage(slug) {
+function imagePage(slug, lang) {
   const d = DEMOS[slug];
-  const controls = `<span class="setting"><span class="k">Engine</span><span class="v">${d.engine}</span></span><span class="setting"><span class="k">Modell</span><span class="v on">${d.model}</span></span>${runBtns('Diagramm erzeugen ▸')}`;
+  const t = tr(lang);
+  const controls = `<span class="setting"><span class="k">Engine</span><span class="v">${d.engine}</span></span><span class="setting"><span class="k">${t('Modell','Model')}</span><span class="v on">${d.model}</span></span>${runBtns(t('Diagramm erzeugen ▸','Generate diagram ▸'), lang)}`;
   const body = `
-  <p class="lede" style="margin:2px 0 14px">${d.tagline}</p>
-  <label class="descfield"><span class="dl">Deine Beschreibung — schreib in einem Satz, was das Diagramm zeigen soll:</span>
-  <textarea class="descinput" rows="3" maxlength="600" placeholder="z. B. Ein Flussdiagramm: Nutzer öffnet die Demo, der Marktplatz installiert das Werkzeug, es läuft lokal, das Ergebnis wird gezeigt.">${d.description}</textarea></label>
-  ${tuneBlock(slug)}
-  <div class="io"><span>Beschreibung</span><span class="ar">→</span><span>LLM → ${d.engine === 'graphviz' ? 'Graphviz' : 'Mermaid'}</span><span class="ar">→</span><span>Renderer prüft</span><span class="ar">→</span><span class="path">diagram.png</span></div>
-  ${outBlock(['Installieren', 'Diagramm erzeugen', 'Fertig'],
-    'Noch kein Diagramm — klick <b style="color:var(--ink)">&nbsp;Diagramm erzeugen&nbsp;</b>. Das LLM schreibt Mermaid-Code, der Renderer prüft ihn und macht ein PNG.',
-    `<section class="panel res-image" hidden><div class="ph"><h2>Erzeugtes Diagramm</h2><a class="chip openimg" href="#" target="_blank">Öffnen</a></div><div class="sheetwrap"><img class="resimg" alt="Diagramm"/></div></section>`,
-    NOTE('Selbstkorrektur', 'Das LLM schreibt nur die <b>Mermaid-Beschreibung</b>; ein echter Renderer (mermaid-cli) prüft sie, indem er sie tatsächlich zeichnet. Bei einem Syntaxfehler bekommt das LLM die echte Fehlermeldung zurück und korrigiert — bis zu 3 Versuche.'))}`;
-  return toolShell(slug, { controls, body });
+  <p class="lede" style="margin:2px 0 14px">${di(d, 'tagline', lang)}</p>
+  <label class="descfield"><span class="dl">${t('Deine Beschreibung — schreib in einem Satz, was das Diagramm zeigen soll:','Your description — write in one sentence what the diagram should show:')}</span>
+  <textarea class="descinput" rows="3" maxlength="600" placeholder="${t('z. B. Ein Flussdiagramm: Nutzer öffnet die Demo, der Marktplatz installiert das Werkzeug, es läuft lokal, das Ergebnis wird gezeigt.','e.g. A flowchart: a user opens the demo, the marketplace installs the tool, it runs locally, the result is shown.')}">${di(d, 'description', lang)}</textarea></label>
+  ${tuneBlock(slug, lang)}
+  <div class="io"><span>${t('Beschreibung','Description')}</span><span class="ar">→</span><span>LLM → ${d.engine === 'graphviz' ? 'Graphviz' : 'Mermaid'}</span><span class="ar">→</span><span>${t('Renderer prüft','Renderer checks')}</span><span class="ar">→</span><span class="path">diagram.png</span></div>
+  ${outBlock([t('Installieren','Install'), t('Diagramm erzeugen','Generate diagram'), t('Fertig','Done')],
+    t('Noch kein Diagramm — klick <b style="color:var(--ink)">&nbsp;Diagramm erzeugen&nbsp;</b>. Das LLM schreibt Mermaid-Code, der Renderer prüft ihn und macht ein PNG.','No diagram yet — click <b style="color:var(--ink)">&nbsp;Generate diagram&nbsp;</b>. The LLM writes Mermaid code, the renderer checks it and makes a PNG.'),
+    `<section class="panel res-image" hidden><div class="ph"><h2>${t('Erzeugtes Diagramm','Generated diagram')}</h2><a class="chip openimg" href="#" target="_blank">${t('Öffnen','Open')}</a></div><div class="sheetwrap"><img class="resimg" alt="${t('Diagramm','Diagram')}"/></div></section>`,
+    NOTE(t('Selbstkorrektur','Self-correction'), t('Das LLM schreibt nur die <b>Mermaid-Beschreibung</b>; ein echter Renderer (mermaid-cli) prüft sie, indem er sie tatsächlich zeichnet. Bei einem Syntaxfehler bekommt das LLM die echte Fehlermeldung zurück und korrigiert — bis zu 3 Versuche.','The LLM writes only the <b>Mermaid description</b>; a real renderer (mermaid-cli) checks it by actually drawing it. On a syntax error the LLM gets the real error message back and corrects — up to 3 attempts.')), undefined, lang)}`;
+  return toolShell(slug, { controls, body }, lang);
 }
 
-function timelinePage(slug) {
+function timelinePage(slug, lang) {
   const d = DEMOS[slug];
-  const controls = runBtns('Ablauf starten ▸');
+  const t = tr(lang);
+  const controls = runBtns(t('Ablauf starten ▸','Start run ▸'), lang);
   const body = `
-  <p class="lede" style="margin:2px 0 16px">${d.tagline}</p>
-  <div class="io"><span>Werkzeug</span><span class="path">temporal dev-server</span><span class="ar">→</span><span>Workflow läuft</span><span class="ar">→</span><span>Worker gekillt</span><span class="ar">→</span><span>zweiter Worker beendet</span></div>
-  ${outBlock(['Installieren', 'Ausführen (Kill & Recovery)', 'Fertig'],
-    'Noch nicht ausgeführt — klick <b style="color:var(--ink)">&nbsp;Ablauf starten&nbsp;</b>. Ein Worker wird mitten in der Aufgabe hart gekillt; sieh im Verlauf, wie ein zweiter sie zu Ende bringt. (~45 s)',
-    `<section class="panel res-timeline" hidden><div class="ph"><h2>Ablauf-Verlauf</h2><span class="count">echter Temporal-Event-Verlauf</span></div><ol class="timeline"></ol></section>`,
-    NOTE('Durable Execution', 'Nichts wird von Hand neu gestartet: Temporal erkennt am ausbleibenden <b>Heartbeat</b>, dass der Worker tot ist, und ein zweiter Worker übernimmt die Aufgabe automatisch. Der Verlauf ist der echte <code>event-history.json</code>.'))}`;
-  return toolShell(slug, { controls, body });
+  <p class="lede" style="margin:2px 0 16px">${di(d, 'tagline', lang)}</p>
+  <div class="io"><span>${t('Werkzeug','Tool')}</span><span class="path">temporal dev-server</span><span class="ar">→</span><span>${t('Workflow läuft','Workflow runs')}</span><span class="ar">→</span><span>${t('Worker gekillt','Worker killed')}</span><span class="ar">→</span><span>${t('zweiter Worker beendet','second worker finishes')}</span></div>
+  ${outBlock([t('Installieren','Install'), t('Ausführen (Kill & Recovery)','Run (kill & recovery)'), t('Fertig','Done')],
+    t('Noch nicht ausgeführt — klick <b style="color:var(--ink)">&nbsp;Ablauf starten&nbsp;</b>. Ein Worker wird mitten in der Aufgabe hart gekillt; sieh im Verlauf, wie ein zweiter sie zu Ende bringt. (~45 s)','Not run yet — click <b style="color:var(--ink)">&nbsp;Start run&nbsp;</b>. A worker is killed hard mid-task; watch the history show a second one finish it. (~45 s)'),
+    `<section class="panel res-timeline" hidden><div class="ph"><h2>${t('Ablauf-Verlauf','Run history')}</h2><span class="count">${t('echter Temporal-Event-Verlauf','real Temporal event history')}</span></div><ol class="timeline"></ol></section>`,
+    NOTE(t('Durable Execution','Durable execution'), t('Nichts wird von Hand neu gestartet: Temporal erkennt am ausbleibenden <b>Heartbeat</b>, dass der Worker tot ist, und ein zweiter Worker übernimmt die Aufgabe automatisch. Der Verlauf ist der echte <code>event-history.json</code>.','Nothing is restarted by hand: Temporal detects from the missing <b>heartbeat</b> that the worker is dead, and a second worker takes over the task automatically. The history is the real <code>event-history.json</code>.')), undefined, lang)}`;
+  return toolShell(slug, { controls, body }, lang);
 }
 
-function audioPage(slug) {
+function audioPage(slug, lang) {
   const d = DEMOS[slug];
-  const controls = runBtns('Folge bereitstellen ▸');
+  const t = tr(lang);
+  const controls = runBtns(t('Folge bereitstellen ▸','Provide episode ▸'), lang);
   const body = `
-  <p class="lede" style="margin:2px 0 16px">${d.tagline}</p>
-  <div class="io"><span>Eingang</span><span class="path">Roh-Spuren (WAV)</span><span class="ar">→</span><span>ffmpeg · whisper.cpp · LLM-Kapitel</span><span class="ar">→</span><span class="path">episode.mp3</span></div>
-  ${outBlock(['Bereitstellen', 'Verarbeiten', 'Fertig'],
-    'Klick <b style="color:var(--ink)">&nbsp;Folge bereitstellen&nbsp;</b> — Player, Kapitel und Transkript eines echten Laufs.',
-    `<section class="panel res-audio" hidden><div class="ph"><h2>Folge</h2><span class="count">Kapitel klickbar</span></div><div class="sheetwrap"><audio class="resaudio" controls style="width:100%"></audio><ol class="chapters"></ol><details class="tx" style="margin-top:12px"><summary>Transkript (whisper.cpp)</summary><pre class="txbody"></pre></details></div></section>`,
-    NOTE('Faktentreu', 'Kapitelmarken setzt das LLM, aber jede Zeit wird gegen die echten whisper.cpp-Zeitstempel geprüft. Schnitt/Transkription sind deterministische Werkzeuge (ffmpeg, whisper.cpp).'))}`;
-  return toolShell(slug, { controls, body });
+  <p class="lede" style="margin:2px 0 16px">${di(d, 'tagline', lang)}</p>
+  <div class="io"><span>${t('Eingang','Input')}</span><span class="path">${t('Roh-Spuren (WAV)','Raw tracks (WAV)')}</span><span class="ar">→</span><span>ffmpeg · whisper.cpp · ${t('LLM-Kapitel','LLM chapters')}</span><span class="ar">→</span><span class="path">episode.mp3</span></div>
+  ${outBlock([t('Bereitstellen','Provide'), t('Verarbeiten','Process'), t('Fertig','Done')],
+    t('Klick <b style="color:var(--ink)">&nbsp;Folge bereitstellen&nbsp;</b> — Player, Kapitel und Transkript eines echten Laufs.','Click <b style="color:var(--ink)">&nbsp;Provide episode&nbsp;</b> — player, chapters and transcript of a real run.'),
+    `<section class="panel res-audio" hidden><div class="ph"><h2>${t('Folge','Episode')}</h2><span class="count">${t('Kapitel klickbar','chapters clickable')}</span></div><div class="sheetwrap"><audio class="resaudio" controls style="width:100%"></audio><ol class="chapters"></ol><details class="tx" style="margin-top:12px"><summary>${t('Transkript (whisper.cpp)','Transcript (whisper.cpp)')}</summary><pre class="txbody"></pre></details></div></section>`,
+    NOTE(t('Faktentreu','Fact-faithful'), t('Kapitelmarken setzt das LLM, aber jede Zeit wird gegen die echten whisper.cpp-Zeitstempel geprüft. Schnitt/Transkription sind deterministische Werkzeuge (ffmpeg, whisper.cpp).','The LLM sets the chapter markers, but every time is checked against the real whisper.cpp timestamps. Editing/transcription are deterministic tools (ffmpeg, whisper.cpp).')), undefined, lang)}`;
+  return toolShell(slug, { controls, body }, lang);
 }
 
-function videoPage(slug) {
+function videoPage(slug, lang) {
   const d = DEMOS[slug];
-  const controls = runBtns('Video bereitstellen ▸');
-  const prov = '<span>Läuft aus der Quelle · <b>noch kein Marktplatz-Manifest</b></span><span class="sep">|</span><span>vorgerendertes echtes Ergebnis</span>';
+  const t = tr(lang);
+  const controls = runBtns(t('Video bereitstellen ▸','Provide video ▸'), lang);
+  const prov = t('<span>Läuft aus der Quelle · <b>noch kein Marktplatz-Manifest</b></span><span class="sep">|</span><span>vorgerendertes echtes Ergebnis</span>','<span>Runs from source · <b>no marketplace manifest yet</b></span><span class="sep">|</span><span>pre-rendered real result</span>');
   const body = `
-  <p class="lede" style="margin:2px 0 16px">${d.tagline}</p>
-  <div class="io"><span>Thema</span><span class="ar">→</span><span>LLM-Storyboard</span><span class="ar">→</span><span>TTS · GSAP · Chrome · ffmpeg</span><span class="ar">→</span><span class="path">final.mp4</span></div>
-  ${outBlock(['Bereitstellen', 'Verarbeiten', 'Fertig'],
-    'Klick <b style="color:var(--ink)">&nbsp;Video bereitstellen&nbsp;</b> — das fertige Erklärvideo mit Szenenliste.',
-    `<section class="panel res-video" hidden><div class="ph"><h2>Erklärvideo</h2><span class="count">1920×1080 · H.264</span></div><div class="sheetwrap"><video class="resvideo" controls preload="metadata" style="width:100%;border:1px solid var(--border);border-radius:9px"></video><ol class="scenes"></ol></div></section>`,
-    NOTE('KI ↔ Engine', 'Nur das <b>Storyboard</b> kommt vom LLM; danach ist alles deterministische Engine: Text-to-Speech, GSAP-Animation, Headless-Chrome-Render, ffmpeg-Schnitt. Deutsche Mehrstimmen-TTS folgt über den llm2-Channel.') +
-    NOTE('Hinweis', d.note), prov)}`;
-  return toolShell(slug, { controls, body });
+  <p class="lede" style="margin:2px 0 16px">${di(d, 'tagline', lang)}</p>
+  <div class="io"><span>${t('Thema','Topic')}</span><span class="ar">→</span><span>${t('LLM-Storyboard','LLM storyboard')}</span><span class="ar">→</span><span>TTS · GSAP · Chrome · ffmpeg</span><span class="ar">→</span><span class="path">final.mp4</span></div>
+  ${outBlock([t('Bereitstellen','Provide'), t('Verarbeiten','Process'), t('Fertig','Done')],
+    t('Klick <b style="color:var(--ink)">&nbsp;Video bereitstellen&nbsp;</b> — das fertige Erklärvideo mit Szenenliste.','Click <b style="color:var(--ink)">&nbsp;Provide video&nbsp;</b> — the finished explainer video with a scene list.'),
+    `<section class="panel res-video" hidden><div class="ph"><h2>${t('Erklärvideo','Explainer video')}</h2><span class="count">1920×1080 · H.264</span></div><div class="sheetwrap"><video class="resvideo" controls preload="metadata" style="width:100%;border:1px solid var(--border);border-radius:9px"></video><ol class="scenes"></ol></div></section>`,
+    NOTE(t('KI ↔ Engine','AI ↔ engine'), t('Nur das <b>Storyboard</b> kommt vom LLM; danach ist alles deterministische Engine: Text-to-Speech, GSAP-Animation, Headless-Chrome-Render, ffmpeg-Schnitt. Deutsche Mehrstimmen-TTS folgt über den llm2-Channel.','Only the <b>storyboard</b> comes from the LLM; after that everything is deterministic engine: text-to-speech, GSAP animation, headless-Chrome render, ffmpeg cut. German multi-voice TTS follows via the llm2 channel.')) +
+    NOTE(t('Hinweis','Note'), di(d, 'note', lang)), prov, lang)}`;
+  return toolShell(slug, { controls, body }, lang);
 }
 
 // ---- Studio: one topic -> orchestrate several demos into one integrated workspace -------------
@@ -960,7 +984,7 @@ ${appbar(`<a href="/">Marktplatz</a> / <b>${d.name}</b>`)}
 <div class="wrap"><div class="eyebrow"><span class="lead">—</span>${TYPE_LABEL[d.type] || 'Demo'} · in Vorbereitung</div>
 <h1>${d.title}</h1><p class="lede">${d.tagline}</p>
 <div class="note" style="margin-top:24px"><span class="t">Bald</span><div>Diese Demo ist spezifiziert und wird gerade im gleichen Stil verdrahtet.${d.note ? ' ' + d.note : ''} Schau gleich nochmal rein — oder <a href="/">zurück zur Übersicht</a>.</div></div>
-</div>${FOOT}</body></html>`;
+</div>${foot('de')}</body></html>`;
 }
 
 // Live capacity indicator: server-side proxy of llm2's read-only /status (avoids CORS; the flaky
@@ -1042,7 +1066,7 @@ http.createServer((req, res) => {
   const pd = p.match(/^\/d\/([a-z0-9-]+)\/?$/);
   if (pd) { const slug = pd[1], d = DEMOS[slug]; if (!d) { res.writeHead(404).end('unknown demo'); return; }
     const lang = url.searchParams.get('lang') === 'en' ? 'en' : 'de';
-    const PAGES = { 'photo-tool': photoToolPage, 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': reportMdPage, image: imagePage, timeline: timelinePage, audio: audioPage, video: videoPage };
+    const PAGES = { 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), audio: (s) => audioPage(s, lang), video: (s) => videoPage(s, lang) };
     const html = d.live && PAGES[d.type] ? PAGES[d.type](slug) : soonPage(slug);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(html); return; }
   res.writeHead(404).end('not found');

@@ -133,7 +133,9 @@
         "nach Ort statt Datum sortieren",
         "ohne Wasserzeichen, 4 Spalten"
       ]
-    }
+    },
+    "title_en": "Sort a photo folder",
+    "tagline_en": "Sorts a photo folder by capture date and place, adds a watermark and builds a contact sheet — locally, no AI."
   },
   "newsletter": {
     "type": "report-html",
@@ -265,7 +267,9 @@
         "Zürich, 10 Tage, auf Englisch"
       ]
     },
-    "servedBy": "customer"
+    "servedBy": "customer",
+    "title_en": "Create a weather briefing",
+    "tagline_en": "Fetches real weather data (Open-Meteo), computes metrics and charts, and lets an LLM write a fact-faithful short briefing — as a finished HTML report."
   },
   "contractcheck": {
     "type": "report-md",
@@ -313,7 +317,10 @@
         "mit mehr Kontext",
         "mit KI-Zusammenfassung"
       ]
-    }
+    },
+    "title_en": "Compare contracts",
+    "tagline_en": "Finds substantive changes between two contract versions — text diff deterministic (pdftotext+difflib), plus an AI summary and a visual page comparison via a vision model.",
+    "story_en": "Two versions of the same contract. Clause 4 (payment term) changes from 30 to 45 days — 15 more days waiting for the money. Nothing else. The diff shows exactly that line."
   },
   "diagram": {
     "type": "image",
@@ -357,7 +364,9 @@
         "als Graphviz",
         "mehr Korrekturversuche"
       ]
-    }
+    },
+    "title_en": "Diagram from text",
+    "tagline_en": "Describe a diagram in one sentence — an LLM writes Mermaid code, a real renderer checks it and produces a PNG; on syntax errors the LLM corrects using the real error message."
   },
   "temporal-poc": {
     "type": "timeline",
@@ -391,7 +400,9 @@
         "langsamer, mehr Haltezeit",
         "schneller durchlaufen"
       ]
-    }
+    },
+    "title_en": "Crash-proof workflows",
+    "tagline_en": "A document is rendered; mid-run the worker process is killed hard. Temporal notices the failure from the missing heartbeat and a second worker finishes the task automatically."
   },
   "podcast": {
     "type": "audio",
@@ -448,7 +459,9 @@
         "ohne Kapitel",
         "mit Ansagen"
       ]
-    }
+    },
+    "title_en": "Assemble a podcast episode",
+    "tagline_en": "Mixes raw tracks into an episode (ffmpeg), transcribes it with whisper.cpp and lets an LLM set chapter markers — verified against the real timestamps."
   },
   "explainer": {
     "type": "video",
@@ -509,7 +522,10 @@
         "6 Szenen, enthusiastisch, in Terracotta",
         "Interviewer-Stimme, lehrender Ton"
       ]
-    }
+    },
+    "title_en": "Explainer video from a topic",
+    "tagline_en": "An LLM writes a storyboard; after that everything is deterministic: text-to-speech per scene, GSAP/HTML animation, headless-Chrome render, ffmpeg cut to the finished MP4.",
+    "note_en": "Not yet packaged as a marketplace manifest — runs from source; pre-rendered real result (English Piper voice). German multi-voice TTS follows via the llm2 channel."
   },
   "travel": {
     "type": "service-proxy",
