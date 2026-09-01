@@ -567,7 +567,7 @@ function indexPage() {
     const ds = ` data-search="${[d.title, d.name, slug, label, d.tagline, d.blurb, d.description, d.note, d.story, d.tool, d.engine, d.demo_prompt]
       .filter(Boolean).join(' ').toLowerCase().replace(/[&<>"]/g, ' ').replace(/\s+/g, ' ').trim()}"`;
     // external: a live interactive app served elsewhere (its own subdomain) — link straight out
-    if (d.type === 'external' && d.externalUrl) return `<a class="dcard"${ds} href="${d.externalUrl}" target="_blank" rel="noopener"><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go">Öffnen →</span></a>`;
+    if (d.type === 'external' && d.externalUrl && d.live) return `<a class="dcard"${ds} href="${d.externalUrl}" target="_blank" rel="noopener"><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go">Öffnen →</span></a>`;
     if (d.live) return `<a class="dcard"${ds} href="/d/${slug}"><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go">Öffnen →</span></a>`;
     return `<div class="dcard soon"${ds}><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go soonlbl">bald verfügbar</span></div>`;
   }).join('');
