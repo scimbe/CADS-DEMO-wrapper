@@ -558,7 +558,7 @@ function foot(lang) {
 <div class="fnote">${t('Deterministische Werkzeuge lokal · Sprachmodelle DSGVO-konform in Deutschland, ohne Datenspeicherung · Beispielfotos von','Deterministic tools run locally · language models GDPR-compliant in Germany, no data retention · sample photos by')} <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a></div></footer>`;
 }
 
-const TYPE_LABEL = { 'photo-tool': 'Werkzeug · lokal', 'report-html': 'Report · LLM', 'report-md': 'Vergleich · lokal', image: 'Bild · LLM', timeline: 'Ablauf · lokal', audio: 'Audio', video: 'Video', 'service-proxy': 'Dauerdienst', external: 'Studio · live' };
+const TYPE_LABEL = { 'photo-tool': 'Werkzeug · lokal', 'report-html': 'Report · LLM', 'report-md': 'Vergleich · lokal', image: 'Bild · LLM', timeline: 'Ablauf · lokal', audio: 'Audio', video: 'Video', 'service-proxy': 'Dauerdienst', external: 'Studio · live', landing: 'Übersicht' };
 function indexPage() {
   const cards = Object.entries(DEMOS).map(([slug, d]) => {
     const label = TYPE_LABEL[d.type] || 'Demo';
@@ -930,6 +930,27 @@ function videoPage(slug, lang) {
   return toolShell(slug, { controls, body }, lang);
 }
 
+// ---- landing: a static, public collection page linking out to N sibling demos ("tracks") --
+// No invoke pipeline, no run button -- unlike 'external' (which has no /d/:slug page at all,
+// see the PAGES map below) this type needs a real detail page, just a static one. Each track
+// stays fully public here; login (if any) happens only after the visitor clicks through to its
+// own externalUrl, never on this page.
+function landingPage(slug, lang) {
+  const d = DEMOS[slug];
+  const t = tr(lang);
+  const tracks = (d.tracks || []).map((tk) => `
+    <a class="dcard" href="${tk.externalUrl}" target="_blank" rel="noopener">
+      <span class="k">${tk.tagline || ''}</span>
+      <h3>${tk.name}</h3>
+      <p>${tk.blurb || ''}${tk.loginNote ? `<br><span style="color:var(--muted);font-size:.8rem">${tk.loginNote}</span>` : ''}</p>
+      <span class="go">${t('Öffnen →','Open →')}</span>
+    </a>`).join('');
+  const body = `
+  <p class="lede" style="margin:2px 0 20px">${di(d, 'blurb', lang)}</p>
+  <div class="cards">${tracks}</div>`;
+  return toolShell(slug, { controls: '', body }, lang);
+}
+
 // ---- Studio: one topic -> orchestrate several demos into one integrated workspace -------------
 async function handleStudio(req, res, url) {
   const topic = (url.searchParams.get('topic') || '').slice(0, 300).trim();
@@ -1066,7 +1087,7 @@ http.createServer((req, res) => {
   const pd = p.match(/^\/d\/([a-z0-9-]+)\/?$/);
   if (pd) { const slug = pd[1], d = DEMOS[slug]; if (!d) { res.writeHead(404).end('unknown demo'); return; }
     const lang = url.searchParams.get('lang') === 'en' ? 'en' : 'de';
-    const PAGES = { 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), audio: (s) => audioPage(s, lang), video: (s) => videoPage(s, lang) };
+    const PAGES = { 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), audio: (s) => audioPage(s, lang), video: (s) => videoPage(s, lang), landing: (s) => landingPage(s, lang) };
     const html = d.live && PAGES[d.type] ? PAGES[d.type](slug) : soonPage(slug);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(html); return; }
   res.writeHead(404).end('not found');

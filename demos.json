@@ -29,25 +29,37 @@
     "externalUrl": "https://keyforge-34a13a96.bunsenbrenner.org",
     "live": true
   },
-  "firmware-lab": {
-    "type": "external",
-    "name": "firmware-lab",
-    "version": "0.1.0",
-    "title": "Firmware-Lab — Embedded-IDE im Browser",
-    "tagline": "Eine komplette Embedded-Entwicklungsumgebung im Browser — ohne lokale Toolchain-Installation.",
-    "blurb": "Browser-basiertes VS Code (code-server) mit OpenOCD, der arm-none-eabi-Toolchain und cortex-debug — vorinstalliert für STM32-Firmware. Flash dein eigenes ST-Link-Board direkt aus dem Browser via WebUSB, keine serverseitige Hardware nötig. Tutor-Modus (geführte Übungen) noch in früher Form; cads zeros verbesserte Version ist in Arbeit.",
-    "externalUrl": "https://firmware-lab-34a13a96.bunsenbrenner.org",
-    "live": true
-  },
-  "tutor-lab": {
-    "type": "external",
-    "name": "tutor-lab",
+  "cads-tutor": {
+    "type": "landing",
+    "name": "cads-tutor",
     "version": "0.1.0",
     "title": "CaDS Tutor — Geführtes Lernen im Browser",
-    "tagline": "Ein interaktiver Programmier-Tutor direkt in der Browser-IDE: geführte Curricula für Firmware, Rust und JavaScript, mit geerdeten Antworten und proaktivem Check-in bei Code-Änderungen.",
-    "blurb": "Browser-basiertes VS Code (code-server) mit dem „Ask CaDS Tutor\"-Panel: track-basierte Übungen (Firmware/Rust/JavaScript), Q&A mit Zitaten aus dem Kursmaterial und optionalem proaktivem Anstoß, wenn du Code änderst — komplett im Browser, keine lokale Toolchain. Anmeldung erforderlich (wie das Firmware-Lab).",
-    "externalUrl": "https://tutor-lab-34a13a96.bunsenbrenner.org/",
-    "live": false
+    "tagline": "Ein interaktiver Programmier-Tutor im Browser — drei Spuren (Firmware, Rust, JavaScript), geführte Curricula mit geerdeten Antworten und echten Zitaten.",
+    "blurb": "Alle drei Spuren laufen auf derselben CaDS-Tutor-Extension (`bunsenbrenner.review-cli-vscode`) — geführte Curricula, grounded Q&amp;A mit echten Zitaten, nie geraten. tutor-lab ist die leichtgewichtige Variante ohne Embedded-Toolchain.",
+    "live": true,
+    "tracks": [
+      {
+        "name": "Firmware (STM32)",
+        "tagline": "Embedded-Entwicklung im Browser, an echter Hardware",
+        "blurb": "Vollständige Embedded-IDE (code-server) mit OpenOCD, arm-none-eabi-Toolchain und cortex-debug vorinstalliert. Geführtes Curriculum von Memory-Mapped-I/O bis UDP-Netzwerk, mit proaktivem Check-in bei jedem Speichern — der Tutor bewertet deinen echten Code gegen das aktuelle Lernziel. Eigenes ST-Link-Board? Flash es direkt aus dem Browser per WebUSB, keine Toolchain-Installation nötig.",
+        "externalUrl": "https://firmware-lab-34a13a96.bunsenbrenner.org",
+        "loginNote": "Anmeldung erforderlich (Login erst beim Track-Klick)"
+      },
+      {
+        "name": "Rust",
+        "tagline": "Rust lernen mit echten Zitaten, nicht mit Vermutungen",
+        "blurb": "Leichtgewichtiger, geführter Rust-Track (Ownership, Structs, Enums/Pattern-Matching, Collections, Fehlerbehandlung, Generics/Traits/Lifetimes) auf Basis des offiziellen Rust Book. Jede Antwort ist gegen das indizierte Referenzmaterial geerdet und mit Quellenangabe versehen — außerhalb des Gelernten wird ehrlich abgelehnt statt geraten.",
+        "externalUrl": "https://tutor-lab-34a13a96.bunsenbrenner.org/?track=rust",
+        "loginNote": "Anmeldung erforderlich (Login erst beim Track-Klick)"
+      },
+      {
+        "name": "JavaScript",
+        "tagline": "JavaScript-Grundlagen, direkt im Browser geübt",
+        "blurb": "Geführter JavaScript-Track (Variablen, Datentypen, Kontrollfluss, Funktionen/Closures, Objekte, Arrays) auf Basis des MDN JavaScript Guide. Grounded Q&amp;A mit Zitaten wie beim Rust-Track, gleiche Extension, gleiche Ehrlichkeitsgarantie.",
+        "externalUrl": "https://tutor-lab-34a13a96.bunsenbrenner.org/?track=js",
+        "loginNote": "Anmeldung erforderlich (Login erst beim Track-Klick)"
+      }
+    ]
   },
   "a2a-demo": {
     "type": "external",
