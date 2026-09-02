@@ -39,6 +39,16 @@
     "externalUrl": "https://firmware-lab-34a13a96.bunsenbrenner.org",
     "live": true
   },
+  "tutor-lab": {
+    "type": "external",
+    "name": "tutor-lab",
+    "version": "0.1.0",
+    "title": "CaDS Tutor — Geführtes Lernen im Browser",
+    "tagline": "Ein interaktiver Programmier-Tutor direkt in der Browser-IDE: geführte Curricula für Firmware, Rust und JavaScript, mit geerdeten Antworten und proaktivem Check-in bei Code-Änderungen.",
+    "blurb": "Browser-basiertes VS Code (code-server) mit dem „Ask CaDS Tutor\"-Panel: track-basierte Übungen (Firmware/Rust/JavaScript), Q&A mit Zitaten aus dem Kursmaterial und optionalem proaktivem Anstoß, wenn du Code änderst — komplett im Browser, keine lokale Toolchain. Anmeldung erforderlich (wie das Firmware-Lab).",
+    "externalUrl": "https://tutor-lab-34a13a96.bunsenbrenner.org/",
+    "live": false
+  },
   "a2a-demo": {
     "type": "external",
     "name": "a2a-demo",
