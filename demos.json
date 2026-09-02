@@ -47,7 +47,7 @@
     "tagline": "Zwei Maschinen in getrennten Netzen erreichen sich Ende-zu-Ende-verschlüsselt über das Relay der Plattform — keine Seite öffnet einen Port oder einen Listener.",
     "blurb": "Live-Topologie im Browser: echte Rechner, echte Agent-Fabric-Channel-Calls, durchgehend verschlüsselt und über das Relay durchgereicht — ohne dass eine Seite lauscht. Grün = jetzt verbunden, gestrichelt = offline.",
     "externalUrl": "https://a2a-demo.bunsenbrenner.org/",
-    "live": true
+    "live": false
   },
   "auction-demo": {
     "type": "external",
@@ -67,7 +67,7 @@
     "tagline": "Du gibst einen Text-Prompt und optional ein Foto deiner Zutaten — eine Crew kooperierender KI-Agenten über den Tunnel kocht daraus live ein Rezept.",
     "blurb": "Ein Rezeptgenerator, live gebaut von einer Crew unabhängiger KI-Agenten über die Agent-Fabric. Jeder Schritt wird live gezeigt, während er passiert. Der Operator sieht nie dein Foto oder Rezept — nur, dass ein Channel zwischen zwei Schlüsseln existiert.",
     "externalUrl": "https://cookbook.bunsenbrenner.org/",
-    "live": true
+    "live": false
   },
   "phototools": {
     "type": "photo-tool",
