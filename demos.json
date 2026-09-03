@@ -43,6 +43,7 @@
         "tagline": "Embedded-Entwicklung im Browser, an echter Hardware",
         "blurb": "Vollständige Embedded-IDE (code-server) mit OpenOCD, arm-none-eabi-Toolchain und cortex-debug vorinstalliert. Geführtes Curriculum von Memory-Mapped-I/O bis UDP-Netzwerk, mit proaktivem Check-in bei jedem Speichern — der Tutor bewertet deinen echten Code gegen das aktuelle Lernziel. Eigenes ST-Link-Board? Flash es direkt aus dem Browser per WebUSB, keine Toolchain-Installation nötig.",
         "externalUrl": "https://firmware-lab-34a13a96.bunsenbrenner.org",
+        "docsUrl": "https://scimbe.github.io/CADS-DEMO-firmware-lab-docs",
         "loginNote": "Anmeldung erforderlich (Login erst beim Track-Klick)"
       },
       {

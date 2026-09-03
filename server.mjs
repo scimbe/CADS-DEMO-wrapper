@@ -939,12 +939,14 @@ function landingPage(slug, lang) {
   const d = DEMOS[slug];
   const t = tr(lang);
   const tracks = (d.tracks || []).map((tk) => `
-    <a class="dcard" href="${tk.externalUrl}" target="_blank" rel="noopener">
-      <span class="k">${tk.tagline || ''}</span>
-      <h3>${tk.name}</h3>
-      <p>${tk.blurb || ''}${tk.loginNote ? `<br><span style="color:var(--muted);font-size:.8rem">${tk.loginNote}</span>` : ''}</p>
-      <span class="go">${t('Öffnen →','Open →')}</span>
-    </a>`).join('');
+    <div class="dcard">
+      <a href="${tk.externalUrl}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:flex;flex-direction:column;flex:1">
+        <span class="k">${tk.tagline || ''}</span>
+        <h3>${tk.name}</h3>
+        <p>${tk.blurb || ''}${tk.loginNote ? `<br><span style="color:var(--muted);font-size:.8rem">${tk.loginNote}</span>` : ''}</p>
+        <span class="go">${t('Öffnen →','Open →')}</span>
+      </a>${tk.docsUrl ? `<a class="btn btn-ghost" style="margin-top:12px;align-self:flex-start" href="${tk.docsUrl}/${lang}/" target="_blank" rel="noopener">${t('Dokumentation ↗','Documentation ↗')}</a>` : ''}
+    </div>`).join('');
   const body = `
   <p class="lede" style="margin:2px 0 20px">${di(d, 'blurb', lang)}</p>
   <div class="cards">${tracks}</div>`;
