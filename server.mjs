@@ -945,7 +945,7 @@ function landingPage(slug, lang) {
         <h3>${tk.name}</h3>
         <p>${tk.blurb || ''}${tk.loginNote ? `<br><span style="color:var(--muted);font-size:.8rem">${tk.loginNote}</span>` : ''}</p>
         <span class="go">${t('Öffnen →','Open →')}</span>
-      </a>${tk.docsUrl ? `<a class="btn btn-ghost" style="margin-top:12px;align-self:flex-start" href="${tk.docsUrl}/${lang}/" target="_blank" rel="noopener">${t('Dokumentation ↗','Documentation ↗')}</a>` : ''}
+      </a>${tk.docsUrl ? `<a class="btn btn-ghost" style="margin-top:12px;align-self:flex-start" href="${tk.docsUrl}/${lang}/${tk.docsPath || ''}" target="_blank" rel="noopener">${t('Dokumentation ↗','Documentation ↗')}</a>` : ''}
     </div>`).join('');
   const body = `
   <p class="lede" style="margin:2px 0 20px">${di(d, 'blurb', lang)}</p>

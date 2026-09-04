@@ -50,14 +50,18 @@
         "name": "Rust",
         "tagline": "Rust lernen mit echten Zitaten, nicht mit Vermutungen",
         "blurb": "Leichtgewichtiger, geführter Rust-Track (Ownership, Structs, Enums/Pattern-Matching, Collections, Fehlerbehandlung, Generics/Traits/Lifetimes) auf Basis des offiziellen Rust Book. Jede Antwort ist gegen das indizierte Referenzmaterial geerdet und mit Quellenangabe versehen — außerhalb des Gelernten wird ehrlich abgelehnt statt geraten.",
-        "externalUrl": "https://tutor-lab-34a13a96.bunsenbrenner.org/",
+        "externalUrl": "https://tutor-lab-34a13a96.bunsenbrenner.org/?folder=/home/coder/workspace/rust-foundations",
+        "docsUrl": "https://scimbe.github.io/CADS-DEMO-firmware-lab-docs",
+        "docsPath": "rust/",
         "loginNote": "Anmeldung erforderlich (Login erst beim Track-Klick)"
       },
       {
         "name": "JavaScript",
         "tagline": "JavaScript-Grundlagen, direkt im Browser geübt",
         "blurb": "Geführter JavaScript-Track (Variablen, Datentypen, Kontrollfluss, Funktionen/Closures, Objekte, Arrays) auf Basis des MDN JavaScript Guide. Grounded Q&amp;A mit Zitaten wie beim Rust-Track, gleiche Extension, gleiche Ehrlichkeitsgarantie.",
-        "externalUrl": "https://tutor-lab-34a13a96.bunsenbrenner.org/",
+        "externalUrl": "https://tutor-lab-34a13a96.bunsenbrenner.org/?folder=/home/coder/workspace/javascript-foundations",
+        "docsUrl": "https://scimbe.github.io/CADS-DEMO-firmware-lab-docs",
+        "docsPath": "javascript/",
         "loginNote": "Anmeldung erforderlich (Login erst beim Track-Klick)"
       }
     ]
