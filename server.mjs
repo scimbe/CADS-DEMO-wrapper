@@ -402,7 +402,7 @@ function invokeTextVideo(slug, rec, emit, stage, done, reg, cfg = {}) {
       return done(null);
     }
     for (const w of result.warnings || []) emit('warn', String(w).slice(0, 200));
-    emit('real', `echt · Video erzeugt (${Math.round(result.duration_s)} s, Stimme Thomas)`);
+    emit(result.stub ? 'warn' : 'real', result.stub ? `Testlauf: Video erzeugt (${Math.round(result.duration_s)} s) mit Testton statt der Stimme Thomas` : `echt · Video erzeugt (${Math.round(result.duration_s)} s, Stimme Thomas)`);
     const base = `/d/${slug}/out/${rec.runId}`;
     done({ render: 'textvideo', video: `${base}/video.mp4`, poster: existsSync(join(out, 'poster.jpg')) ? `${base}/poster.jpg` : '',
       subtitles: existsSync(join(out, 'subtitles.vtt')) ? `${base}/subtitles.vtt` : '', title: result.title || '' });
