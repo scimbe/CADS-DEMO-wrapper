@@ -18,6 +18,7 @@ import { docOpen, appbar, foot, extLink, newTabMark, jsonForScript } from './lib
 import { tr, di, makeT, normLang, clientStrings } from './lib/i18n.mjs';
 import { indexPage } from './lib/index-page.mjs';
 import { loadEnv } from './lib/env.mjs';
+import { createAuth } from './lib/auth.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
@@ -991,9 +992,11 @@ function builderVersions() {
 }
 
 
-http.createServer((req, res) => {
+const AUTH = createAuth(); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
+http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
+  if (await AUTH.guard(req, res, url)) return;
   if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage(DEMOS, normLang(url.searchParams.get('lang')))); return; }
   if (p === '/api/status') { handleStatus(res); return; }
   if (p === '/api/upload-compare' && req.method === 'POST') { handleUploadCompare(req, res); return; }
