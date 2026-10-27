@@ -9,7 +9,7 @@
 // Secrets (LLM key, Pexels key) load from wrapper/.env — never demos.json / shared artifacts.
 
 import http from 'node:http';
-import { readFileSync, writeFileSync, appendFileSync, existsSync, rmSync, mkdirSync, createReadStream, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, appendFileSync, existsSync, rmSync, mkdirSync, createReadStream, copyFileSync, symlinkSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -23,10 +23,14 @@ import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
 import { WASM_DIR } from './lib/prompt-wasm.mjs';
+import { parseTimeline, judgeTimeline, patchTemporalPorts } from './lib/timeline.mjs';
+import { allocatePorts, releasePorts } from './lib/ports.mjs';
+import { createRunDir, runDir, gcRuns, newRunId, RUN_ID_RE } from './lib/runs.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const DEMOS = JSON.parse(readFileSync(join(__dir, 'demos.json'), 'utf8'));
 const WORK = join(__dir, 'work');
+const RUNS = join(WORK, 'runs'); // one directory per visitor run (lib/runs.mjs)
 // Signed prompt templates ("Eigene Angaben"). The wrapper never takes a template from a request: it
 // reads it from here, re-verifies it and renders it itself (lib/templates.mjs).
 const TEMPLATES = createTemplateStore(process.env.TEMPLATES_DIR || join(__dir, 'templates'));
@@ -37,7 +41,6 @@ const PORT = Number(process.env.PORT || 8790);
 // that NAT) -- caught deploying standalone (host ct-agent -> published port) where GET / just
 // hung/connection-refused despite the container logging "wrapper on http://127.0.0.1:8790".
 const HOST = process.env.HOST || '0.0.0.0';
-const activated = new Map(); // slug -> { workDir, manifest, outputDir }
 const sha256File = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
 
 // LLM creds: process env (docker -e / env_file), a local .env overrides (see lib/env.mjs)
@@ -53,7 +56,7 @@ const STAMP = {
 };
 
 // ---- install seam (shared, sim->real) ----------------------------------------------------------
-function installActivate(slug, emit, stage) {
+function installActivate(slug, emit, stage, runId = newRunId()) {
   const d = DEMOS[slug];
   // manifestDir may be repo-relative (bundled in the image at manifests/<slug>, so it works on any
   // host) or an absolute path (legacy/local dev). Resolve relative paths against the wrapper dir —
@@ -72,11 +75,11 @@ function installActivate(slug, emit, stage) {
   if (got !== manifest.bundle.sha256) { emit('fail', 'sha256-Mismatch'); throw new Error('sha256'); }
   emit('real', `echt geprüft · sha256 ${got.slice(0, 12)}… == Manifest`);
   emit('step', 'Bundle entpacken & aktivieren');
-  const workDir = join(WORK, slug);
-  rmSync(workDir, { recursive: true, force: true }); mkdirSync(workDir, { recursive: true });
+  gcRuns(RUNS);
+  const workDir = createRunDir(RUNS, slug, runId).dir;
   if (spawnSync('tar', ['xzf', bundlePath, '-C', workDir]).status !== 0) { emit('fail', 'entpacken fehlgeschlagen'); throw new Error('unpack'); }
   emit('real', 'echt · installiert');
-  const rec = { workDir, manifest, outputDir: null }; activated.set(slug, rec); return rec;
+  return { workDir, runId, manifest, outputDir: null };
 }
 
 // ---- invoke: photo-tool ------------------------------------------------------------------------
@@ -84,10 +87,11 @@ function invokePhotoTool(slug, rec, emit, stage, done, reg) {
   const d = DEMOS[slug];
   stage('process', 'Fotos verarbeiten');
   const px = join(__dir, 'pexels');
-  mkdirSync(d.inputDir, { recursive: true });
+  const inputDir = join(rec.workDir, 'fotos'), outputDir = join(rec.workDir, 'sortiert');
+  mkdirSync(inputDir, { recursive: true });
   let stamped = 0;
   for (const [fn, [date, lat, lon]] of Object.entries(STAMP)) {
-    const dst = join(d.inputDir, fn); if (existsSync(dst)) continue;
+    const dst = join(inputDir, fn); if (existsSync(dst)) continue;
     copyFileSync(join(px, fn), dst);
     spawnSync('exiftool', ['-q', '-overwrite_original', `-DateTimeOriginal=${date}`, `-GPSLatitude=${lat}`, '-GPSLatitudeRef=N', `-GPSLongitude=${lon}`, '-GPSLongitudeRef=E', dst]);
     stamped++;
@@ -95,22 +99,21 @@ function invokePhotoTool(slug, rec, emit, stage, done, reg) {
   emit(stamped ? 'sim' : 'ok', stamped ? `${stamped} Beispiel-Fotos mit repräsentativen Metadaten versehen (echte Kamerafotos bringen das selbst mit)` : 'Eingangsordner fotos/ bereit — 6 Fotos');
   emit('step', 'Werkzeug ausführen — phototools organize fotos/ → sortiert/');
   emit('ok', 'exiftool liest EXIF · Gazetteer GPS→Stadt · Dateien verschieben · ImageMagick Wasserzeichen+Kontaktbogen — keine KI');
-  rmSync(d.outputDir, { recursive: true, force: true });
   const toolDir = join(rec.workDir, 'phototools');
-  const args = [join(toolDir, 'bin', 'phototools.js'), 'organize', d.inputDir, '--out', d.outputDir, '--watermark-text', d.watermark, '--contact-sheet', '--gallery'];
+  const args = [join(toolDir, 'bin', 'phototools.js'), 'organize', inputDir, '--out', outputDir, '--watermark-text', d.watermark, '--contact-sheet', '--gallery'];
   const child = spawn('node', args, { cwd: toolDir, env: { PATH: process.env.PATH, HOME: rec.workDir, CT_MANIFEST_PROJECT_NAME: `${slug}-demo` } });
   if (reg) reg(child);
   let o = ''; const on = (b) => { const s = b.toString(); o += s; s.split('\n').filter(Boolean).forEach((l) => emit('run', l)); };
   child.stdout.on('data', on); child.stderr.on('data', on);
   child.on('close', (code) => {
-    const manPath = join(d.outputDir, 'manifest.json');
+    const manPath = join(outputDir, 'manifest.json');
     if (code !== 0 || !existsSync(manPath)) { emit('fail', `organize exit ${code}`); return done(null); }
-    rec.outputDir = d.outputDir;
+    rec.outputDir = outputDir;
     emit('real', 'echt · Ordner sortiert, Kontaktbogen erzeugt');
     const m = JSON.parse(readFileSync(manPath, 'utf8'));
     const byFolder = new Map();
     for (const e of m.entries || []) { const f = e.destRelPath.split('/').slice(0, 2).join('/'); byFolder.set(f, (byFolder.get(f) || 0) + 1); }
-    done({ render: 'photo-tool', count: m.count, folders: [...byFolder.entries()].map(([path, count]) => ({ path, count })), contact: `/d/${slug}/out/contact-sheet.jpg?t=${Date.now()}`, gallery: existsSync(join(d.outputDir, 'gallery.html')) ? `/d/${slug}/out/gallery.html?t=${Date.now()}` : null });
+    done({ render: 'photo-tool', count: m.count, folders: [...byFolder.entries()].map(([path, count]) => ({ path, count })), contact: `/d/${slug}/out/${rec.runId}/contact-sheet.jpg`, gallery: existsSync(join(outputDir, 'gallery.html')) ? `/d/${slug}/out/${rec.runId}/gallery.html` : null });
   });
 }
 
@@ -194,7 +197,7 @@ function invokeReportHtml(slug, rec, emit, stage, done, reg, lang, cfg, extra) {
     if (code !== 0) emit('warn', `Nebenschritt exit ${code} — HTML-Report trotzdem erzeugt`);
     else emit('real', 'echt · Report erzeugt');
     const hasPdf = lang !== 'de' && existsSync(join(outDir, 'report.pdf'));
-    done({ render: 'report-html', reportUrl: `/d/${slug}/out/${d.htmlEntry}?t=${Date.now()}`, pdf: hasPdf ? `/d/${slug}/out/report.pdf` : null, lang });
+    done({ render: 'report-html', reportUrl: `/d/${slug}/out/${rec.runId}/${d.htmlEntry}`, pdf: hasPdf ? `/d/${slug}/out/${rec.runId}/report.pdf` : null, lang });
   });
 }
 
@@ -281,7 +284,7 @@ function invokeReportMd(slug, rec, emit, stage, done, reg) {
   const runPath = join(rec.workDir, d.entrypoint); spawnSync('chmod', ['+x', runPath]);
   // pass the LLM creds so contractcheck's `compare` can run its LLM text-summary + the visual (vision) comparison
   const child = spawn(runPath, [], { cwd: rec.workDir, env: { PATH: process.env.PATH, HOME: rec.workDir, CT_MANIFEST_PROJECT_NAME: `${slug}-demo`,
-    LLM_BASE_URL: process.env.LITELLM_BASE_URL || '', LLM_API_KEY: process.env.LITELLM_API_KEY || '', LLM_MODEL: process.env.LITELLM_DEFAULT_MODEL || '' } });
+    LLM_BASE_URL: ENV.LITELLM_BASE_URL || '', LLM_API_KEY: ENV.LITELLM_API_KEY || '', LLM_MODEL: ENV.LITELLM_DEFAULT_MODEL || '' } });
   if (reg) reg(child);
   let o = ''; const on = (b) => { const s = b.toString(); o += s; s.split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200))); };
   child.stdout.on('data', on); child.stderr.on('data', on);
@@ -291,7 +294,7 @@ function invokeReportMd(slug, rec, emit, stage, done, reg) {
     rec.outputDir = rec.workDir;
     try { writeFileSync(join(rec.workDir, 'report.html'), md2html(readFileSync(mdPath, 'utf8'))); } catch (e) { emit('fail', 'MD→HTML fehlgeschlagen'); return done(null); }
     emit('real', 'echt · Vergleich erzeugt, als Report gerendert');
-    done({ render: 'report-html', reportUrl: `/d/${slug}/out/report.html?t=${Date.now()}`, pdf: null, lang: 'de' });
+    done({ render: 'report-html', reportUrl: `/d/${slug}/out/${rec.runId}/report.html`, pdf: null, lang: 'de' });
   });
 }
 
@@ -330,32 +333,42 @@ function invokeImage(slug, rec, emit, stage, done, reg, cfg = {}, extra = null) 
 }
 
 // ---- invoke: timeline (temporal-poc) -----------------------------------------------------------
-function invokeTimeline(slug, rec, emit, stage, done, reg) {
+// Prebuilt Python venvs (Dockerfile builds them once under VENV_DIR); a run links to one instead of
+// running `pip install` every time. Absent (local dev) -> the bundle's own run.sh builds its venv.
+const VENV_DIR = process.env.VENV_DIR || '/opt/venvs';
+const prebuiltVenv = (name) => { const p = join(VENV_DIR, name); return existsSync(join(p, 'bin', 'python')) ? p : null; };
+function linkVenv(workDir, name) {
+  const v = prebuiltVenv(name); if (!v) return false;
+  try { symlinkSync(v, join(workDir, '.venv')); return true; } catch { return false; }
+}
+async function invokeTimeline(slug, rec, emit, stage, done, reg) {
   const d = DEMOS[slug];
   stage('process', 'Ablauf ausführen (Worker killen & Recovery)');
-  emit('step', 'run.sh — lokalen Temporal-Server starten, Workflow starten, Worker mitten drin killen, Recovery beweisen');
-  emit('ok', 'startet lokal einen Temporal-Dev-Server (Ports 7233/8233) · echter Kill & Recovery');
-  const runPath = join(rec.workDir, d.entrypoint); spawnSync('chmod', ['+x', runPath]);
-  const child = spawn(runPath, [], { cwd: rec.workDir, env: { PATH: process.env.PATH, HOME: rec.workDir, CT_MANIFEST_PROJECT_NAME: `${slug}-demo`, ...(d.env || {}) } });
+  emit('step', 'Temporal-Server starten, Workflow starten, Worker hart beenden, zweiten Worker übernehmen lassen');
+  let ports;
+  try { ports = await allocatePorts(2); } catch { emit('fail', 'Keine freien Ports'); return done(null); }
+  const finish = (r) => { releasePorts(ports); done(r); };
+  const runDemo = join(rec.workDir, 'scripts', 'run_demo.sh');
+  const patched = patchTemporalPorts(readFileSync(runDemo, 'utf8'), ports[0], ports[1]);
+  if (!patched) { emit('fail', 'Ablauf-Skript hat ein unerwartetes Format'); return finish(null); }
+  writeFileSync(runDemo, patched);
+  const env = { PATH: process.env.PATH, HOME: rec.workDir, CT_MANIFEST_PROJECT_NAME: `${slug}-demo`, TEMPORAL_ADDRESS: `127.0.0.1:${ports[0]}`, ...(d.env || {}) };
+  let child;
+  if (linkVenv(rec.workDir, 'temporal-poc')) child = spawn('bash', ['scripts/run_demo.sh'], { cwd: rec.workDir, env });
+  else { const runPath = join(rec.workDir, d.entrypoint); spawnSync('chmod', ['+x', runPath]); child = spawn(runPath, [], { cwd: rec.workDir, env }); }
   if (reg) reg(child);
-  let o = ''; const on = (b) => { const s = b.toString(); o += s; s.split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200))); };
+  const on = (b) => { b.toString().split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200))); };
   child.stdout.on('data', on); child.stderr.on('data', on);
   child.on('close', (code) => {
     const hist = join(rec.workDir, d.produces.history);
-    if (!existsSync(hist)) { emit('fail', `Kein Event-Verlauf erzeugt (exit ${code})`); return done(null); }
+    if (!existsSync(hist)) { emit('fail', `Kein Event-Verlauf erzeugt (exit ${code})`); return finish(null); }
     rec.outputDir = rec.workDir;
     let steps = [];
-    try {
-      const ev = JSON.parse(readFileSync(hist, 'utf8')).events || [];
-      const want = { WorkflowExecutionStarted: 'Workflow gestartet', ActivityTaskScheduled: 'Aufgabe eingeplant', ActivityTaskStarted: 'Aufgabe gestartet', ActivityTaskCompleted: 'Aufgabe abgeschlossen', WorkflowExecutionCompleted: 'Workflow abgeschlossen ✓' };
-      for (const e of ev) { const t = (e.eventType || '').replace(/^EVENT_TYPE_/, '').replace(/_([a-z])/g, (m, c) => c.toUpperCase()); const key = t.charAt(0).toUpperCase() + t.slice(1);
-        for (const [k, label] of Object.entries(want)) if (key === k) {
-          let extra = ''; const att = e.activityTaskStartedEventAttributes; if (att && att.attempt) extra = `Versuch ${att.attempt}${att.attempt > 1 ? ' (nach Heartbeat-Timeout — neuer Worker übernimmt)' : ''}`;
-          steps.push({ label, id: e.eventId, extra, recover: !!(att && att.attempt > 1) }); }
-      }
-    } catch (e) {}
-    emit('real', `echt · ${steps.length} Ereignisse — Recovery im Verlauf belegt`);
-    done({ render: 'timeline', steps });
+    try { steps = parseTimeline(JSON.parse(readFileSync(hist, 'utf8')).events); } catch { /* judged below */ }
+    const j = judgeTimeline(steps);
+    if (!j.ok || code !== 0) { emit('fail', j.ok ? `Ablauf endete mit Fehler (exit ${code})` : j.message); return finish(null); }
+    emit(j.recovered ? 'real' : 'warn', j.message);
+    finish({ render: 'timeline', steps });
   });
 }
 
@@ -363,7 +376,7 @@ function invokeTimeline(slug, rec, emit, stage, done, reg) {
 function invokeServeMedia(slug, rec, emit, stage, done) {
   const d = DEMOS[slug];
   stage('process', d.type === 'audio' ? 'Folge bereitstellen' : 'Video bereitstellen');
-  rec = rec || {}; rec.outputDir = d.staticOut; activated.set(slug, rec);
+  
   emit('ok', d.hasManifest === false ? 'läuft aus der Quelle (noch kein Marktplatz-Manifest) · echtes, vorgerendertes Ergebnis' : 'echtes Ergebnis eines früheren Laufs (voller Render dauert zu lange für einen Klick)');
   if (d.type === 'audio') {
     let chapters = [], transcript = '';
@@ -383,7 +396,6 @@ function invokeServeMedia(slug, rec, emit, stage, done) {
 // path (EventSource) keeps taking its options from the query string and can never set `extra`.
 function handleStart(req, res, url, post = null) {
   const slug = post ? post.demo : url.searchParams.get('demo');
-  const fresh = post ? false : url.searchParams.get('fresh') === '1';
   let lang = (post ? post.lang : url.searchParams.get('lang')) === 'en' ? 'en' : 'de';
   let cfg = post ? post.cfg : {}; if (!post) try { const c = url.searchParams.get('cfg'); if (c) cfg = JSON.parse(Buffer.from(c, 'base64').toString('utf8')); } catch {}
   if (cfg.language === 'en' || cfg.language === 'de') lang = cfg.language;
@@ -397,11 +409,10 @@ function handleStart(req, res, url, post = null) {
   const reg = (c) => { child = c; if (aborted && c && !c.killed) try { c.kill('SIGKILL'); } catch {} };
   // POST: 'close' on the request fires once its body is consumed, so watch the response (the connection) instead.
   (post ? res : req).on('close', () => { aborted = true; if (child && !child.killed) { try { child.kill('SIGKILL'); } catch {} } });
-  let rec = activated.get(slug);
+  let rec = null;
   try {
-    if (d.hasManifest === false) { stage('install', 'Bereit'); emit('ok', 'kein Marktplatz-Manifest — läuft aus der Quelle'); rec = rec || {}; }
-    else if (fresh || !rec) { if (fresh) activated.delete(slug); rec = installActivate(slug, emit, stage); }
-    else { stage('install', 'Bereit'); emit('cache', 'aus Cache · schon installiert'); }
+    if (d.hasManifest === false || d.type === 'audio' || d.type === 'video') { stage('install', 'Bereit'); rec = {}; }
+    else rec = installActivate(slug, emit, stage);
   } catch (e) { emit('fail', 'Abbruch bei der Installation'); stage('error', 'Fehlgeschlagen'); res.end(); return; }
   if (aborted) { res.end(); return; }
   if (post) emit('ok', makeT(lang)('pb.run.checked', { tid: shortDigest(post.rendered.template_id, 8), td: shortDigest(post.rendered.template_digest, 12), vd: shortDigest(post.rendered.values_digest, 12) }));
@@ -423,13 +434,14 @@ function serveFile(res, path) {
 }
 // Resolve a demo's output dir from the live activation OR from disk (so report/PDF/media links keep
 // working across server restarts — the "nf" bug). staticOut demos serve a fixed pre-rendered dir.
-function resolveOut(slug) {
-  const rec = activated.get(slug); if (rec && rec.outputDir) return rec.outputDir;
+function resolveOut(slug, runId) {
   const d = DEMOS[slug]; if (!d) return null;
   if (d.staticOut) return isAbsolute(d.staticOut) ? d.staticOut : join(__dir, d.staticOut);   // repo-relative -> portable to any host (same fix class as #10)
-  if (d.type === 'photo-tool') return d.outputDir;
-  if (d.type === 'report-html') return join(WORK, slug, d.outputRel);
-  if (d.type === 'report-md' || d.type === 'image' || d.type === 'timeline') return join(WORK, slug);
+  if (!runId || !RUN_ID_RE.test(runId) || !/^[a-z0-9_-]+$/.test(slug)) return null;
+  const wd = runDir(RUNS, slug, runId);
+  if (d.type === 'photo-tool') return join(wd, 'sortiert');
+  if (d.type === 'report-html') return join(wd, d.outputRel);
+  if (d.type === 'report-md' || d.type === 'image' || d.type === 'timeline') return wd;
   return null;
 }
 
@@ -462,7 +474,7 @@ function postStream(url,body){
 }
 function startRun(btn){
   const pbRun=window.__pbRun;window.__pbRun=null;
-  const wrap=document.querySelector('.wrap');const slug=wrap.dataset.slug;const fresh=btn.dataset.fresh;
+  const wrap=document.querySelector('.wrap');const slug=wrap.dataset.slug;
   const out=document.querySelector('.out');const stepper=out.querySelector('.stepper');const log=out.querySelector('.log');
   const tech=out.querySelector('details.tech');const ph=out.querySelector('.placeholder');
   const rt=out.querySelector('.res-tree');const rs=out.querySelector('.res-sheet');const rr=out.querySelector('.res-report');
@@ -489,7 +501,7 @@ function startRun(btn){
   var _cfg={}; try{ if(window.__cfg) _cfg=JSON.parse(decodeURIComponent(escape(atob(window.__cfg)))); }catch(e){}
   var _di=document.querySelector('.descinput'); if(_di && _di.value.trim()) _cfg.description=_di.value.trim();
   var _cfgP=Object.keys(_cfg).length?('&cfg='+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(_cfg)))))):'';
-  const es=pbRun?postStream('/api/start?lang='+(wrap.dataset.lang||'de'),pbRun):new EventSource('/api/start?demo='+encodeURIComponent(slug)+'&fresh='+fresh+'&lang='+(wrap.dataset.lang||'de')+_cfgP);
+  const es=pbRun?postStream('/api/start?lang='+(wrap.dataset.lang||'de'),pbRun):new EventSource('/api/start?demo='+encodeURIComponent(slug)+'&lang='+(wrap.dataset.lang||'de')+_cfgP);
   const stop=(txt,terra)=>{if(done)return;done=true;clearInterval(iv);bar.style.width='100%';pb.setAttribute('aria-valuenow','100');if(terra)bar.style.background='var(--terra)';ptxt.textContent=txt;live.textContent=txt;if(cancel){cancel.remove();cancel=null;}document.querySelectorAll('button.run,button[data-runlock]').forEach(b=>b.disabled=false);try{es.close()}catch(e){}};
   // Friendly, specific error + retry. role=alert announces it; focus goes to the retry button.
   const fail=(kind,detail)=>{if(done)return;const s=secs();
@@ -893,16 +905,15 @@ function handleUploadCompare(req, res) {
     const decode = (s) => { const m = String(s || '').match(/^data:[^;]*;base64,(.*)$/s); try { return Buffer.from(m ? m[1] : String(s || ''), 'base64'); } catch { return Buffer.alloc(0); } };
     const bufA = decode(a), bufB = decode(b);
     if (bufA.slice(0, 5).toString() !== '%PDF-' || bufB.slice(0, 5).toString() !== '%PDF-') return reply(400, { error: 'Bitte zwei gültige PDF-Dateien hochladen.' });
-    let rec = activated.get('contractcheck');
-    if (!rec) { try { rec = installActivate('contractcheck', () => {}, () => {}); } catch { return reply(500, { error: 'Werkzeug konnte nicht vorbereitet werden.' }); } }
+    let rec; try { rec = installActivate('contractcheck', () => {}, () => {}); } catch { return reply(500, { error: 'Werkzeug konnte nicht vorbereitet werden.' }); }
     const wd = rec.workDir;
     const up = join(WORK, '_uploads', String(process.pid) + '-' + reqSeq++);
     try { mkdirSync(up, { recursive: true }); } catch {}
     const pa = join(up, 'a.pdf'), pb = join(up, 'b.pdf'), rep = join(up, 'report.md');
     try { writeFileSync(pa, bufA); writeFileSync(pb, bufB); } catch { return reply(500, { error: 'Konnte Uploads nicht ablegen.' }); }
-    const key = process.env.LITELLM_API_KEY || '';
+    const key = ENV.LITELLM_API_KEY || '';
     const env = { PATH: process.env.PATH, HOME: wd, PYTHONPATH: join(wd, 'vendor'),
-      LLM_BASE_URL: process.env.LITELLM_BASE_URL || '', LLM_API_KEY: key, LLM_MODEL: process.env.LITELLM_DEFAULT_MODEL || '' };
+      LLM_BASE_URL: ENV.LITELLM_BASE_URL || '', LLM_API_KEY: key, LLM_MODEL: ENV.LITELLM_DEFAULT_MODEL || '' };
     const args = [join(wd, 'src', 'pipeline.py'), 'compare', '--old', pa, '--new', pb, '--report', rep];
     if (!key) args.push('--no-llm', '--no-vision');
     const child = spawn('python3', args, { cwd: wd, env });
@@ -912,7 +923,7 @@ function handleUploadCompare(req, res) {
       try {
         if (!existsSync(rep)) return reply(500, { error: 'Vergleich fehlgeschlagen' + (err ? (': ' + err.slice(-160)) : ' (exit ' + code + ').') });
         reply(200, { ok: true, html: md2html(readFileSync(rep, 'utf8')) });
-      } finally { try { rmSync(up, { recursive: true, force: true }); } catch {} }
+      } finally { try { rmSync(up, { recursive: true, force: true }); rmSync(wd, { recursive: true, force: true }); } catch {} }
     });
   });
 }
@@ -1005,11 +1016,12 @@ http.createServer(async (req, res) => {
   if (tm && req.method === 'GET') { handleTemplate(res, tm[1]); return; }
   if (p.startsWith('/pb/') && req.method === 'GET') { servePb(res, url); return; }
   if (p === '/api/plan' && req.method === 'POST') { handlePlan(req, res, url); return; }
-  const dm = p.match(/^\/d\/([a-z0-9-]+)\/out\/(.+)$/);
-  if (dm) { const base = resolveOut(dm[1]); if (!base) { res.writeHead(404).end('nf'); return; } serveFile(res, join(base, dm[2].replace(/\.\./g, ''))); return; }
+  const dm = p.match(/^\/d\/([a-z0-9_-]+)\/out\/(?:(r[0-9a-f]{10})\/)?(.+)$/);
+  if (dm) { const base = resolveOut(dm[1], dm[2]); if (!base) { res.writeHead(404).end('nf'); return; } serveFile(res, join(base, dm[3].replace(/\.\./g, ''))); return; }
   if (p.startsWith('/assets/thumbs/')) { serveFile(res, join(__dir, 'thumbs', p.slice('/assets/thumbs/'.length).replace(/\.\./g, ''))); return; }
-  const pd = p.match(/^\/d\/([a-z0-9-]+)\/?$/);
+  const pd = p.match(/^\/d\/([a-z0-9_-]+)\/?$/);
   if (pd) { const slug = pd[1], d = DEMOS[slug]; if (!d) { res.writeHead(404).end('unknown demo'); return; }
+    if (d.type === 'external' && d.live && d.externalUrl) { res.writeHead(302, { Location: d.externalUrl }).end(); return; }
     const lang = normLang(url.searchParams.get('lang'));
     const PAGES = { 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), audio: (s) => audioPage(s, lang), video: (s) => videoPage(s, lang), landing: (s) => landingPage(s, lang) };
     const html = d.live && PAGES[d.type] ? PAGES[d.type](slug) : soonPage(slug, lang);

@@ -43,3 +43,12 @@ test('a history without a second attempt does not claim a recovery', () => {
   assert.equal(j.recovered, false);
   assert.ok(!/belegt/.test(j.message));
 });
+
+import { patchTemporalPorts } from '../lib/timeline.mjs';
+test('patchTemporalPorts rewrites every hardcoded port and refuses an unknown script', () => {
+  const src = '--port 7233 --ui-port 8233\nwaiting for 127.0.0.1:7233\n--address 127.0.0.1:7233';
+  const out = patchTemporalPorts(src, 41001, 41002);
+  assert.ok(!/7233|8233/.test(out));
+  assert.equal((out.match(/41001/g) || []).length, 3);
+  assert.equal(patchTemporalPorts('echo hi', 1, 2), null);
+});

@@ -128,23 +128,6 @@
     "tech": "Sechs echte Prozesse reichen Gebote ein; der getestete Clearing-Algorithmus (auction_view) der CADS-Tunnel-Pipeline rechnet live im Browser ab.",
     "tech_en": "Six real processes submit bids; the tested clearing algorithm (auction_view) of the CADS tunnel pipeline settles them live in the browser."
   },
-  "cookbook": {
-    "type": "external",
-    "name": "cookbook",
-    "version": "0.1.0",
-    "title": "Rezept aus dem Kühlschrank",
-    "tagline": "Du gibst einen Text-Prompt und optional ein Foto deiner Zutaten — eine Crew kooperierender KI-Agenten über den Tunnel kocht daraus live ein Rezept.",
-    "blurb": "Beschreibe, was du zu Hause hast, oder fotografiere die Zutaten – und bekomme ein passendes Rezept.",
-    "externalUrl": "https://cookbook.bunsenbrenner.org/",
-    "live": false,
-    "order": 21,
-    "category": "Küche",
-    "category_en": "Kitchen",
-    "title_en": "Recipe from your fridge",
-    "blurb_en": "Describe what you have at home, or photograph the ingredients – and get a matching recipe.",
-    "tech": "Eine Crew unabhängiger KI-Agenten baut das Rezept über die Agent-Fabric. Der Operator sieht nie dein Foto oder Rezept – nur, dass ein Channel zwischen zwei Schlüsseln existiert.",
-    "tech_en": "A crew of independent AI agents builds the recipe through the agent fabric. The operator never sees your photo or recipe – only that a channel between two keys exists."
-  },
   "phototools": {
     "type": "photo-tool",
     "name": "phototools",
@@ -153,8 +136,6 @@
     "tagline": "Sortiert einen Foto-Ordner nach Aufnahmedatum und Ort, setzt ein Wasserzeichen und legt einen Kontaktbogen an – ganz ohne KI.",
     "blurb": "Ein wilder Foto-Stapel wird zu sauber sortierten Ordnern mit Übersichtsbogen – nach Datum und Ort.",
     "manifestDir": "manifests/phototools",
-    "inputDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/wrapper/fotos",
-    "outputDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/wrapper/sortiert",
     "watermark": "bunsenbrenner.org · demo",
     "photos": [
       {
