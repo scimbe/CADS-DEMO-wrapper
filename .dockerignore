@@ -1,0 +1,7 @@
+.env
+.env.*
+!.env.template
+.git
+work/
+node_modules/
+test/

@@ -17,6 +17,7 @@ import { dirname, join, extname, isAbsolute } from 'node:path';
 import { docOpen, appbar, foot, extLink, newTabMark, jsonForScript } from './lib/chrome.mjs';
 import { tr, di, makeT, normLang, clientStrings } from './lib/i18n.mjs';
 import { indexPage } from './lib/index-page.mjs';
+import { loadEnv } from './lib/env.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
@@ -38,14 +39,10 @@ const HOST = process.env.HOST || '0.0.0.0';
 const activated = new Map(); // slug -> { workDir, manifest, outputDir }
 const sha256File = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
 
-// local env (LLM creds) — parse `export K=V` lines
-const ENV = {};
-try {
-  for (const l of readFileSync(join(__dir, '.env'), 'utf8').split('\n')) {
-    const m = l.match(/^\s*(?:export\s+)?([A-Z0-9_]+)=(.*)$/);
-    if (m) ENV[m[1]] = m[2].replace(/^["']|["']$/g, '');
-  }
-} catch {}
+// LLM creds: process env (docker -e / env_file), a local .env overrides (see lib/env.mjs)
+let dotenv = '';
+try { dotenv = readFileSync(join(__dir, '.env'), 'utf8'); } catch {}
+const ENV = loadEnv(process.env, dotenv);
 const CHROME_BIN = join(__dir, 'bin'); // google-chrome shim dir, prepended to PATH
 
 const STAMP = {
