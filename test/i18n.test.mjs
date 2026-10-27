@@ -14,7 +14,7 @@ test('DE and EN dictionaries have exactly the same keys', () => {
 
 test('no empty strings, and EN really differs from DE (no untranslated copy)', () => {
   // identical strings are fine for numbers/brand-only values; flag anything with letters
-  const allowed = new Set(['crumb.demos', 'status.parallel']);
+  const allowed = new Set(['crumb.demos', 'status.parallel', 'pb.optional']);
   for (const k of Object.keys(UI.de)) {
     assert.ok(UI.de[k].trim() && UI.en[k].trim(), `${k}: empty`);
     if (!allowed.has(k)) assert.notEqual(UI.en[k], UI.de[k], `${k}: EN is identical to DE`);
@@ -47,7 +47,7 @@ test('clientStrings ships the js.*, status.* and search.* keys in the requested 
   assert.deepEqual(Object.keys(en).sort(), Object.keys(de).sort());
   assert.equal(en['js.run.retry'], 'Try again');
   assert.equal(de['js.run.retry'], 'Erneut versuchen');
-  assert.ok(Object.keys(en).every((k) => /^(js|status|search)\./.test(k)));
+  assert.ok(Object.keys(en).every((k) => /^(js|status|search|pb)\./.test(k)));
 });
 
 test('every demo has a German and an English card text (title, blurb, tech, category)', () => {

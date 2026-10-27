@@ -1,0 +1,25 @@
+{
+  "title": { "de": "Diagramm mit eigenen Angaben", "en": "Diagram with your own details" },
+  "intro": {
+    "de": "Beschreibe, was das Diagramm zeigen soll, und wähle Art und Umfang. Der Rest der Vorlage ist vom Herausgeber signiert.",
+    "en": "Describe what the diagram should show and choose its style and size. The rest of the template is signed by the publisher."
+  },
+  "run": { "mode": "diagram", "cfg": { "engine": "engine" } },
+  "params": {
+    "subject": {
+      "label": { "de": "Was soll das Diagramm zeigen?", "en": "What should the diagram show?" }, "required": true,
+      "help": { "de": "Ein bis zwei Sätze genügen. Dein Text wird als Angabe behandelt, nicht als Anweisung.", "en": "One or two sentences are enough. Your text is treated as data, not as an instruction." },
+      "default": "Ein Besucher öffnet die Demo, der Marktplatz installiert das Werkzeug, es läuft in einer geschützten Umgebung und das Ergebnis wird gezeigt."
+    },
+    "engine": { "label": { "de": "Zeichenprogramm", "en": "Drawing engine" }, "default": "mermaid", "options": { "mermaid": { "de": "Mermaid", "en": "Mermaid" }, "graphviz": { "de": "Graphviz", "en": "Graphviz" } } },
+    "detail": {
+      "label": { "de": "Detailgrad", "en": "Level of detail" }, "default": "Überblick",
+      "options": { "Überblick": { "de": "Überblick", "en": "overview" }, "detailliert": { "de": "detailliert", "en": "detailed" } }
+    },
+    "direction": {
+      "label": { "de": "Leserichtung", "en": "Reading direction" }, "default": "von oben nach unten",
+      "options": { "von oben nach unten": { "de": "von oben nach unten", "en": "top to bottom" }, "von links nach rechts": { "de": "von links nach rechts", "en": "left to right" } }
+    },
+    "max_nodes": { "label": { "de": "Höchstzahl Knoten", "en": "Maximum number of nodes" }, "help": { "de": "Begrenzt, wie groß das Diagramm wird.", "en": "Limits how large the diagram gets." }, "default": 8 }
+  }
+}
