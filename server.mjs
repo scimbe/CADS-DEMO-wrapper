@@ -23,6 +23,8 @@ import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
 import { WASM_DIR } from './lib/prompt-wasm.mjs';
+import { transcriptText } from './lib/transcript.mjs';
+import { md2html } from './lib/md2html.mjs';
 import { findChrome, withoutPdf } from './lib/pdf.mjs';
 import { generateDiagram } from './lib/diagram.mjs';
 import { parseTimeline, judgeTimeline, patchTemporalPorts } from './lib/timeline.mjs';
@@ -262,37 +264,6 @@ function handlePlan(req, res, url) {
   });
 }
 
-// ---- minimal Markdown -> styled HTML (for report-md demos like contractcheck) ---------------
-function md2html(md) {
-  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const lines = md.split('\n'); let html = ''; let i = 0;
-  while (i < lines.length) {
-    const l = lines[i];
-    if (l.startsWith('```')) { const lang = l.slice(3).trim(); i++; let body = '';
-      while (i < lines.length && !lines[i].startsWith('```')) { body += lines[i] + '\n'; i++; } i++;
-      if (lang === 'diff') { const rows = body.replace(/\n$/, '').split('\n').map((r) => {
-          const cls = r.startsWith('+') ? 'add' : r.startsWith('-') ? 'del' : r.startsWith('@') ? 'hunk' : '';
-          return `<div class="dl ${cls}">${esc(r) || '&nbsp;'}</div>`; }).join('');
-        html += `<div class="diff">${rows}</div>`; }
-      else html += `<pre class="code">${esc(body)}</pre>`; continue; }
-    if (l.startsWith('## ')) { html += `<h2>${esc(l.slice(3))}</h2>`; i++; continue; }
-    if (l.startsWith('# ')) { html += `<h1>${esc(l.slice(2))}</h1>`; i++; continue; }
-    if (l.trim() === '') { i++; continue; }
-    let p = l; while (i + 1 < lines.length && lines[i + 1].trim() !== '' && !lines[i + 1].startsWith('#') && !lines[i + 1].startsWith('```')) { p += ' ' + lines[i + 1]; i++; }
-    html += `<p>${esc(p).replace(/`([^`]+)`/g, '<code>$1</code>')}</p>`; i++;
-  }
-  return `<!doctype html><meta charset="utf-8"><style>
-    body{font-family:-apple-system,system-ui,"Segoe UI",sans-serif;color:#131A2C;line-height:1.6;margin:0;padding:22px 26px;background:#fff}
-    h1{font-family:ui-serif,Georgia,serif;font-size:1.5rem;color:#131A2C;margin:0 0 14px;border-bottom:3px solid #2F8A7D;padding-bottom:10px}
-    h2{font-family:ui-serif,Georgia,serif;font-size:1.12rem;color:#1F6B60;margin:26px 0 10px}
-    p{max-width:70ch}code{background:#EEF1F8;padding:1px 5px;border-radius:4px;font-family:ui-monospace,Menlo,monospace;font-size:.9em}
-    .code{background:#0f1524;color:#c7d2e0;padding:14px 16px;border-radius:8px;overflow:auto;font-family:ui-monospace,Menlo,monospace;font-size:.82rem;white-space:pre-wrap}
-    .diff{border:1px solid #D7DEEC;border-radius:8px;overflow:hidden;font-family:ui-monospace,Menlo,monospace;font-size:.82rem}
-    .dl{padding:2px 12px;white-space:pre-wrap;border-bottom:1px solid #F0F3F8}
-    .dl.add{background:#e7f4ee;color:#1f6b60}.dl.del{background:#fbecea;color:#b23c30}.dl.hunk{background:#EEF1F8;color:#5B6478}
-  </style>${html}`;
-}
-
 // ---- invoke: report-md (run entrypoint, render report.md -> HTML) ------------------------------
 function invokeReportMd(slug, rec, emit, stage, done, reg) {
   const d = DEMOS[slug];
@@ -373,6 +344,7 @@ async function invokeTimeline(slug, rec, emit, stage, done, reg) {
 }
 
 // ---- invoke: serve-existing media (podcast audio, explainer video) -----------------------------
+const staticDir = (d) => (isAbsolute(d.staticOut) ? d.staticOut : join(__dir, d.staticOut));
 function invokeServeMedia(slug, rec, emit, stage, done) {
   const d = DEMOS[slug];
   stage('process', d.type === 'audio' ? 'Folge bereitstellen' : 'Video bereitstellen');
@@ -380,13 +352,13 @@ function invokeServeMedia(slug, rec, emit, stage, done) {
   emit('ok', d.hasManifest === false ? 'läuft aus der Quelle (noch kein Marktplatz-Manifest) · echtes, vorgerendertes Ergebnis' : 'echtes Ergebnis eines früheren Laufs (voller Render dauert zu lange für einen Klick)');
   if (d.type === 'audio') {
     let chapters = [], transcript = '';
-    try { const c = JSON.parse(readFileSync(join(d.staticOut, d.chapters), 'utf8')); chapters = (c.chapters || c).map((x) => ({ t: (x.start_ms || 0) / 1000, title: x.title })); } catch {}
-    try { transcript = readFileSync(join(d.staticOut, d.transcript), 'utf8').slice(0, 4000); } catch {}
+    try { const c = JSON.parse(readFileSync(join(staticDir(d), d.chapters), 'utf8')); chapters = (c.chapters || c).map((x) => ({ t: (x.start_ms || 0) / 1000, title: x.title })); } catch {}
+    try { transcript = transcriptText(readFileSync(join(staticDir(d), d.transcript), 'utf8')); } catch {}
     emit('real', `echt · Folge + ${chapters.length} Kapitel + Transkript`);
     done({ render: 'audio', audio: `/d/${slug}/out/${d.audio}?t=${Date.now()}`, chapters, transcript });
   } else {
     let scenes = [];
-    try { const s = JSON.parse(readFileSync(join(d.staticOut, d.scenes), 'utf8')); scenes = (s.scenes || s).map((x, i) => ({ n: i + 1, title: x.title || x.heading || `Szene ${i + 1}`, dur: x.duration || x.durationSec })); } catch {}
+    try { const s = JSON.parse(readFileSync(join(staticDir(d), d.scenes), 'utf8')); scenes = (s.scenes || s).map((x, i) => ({ n: i + 1, title: x.title || x.heading || `Szene ${i + 1}`, dur: x.duration || x.durationSec })); } catch {}
     emit('real', `echt · Video + ${scenes.length} Szenen`);
     done({ render: 'video', video: `/d/${slug}/out/${d.video}?t=${Date.now()}`, scenes });
   }
@@ -436,7 +408,7 @@ function serveFile(res, path) {
 // working across server restarts — the "nf" bug). staticOut demos serve a fixed pre-rendered dir.
 function resolveOut(slug, runId) {
   const d = DEMOS[slug]; if (!d) return null;
-  if (d.staticOut) return isAbsolute(d.staticOut) ? d.staticOut : join(__dir, d.staticOut);   // repo-relative -> portable to any host (same fix class as #10)
+  if (d.staticOut) return staticDir(d);   // repo-relative -> portable to any host (same fix class as #10)
   if (!runId || !RUN_ID_RE.test(runId) || !/^[a-z0-9_-]+$/.test(slug)) return null;
   const wd = runDir(RUNS, slug, runId);
   if (d.type === 'photo-tool') return join(wd, 'sortiert');

@@ -110,3 +110,11 @@ test('hero states the truth: demo runs on our server; planned features are marke
   assert.equal((trust.match(/In Vorbereitung/g) || []).length, 3);
   assert.match(trust, /Sandbox/);
 });
+
+test('status widget: an unreachable upstream hides the bar instead of showing a dead note', async () => {
+  const { indexPage } = await import('../lib/index-page.mjs');
+  const DEMOS = JSON.parse((await import('node:fs')).readFileSync(new URL('../demos.json', import.meta.url), 'utf8'));
+  const h = indexPage(DEMOS, 'de');
+  assert.ok(h.includes("if(!j||!j.ok){ show(''); return; }"));
+  assert.ok(!h.includes("status.down.title") || !/show\(note\(f\('status\.down/.test(h));
+});
