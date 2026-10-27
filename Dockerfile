@@ -44,6 +44,8 @@ RUN set -e; mkdir -p /opt/venvs /tmp/nl /tmp/tp \
  && python3 -m venv /opt/venvs/temporal-poc && /opt/venvs/temporal-poc/bin/pip install -q --no-cache-dir -r /tmp/tp/poc/requirements.txt \
  && rm -rf /tmp/nl /tmp/tp /tmp/nl.tgz /tmp/tp.tgz
 COPY . /app
+# Remotion source of the videos is not needed at runtime (.dockerignore is not applied to a piped tar context)
+RUN rm -rf /app/motion
 ENV PORT=8790
 EXPOSE 8790
 CMD ["node", "server.mjs"]
