@@ -24,6 +24,8 @@ import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
 import { WASM_DIR } from './lib/prompt-wasm.mjs';
 import { md2html } from './lib/md2html.mjs';
+import { serveMedia } from './lib/static-media.mjs';
+import { motionTrust, motionScript, MOTION_CSS } from './lib/motion.mjs';
 import { findChrome, withoutPdf } from './lib/pdf.mjs';
 import { generateDiagram } from './lib/diagram.mjs';
 import { parseTimeline, judgeTimeline, patchTemporalPorts, patchWaiter } from './lib/timeline.mjs';
@@ -565,7 +567,7 @@ function toolShell(slug, inner, lang) {
   const home = lang === 'en' ? '/?lang=en' : '/';
   const timeout = Math.max(90, Math.round((d.estSeconds || 20) * 2.5));
   const builder = d.live && inner.builder !== false && TEMPLATES.has(slug) ? builderBlock(slug, lang, builderVersions()) : '';
-  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (inner.mini ? MINI_CSS : '') })}
+  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (inner.mini ? MINI_CSS : '') + (inner.motion ? MOTION_CSS : '') })}
 ${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang)}
 <main class="wrap" id="main" tabindex="-1" data-slug="${slug}" data-est="${d.estSeconds || 20}" data-timeout="${timeout}" data-lang="${lang}">
   <noscript><div class="noscript-note" role="note">${tt('noscript.demo')}</div></noscript>
@@ -573,7 +575,7 @@ ${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}<
   ${inner.mini ? '' : `<button class="m-toggle" type="button" aria-expanded="false">${t('mehr anzeigen ▾','show more ▾')}</button>`}
   ${builder}
   ${inner.body}
-</main>${foot(lang)}<script>window.__S=${jsonForScript(clientStrings(lang))};</script><script>${CLIENT}</script></body></html>`;
+</main>${foot(lang)}<script>window.__S=${jsonForScript(clientStrings(lang))};</script><script>${CLIENT}</script>${inner.motion ? motionScript() : ''}</body></html>`;
 }
 
 const NOTE = (tag, html) => `<div class="note"><span class="t">${tag}</span><div>${html}</div></div>`;
@@ -595,8 +597,8 @@ function photoToolPage(slug, lang) {
 
 // newsletter: ONE form -- the signed-template form (builder block) -- and the result.
 function reportHtmlPage(slug, lang) {
-  const body = miniOut(reportPanel(lang), lang);
-  return toolShell(slug, { controls: '', body, mini: true }, lang);
+  const body = motionTrust(lang) + miniOut(reportPanel(lang), lang);
+  return toolShell(slug, { controls: '', body, mini: true, motion: true }, lang);
 }
 
 const UPLOAD_CLIENT = `
@@ -863,6 +865,7 @@ http.createServer(async (req, res) => {
   if (tm && req.method === 'GET') { handleTemplate(res, tm[1]); return; }
   if (p.startsWith('/pb/') && req.method === 'GET') { servePb(res, url); return; }
   if (p === '/api/plan' && req.method === 'POST') { handlePlan(req, res, url); return; }
+  if (p.startsWith('/static/motion/') && (req.method === 'GET' || req.method === 'HEAD')) { serveMedia(req, res, join(__dir, 'static', 'motion'), p.slice('/static/motion/'.length)); return; }
   const dm = p.match(/^\/d\/([a-z0-9_-]+)\/out\/(?:(r[0-9a-f]{10})\/)?(.+)$/);
   if (dm) { const base = resolveOut(dm[1], dm[2]); if (!base) { res.writeHead(404).end('nf'); return; } serveFile(res, join(base, dm[3].replace(/\.\./g, ''))); return; }
   if (p.startsWith('/assets/thumbs/')) { serveFile(res, join(__dir, 'thumbs', p.slice('/assets/thumbs/'.length).replace(/\.\./g, ''))); return; }
