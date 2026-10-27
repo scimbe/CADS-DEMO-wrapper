@@ -1,0 +1,53 @@
+{
+  "name": "erklaervideo",
+  "version": "0.1.0",
+  "installer_kind": "binary",
+  "bundle": {
+    "url": "bundle.tar.gz",
+    "sha256": "a8319b604e9d1040680555b5bcc2d667f9b617a6ac9dc12859f729a62f1aa5bd",
+    "compose_file": "run.sh"
+  },
+  "env_template": [
+    {
+      "name": "LLM_BASE_URL",
+      "required": true,
+      "description": "OpenAI-kompatibler LiteLLM-Endpunkt (/v1)"
+    },
+    {
+      "name": "LLM_API_KEY",
+      "required": true,
+      "description": "Schluessel fuer LLM_BASE_URL"
+    },
+    {
+      "name": "LLM_MODEL",
+      "required": true,
+      "description": "Modellname fuer das Szenen-Skript"
+    },
+    {
+      "name": "CT_AGENT_BIN",
+      "required": true,
+      "description": "ct-agent (Channel audio_generation, Stimme Thomas)"
+    },
+    {
+      "name": "CT_RELAY_ENV",
+      "required": true,
+      "description": "Env-Datei mit Channel-Grant und Schluesseln (read-only Mount)"
+    },
+    {
+      "name": "CT_AUDIO_CHANNEL_ID",
+      "required": true,
+      "description": "ID des audio_generation-Channels (llm2)"
+    }
+  ],
+  "verify": {
+    "script": "verify.sh",
+    "timeout_secs": 120
+  },
+  "signature": null,
+  "unsigned_reason": "Der Publisher-Schluessel dieses Marketplace-Manifests (publisher_pubkey der Bestandsmanifeste) liegt nicht vor; dieses Manifest ist wie die uebrigen lokal gebuendelten Demos nur per sha256 gebunden (die Galerie zeigt die Signaturpruefung als simuliert). Signatur, manifest_id, issued_at/expires_at setzt der Publisher beim Veroeffentlichen.",
+  "source": {
+    "repo": "scimbe/CADS-DEMO-podcast",
+    "path": "explainer-video",
+    "commit": "1cc3467c3811ef1e08d7dcd62f31780502fc6eec"
+  }
+}

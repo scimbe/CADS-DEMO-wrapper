@@ -725,16 +725,16 @@
     "blurb": "Füge deinen Text ein und bekomme ein kurzes Video mit gesprochener Erklärung.",
     "title_en": "Explainer video from your text",
     "blurb_en": "Paste your text and get a short video with a spoken explanation.",
-    "hasManifest": false,
+    "hasManifest": true,
     "estSeconds": 90,
-    "live": false,
-    "hidden": true,
+    "live": true,
     "order": 5,
     "category": "Video",
     "category_en": "Video",
     "tagline": "Füge deinen Text ein und bekomme ein kurzes Video mit gesprochener Erklärung.",
     "tagline_en": "Paste your text and get a short video with a spoken explanation.",
-    "tech": "Dein Text wird vom Sprachmodell zu einem Skript, per Sprachausgabe vertont und mit ffmpeg zu einem Video mit Untertiteln gesetzt.",
-    "tech_en": "Your text is turned into a script by the language model, voiced by text-to-speech and assembled into a video with subtitles using ffmpeg."
+    "tech": "Dein Text wird vom Sprachmodell zu einem Skript aus 4–8 Szenen; jede Aussage muss aus deinem Text stammen und wird im Code geprüft. Die Stimme „Thomas“ spricht jede Szene, ImageMagick setzt die Folien, ffmpeg schneidet Video (H.264/AAC) mit Untertiteln.",
+    "tech_en": "Your text becomes a script of 4–8 scenes; every statement must come from your text and is checked in code. The voice “Thomas” narrates each scene, ImageMagick sets the slides, ffmpeg assembles the video (H.264/AAC) with subtitles.",
+    "manifestDir": "manifests/erklaervideo"
   }
 }

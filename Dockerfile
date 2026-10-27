@@ -24,7 +24,7 @@
 # PDF and the page offers printing from the visitor's browser instead (lib/pdf.mjs).
 FROM node:22-trixie-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      python3 python3-venv ffmpeg exiftool imagemagick graphviz poppler-utils \
+      python3 python3-venv ffmpeg exiftool imagemagick graphviz poppler-utils fonts-dejavu-core \
       ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 # temporal-poc needs the real Temporal CLI (server start-dev / workflow subcommands); its run.sh
