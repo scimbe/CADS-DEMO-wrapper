@@ -19,10 +19,9 @@
 # Base is Debian trixie (Python 3.13): the newsletter bundle's requirements-lock pins numpy 2.5.2,
 # which has no wheel for bookworm's Python 3.11 -- the venv build failed there.
 #
-# diagram's mermaid-cli (puppeteer) needs a real Chromium to render -- deliberately NOT
-# installed here either (same minimal-footprint policy); it hardcodes a macOS Chrome
-# path in its own bundle config, confirmed live via `/api/start?demo=diagram`. Fix
-# belongs on a separate host (see labor coordination), not this container.
+# diagram no longer needs a browser: the LLM writes Graphviz DOT and `dot` renders it (lib/diagram.mjs).
+# The newsletter PDF step needs Chrome/Chromium, which is deliberately not installed: the run skips the
+# PDF and the page offers printing from the visitor's browser instead (lib/pdf.mjs).
 FROM node:22-trixie-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
       python3 python3-venv ffmpeg exiftool imagemagick graphviz poppler-utils \
@@ -33,7 +32,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ADD --checksum=sha256:09a0326a51db84d02735e53542b9ebd8c4758daf47482a9ab0abce15844e60d5 \
     https://github.com/temporalio/cli/releases/download/v1.9.1/temporal_cli_1.9.1_linux_amd64.tar.gz /tmp/temporal.tgz
 RUN tar -xzf /tmp/temporal.tgz -C /usr/local/bin temporal && rm /tmp/temporal.tgz && temporal --version
+# Python venvs for the two bundles that need pip packages, built ONCE here so a run does not run
+# `pip install` (the newsletter spent most of its 35 s on that). server.mjs links work/runs/<run>/.venv
+# to these. Package pins come from the bundles themselves.
 WORKDIR /app
+COPY manifests/newsletter/bundle.tar.gz /tmp/nl.tgz
+COPY manifests/temporal-poc/bundle.tar.gz /tmp/tp.tgz
+RUN set -e; mkdir -p /opt/venvs /tmp/nl /tmp/tp \
+ && tar -xzf /tmp/nl.tgz -C /tmp/nl && tar -xzf /tmp/tp.tgz -C /tmp/tp \
+ && python3 -m venv /opt/venvs/newsletter && /opt/venvs/newsletter/bin/pip install -q --no-cache-dir -r /tmp/nl/requirements-lock.txt \
+ && python3 -m venv /opt/venvs/temporal-poc && /opt/venvs/temporal-poc/bin/pip install -q --no-cache-dir -r /tmp/tp/poc/requirements.txt \
+ && rm -rf /tmp/nl /tmp/tp /tmp/nl.tgz /tmp/tp.tgz
 COPY . /app
 ENV PORT=8790
 EXPOSE 8790
