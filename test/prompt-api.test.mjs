@@ -45,7 +45,7 @@ test('boot', async () => { main = await startServer(); });
 
 test('demo pages with a template carry the builder (DE+EN); others do not; pages are still 200', async () => {
   for (const lang of ['de', 'en']) {
-    for (const slug of ['newsletter', 'diagram', 'podcast']) {
+    for (const slug of ['newsletter']) {
       const h = await (await fetch(`${main.base}/d/${slug}?lang=${lang}`)).text();
       assert.match(h, /<section class="pb" id="pb"/, `${slug} ${lang}`);
       assert.match(h, new RegExp(`data-lang="${lang}"`));
@@ -54,7 +54,7 @@ test('demo pages with a template carry the builder (DE+EN); others do not; pages
       assert.equal((h.match(/<main /g) || []).length, 1);
       assert.match(h, /<noscript><div class="noscript-note" role="note">[^<]*(JavaScript)/);
     }
-    for (const slug of ['phototools', 'contractcheck']) assert.ok(!(await (await fetch(`${main.base}/d/${slug}?lang=${lang}`)).text()).includes('id="pb"'), slug);
+    for (const slug of ['phototools', 'contractcheck', 'diagram', 'podcast']) assert.ok(!(await (await fetch(`${main.base}/d/${slug}?lang=${lang}`)).text()).includes('id="pb"'), slug);
   }
   assert.equal((await fetch(main.base + '/?lang=en')).status, 200);
   const clientStrings = (await (await fetch(`${main.base}/d/newsletter?lang=en`)).text()).match(/window\.__S=(\{.*?\});<\/script>/s)[1];
