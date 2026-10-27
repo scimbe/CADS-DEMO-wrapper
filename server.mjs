@@ -219,7 +219,7 @@ function invokeReportHtml(slug, rec, emit, stage, done, reg, lang, cfg, extra) {
 }
 
 // ---- guided parameterization: free text -> validated config via the DSGVO LLM ----------------
-async function callLLM(system, user, maxTokens = 300, temp = 0.1, timeoutMs = 30000) {
+async function callLLM(system, user, maxTokens = 300, temp = 0.1, timeoutMs = 45000) {
   const base = (ENV.LITELLM_BASE_URL || '').replace(/\/$/, '');
   const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), timeoutMs);
   try {
