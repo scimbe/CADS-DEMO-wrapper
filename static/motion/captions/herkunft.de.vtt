@@ -1,0 +1,25 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:03.000
+Herkunft, die man prüfen kann
+
+2
+00:00:03.000 --> 00:00:10.500
+Jeder Baustein ist per sha256 festgenagelt, dazu ein signierter Hinweis des Herausgebers.
+
+3
+00:00:10.500 --> 00:00:17.500
+Die Signatur wird im Browser per WebAssembly geprüft.
+
+4
+00:00:17.500 --> 00:00:24.500
+Dein freier Text gilt als Angabe, nicht als Anweisung.
+
+5
+00:00:24.500 --> 00:00:29.500
+Das Ergebnis trägt template_digest und values_digest.
+
+6
+00:00:29.500 --> 00:00:37.000
+Wird die Vorlage verändert, ist die Signatur ungültig. Prüfen statt vertrauen.

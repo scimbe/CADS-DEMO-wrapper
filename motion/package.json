@@ -1,0 +1,21 @@
+{
+  "name": "claude-motion",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Claude Motion: Erklaer-Animationen fuer den bunsenbrenner.org Agent-Marktplatz (Remotion)",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "node scripts/render.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.505",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "remotion": "4.0.505"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "typescript": "5.9.3"
+  }
+}

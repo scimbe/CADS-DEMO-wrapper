@@ -1,0 +1,25 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:03.000
+Provenance you can verify
+
+2
+00:00:03.000 --> 00:00:10.500
+Every block is pinned by sha256, plus a signed note from the publisher.
+
+3
+00:00:10.500 --> 00:00:17.500
+The signature is verified in the browser via WebAssembly.
+
+4
+00:00:17.500 --> 00:00:24.500
+Your free text counts as data, not as instructions.
+
+5
+00:00:24.500 --> 00:00:29.500
+The result carries template_digest and values_digest.
+
+6
+00:00:29.500 --> 00:00:37.000
+If the template is altered, the signature is invalid. Verify, don’t trust.
