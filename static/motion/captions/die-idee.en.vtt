@@ -1,29 +1,29 @@
 WEBVTT
 
 1
-00:00:00.000 --> 00:00:02.800
-The idea
+00:00:00.300 --> 00:00:01.517
+The idea.
 
 2
-00:00:02.800 --> 00:00:10.800
-Today: copy a prompt, run an installer, hope.
+00:00:03.000 --> 00:00:08.896
+Today, it often goes like this: copy a prompt, run an installer, and hope nothing breaks.
 
 3
-00:00:10.800 --> 00:00:15.300
-Signed: every building block is pinned by digest.
+00:00:11.000 --> 00:00:14.922
+Here, every building block is signed and pinned by its checksum.
 
 4
-00:00:15.300 --> 00:00:19.800
-Sandbox: installations always run walled off.
+00:00:15.500 --> 00:00:19.039
+Every installation runs walled off in a sandbox.
 
 5
-00:00:19.800 --> 00:00:24.200
-Your plan: your Claude credentials never leave your device.
+00:00:20.000 --> 00:00:23.446
+And your own Claude credentials never leave your device.
 
 6
-00:00:24.200 --> 00:00:30.200
-The signature is verified in your browser.
+00:00:24.400 --> 00:00:28.740
+Your browser checks the signature itself, before anything starts.
 
 7
-00:00:30.200 --> 00:00:34.000
+00:00:30.400 --> 00:00:32.012
 Trust you can verify.
