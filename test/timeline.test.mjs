@@ -52,3 +52,12 @@ test('patchTemporalPorts rewrites every hardcoded port and refuses an unknown sc
   assert.equal((out.match(/41001/g) || []).length, 3);
   assert.equal(patchTemporalPorts('echo hi', 1, 2), null);
 });
+
+import { patchWaiter } from '../lib/timeline.mjs';
+test('patchWaiter exits hard right after the result print (SDK teardown segfault) and is idempotent-safe', () => {
+  const src = '    result = await handle.result()\n    print(f"result: {result}", flush=True)\n\n\nif __name__';
+  const out = patchWaiter(src);
+  assert.ok(out.indexOf('os._exit(0)') > out.indexOf('print(f"result'));
+  assert.equal(patchWaiter(out), null);
+  assert.equal(patchWaiter('nothing'), null);
+});
