@@ -1,0 +1,28 @@
+{
+  "title": { "de": "Kapitelmarken mit eigenen Angaben", "en": "Chapter markers with your own details" },
+  "intro": {
+    "de": "Thema, Stil und Zahl der Kapitel bestimmst du. Der Rest der Vorlage ist vom Herausgeber signiert.",
+    "en": "You choose the topic, style and number of chapters. The rest of the template is signed by the publisher."
+  },
+  "run": { "mode": null },
+  "why_no_run": {
+    "de": "Diese Demo zeigt das vorbereitete Ergebnis eines echten Laufs und kann deine Angaben noch nicht verwenden. Du kannst den geprüften Prompt ansehen und kopieren.",
+    "en": "This demo shows the prepared result of a real run and cannot use your details yet. You can look at the checked prompt and copy it."
+  },
+  "params": {
+    "topic": {
+      "label": { "de": "Worum geht es in der Folge?", "en": "What is the episode about?" }, "required": true,
+      "help": { "de": "Ein bis zwei Sätze genügen. Dein Text wird als Angabe behandelt, nicht als Anweisung.", "en": "One or two sentences are enough. Your text is treated as data, not as an instruction." },
+      "default": "Wie aus rohen Aufnahmen eine fertige Podcast-Folge mit Kapiteln wird."
+    },
+    "style": {
+      "label": { "de": "Stil der Überschriften", "en": "Style of the headings" }, "default": "nüchtern",
+      "options": { "nüchtern": { "de": "nüchtern", "en": "sober" }, "einladend": { "de": "einladend", "en": "inviting" }, "neugierig": { "de": "neugierig", "en": "curious" } }
+    },
+    "language": {
+      "label": { "de": "Sprache der Kapitel", "en": "Language of the chapters" }, "default": "Deutsch",
+      "options": { "Deutsch": { "de": "Deutsch", "en": "German" }, "Englisch": { "de": "Englisch", "en": "English" } }
+    },
+    "max_chapters": { "label": { "de": "Höchstzahl Kapitel", "en": "Maximum number of chapters" }, "default": 6 }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "6266be1f792ba324589462bfd24d4b10e36d98685a499ae0e0faf1c84b435152": {
+    "kind": "demo",
+    "label": { "de": "Demo-Herausgeber (Testschlüssel)", "en": "Demo publisher (test key)" }
+  },
+  "1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b": {
+    "kind": "marketplace",
+    "label": { "de": "Marktplatz-Herausgeber", "en": "Marketplace publisher" }
+  }
+}

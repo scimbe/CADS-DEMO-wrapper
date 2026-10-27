@@ -1,0 +1,26 @@
+{
+  "title": { "de": "Wetter-Briefing mit eigenen Angaben", "en": "Weather briefing with your own details" },
+  "intro": {
+    "de": "Ort, Zeitraum, Tonfall und Länge bestimmst du. Der Rest der Vorlage ist vom Herausgeber signiert und kann hier nicht verändert werden.",
+    "en": "You choose the place, period, tone and length. The rest of the template is signed by the publisher and cannot be changed here."
+  },
+  "run": { "mode": "newsletter", "cfg": { "location": "location", "forecast_days": "days", "accent_color": "accent_color" } },
+  "params": {
+    "location": { "label": { "de": "Ort", "en": "Place" }, "default": "Hamburg" },
+    "days": { "label": { "de": "Anzahl Tage", "en": "Number of days" }, "help": { "de": "Wie viele Tage der Vorhersage das Briefing abdeckt.", "en": "How many days of the forecast the briefing covers." }, "default": 7 },
+    "tone": {
+      "label": { "de": "Tonfall", "en": "Tone" }, "default": "sachlich",
+      "options": { "sachlich": { "de": "sachlich", "en": "factual" }, "freundlich": { "de": "freundlich", "en": "friendly" }, "locker": { "de": "locker", "en": "casual" } }
+    },
+    "length": {
+      "label": { "de": "Länge", "en": "Length" }, "default": "mittel",
+      "options": { "kurz": { "de": "kurz", "en": "short" }, "mittel": { "de": "mittel", "en": "medium" }, "ausführlich": { "de": "ausführlich", "en": "detailed" } }
+    },
+    "accent_color": { "label": { "de": "Akzentfarbe", "en": "Accent colour" }, "help": { "de": "Farbe der Überschriften und Diagramme im Briefing.", "en": "Colour of the headings and charts in the briefing." }, "default": "#1f4e79" },
+    "own_context": {
+      "label": { "de": "Eigener Hinweis (optional)", "en": "Your own note (optional)" },
+      "help": { "de": "Zum Beispiel: Wir planen am Samstag ein Gartenfest. Dein Text wird als Angabe behandelt, nicht als Anweisung.", "en": "For example: we are planning a garden party on Saturday. Your text is treated as data, not as an instruction." },
+      "default": ""
+    }
+  }
+}
