@@ -1,3 +1,9 @@
 #!/bin/sh
-# fresh isolated profile so headless --print-to-pdf doesn't attach to the running GUI Chrome
-exec "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --user-data-dir="$(mktemp -d /tmp/cchrome.XXXXXX)" --no-first-run --no-default-browser-check "$@"
+# Headless-Chrome shim for the newsletter's PDF step: fresh isolated profile so --print-to-pdf does
+# not attach to a running GUI Chrome. Picks whatever Chrome/Chromium exists; exits 127 quietly if none
+# (the wrapper does not even call it then -- see lib/pdf.mjs).
+for c in "$CHROME_BIN" /usr/bin/google-chrome-stable /usr/bin/chromium /usr/bin/chromium-browser "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"; do
+  [ -n "$c" ] && [ -x "$c" ] && exec "$c" --user-data-dir="$(mktemp -d "${TMPDIR:-/tmp}/cchrome.XXXXXX")" --no-first-run --no-default-browser-check --no-sandbox "$@"
+done
+echo "no Chrome/Chromium installed" >&2
+exit 127

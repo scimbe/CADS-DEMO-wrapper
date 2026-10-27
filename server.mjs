@@ -9,7 +9,7 @@
 // Secrets (LLM key, Pexels key) load from wrapper/.env — never demos.json / shared artifacts.
 
 import http from 'node:http';
-import { readFileSync, writeFileSync, appendFileSync, existsSync, rmSync, mkdirSync, createReadStream, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, appendFileSync, existsSync, rmSync, mkdirSync, createReadStream, copyFileSync, symlinkSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -23,10 +23,19 @@ import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
 import { WASM_DIR } from './lib/prompt-wasm.mjs';
+import { md2html } from './lib/md2html.mjs';
+import { findChrome, withoutPdf } from './lib/pdf.mjs';
+import { generateDiagram } from './lib/diagram.mjs';
+import { parseTimeline, judgeTimeline, patchTemporalPorts } from './lib/timeline.mjs';
+import { allocatePorts, releasePorts } from './lib/ports.mjs';
+import { createRunDir, runDir, gcRuns, newRunId, RUN_ID_RE } from './lib/runs.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const DEMOS = JSON.parse(readFileSync(join(__dir, 'demos.json'), 'utf8'));
 const WORK = join(__dir, 'work');
+// retired demos that became one: /d/<old> redirects to the new slug
+const MERGED = { podcast: 'erklaervideo', explainer: 'erklaervideo' };
+const RUNS = join(WORK, 'runs'); // one directory per visitor run (lib/runs.mjs)
 // Signed prompt templates ("Eigene Angaben"). The wrapper never takes a template from a request: it
 // reads it from here, re-verifies it and renders it itself (lib/templates.mjs).
 const TEMPLATES = createTemplateStore(process.env.TEMPLATES_DIR || join(__dir, 'templates'));
@@ -37,7 +46,6 @@ const PORT = Number(process.env.PORT || 8790);
 // that NAT) -- caught deploying standalone (host ct-agent -> published port) where GET / just
 // hung/connection-refused despite the container logging "wrapper on http://127.0.0.1:8790".
 const HOST = process.env.HOST || '0.0.0.0';
-const activated = new Map(); // slug -> { workDir, manifest, outputDir }
 const sha256File = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
 
 // LLM creds: process env (docker -e / env_file), a local .env overrides (see lib/env.mjs)
@@ -53,7 +61,7 @@ const STAMP = {
 };
 
 // ---- install seam (shared, sim->real) ----------------------------------------------------------
-function installActivate(slug, emit, stage) {
+function installActivate(slug, emit, stage, runId = newRunId()) {
   const d = DEMOS[slug];
   // manifestDir may be repo-relative (bundled in the image at manifests/<slug>, so it works on any
   // host) or an absolute path (legacy/local dev). Resolve relative paths against the wrapper dir —
@@ -72,11 +80,11 @@ function installActivate(slug, emit, stage) {
   if (got !== manifest.bundle.sha256) { emit('fail', 'sha256-Mismatch'); throw new Error('sha256'); }
   emit('real', `echt geprüft · sha256 ${got.slice(0, 12)}… == Manifest`);
   emit('step', 'Bundle entpacken & aktivieren');
-  const workDir = join(WORK, slug);
-  rmSync(workDir, { recursive: true, force: true }); mkdirSync(workDir, { recursive: true });
+  gcRuns(RUNS);
+  const workDir = createRunDir(RUNS, slug, runId).dir;
   if (spawnSync('tar', ['xzf', bundlePath, '-C', workDir]).status !== 0) { emit('fail', 'entpacken fehlgeschlagen'); throw new Error('unpack'); }
   emit('real', 'echt · installiert');
-  const rec = { workDir, manifest, outputDir: null }; activated.set(slug, rec); return rec;
+  return { workDir, runId, manifest, outputDir: null };
 }
 
 // ---- invoke: photo-tool ------------------------------------------------------------------------
@@ -84,10 +92,11 @@ function invokePhotoTool(slug, rec, emit, stage, done, reg) {
   const d = DEMOS[slug];
   stage('process', 'Fotos verarbeiten');
   const px = join(__dir, 'pexels');
-  mkdirSync(d.inputDir, { recursive: true });
+  const inputDir = join(rec.workDir, 'fotos'), outputDir = join(rec.workDir, 'sortiert');
+  mkdirSync(inputDir, { recursive: true });
   let stamped = 0;
   for (const [fn, [date, lat, lon]] of Object.entries(STAMP)) {
-    const dst = join(d.inputDir, fn); if (existsSync(dst)) continue;
+    const dst = join(inputDir, fn); if (existsSync(dst)) continue;
     copyFileSync(join(px, fn), dst);
     spawnSync('exiftool', ['-q', '-overwrite_original', `-DateTimeOriginal=${date}`, `-GPSLatitude=${lat}`, '-GPSLatitudeRef=N', `-GPSLongitude=${lon}`, '-GPSLongitudeRef=E', dst]);
     stamped++;
@@ -95,22 +104,21 @@ function invokePhotoTool(slug, rec, emit, stage, done, reg) {
   emit(stamped ? 'sim' : 'ok', stamped ? `${stamped} Beispiel-Fotos mit repräsentativen Metadaten versehen (echte Kamerafotos bringen das selbst mit)` : 'Eingangsordner fotos/ bereit — 6 Fotos');
   emit('step', 'Werkzeug ausführen — phototools organize fotos/ → sortiert/');
   emit('ok', 'exiftool liest EXIF · Gazetteer GPS→Stadt · Dateien verschieben · ImageMagick Wasserzeichen+Kontaktbogen — keine KI');
-  rmSync(d.outputDir, { recursive: true, force: true });
   const toolDir = join(rec.workDir, 'phototools');
-  const args = [join(toolDir, 'bin', 'phototools.js'), 'organize', d.inputDir, '--out', d.outputDir, '--watermark-text', d.watermark, '--contact-sheet', '--gallery'];
+  const args = [join(toolDir, 'bin', 'phototools.js'), 'organize', inputDir, '--out', outputDir, '--watermark-text', d.watermark, '--contact-sheet', '--gallery'];
   const child = spawn('node', args, { cwd: toolDir, env: { PATH: process.env.PATH, HOME: rec.workDir, CT_MANIFEST_PROJECT_NAME: `${slug}-demo` } });
   if (reg) reg(child);
   let o = ''; const on = (b) => { const s = b.toString(); o += s; s.split('\n').filter(Boolean).forEach((l) => emit('run', l)); };
   child.stdout.on('data', on); child.stderr.on('data', on);
   child.on('close', (code) => {
-    const manPath = join(d.outputDir, 'manifest.json');
+    const manPath = join(outputDir, 'manifest.json');
     if (code !== 0 || !existsSync(manPath)) { emit('fail', `organize exit ${code}`); return done(null); }
-    rec.outputDir = d.outputDir;
+    rec.outputDir = outputDir;
     emit('real', 'echt · Ordner sortiert, Kontaktbogen erzeugt');
     const m = JSON.parse(readFileSync(manPath, 'utf8'));
     const byFolder = new Map();
     for (const e of m.entries || []) { const f = e.destRelPath.split('/').slice(0, 2).join('/'); byFolder.set(f, (byFolder.get(f) || 0) + 1); }
-    done({ render: 'photo-tool', count: m.count, folders: [...byFolder.entries()].map(([path, count]) => ({ path, count })), contact: `/d/${slug}/out/contact-sheet.jpg?t=${Date.now()}`, gallery: existsSync(join(d.outputDir, 'gallery.html')) ? `/d/${slug}/out/gallery.html?t=${Date.now()}` : null });
+    done({ render: 'photo-tool', count: m.count, folders: [...byFolder.entries()].map(([path, count]) => ({ path, count })), contact: `/d/${slug}/out/${rec.runId}/contact-sheet.jpg`, gallery: existsSync(join(outputDir, 'gallery.html')) ? `/d/${slug}/out/${rec.runId}/gallery.html` : null });
   });
 }
 
@@ -170,10 +178,22 @@ function invokeReportHtml(slug, rec, emit, stage, done, reg, lang, cfg, extra) {
       emit('ok', `Anpassung übernommen: ${[cfg.location && 'Ort ' + cfg.location, cfg.forecast_days && cfg.forecast_days + ' Tage'].filter(Boolean).join(', ')}`);
     } catch {}
   }
-  const runPath = join(rec.workDir, 'run.sh'); spawnSync('chmod', ['+x', runPath]);
+  const chrome = findChrome(process.env);
+  const runPath = join(rec.workDir, 'run.sh');
   const env = { PATH: `${CHROME_BIN}:${process.env.PATH}`, CT_MANIFEST_PROJECT_NAME: `${slug}-demo`,
     LITELLM_BASE_URL: ENV.LITELLM_BASE_URL || '', LITELLM_API_KEY: ENV.LITELLM_API_KEY || '', LITELLM_DEFAULT_MODEL: ENV.LITELLM_DEFAULT_MODEL || d.model || '' };
-  const child = spawn(runPath, [], { cwd: rec.workDir, env });
+  let child;
+  if (linkVenv(rec.workDir, slug)) {
+    // prebuilt venv (Dockerfile): run the CLI directly, no pip, PDF only when a Chrome exists
+    const home = join(rec.workDir, '.home'); mkdirSync(home, { recursive: true });
+    Object.assign(env, { HOME: home, MPLCONFIGDIR: join(rec.workDir, '.mplcache'), XDG_CACHE_HOME: join(rec.workDir, '.cache') });
+    const args = ['-m', 'src.generate_report', '--out', 'report-output', ...(chrome ? ['--pdf'] : []), '--config', 'config/report.yaml'];
+    child = spawn(join(rec.workDir, '.venv', 'bin', 'python'), args, { cwd: rec.workDir, env });
+  } else {
+    if (!chrome) writeFileSync(runPath, withoutPdf(readFileSync(runPath, 'utf8')));
+    spawnSync('chmod', ['+x', runPath]);
+    child = spawn(runPath, [], { cwd: rec.workDir, env });
+  }
   if (reg) reg(child);
   let o = ''; const on = (b) => { const s = b.toString(); o += s; s.split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200))); };
   child.stdout.on('data', on); child.stderr.on('data', on);
@@ -193,20 +213,25 @@ function invokeReportHtml(slug, rec, emit, stage, done, reg, lang, cfg, extra) {
       writeFileSync(hp, h); emit('ok', `Stil angewandt: ${[cfg.accent_color, cfg.font, cfg.include && cfg.include.join('+')].filter(Boolean).join(' · ')}`); } catch {} }
     if (code !== 0) emit('warn', `Nebenschritt exit ${code} — HTML-Report trotzdem erzeugt`);
     else emit('real', 'echt · Report erzeugt');
-    const hasPdf = lang !== 'de' && existsSync(join(outDir, 'report.pdf'));
-    done({ render: 'report-html', reportUrl: `/d/${slug}/out/${d.htmlEntry}?t=${Date.now()}`, pdf: hasPdf ? `/d/${slug}/out/report.pdf` : null, lang });
+    const hasPdf = !!chrome && lang !== 'de' && existsSync(join(outDir, 'report.pdf'));
+    done({ render: 'report-html', reportUrl: `/d/${slug}/out/${rec.runId}/${d.htmlEntry}`, pdf: hasPdf ? `/d/${slug}/out/${rec.runId}/report.pdf` : null, lang });
   });
 }
 
 // ---- guided parameterization: free text -> validated config via the DSGVO LLM ----------------
-async function callLLM(system, user, maxTokens = 300, temp = 0.1) {
+async function callLLM(system, user, maxTokens = 300, temp = 0.1, timeoutMs = 45000) {
   const base = (ENV.LITELLM_BASE_URL || '').replace(/\/$/, '');
-  const r = await fetch(base + '/v1/chat/completions', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + ENV.LITELLM_API_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: ENV.LITELLM_DEFAULT_MODEL, temperature: temp, max_tokens: maxTokens, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
-  });
-  const j = await r.json();
-  return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const r = await fetch(base + '/v1/chat/completions', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + ENV.LITELLM_API_KEY, 'Content-Type': 'application/json' }, signal: ctl.signal,
+      body: JSON.stringify({ model: ENV.LITELLM_DEFAULT_MODEL || 'local-qwen36-35b-a3b-coding', temperature: temp, max_tokens: maxTokens, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    // only `content`: reasoning_content (a thinking model) is never shown nor parsed
+    return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
+  } finally { clearTimeout(to); }
 }
 async function planConfig(slug, text) {
   const d = DEMOS[slug]; const dp = d && d.demo_prompt;
@@ -241,37 +266,6 @@ function handlePlan(req, res, url) {
   });
 }
 
-// ---- minimal Markdown -> styled HTML (for report-md demos like contractcheck) ---------------
-function md2html(md) {
-  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const lines = md.split('\n'); let html = ''; let i = 0;
-  while (i < lines.length) {
-    const l = lines[i];
-    if (l.startsWith('```')) { const lang = l.slice(3).trim(); i++; let body = '';
-      while (i < lines.length && !lines[i].startsWith('```')) { body += lines[i] + '\n'; i++; } i++;
-      if (lang === 'diff') { const rows = body.replace(/\n$/, '').split('\n').map((r) => {
-          const cls = r.startsWith('+') ? 'add' : r.startsWith('-') ? 'del' : r.startsWith('@') ? 'hunk' : '';
-          return `<div class="dl ${cls}">${esc(r) || '&nbsp;'}</div>`; }).join('');
-        html += `<div class="diff">${rows}</div>`; }
-      else html += `<pre class="code">${esc(body)}</pre>`; continue; }
-    if (l.startsWith('## ')) { html += `<h2>${esc(l.slice(3))}</h2>`; i++; continue; }
-    if (l.startsWith('# ')) { html += `<h1>${esc(l.slice(2))}</h1>`; i++; continue; }
-    if (l.trim() === '') { i++; continue; }
-    let p = l; while (i + 1 < lines.length && lines[i + 1].trim() !== '' && !lines[i + 1].startsWith('#') && !lines[i + 1].startsWith('```')) { p += ' ' + lines[i + 1]; i++; }
-    html += `<p>${esc(p).replace(/`([^`]+)`/g, '<code>$1</code>')}</p>`; i++;
-  }
-  return `<!doctype html><meta charset="utf-8"><style>
-    body{font-family:-apple-system,system-ui,"Segoe UI",sans-serif;color:#131A2C;line-height:1.6;margin:0;padding:22px 26px;background:#fff}
-    h1{font-family:ui-serif,Georgia,serif;font-size:1.5rem;color:#131A2C;margin:0 0 14px;border-bottom:3px solid #2F8A7D;padding-bottom:10px}
-    h2{font-family:ui-serif,Georgia,serif;font-size:1.12rem;color:#1F6B60;margin:26px 0 10px}
-    p{max-width:70ch}code{background:#EEF1F8;padding:1px 5px;border-radius:4px;font-family:ui-monospace,Menlo,monospace;font-size:.9em}
-    .code{background:#0f1524;color:#c7d2e0;padding:14px 16px;border-radius:8px;overflow:auto;font-family:ui-monospace,Menlo,monospace;font-size:.82rem;white-space:pre-wrap}
-    .diff{border:1px solid #D7DEEC;border-radius:8px;overflow:hidden;font-family:ui-monospace,Menlo,monospace;font-size:.82rem}
-    .dl{padding:2px 12px;white-space:pre-wrap;border-bottom:1px solid #F0F3F8}
-    .dl.add{background:#e7f4ee;color:#1f6b60}.dl.del{background:#fbecea;color:#b23c30}.dl.hunk{background:#EEF1F8;color:#5B6478}
-  </style>${html}`;
-}
-
 // ---- invoke: report-md (run entrypoint, render report.md -> HTML) ------------------------------
 function invokeReportMd(slug, rec, emit, stage, done, reg) {
   const d = DEMOS[slug];
@@ -281,7 +275,7 @@ function invokeReportMd(slug, rec, emit, stage, done, reg) {
   const runPath = join(rec.workDir, d.entrypoint); spawnSync('chmod', ['+x', runPath]);
   // pass the LLM creds so contractcheck's `compare` can run its LLM text-summary + the visual (vision) comparison
   const child = spawn(runPath, [], { cwd: rec.workDir, env: { PATH: process.env.PATH, HOME: rec.workDir, CT_MANIFEST_PROJECT_NAME: `${slug}-demo`,
-    LLM_BASE_URL: process.env.LITELLM_BASE_URL || '', LLM_API_KEY: process.env.LITELLM_API_KEY || '', LLM_MODEL: process.env.LITELLM_DEFAULT_MODEL || '' } });
+    LLM_BASE_URL: ENV.LITELLM_BASE_URL || '', LLM_API_KEY: ENV.LITELLM_API_KEY || '', LLM_MODEL: ENV.LITELLM_DEFAULT_MODEL || '' } });
   if (reg) reg(child);
   let o = ''; const on = (b) => { const s = b.toString(); o += s; s.split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200))); };
   child.stdout.on('data', on); child.stderr.on('data', on);
@@ -291,99 +285,100 @@ function invokeReportMd(slug, rec, emit, stage, done, reg) {
     rec.outputDir = rec.workDir;
     try { writeFileSync(join(rec.workDir, 'report.html'), md2html(readFileSync(mdPath, 'utf8'))); } catch (e) { emit('fail', 'MD→HTML fehlgeschlagen'); return done(null); }
     emit('real', 'echt · Vergleich erzeugt, als Report gerendert');
-    done({ render: 'report-html', reportUrl: `/d/${slug}/out/report.html?t=${Date.now()}`, pdf: null, lang: 'de' });
+    done({ render: 'report-html', reportUrl: `/d/${slug}/out/${rec.runId}/report.html`, pdf: null, lang: 'de' });
   });
 }
 
 // ---- invoke: image (diagram) -------------------------------------------------------------------
-function invokeImage(slug, rec, emit, stage, done, reg, cfg = {}, extra = null) {
+// One LLM call writes Graphviz DOT, `dot` renders it server-side (lib/diagram.mjs); no install step.
+async function invokeImage(slug, rec, emit, stage, done, reg, cfg = {}, extra = null) {
   const d = DEMOS[slug];
-  // Visitor-supplied inputs (validated): the free-text diagram description drives --description; the
-  // tune-resolved engine/max_attempts drive their flags. Anything absent falls back to the demo default.
-  // A server-rendered prompt from a signed template wins over the free-text field (cap: bounded by the template's own limits).
+  // A server-rendered prompt from a signed template wins over the free-text field.
   const desc = (extra && extra.promptText) ? extra.promptText.slice(0, 4000)
     : (cfg && typeof cfg.description === 'string' && cfg.description.trim()) ? cfg.description.trim().slice(0, 600) : d.description;
-  const engine = (cfg && (cfg.engine === 'mermaid' || cfg.engine === 'graphviz')) ? cfg.engine : d.engine;
-  const maxAtt = (cfg && Number.isInteger(cfg.max_attempts)) ? String(Math.max(1, Math.min(5, cfg.max_attempts))) : '3';
   stage('process', 'Diagramm erzeugen');
   if (!ENV.LITELLM_BASE_URL) { emit('fail', 'LLM-Zugang fehlt (LITELLM_*) — diagram braucht das Modell'); return done(null); }
-  emit('step', 'Abhängigkeiten (mermaid-cli) installieren — npm ci');
-  const npm = spawnSync('npm', ['ci', '--omit=dev', '--no-audit', '--no-fund'], { cwd: rec.workDir, encoding: 'utf8', env: { ...process.env, PUPPETEER_SKIP_DOWNLOAD: 'true' } });
-  if (npm.status !== 0) { emit('fail', 'npm ci fehlgeschlagen: ' + (npm.stderr || '').split('\n')[0]); return done(null); }
-  emit('real', 'echt · mermaid-cli installiert');
-  emit('step', 'LLM schreibt Mermaid, Renderer prüft & erzeugt PNG (mit Fehler-Korrektur-Schleife)');
-  emit('ok', `LLM-Endpunkt · Modell ${d.model}`);
-  const env = { PATH: process.env.PATH, HOME: rec.workDir, PUPPETEER_SKIP_DOWNLOAD: 'true', PUPPETEER_EXECUTABLE_PATH: d.chromePath,
-    LITELLM_BASE_URL: ENV.LITELLM_BASE_URL, LITELLM_API_KEY: ENV.LITELLM_API_KEY, LITELLM_DEFAULT_MODEL: ENV.LITELLM_DEFAULT_MODEL || d.model };
-  const args = [join(rec.workDir, d.tool), 'generate', '--description', desc, '--engine', engine, '--out', 'diagram.png', '--max-attempts', maxAtt, '--attempts-log', 'attempts.json'];
-  const child = spawn('node', args, { cwd: rec.workDir, env });
-  if (reg) reg(child);
-  let o = ''; const on = (b) => { const s = b.toString(); o += s; s.split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200))); };
-  child.stdout.on('data', on); child.stderr.on('data', on);
-  child.on('close', (code) => {
-    const img = join(rec.workDir, 'diagram.png');
-    if (code !== 0 || !existsSync(img)) { emit('fail', `Diagramm nicht erzeugt (exit ${code})`); return done(null); }
-    rec.outputDir = rec.workDir;
-    emit('real', 'echt · Diagramm-PNG erzeugt');
-    done({ render: 'image', title: 'Erzeugtes Diagramm (Mermaid → PNG)', image: `/d/${slug}/out/diagram.png?t=${Date.now()}`, desc });
-  });
+  emit('step', 'Das Sprachmodell schreibt Graphviz-DOT, dot prüft und zeichnet es');
+  const r = await generateDiagram({ description: desc, llm: (sys, usr) => callLLM(sys, usr, 700, 0.2), onAttempt: (n) => emit('run', `Versuch ${n}`) });
+  if (!r.ok) { emit('fail', r.error); return done(null); }
+  emit('real', `echt · Diagramm gezeichnet (${r.attempts === 1 ? 'erster Versuch' : r.attempts + ' Versuche'})`);
+  done({ render: 'diagram', svg: r.svg, dot: r.dot, desc });
 }
 
 // ---- invoke: timeline (temporal-poc) -----------------------------------------------------------
-function invokeTimeline(slug, rec, emit, stage, done, reg) {
+// Prebuilt Python venvs (Dockerfile builds them once under VENV_DIR); a run links to one instead of
+// running `pip install` every time. Absent (local dev) -> the bundle's own run.sh builds its venv.
+const VENV_DIR = process.env.VENV_DIR || '/opt/venvs';
+const prebuiltVenv = (name) => { const p = join(VENV_DIR, name); return existsSync(join(p, 'bin', 'python')) ? p : null; };
+function linkVenv(workDir, name) {
+  const v = prebuiltVenv(name); if (!v) return false;
+  try { symlinkSync(v, join(workDir, '.venv')); return true; } catch { return false; }
+}
+async function invokeTimeline(slug, rec, emit, stage, done, reg) {
   const d = DEMOS[slug];
   stage('process', 'Ablauf ausführen (Worker killen & Recovery)');
-  emit('step', 'run.sh — lokalen Temporal-Server starten, Workflow starten, Worker mitten drin killen, Recovery beweisen');
-  emit('ok', 'startet lokal einen Temporal-Dev-Server (Ports 7233/8233) · echter Kill & Recovery');
-  const runPath = join(rec.workDir, d.entrypoint); spawnSync('chmod', ['+x', runPath]);
-  const child = spawn(runPath, [], { cwd: rec.workDir, env: { PATH: process.env.PATH, HOME: rec.workDir, CT_MANIFEST_PROJECT_NAME: `${slug}-demo`, ...(d.env || {}) } });
+  emit('step', 'Temporal-Server starten, Workflow starten, Worker hart beenden, zweiten Worker übernehmen lassen');
+  let ports;
+  try { ports = await allocatePorts(2); } catch { emit('fail', 'Keine freien Ports'); return done(null); }
+  const finish = (r) => { releasePorts(ports); done(r); };
+  const runDemo = join(rec.workDir, 'scripts', 'run_demo.sh');
+  const patched = patchTemporalPorts(readFileSync(runDemo, 'utf8'), ports[0], ports[1]);
+  if (!patched) { emit('fail', 'Ablauf-Skript hat ein unerwartetes Format'); return finish(null); }
+  writeFileSync(runDemo, patched);
+  const env = { PATH: process.env.PATH, HOME: rec.workDir, CT_MANIFEST_PROJECT_NAME: `${slug}-demo`, TEMPORAL_ADDRESS: `127.0.0.1:${ports[0]}`, ...(d.env || {}) };
+  let child;
+  if (linkVenv(rec.workDir, 'temporal-poc')) child = spawn('bash', ['scripts/run_demo.sh'], { cwd: rec.workDir, env });
+  else { const runPath = join(rec.workDir, d.entrypoint); spawnSync('chmod', ['+x', runPath]); child = spawn(runPath, [], { cwd: rec.workDir, env }); }
   if (reg) reg(child);
-  let o = ''; const on = (b) => { const s = b.toString(); o += s; s.split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200))); };
+  const on = (b) => { b.toString().split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200))); };
   child.stdout.on('data', on); child.stderr.on('data', on);
   child.on('close', (code) => {
     const hist = join(rec.workDir, d.produces.history);
-    if (!existsSync(hist)) { emit('fail', `Kein Event-Verlauf erzeugt (exit ${code})`); return done(null); }
+    if (!existsSync(hist)) { emit('fail', `Kein Event-Verlauf erzeugt (exit ${code})`); return finish(null); }
     rec.outputDir = rec.workDir;
     let steps = [];
-    try {
-      const ev = JSON.parse(readFileSync(hist, 'utf8')).events || [];
-      const want = { WorkflowExecutionStarted: 'Workflow gestartet', ActivityTaskScheduled: 'Aufgabe eingeplant', ActivityTaskStarted: 'Aufgabe gestartet', ActivityTaskCompleted: 'Aufgabe abgeschlossen', WorkflowExecutionCompleted: 'Workflow abgeschlossen ✓' };
-      for (const e of ev) { const t = (e.eventType || '').replace(/^EVENT_TYPE_/, '').replace(/_([a-z])/g, (m, c) => c.toUpperCase()); const key = t.charAt(0).toUpperCase() + t.slice(1);
-        for (const [k, label] of Object.entries(want)) if (key === k) {
-          let extra = ''; const att = e.activityTaskStartedEventAttributes; if (att && att.attempt) extra = `Versuch ${att.attempt}${att.attempt > 1 ? ' (nach Heartbeat-Timeout — neuer Worker übernimmt)' : ''}`;
-          steps.push({ label, id: e.eventId, extra, recover: !!(att && att.attempt > 1) }); }
-      }
-    } catch (e) {}
-    emit('real', `echt · ${steps.length} Ereignisse — Recovery im Verlauf belegt`);
-    done({ render: 'timeline', steps });
+    try { steps = parseTimeline(JSON.parse(readFileSync(hist, 'utf8')).events); } catch { /* judged below */ }
+    const j = judgeTimeline(steps);
+    if (!j.ok || code !== 0) { emit('fail', j.ok ? `Ablauf endete mit Fehler (exit ${code})` : j.message); return finish(null); }
+    emit(j.recovered ? 'real' : 'warn', j.message);
+    finish({ render: 'timeline', steps });
   });
 }
 
-// ---- invoke: serve-existing media (podcast audio, explainer video) -----------------------------
-function invokeServeMedia(slug, rec, emit, stage, done) {
-  const d = DEMOS[slug];
-  stage('process', d.type === 'audio' ? 'Folge bereitstellen' : 'Video bereitstellen');
-  rec = rec || {}; rec.outputDir = d.staticOut; activated.set(slug, rec);
-  emit('ok', d.hasManifest === false ? 'läuft aus der Quelle (noch kein Marktplatz-Manifest) · echtes, vorgerendertes Ergebnis' : 'echtes Ergebnis eines früheren Laufs (voller Render dauert zu lange für einen Klick)');
-  if (d.type === 'audio') {
-    let chapters = [], transcript = '';
-    try { const c = JSON.parse(readFileSync(join(d.staticOut, d.chapters), 'utf8')); chapters = (c.chapters || c).map((x) => ({ t: (x.start_ms || 0) / 1000, title: x.title })); } catch {}
-    try { transcript = readFileSync(join(d.staticOut, d.transcript), 'utf8').slice(0, 4000); } catch {}
-    emit('real', `echt · Folge + ${chapters.length} Kapitel + Transkript`);
-    done({ render: 'audio', audio: `/d/${slug}/out/${d.audio}?t=${Date.now()}`, chapters, transcript });
-  } else {
-    let scenes = [];
-    try { const s = JSON.parse(readFileSync(join(d.staticOut, d.scenes), 'utf8')); scenes = (s.scenes || s).map((x, i) => ({ n: i + 1, title: x.title || x.heading || `Szene ${i + 1}`, dur: x.duration || x.durationSec })); } catch {}
-    emit('real', `echt · Video + ${scenes.length} Szenen`);
-    done({ render: 'video', video: `/d/${slug}/out/${d.video}?t=${Date.now()}`, scenes });
-  }
+// ---- invoke: textvideo ("Erklärvideo aus deinem Text") ------------------------------------------
+// Bundle contract (bundles/erklaervideo/API.md, built by another branch): config JSON in, progress
+// lines on stdout, files in <cwd>/out/: video.mp4, subtitles.vtt, script.json, poster.jpg.
+const TEXTVIDEO_DIR = join(__dir, 'bundles', 'erklaervideo');
+const TEXTVIDEO_LENGTHS = [30, 60, 90];
+function invokeTextVideo(slug, rec, emit, stage, done, reg, cfg = {}) {
+  stage('process', 'Video erstellen');
+  const text = typeof cfg.text === 'string' ? cfg.text.trim().slice(0, 4000) : '';
+  const length = TEXTVIDEO_LENGTHS.includes(Number(cfg.length)) ? Number(cfg.length) : 60;
+  if (text.length < 30) { emit('fail', 'Bitte gib mindestens 30 Zeichen Text ein.'); return done(null); }
+  const entry = ['run.sh', 'run'].map((f) => join(TEXTVIDEO_DIR, f)).find((p) => existsSync(p));
+  if (!entry) { emit('fail', 'Die Video-Erzeugung ist noch nicht installiert.'); return done(null); }
+  const { runId, dir } = createRunDir(RUNS, slug);
+  rec.runId = runId; rec.workDir = dir; rec.outputDir = join(dir, 'out');
+  mkdirSync(rec.outputDir, { recursive: true });
+  const cfgPath = join(dir, 'config.json');
+  writeFileSync(cfgPath, JSON.stringify({ text, length_s: length, language: 'de', llm: { base_url: ENV.LITELLM_BASE_URL || '', api_key: ENV.LITELLM_API_KEY || '', model: ENV.LITELLM_DEFAULT_MODEL || '' } }));
+  const child = spawn('bash', [entry, cfgPath], { cwd: dir, env: { PATH: process.env.PATH, HOME: dir } });
+  if (reg) reg(child);
+  const on = (b) => b.toString().split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200)));
+  child.stdout.on('data', on); child.stderr.on('data', on);
+  child.on('close', (code) => {
+    const out = rec.outputDir;
+    if (code !== 0 || !existsSync(join(out, 'video.mp4'))) { emit('fail', `Video nicht erzeugt (exit ${code})`); return done(null); }
+    emit('real', 'echt · Video erzeugt');
+    const base = `/d/${slug}/out/${runId}`;
+    done({ render: 'textvideo', video: `${base}/video.mp4`, poster: existsSync(join(out, 'poster.jpg')) ? `${base}/poster.jpg` : '', subtitles: existsSync(join(out, 'subtitles.vtt')) ? `${base}/subtitles.vtt` : '' });
+  });
 }
 
 // `post` is set by handlePostStart: { demo, lang, cfg, extra, rendered } -- all server-derived. The GET
 // path (EventSource) keeps taking its options from the query string and can never set `extra`.
 function handleStart(req, res, url, post = null) {
   const slug = post ? post.demo : url.searchParams.get('demo');
-  const fresh = post ? false : url.searchParams.get('fresh') === '1';
   let lang = (post ? post.lang : url.searchParams.get('lang')) === 'en' ? 'en' : 'de';
   let cfg = post ? post.cfg : {}; if (!post) try { const c = url.searchParams.get('cfg'); if (c) cfg = JSON.parse(Buffer.from(c, 'base64').toString('utf8')); } catch {}
   if (cfg.language === 'en' || cfg.language === 'de') lang = cfg.language;
@@ -397,11 +392,10 @@ function handleStart(req, res, url, post = null) {
   const reg = (c) => { child = c; if (aborted && c && !c.killed) try { c.kill('SIGKILL'); } catch {} };
   // POST: 'close' on the request fires once its body is consumed, so watch the response (the connection) instead.
   (post ? res : req).on('close', () => { aborted = true; if (child && !child.killed) { try { child.kill('SIGKILL'); } catch {} } });
-  let rec = activated.get(slug);
+  let rec = null;
   try {
-    if (d.hasManifest === false) { stage('install', 'Bereit'); emit('ok', 'kein Marktplatz-Manifest — läuft aus der Quelle'); rec = rec || {}; }
-    else if (fresh || !rec) { if (fresh) activated.delete(slug); rec = installActivate(slug, emit, stage); }
-    else { stage('install', 'Bereit'); emit('cache', 'aus Cache · schon installiert'); }
+    if (d.hasManifest === false || d.type === 'textvideo' || d.type === 'image') { stage('install', 'Bereit'); rec = {}; }
+    else rec = installActivate(slug, emit, stage);
   } catch (e) { emit('fail', 'Abbruch bei der Installation'); stage('error', 'Fehlgeschlagen'); res.end(); return; }
   if (aborted) { res.end(); return; }
   if (post) emit('ok', makeT(lang)('pb.run.checked', { tid: shortDigest(post.rendered.template_id, 8), td: shortDigest(post.rendered.template_digest, 12), vd: shortDigest(post.rendered.values_digest, 12) }));
@@ -411,7 +405,7 @@ function handleStart(req, res, url, post = null) {
   else if (d.type === 'report-md') invokeReportMd(slug, rec, emit, stage, cb, reg);
   else if (d.type === 'image') invokeImage(slug, rec, emit, stage, cb, reg, cfg, extra);
   else if (d.type === 'timeline') invokeTimeline(slug, rec, emit, stage, cb, reg);
-  else if (d.type === 'audio' || d.type === 'video') invokeServeMedia(slug, rec, emit, stage, cb);
+  else if (d.type === 'textvideo') invokeTextVideo(slug, rec, emit, stage, cb, reg, cfg);
   else { emit('fail', 'Unbekannter Demo-Typ'); cb(null); }
 }
 
@@ -423,13 +417,15 @@ function serveFile(res, path) {
 }
 // Resolve a demo's output dir from the live activation OR from disk (so report/PDF/media links keep
 // working across server restarts — the "nf" bug). staticOut demos serve a fixed pre-rendered dir.
-function resolveOut(slug) {
-  const rec = activated.get(slug); if (rec && rec.outputDir) return rec.outputDir;
+function resolveOut(slug, runId) {
   const d = DEMOS[slug]; if (!d) return null;
-  if (d.staticOut) return isAbsolute(d.staticOut) ? d.staticOut : join(__dir, d.staticOut);   // repo-relative -> portable to any host (same fix class as #10)
-  if (d.type === 'photo-tool') return d.outputDir;
-  if (d.type === 'report-html') return join(WORK, slug, d.outputRel);
-  if (d.type === 'report-md' || d.type === 'image' || d.type === 'timeline') return join(WORK, slug);
+  if (d.staticOut) return staticDir(d);   // repo-relative -> portable to any host (same fix class as #10)
+  if (!runId || !RUN_ID_RE.test(runId) || !/^[a-z0-9_-]+$/.test(slug)) return null;
+  const wd = runDir(RUNS, slug, runId);
+  if (d.type === 'photo-tool') return join(wd, 'sortiert');
+  if (d.type === 'textvideo') return join(wd, 'out');
+  if (d.type === 'report-html') return join(wd, d.outputRel);
+  if (d.type === 'report-md' || d.type === 'image' || d.type === 'timeline') return wd;
   return null;
 }
 
@@ -462,7 +458,7 @@ function postStream(url,body){
 }
 function startRun(btn){
   const pbRun=window.__pbRun;window.__pbRun=null;
-  const wrap=document.querySelector('.wrap');const slug=wrap.dataset.slug;const fresh=btn.dataset.fresh;
+  const wrap=document.querySelector('.wrap');const slug=wrap.dataset.slug;
   const out=document.querySelector('.out');const stepper=out.querySelector('.stepper');const log=out.querySelector('.log');
   const tech=out.querySelector('details.tech');const ph=out.querySelector('.placeholder');
   const rt=out.querySelector('.res-tree');const rs=out.querySelector('.res-sheet');const rr=out.querySelector('.res-report');
@@ -487,9 +483,9 @@ function startRun(btn){
   const secs=()=>Math.round((Date.now()-t0)/1000);
   const line=(c,t)=>{const e=document.createElement('span');e.className='l '+c;e.textContent=t;log.appendChild(e);log.scrollTop=log.scrollHeight};
   var _cfg={}; try{ if(window.__cfg) _cfg=JSON.parse(decodeURIComponent(escape(atob(window.__cfg)))); }catch(e){}
-  var _di=document.querySelector('.descinput'); if(_di && _di.value.trim()) _cfg.description=_di.value.trim();
+  var _di=document.querySelector('.descinput'); if(_di && _di.value.trim()){ if(_di.id==='tvtext'){_cfg.text=_di.value.trim();var _tl=document.getElementById('tvlen');if(_tl)_cfg.length=parseInt(_tl.value,10);} else _cfg.description=_di.value.trim(); }
   var _cfgP=Object.keys(_cfg).length?('&cfg='+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(_cfg)))))):'';
-  const es=pbRun?postStream('/api/start?lang='+(wrap.dataset.lang||'de'),pbRun):new EventSource('/api/start?demo='+encodeURIComponent(slug)+'&fresh='+fresh+'&lang='+(wrap.dataset.lang||'de')+_cfgP);
+  const es=pbRun?postStream('/api/start?lang='+(wrap.dataset.lang||'de'),pbRun):new EventSource('/api/start?demo='+encodeURIComponent(slug)+'&lang='+(wrap.dataset.lang||'de')+_cfgP);
   const stop=(txt,terra)=>{if(done)return;done=true;clearInterval(iv);bar.style.width='100%';pb.setAttribute('aria-valuenow','100');if(terra)bar.style.background='var(--terra)';ptxt.textContent=txt;live.textContent=txt;if(cancel){cancel.remove();cancel=null;}document.querySelectorAll('button.run,button[data-runlock]').forEach(b=>b.disabled=false);try{es.close()}catch(e){}};
   // Friendly, specific error + retry. role=alert announces it; focus goes to the retry button.
   const fail=(kind,detail)=>{if(done)return;const s=secs();
@@ -523,15 +519,11 @@ function startRun(btn){
       rt.hidden=false;rs.querySelector('img').src=r.contact;rs.hidden=false;
       var g=rs.querySelector('.opengal');if(g){if(r.gallery){g.href=r.gallery;g.style.display='';}else{g.style.display='none';}}}
     else if(r.render==='report-html'){const s=out.querySelector('.res-report');const fr=s.querySelector('iframe');fr.src=r.reportUrl;s.hidden=false;
-      s.querySelector('.openrep').href=r.reportUrl;const pl=s.querySelector('.pdflink');if(r.pdf){pl.href=r.pdf;pl.hidden=false}else if(pl)pl.hidden=true;}
-    else if(r.render==='image'){const s=out.querySelector('.res-image');s.querySelector('.resimg').src=r.image;s.querySelector('.openimg').href=r.image;s.hidden=false;}
+      s.querySelector('.openrep').href=r.reportUrl;const pr=s.querySelector('.printrep');if(pr){pr.hidden=!!r.pdf;pr.onclick=function(){try{fr.contentWindow.focus();fr.contentWindow.print();}catch(e){window.open(r.reportUrl);}};}const pl=s.querySelector('.pdflink');if(r.pdf){pl.href=r.pdf;pl.hidden=false}else if(pl)pl.hidden=true;}
+    else if(r.render==='textvideo'){const s=out.querySelector('.res-textvideo');const v=s.querySelector('.resvideo');v.src=r.video;if(r.poster)v.poster=r.poster;s.querySelector('.dlvideo').href=r.video;s.hidden=false;}
+    else if(r.render==='diagram'){const s=out.querySelector('.res-diagram');var u='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(r.svg);s.querySelector('.resimg').src=u;var dl=s.querySelector('.dlsvg');dl.href=u;dl.download='diagramm.svg';s.hidden=false;}
     else if(r.render==='timeline'){const s=out.querySelector('.res-timeline');const ol=s.querySelector('.timeline');ol.innerHTML='';
       for(const st of r.steps){const li=document.createElement('li');li.className='tstep'+(st.recover?' rec':'');li.innerHTML=(st.recover?'<span aria-hidden="true">↻ </span>':'')+'<b>'+st.label+'</b>'+(st.extra?' <span class="ex">'+st.extra+'</span>':'');ol.appendChild(li)}s.hidden=false;}
-    else if(r.render==='audio'){const s=out.querySelector('.res-audio');s.querySelector('.resaudio').src=r.audio;const ol=s.querySelector('.chapters');ol.innerHTML='';
-      for(const c of r.chapters){const li=document.createElement('li');li.innerHTML='<span class="ct">'+fmt(c.t)+'</span> '+c.title;li.onclick=()=>{const a=s.querySelector('.resaudio');a.currentTime=c.t;a.play()};ol.appendChild(li)}
-      if(r.transcript)s.querySelector('.txbody').textContent=r.transcript;s.hidden=false;}
-    else if(r.render==='video'){const s=out.querySelector('.res-video');s.querySelector('.resvideo').src=r.video;const ol=s.querySelector('.scenes');ol.innerHTML='';
-      for(const sc of r.scenes){const li=document.createElement('li');li.textContent=f('js.res.scene',{n:sc.n,title:sc.title})+(sc.dur?' ('+Math.round(sc.dur)+' s)':'');ol.appendChild(li)}s.hidden=false;}
   });
   es.addEventListener('done',()=>{if(failed)fail(es.refused?'refused':'tool',failMsg);else stop(f('js.run.done',{s:secs()}),false);});
   es.onerror=()=>{if(done)return;if(failed)fail('tool',failMsg);else fail('conn');};
@@ -566,100 +558,40 @@ function toolShell(slug, inner, lang) {
   lang = normLang(lang);
   const home = lang === 'en' ? '/?lang=en' : '/';
   const timeout = Math.max(90, Math.round((d.estSeconds || 20) * 2.5));
-  const builder = d.live && TEMPLATES.has(slug) ? builderBlock(slug, lang, builderVersions()) : '';
-  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: builder ? PB_CSS : '' })}
+  const builder = d.live && inner.builder !== false && TEMPLATES.has(slug) ? builderBlock(slug, lang, builderVersions()) : '';
+  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (inner.mini ? MINI_CSS : '') })}
 ${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang)}
 <main class="wrap" id="main" tabindex="-1" data-slug="${slug}" data-est="${d.estSeconds || 20}" data-timeout="${timeout}" data-lang="${lang}">
   <noscript><div class="noscript-note" role="note">${tt('noscript.demo')}</div></noscript>
-  <div class="toolbar"><div><h1>${di(d, 'title', lang)}</h1><p>${di(d, 'tagline', lang)}</p></div><div class="controls">${inner.controls}</div></div>
-  <button class="m-toggle" type="button" aria-expanded="false">${t('mehr anzeigen ▾','show more ▾')}</button>
+  <div class="toolbar"><div><h1>${di(d, 'title', lang)}</h1><p>${di(d, inner.mini ? 'blurb' : 'tagline', lang)}</p></div><div class="controls">${inner.controls}</div></div>
+  ${inner.mini ? '' : `<button class="m-toggle" type="button" aria-expanded="false">${t('mehr anzeigen ▾','show more ▾')}</button>`}
   ${builder}
   ${inner.body}
 </main>${foot(lang)}<script>window.__S=${jsonForScript(clientStrings(lang))};</script><script>${CLIENT}</script></body></html>`;
 }
 
-function photoToolPage(slug, lang) {
-  const d = DEMOS[slug];
-  const t = tr(lang);
-  const tray = d.photos.map((p) => `<div class="prow"><img src="/assets/thumbs/${p.file}" alt="${p.city}"/>
-    <div><div class="pn">${p.file}</div><div class="pt"><span><span class="lab">${t('Datum','Date')}</span>${p.date}</span><span><span class="lab">${t('Ort','Place')}</span>${p.city}</span></div>
-    <div class="credit">${t('Foto','Photo')}: ${extLink(p.pexels_url, p.photographer, lang)} · Pexels</div></div></div>`).join('');
-  const controls = `<span class="setting"><span class="k">${t('Sortieren','Sort by')}</span><span class="v">${t('Datum · Ort','Date · Place')}</span></span>
-    <span class="setting"><span class="k">${t('Wasserzeichen','Watermark')}</span><span class="v on">${t('an','on')}</span></span>
-    <button class="btn btn-primary run" data-fresh="0">${t('Organisieren ▸','Organize ▸')}</button>
-    ${installLink(lang)}`;
-  const body = `
-  <div class="io"><span>${t('Eingang','Input')}</span><span class="path">fotos/</span><span class="ar">→</span><span>${t('Werkzeug','Tool')}</span><span class="path">phototools organize</span><span class="ar">→</span><span>${t('Ausgabe','Output')}</span><span class="path">sortiert/</span></div>
-  <div class="grid2">
-    <aside class="panel"><div class="ph"><h2>${t('Eingang','Input')}</h2><span class="count">${t('6 Fotos · fotos/','6 photos · fotos/')}</span></div><div class="tray">${tray}</div></aside>
-    <div class="out">
-      <div class="stepper" hidden><div class="st" data-step="install"><span class="n">1</span> ${t('Installieren','Install')}</div><div class="st" data-step="process"><span class="n">2</span> ${t('Fotos verarbeiten','Process photos')}</div><div class="st" data-step="done"><span class="n">3</span> ${t('Fertig','Done')}</div></div>
-      <div class="placeholder">${t('Noch nicht organisiert — klick <b style="color:var(--ink)">&nbsp;Organisieren&nbsp;</b>, und die 6 Fotos landen sortiert in <span style="font-family:var(--mono)">&nbsp;sortiert/</span>.','Not organized yet — click <b style="color:var(--ink)">&nbsp;Organize&nbsp;</b>, and the 6 photos land sorted into <span style="font-family:var(--mono)">&nbsp;sortiert/</span>.')}</div>
-      <section class="panel res-tree" hidden><div class="ph"><h2>${t('Sortierte Ordner','Sorted folders')}</h2><span class="count"></span></div><div class="tree"></div></section>
-      <section class="panel res-sheet" hidden><div class="ph"><h2>${t('Kontaktbogen','Contact sheet')}</h2><span><a class="chip opengal" href="#" target="_blank" rel="noopener noreferrer" style="display:none">🖼 ${t('Galerie (Lightbox)','Gallery (lightbox)')}${newTabMark(lang)}</a> <a class="chip openrep" href="#" target="_blank" rel="noopener noreferrer">${t('Öffnen','Open')}${newTabMark(lang)}</a></span></div><div class="sheetwrap"><img alt="${t('Kontaktbogen','Contact sheet')}"/></div></section>
-      <details class="tech" hidden><summary>${t('Technische Details — Installation &amp; Werkzeuglauf','Technical details — installation &amp; tool run')}</summary><div class="log"></div></details>
-    </div>
-  </div>
-  <div class="note"><span class="t">${t('Ohne KI','No AI')}</span><div>${t('Kein Modell „schaut" die Fotos an. <b>exiftool</b> liest die Metadaten der Kamera, ein <b>Gazetteer</b> übersetzt GPS→Stadt, <b>ImageMagick</b> setzt Wasserzeichen &amp; Kontaktbogen. Die Beispiel-Fotos stammen von <b>Pexels</b> und tragen kein Kamera-GPS — dafür sind ihnen Beispiel-Metadaten aufgeprägt (offengelegt); ein echtes Handyfoto bringt Datum &amp; Ort selbst mit.','No model „looks at" the photos. <b>exiftool</b> reads the camera metadata, a <b>gazetteer</b> maps GPS→city, <b>ImageMagick</b> adds the watermark &amp; contact sheet. The sample photos come from <b>Pexels</b> and carry no camera GPS — instead sample metadata was stamped onto them (disclosed); a real phone photo brings its own date &amp; place.')}</div></div>
-  <div class="prov"><span>${t('Bereitgestellt über den <b>Marktplatz</b>','Provided via the <b>Marketplace</b>')}</span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>${t('Signatur/Registry','Signature/Registry')} <span class="sim">Demo</span></span></div>`;
-  return toolShell(slug, { controls, body }, lang);
-}
-
-function tuneBlock(slug, lang) {
-  const dp = DEMOS[slug] && DEMOS[slug].demo_prompt;
-  if (!dp) return '';
-  const t = tr(lang);
-  const ex = (dp.examples || []).map((e) => `<button class="exchip" type="button">${e}</button>`).join('');
-  const params = dp.parameters.map((p) => p.name).join(' · ');
-  return `<section class="tune">
-    <div class="tune-h"><span class="teyebrow">◆ ${t('Anpassen per Prompt','Customize by prompt')}</span><span class="tsub">${t(`Schreib, was anders sein soll — unser DSGVO-LLM setzt es um, aber nur innerhalb fester Regeln (${params}). Vor dem Ausführen siehst du die aufgelöste Anpassung und kannst sie zurückhalten.`, `Write what should be different — our GDPR LLM applies it, but only within fixed rules (${params}). Before running you see the resolved change and can hold it back.`)}</span></div>
-    <div class="tune-row"><input class="tuneinput" type="text" placeholder="${t('z. B. Berlin in Blau, ohne Wind, große serifenlose Schrift','e.g. Berlin in blue, no wind, large sans-serif type')}"/><button class="btn btn-ghost tunebtn" type="button">${t('Vorschau ansehen','Preview')}</button></div>
-    <div class="tune-ex"><span class="exlbl">${t('Beispiele:','Examples:')}</span>${ex}</div>
-    <div class="tunepreview" hidden></div>
-  </section>`;
-}
-
-function reportHtmlPage(slug, lang) {
-  const d = DEMOS[slug];
-  const t = tr(lang);
-  const controls = `<span class="setting"><span class="k">${t('Standort','Location')}</span><span class="v">${d.location}</span></span>
-    <span class="setting"><span class="k">${t('Quelle','Source')}</span><span class="v">${d.source}</span></span>
-    <span class="setting"><span class="k">${t('Modell','Model')}</span><span class="v on">${d.model}</span></span>
-    <button class="btn btn-primary run" data-fresh="0">${t('Briefing erstellen ▸','Create briefing ▸')}</button>
-    ${installLink(lang)}`;
-  const body = `
-  <p class="lede" style="margin:2px 0 16px">${t(`Diese Demo zeigt, wie sich ein Sprachmodell <b>faktentreu</b> einsetzen lässt: Es holt echte Wetterdaten für ${d.location} von Open-Meteo, rechnet daraus Kennzahlen und Diagramme mit gewöhnlichem Code und lässt das LLM nur den <b>Fließtext</b> schreiben — jede Zahl darin wird automatisch gegen die Rohdaten geprüft. Das Ergebnis ist ein fertiger, redaktioneller Wochenreport als HTML (und PDF), wie ihn ein Team ohne manuelle Arbeit jede Woche verschicken könnte.`,`This demo shows how a language model can be used <b>faithfully to the facts</b>: it fetches real weather data for ${d.location} from Open-Meteo, computes metrics and charts from it with ordinary code, and lets the LLM write only the <b>prose</b> — every number in it is checked automatically against the raw data. The result is a finished, editorial weekly report as HTML (and PDF) that a team could send every week with no manual work.`)}</p>
-  <p class="subtle" style="margin:-6px 0 14px">${t('Sprache oben rechts umschaltbar (DE/EN): das LLM schreibt den Report in der gewählten Sprache — über denselben DSGVO-konformen Endpunkt in Deutschland.','Switch the language top right (DE/EN): the LLM writes the report in the chosen language — via the same GDPR-compliant endpoint in Germany.')}</p>
-  ${tuneBlock(slug, lang)}
-  <div class="io"><span>${t('Eingang','Input')}</span><span class="path">${d.source}</span><span class="ar">→</span><span>${t('Werkzeug','Tool')}</span><span class="path">${t('Kennzahlen · Diagramme · LLM-Narrativ','Metrics · charts · LLM narrative')}</span><span class="ar">→</span><span>${t('Ausgabe','Output')}</span><span class="path">report.html</span></div>
-  <div class="out" style="margin-top:14px">
-    <div class="stepper" hidden><div class="st" data-step="install"><span class="n">1</span> ${t('Installieren','Install')}</div><div class="st" data-step="process"><span class="n">2</span> ${t('Report erstellen','Build report')}</div><div class="st" data-step="done"><span class="n">3</span> ${t('Fertig','Done')}</div></div>
-    <div class="placeholder">${t(`Noch kein Briefing — klick <b style="color:var(--ink)">&nbsp;Briefing erstellen&nbsp;</b>. Holt echte Wetterdaten für ${d.location}, rechnet Kennzahlen &amp; Diagramme und lässt ein LLM ein faktentreues Kurz-Briefing schreiben.`,`No briefing yet — click <b style="color:var(--ink)">&nbsp;Create briefing&nbsp;</b>. Fetches real weather data for ${d.location}, computes metrics &amp; charts and lets an LLM write a fact-faithful short briefing.`)}</div>
-    <section class="panel res-report" hidden><div class="ph"><h2>${t('Wetter-Briefing','Weather briefing')}</h2><span><a class="chip pdflink" href="#" target="_blank" rel="noopener noreferrer" hidden>PDF${newTabMark(lang)}</a> <a class="chip openrep" href="#" target="_blank" rel="noopener noreferrer">${t('In neuem Tab','In new tab')}${newTabMark(lang)}</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>
-    <details class="tech" hidden><summary>${t('Technische Details — Installation &amp; Werkzeuglauf','Technical details — installation &amp; tool run')}</summary><div class="log"></div></details>
-  </div>
-  <div class="note"><span class="t">${t('Faktentreu','Fact-faithful')}</span><div>${t('Das LLM schreibt <b>nur den Fließtext</b> — aus eingefrorenen Fakten (Open-Meteo). Ein <b>narrative_guard</b> prüft, dass keine Zahl erfunden wird; Kennzahlen, Tabellen und Diagramme kommen aus deterministischem Code, nicht aus dem Modell. Quelle &amp; Roh-Hash stehen im Report.','The LLM writes <b>only the prose</b> — from frozen facts (Open-Meteo). A <b>narrative_guard</b> checks that no number is invented; metrics, tables and charts come from deterministic code, not from the model. Source &amp; raw hash are in the report.')}</div></div>
-  <div class="prov"><span>${t('Bereitgestellt über den <b>Marktplatz</b>','Provided via the <b>Marketplace</b>')}</span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>${t('Signatur/Registry','Signature/Registry')} <span class="sim">Demo</span></span></div>`;
-  return toolShell(slug, { controls, body }, lang);
-}
-
-function outBlock(steps, placeholder, panels, note, prov, lang) {
-  const t = tr(lang);
-  const st = steps.map((s, i) => `<div class="st" data-step="${['install', 'process', 'done'][i]}"><span class="n">${i + 1}</span> ${s}</div>`).join('');
-  return `<div class="out" style="margin-top:14px">
-    <div class="stepper" hidden>${st}</div>
-    <div class="placeholder">${placeholder}</div>
-    ${panels}
-    <details class="tech" hidden><summary>${t('Technische Details — Installation &amp; Werkzeuglauf','Technical details — installation &amp; tool run')}</summary><div class="log"></div></details>
-  </div>${note || ''}
-  <div class="prov">${prov || t('<span>Bereitgestellt über den <b>Marktplatz</b></span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>Signatur/Registry <span class="sim">Demo</span></span>','<span>Provided via the <b>Marketplace</b></span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>Signature/Registry <span class="sim">Demo</span></span>')}</div>`;
-}
-// How-to for running/customizing a demo on your own machine (marketplace docs). Replaces the old
-// "Werkzeug neu installieren" button, which the operator asked to swap for a real install guide link.
-const HOWTO_URL = 'https://scimbe.github.io/CADS-agent-marketplace-docs/how-to/install-and-customize-a-demo/';
-const installLink = (lang) => extLink(HOWTO_URL, tr(lang)('Anleitung: selbst installieren &amp; anpassen', 'Guide: install &amp; customize yourself'), lang, 'class="btn btn-ghost"');
-const runBtns = (primary, lang) => `<button class="btn btn-primary run" data-fresh="0">${primary}</button>${installLink(lang)}`;
 const NOTE = (tag, html) => `<div class="note"><span class="t">${tag}</span><div>${html}</div></div>`;
+
+// The simplest page: one sentence (toolbar), one form (optional), one button, the result.
+function reportPanel(lang, extraChips = '') {
+  const t = tr(lang);
+  return `<section class="panel res-report" hidden><div class="ph"><h2>${t('Ergebnis','Result')}</h2><span><button class="chip printrep" type="button">${t('Als PDF drucken','Print as PDF')}</button> <a class="chip pdflink" href="#" target="_blank" rel="noopener noreferrer" hidden>PDF${newTabMark(lang)}</a> <a class="chip openrep" href="#" target="_blank" rel="noopener noreferrer">${t('In neuem Tab','In new tab')}${newTabMark(lang)}</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>`;
+}
+const runButton = (label) => `<button class="btn btn-primary run" type="button">${label}</button>`;
+
+function photoToolPage(slug, lang) {
+  const t = tr(lang);
+  const panels = `<section class="panel res-tree" hidden><div class="ph"><h2>${t('Sortierte Ordner','Sorted folders')}</h2><span class="count"></span></div><div class="tree"></div></section>
+      <section class="panel res-sheet" hidden><div class="ph"><h2>${t('Kontaktbogen','Contact sheet')}</h2><span><a class="chip opengal" href="#" target="_blank" rel="noopener noreferrer" style="display:none">${t('Galerie (Lightbox)','Gallery (lightbox)')}${newTabMark(lang)}</a></span></div><div class="sheetwrap"><img alt="${t('Kontaktbogen','Contact sheet')}"/></div></section>`;
+  const body = `<div class="miniform">${runButton(t('Organisieren ▸','Organize ▸'))}</div>${miniOut(panels, lang)}`;
+  return toolShell(slug, { controls: '', body, mini: true }, lang);
+}
+
+// newsletter: ONE form -- the signed-template form (builder block) -- and the result.
+function reportHtmlPage(slug, lang) {
+  const body = miniOut(reportPanel(lang), lang);
+  return toolShell(slug, { controls: '', body, mini: true }, lang);
+}
 
 const UPLOAD_CLIENT = `
 (function(){
@@ -669,6 +601,7 @@ const UPLOAD_CLIENT = `
   var TIMEOUT_S=120; // the compare normally takes 20-40 s; after this we stop waiting and offer a retry
   function b64(file){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result)};r.onerror=rej;r.readAsDataURL(file);});}
   btn.addEventListener('click',async function(){
+    if(!fa.files[0]&&!fb.files[0]){panel.hidden=true;window.startRun(btn);return;}
     if(!fa.files[0]||!fb.files[0]){msg.textContent=f('js.up.pick');return;}
     if(fa.files[0].size>16e6||fb.files[0].size>16e6){msg.textContent=f('js.up.size');return;}
     btn.disabled=true; msg.setAttribute('role','status'); msg.textContent=f('js.up.working');
@@ -684,92 +617,58 @@ const UPLOAD_CLIENT = `
   });
 })();`;
 
-function reportMdPage(slug, lang) {
-  const d = DEMOS[slug];
+// ---- minimal pages: ONE sentence, ONE input, ONE button, the result; details stay closed -----------
+const MINI_CSS = `.mini .stepper,.mini .placeholder{display:none!important}.mini .miniform{margin:18px 0 6px;display:flex;flex-direction:column;gap:12px;align-items:flex-start}.mini .miniform .descinput,.mini .miniform .miniinput{width:100%;max-width:44rem}.mini .miniform label{font-size:.9rem;color:var(--muted2)}.mini .out{margin-top:8px}.mini details.tech{margin-top:12px}.mini .resimg{max-width:100%;height:auto;display:block;margin:0 auto}.mini .miniactions{display:flex;gap:10px;flex-wrap:wrap}.mini .pb-lede,.mini .pb-startnote{display:none}.mini .pb{margin-top:8px}`;
+const miniOut = (panels, lang) => {
   const t = tr(lang);
-  const controls = runBtns(t('Vergleichen ▸','Compare ▸'), lang);
-  const upload = slug === 'contractcheck' ? `
-  <div class="upcmp">
-    <div class="upttl">${t('Oder eigene zwei PDFs vergleichen','Or compare your own two PDFs')}</div>
+  return `<div class="out"><div class="stepper" hidden><div class="st" data-step="install"></div><div class="st" data-step="process"></div><div class="st" data-step="done"></div></div>
+    <div class="placeholder"></div>${panels}
+    <details class="tech" hidden><summary>${t('Technische Details','Technical details')}</summary><div class="log"></div></details></div>`;
+};
+
+function reportMdPage(slug, lang) {
+  const t = tr(lang);
+  const body = `<div class="miniform upcmp">
     <div class="uprow">
       <label class="upf">${t('Dokument A (PDF)','Document A (PDF)')}<input type="file" id="pdfa" accept="application/pdf,.pdf"></label>
       <label class="upf">${t('Dokument B (PDF)','Document B (PDF)')}<input type="file" id="pdfb" accept="application/pdf,.pdf"></label>
-      <button class="btn btn-primary" id="upbtn" type="button">${t('Eigene PDFs vergleichen ▸','Compare my PDFs ▸')}</button>
     </div>
-    <div class="upmsg" id="upmsg"></div>
-    <section class="panel res-upreport" hidden><div class="ph"><h2>${t('Ihr Vergleich (Text + Bild)','Your comparison (text + image)')}</h2></div><div class="sheetwrap"><iframe class="upframe" title="${t('Ihr Vergleich','Your comparison')}"></iframe></div></section>
+    <button class="btn btn-primary" id="upbtn" type="button">${t('Vergleichen ▸','Compare ▸')}</button>
+    <div class="upmsg" id="upmsg" role="status">${t('Ohne eigene Dateien wird ein Beispielvertrag verglichen.','Without your own files a sample contract is compared.')}</div>
+    <section class="panel res-upreport" hidden><div class="ph"><h2>${t('Vergleich','Comparison')}</h2></div><div class="sheetwrap"><iframe class="upframe" title="${t('Vergleich','Comparison')}"></iframe></div></section>
   </div>
-  <script>${UPLOAD_CLIENT}</script>` : '';
-  const body = `
-  <p class="lede" style="margin:2px 0 16px">${di(d, 'story', lang)}</p>
-  <div class="io"><span>${t('Eingang','Input')}</span><span class="path">contract_v1.pdf · contract_v2.pdf</span><span class="ar">→</span><span>${t('Werkzeug','Tool')}</span><span class="path">pdftotext · difflib · pdftoppm · Vision</span><span class="ar">→</span><span>${t('Ausgabe','Output')}</span><span class="path">report.md</span></div>
-  ${upload}
-  ${outBlock([t('Installieren','Install'), t('Vergleichen','Compare'), t('Fertig','Done')],
-    t('Noch nicht verglichen — klick <b style="color:var(--ink)">&nbsp;Vergleichen&nbsp;</b>, dann siehst du den <b>Text-Unterschied</b> Klausel für Klausel und einen <b>Bildvergleich</b> der Seiten.','Not compared yet — click <b style="color:var(--ink)">&nbsp;Compare&nbsp;</b>, then you see the <b>text difference</b> clause by clause and an <b>image comparison</b> of the pages.'),
-    `<section class="panel res-report" hidden><div class="ph"><h2>${t('Vergleich (Text + Bild)','Comparison (text + image)')}</h2><span><a class="chip pdflink" href="#" target="_blank" rel="noopener noreferrer" hidden>PDF${newTabMark(lang)}</a> <a class="chip openrep" href="#" target="_blank" rel="noopener noreferrer">${t('In neuem Tab','In new tab')}${newTabMark(lang)}</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>`,
-    NOTE(t('Text deterministisch · Bild per Vision','Text deterministic · image via vision'), t('Der <b>Text-Vergleich</b> ist deterministisch: <b>pdftotext</b> liest beide PDFs, Pythons <b>difflib</b> rechnet die Zeilenunterschiede (kein Modell entscheidet, was sich geändert hat); eine kurze <b>LLM-Zusammenfassung</b> fasst sie zusammen. Der <b>Bild-Vergleich</b> rendert jede Seite (<b>pdftoppm</b>) und lässt ein <b>Vision-Modell</b> die visuellen Unterschiede beschreiben — byte-gleiche Seiten werden ohne Modellaufruf als identisch erkannt.','The <b>text comparison</b> is deterministic: <b>pdftotext</b> reads both PDFs, Python difflib computes the line differences (no model decides what changed); a short <b>LLM summary</b> sums them up. The <b>image comparison</b> renders each page (<b>pdftoppm</b>) and lets a <b>vision model</b> describe the visual differences — byte-identical pages are recognized as identical without a model call.')), undefined, lang)}`;
-  return toolShell(slug, { controls, body }, lang);
+  <script>${UPLOAD_CLIENT}</script>
+  ${miniOut(reportPanel(lang), lang)}`;
+  return toolShell(slug, { controls: '', body, mini: true }, lang);
 }
 
 function imagePage(slug, lang) {
   const d = DEMOS[slug];
   const t = tr(lang);
-  const controls = `<span class="setting"><span class="k">Engine</span><span class="v">${d.engine}</span></span><span class="setting"><span class="k">${t('Modell','Model')}</span><span class="v on">${d.model}</span></span>${runBtns(t('Diagramm erzeugen ▸','Generate diagram ▸'), lang)}`;
-  const body = `
-  <p class="lede" style="margin:2px 0 14px">${di(d, 'tagline', lang)}</p>
-  <label class="descfield"><span class="dl">${t('Deine Beschreibung — schreib in einem Satz, was das Diagramm zeigen soll:','Your description — write in one sentence what the diagram should show:')}</span>
-  <textarea class="descinput" rows="3" maxlength="600" placeholder="${t('z. B. Ein Flussdiagramm: Nutzer öffnet die Demo, der Marktplatz installiert das Werkzeug, es läuft in einer geschützten Umgebung, das Ergebnis wird gezeigt.','e.g. A flowchart: a user opens the demo, the marketplace installs the tool, it runs in a protected environment, the result is shown.')}">${di(d, 'description', lang)}</textarea></label>
-  ${tuneBlock(slug, lang)}
-  <div class="io"><span>${t('Beschreibung','Description')}</span><span class="ar">→</span><span>LLM → ${d.engine === 'graphviz' ? 'Graphviz' : 'Mermaid'}</span><span class="ar">→</span><span>${t('Renderer prüft','Renderer checks')}</span><span class="ar">→</span><span class="path">diagram.png</span></div>
-  ${outBlock([t('Installieren','Install'), t('Diagramm erzeugen','Generate diagram'), t('Fertig','Done')],
-    t('Noch kein Diagramm — klick <b style="color:var(--ink)">&nbsp;Diagramm erzeugen&nbsp;</b>. Das LLM schreibt Mermaid-Code, der Renderer prüft ihn und macht ein PNG.','No diagram yet — click <b style="color:var(--ink)">&nbsp;Generate diagram&nbsp;</b>. The LLM writes Mermaid code, the renderer checks it and makes a PNG.'),
-    `<section class="panel res-image" hidden><div class="ph"><h2>${t('Erzeugtes Diagramm','Generated diagram')}</h2><a class="chip openimg" href="#" target="_blank" rel="noopener noreferrer">${t('Öffnen','Open')}${newTabMark(lang)}</a></div><div class="sheetwrap"><img class="resimg" alt="${t('Diagramm','Diagram')}"/></div></section>`,
-    NOTE(t('Selbstkorrektur','Self-correction'), t('Das LLM schreibt nur die <b>Mermaid-Beschreibung</b>; ein echter Renderer (mermaid-cli) prüft sie, indem er sie tatsächlich zeichnet. Bei einem Syntaxfehler bekommt das LLM die echte Fehlermeldung zurück und korrigiert — bis zu 3 Versuche.','The LLM writes only the <b>Mermaid description</b>; a real renderer (mermaid-cli) checks it by actually drawing it. On a syntax error the LLM gets the real error message back and corrects — up to 3 attempts.')), undefined, lang)}`;
-  return toolShell(slug, { controls, body }, lang);
+  const body = `<div class="miniform">
+    <label for="desc">${t('Was soll das Diagramm zeigen?','What should the diagram show?')}</label>
+    <textarea id="desc" class="descinput" rows="3" maxlength="600" placeholder="${t('z. B. Ein Besucher öffnet die Demo, der Marktplatz installiert das Werkzeug, das Ergebnis wird gezeigt.','e.g. A visitor opens the demo, the marketplace installs the tool, the result is shown.')}"></textarea>
+    <button class="btn btn-primary run" type="button">${t('Diagramm erzeugen ▸','Generate diagram ▸')}</button></div>
+  ${miniOut(`<section class="panel res-diagram" hidden><div class="ph"><h2>${t('Diagramm','Diagram')}</h2><a class="chip dlsvg" href="#">${t('SVG herunterladen','Download SVG')}</a></div><div class="sheetwrap"><img class="resimg" alt="${t('Diagramm','Diagram')}"/></div></section>`, lang)}`;
+  return toolShell(slug, { controls: '', body, mini: true, builder: false }, lang);
 }
 
 function timelinePage(slug, lang) {
-  const d = DEMOS[slug];
   const t = tr(lang);
-  const controls = runBtns(t('Ablauf starten ▸','Start run ▸'), lang);
-  const body = `
-  <p class="lede" style="margin:2px 0 16px">${di(d, 'tagline', lang)}</p>
-  <div class="io"><span>${t('Werkzeug','Tool')}</span><span class="path">temporal dev-server</span><span class="ar">→</span><span>${t('Workflow läuft','Workflow runs')}</span><span class="ar">→</span><span>${t('Worker gekillt','Worker killed')}</span><span class="ar">→</span><span>${t('zweiter Worker beendet','second worker finishes')}</span></div>
-  ${outBlock([t('Installieren','Install'), t('Ausführen (Kill & Recovery)','Run (kill & recovery)'), t('Fertig','Done')],
-    t('Noch nicht ausgeführt — klick <b style="color:var(--ink)">&nbsp;Ablauf starten&nbsp;</b>. Ein Worker wird mitten in der Aufgabe hart gekillt; sieh im Verlauf, wie ein zweiter sie zu Ende bringt. (~45 s)','Not run yet — click <b style="color:var(--ink)">&nbsp;Start run&nbsp;</b>. A worker is killed hard mid-task; watch the history show a second one finish it. (~45 s)'),
-    `<section class="panel res-timeline" hidden><div class="ph"><h2>${t('Ablauf-Verlauf','Run history')}</h2><span class="count">${t('echter Temporal-Event-Verlauf','real Temporal event history')}</span></div><ol class="timeline"></ol></section>`,
-    NOTE(t('Durable Execution','Durable execution'), t('Nichts wird von Hand neu gestartet: Temporal erkennt am ausbleibenden <b>Heartbeat</b>, dass der Worker tot ist, und ein zweiter Worker übernimmt die Aufgabe automatisch. Der Verlauf ist der echte <code>event-history.json</code>.','Nothing is restarted by hand: Temporal detects from the missing <b>heartbeat</b> that the worker is dead, and a second worker takes over the task automatically. The history is the real <code>event-history.json</code>.')), undefined, lang)}`;
-  return toolShell(slug, { controls, body }, lang);
+  const panels = `<section class="panel res-timeline" hidden><div class="ph"><h2>${t('Ablauf-Verlauf','Run history')}</h2></div><ol class="timeline"></ol></section>`;
+  return toolShell(slug, { controls: '', body: `<div class="miniform">${runButton(t('Ablauf starten ▸','Start run ▸'))}</div>${miniOut(panels, lang)}`, mini: true }, lang);
 }
 
-function audioPage(slug, lang) {
-  const d = DEMOS[slug];
+function textVideoPage(slug, lang) {
   const t = tr(lang);
-  const controls = runBtns(t('Folge bereitstellen ▸','Provide episode ▸'), lang);
-  const body = `
-  <p class="lede" style="margin:2px 0 16px">${di(d, 'tagline', lang)}</p>
-  <div class="io"><span>${t('Eingang','Input')}</span><span class="path">${t('Roh-Spuren (WAV)','Raw tracks (WAV)')}</span><span class="ar">→</span><span>ffmpeg · whisper.cpp · ${t('LLM-Kapitel','LLM chapters')}</span><span class="ar">→</span><span class="path">episode.mp3</span></div>
-  ${outBlock([t('Bereitstellen','Provide'), t('Verarbeiten','Process'), t('Fertig','Done')],
-    t('Klick <b style="color:var(--ink)">&nbsp;Folge bereitstellen&nbsp;</b> — Player, Kapitel und Transkript eines echten Laufs.','Click <b style="color:var(--ink)">&nbsp;Provide episode&nbsp;</b> — player, chapters and transcript of a real run.'),
-    `<section class="panel res-audio" hidden><div class="ph"><h2>${t('Folge','Episode')}</h2><span class="count">${t('Kapitel klickbar','chapters clickable')}</span></div><div class="sheetwrap"><audio class="resaudio" controls style="width:100%"></audio><ol class="chapters"></ol><details class="tx" style="margin-top:12px"><summary>${t('Transkript (whisper.cpp)','Transcript (whisper.cpp)')}</summary><pre class="txbody"></pre></details></div></section>`,
-    NOTE(t('Faktentreu','Fact-faithful'), t('Kapitelmarken setzt das LLM, aber jede Zeit wird gegen die echten whisper.cpp-Zeitstempel geprüft. Schnitt/Transkription sind deterministische Werkzeuge (ffmpeg, whisper.cpp).','The LLM sets the chapter markers, but every time is checked against the real whisper.cpp timestamps. Editing/transcription are deterministic tools (ffmpeg, whisper.cpp).')), undefined, lang)}`;
-  return toolShell(slug, { controls, body }, lang);
-}
-
-function videoPage(slug, lang) {
-  const d = DEMOS[slug];
-  const t = tr(lang);
-  const controls = runBtns(t('Video bereitstellen ▸','Provide video ▸'), lang);
-  const prov = t('<span>Läuft aus der Quelle · <b>noch kein Marktplatz-Manifest</b></span><span class="sep">|</span><span>vorgerendertes echtes Ergebnis</span>','<span>Runs from source · <b>no marketplace manifest yet</b></span><span class="sep">|</span><span>pre-rendered real result</span>');
-  const body = `
-  <p class="lede" style="margin:2px 0 16px">${di(d, 'tagline', lang)}</p>
-  <div class="io"><span>${t('Thema','Topic')}</span><span class="ar">→</span><span>${t('LLM-Storyboard','LLM storyboard')}</span><span class="ar">→</span><span>TTS · GSAP · Chrome · ffmpeg</span><span class="ar">→</span><span class="path">final.mp4</span></div>
-  ${outBlock([t('Bereitstellen','Provide'), t('Verarbeiten','Process'), t('Fertig','Done')],
-    t('Klick <b style="color:var(--ink)">&nbsp;Video bereitstellen&nbsp;</b> — das fertige Erklärvideo mit Szenenliste.','Click <b style="color:var(--ink)">&nbsp;Provide video&nbsp;</b> — the finished explainer video with a scene list.'),
-    `<section class="panel res-video" hidden><div class="ph"><h2>${t('Erklärvideo','Explainer video')}</h2><span class="count">1920×1080 · H.264</span></div><div class="sheetwrap"><video class="resvideo" controls preload="metadata" style="width:100%;border:1px solid var(--border);border-radius:9px"></video><ol class="scenes"></ol></div></section>`,
-    NOTE(t('KI ↔ Engine','AI ↔ engine'), t('Nur das <b>Storyboard</b> kommt vom LLM; danach ist alles deterministische Engine: Text-to-Speech, GSAP-Animation, Headless-Chrome-Render, ffmpeg-Schnitt. Deutsche Mehrstimmen-TTS folgt über den llm2-Channel.','Only the <b>storyboard</b> comes from the LLM; after that everything is deterministic engine: text-to-speech, GSAP animation, headless-Chrome render, ffmpeg cut. German multi-voice TTS follows via the llm2 channel.')) +
-    NOTE(t('Hinweis','Note'), di(d, 'note', lang)), prov, lang)}`;
-  return toolShell(slug, { controls, body }, lang);
+  const body = `<div class="miniform">
+    <label for="tvtext">${t('Dein Text','Your text')}</label>
+    <textarea id="tvtext" class="descinput" rows="7" maxlength="4000" placeholder="${t('Füge hier deine Notizen oder einen Text ein …','Paste your notes or a text here …')}"></textarea>
+    <label for="tvlen">${t('Länge','Length')}</label>
+    <select id="tvlen" class="miniinput" style="max-width:10rem"><option value="30">30 s</option><option value="60" selected>60 s</option><option value="90">90 s</option></select>
+    <button class="btn btn-primary run" type="button">${t('Video erstellen ▸','Create video ▸')}</button></div>
+  ${miniOut(`<section class="panel res-textvideo" hidden><div class="ph"><h2>${t('Dein Video','Your video')}</h2><a class="chip dlvideo" href="#" download="erklaervideo.mp4">${t('Video herunterladen','Download video')}</a></div><div class="sheetwrap"><video class="resvideo" controls preload="metadata" style="width:100%;border-radius:9px"></video></div></section>`, lang)}`;
+  return toolShell(slug, { controls: '', body, mini: true, builder: false }, lang);
 }
 
 // ---- landing: a static, public collection page linking out to N sibling demos ("tracks") --
@@ -793,52 +692,6 @@ function landingPage(slug, lang) {
   <p class="lede" style="margin:2px 0 20px">${di(d, 'blurb', lang)}</p>
   <div class="cards">${tracks}</div>`;
   return toolShell(slug, { controls: '', body }, lang);
-}
-
-// ---- Studio: one topic -> orchestrate several demos into one integrated workspace -------------
-async function handleStudio(req, res, url) {
-  const topic = (url.searchParams.get('topic') || '').slice(0, 300).trim();
-  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
-  const emit = (t, text) => res.write(`event: ${t}\ndata: ${JSON.stringify({ text })}\n\n`);
-  const stage = (id, label) => res.write(`event: stage\ndata: ${JSON.stringify({ id, label })}\n\n`);
-  const send = (ev, obj) => res.write(`event: ${ev}\ndata: ${JSON.stringify(obj)}\n\n`);
-  if (!topic) { emit('fail', 'Kein Thema angegeben.'); res.end(); return; }
-  if (!ENV.LITELLM_BASE_URL) { emit('fail', 'LLM-Zugang fehlt (LITELLM_*).'); res.end(); return; }
-
-  // 1. DSGVO-LLM: brief + a diagram description, in one call
-  stage('brief', 'Briefing schreiben');
-  emit('step', 'DSGVO-LLM (DE) erzeugt Kurz-Briefing + Diagramm-Beschreibung');
-  let brief = '', ddesc = '';
-  try {
-    const sys = 'Du bist ein Studio-Assistent für bunsenbrenner.org. Aus einem Thema erzeugst du (a) ein sachliches deutsches Kurz-Briefing (4–6 Sätze, klar, keine erfundenen Zahlen) und (b) eine knappe englische, Mermaid-taugliche Flowchart-Beschreibung des Themas. Antworte NUR als striktes JSON: {"brief":"…","diagram_description":"A flowchart: …"}';
-    const rawr = await callLLM(sys, topic, 700, 0.3);
-    const m = rawr.match(/\{[\s\S]*\}/); const o = JSON.parse(m ? m[0] : rawr);
-    brief = String(o.brief || '').trim(); ddesc = String(o.diagram_description || `A flowchart explaining: ${topic}`).trim();
-    if (!brief) throw new Error('leeres Briefing');
-    emit('real', 'echt · Briefing erzeugt');
-    send('brief', { brief });
-  } catch (e) { emit('fail', 'LLM-Fehler: ' + e.message); stage('error', 'Fehlgeschlagen'); res.end(); return; }
-
-  // 2. diagram demo: install (dogfooding) + render the LLM's diagram description to a real PNG
-  stage('diagram', 'Diagramm erzeugen');
-  try {
-    let rec = activated.get('diagram');
-    if (!rec) { rec = installActivate('diagram', emit, () => {}); }
-    const d = DEMOS.diagram;
-    if (!existsSync(join(rec.workDir, 'node_modules', '.bin', 'mmdc'))) {
-      emit('step', 'mermaid-cli installieren (npm ci)');
-      spawnSync('npm', ['ci', '--omit=dev', '--no-audit', '--no-fund'], { cwd: rec.workDir, env: { ...process.env, PUPPETEER_SKIP_DOWNLOAD: 'true' } });
-    }
-    emit('step', 'LLM→Mermaid→PNG (mit Renderer-Prüfung)');
-    const env = { PATH: process.env.PATH, HOME: rec.workDir, PUPPETEER_SKIP_DOWNLOAD: 'true', PUPPETEER_EXECUTABLE_PATH: d.chromePath, LITELLM_BASE_URL: ENV.LITELLM_BASE_URL, LITELLM_API_KEY: ENV.LITELLM_API_KEY, LITELLM_DEFAULT_MODEL: ENV.LITELLM_DEFAULT_MODEL || d.model };
-    const args = [join(rec.workDir, d.tool), 'generate', '--description', ddesc, '--engine', 'mermaid', '--out', 'studio.png', '--max-attempts', '3', '--attempts-log', 'studio-attempts.json'];
-    await new Promise((resolve) => { const c = spawn('node', args, { cwd: rec.workDir, env });
-      c.stdout.on('data', (b) => b.toString().split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 160)))); c.stderr.on('data', () => {}); c.on('close', () => resolve()); });
-    if (existsSync(join(rec.workDir, 'studio.png'))) { rec.outputDir = rec.workDir; emit('real', 'echt · Diagramm erzeugt'); send('diagram', { image: `/d/diagram/out/studio.png?t=${Date.now()}`, desc: ddesc }); }
-    else emit('warn', 'Diagramm konnte diesmal nicht gerendert werden (LLM-Mermaid-Syntax).');
-  } catch (e) { emit('warn', 'Diagramm-Baustein übersprungen: ' + e.message); }
-
-  stage('done', 'Fertig'); emit('done', ''); res.end();
 }
 
 function soonPage(slug, lang) {
@@ -893,16 +746,15 @@ function handleUploadCompare(req, res) {
     const decode = (s) => { const m = String(s || '').match(/^data:[^;]*;base64,(.*)$/s); try { return Buffer.from(m ? m[1] : String(s || ''), 'base64'); } catch { return Buffer.alloc(0); } };
     const bufA = decode(a), bufB = decode(b);
     if (bufA.slice(0, 5).toString() !== '%PDF-' || bufB.slice(0, 5).toString() !== '%PDF-') return reply(400, { error: 'Bitte zwei gültige PDF-Dateien hochladen.' });
-    let rec = activated.get('contractcheck');
-    if (!rec) { try { rec = installActivate('contractcheck', () => {}, () => {}); } catch { return reply(500, { error: 'Werkzeug konnte nicht vorbereitet werden.' }); } }
+    let rec; try { rec = installActivate('contractcheck', () => {}, () => {}); } catch { return reply(500, { error: 'Werkzeug konnte nicht vorbereitet werden.' }); }
     const wd = rec.workDir;
     const up = join(WORK, '_uploads', String(process.pid) + '-' + reqSeq++);
     try { mkdirSync(up, { recursive: true }); } catch {}
     const pa = join(up, 'a.pdf'), pb = join(up, 'b.pdf'), rep = join(up, 'report.md');
     try { writeFileSync(pa, bufA); writeFileSync(pb, bufB); } catch { return reply(500, { error: 'Konnte Uploads nicht ablegen.' }); }
-    const key = process.env.LITELLM_API_KEY || '';
+    const key = ENV.LITELLM_API_KEY || '';
     const env = { PATH: process.env.PATH, HOME: wd, PYTHONPATH: join(wd, 'vendor'),
-      LLM_BASE_URL: process.env.LITELLM_BASE_URL || '', LLM_API_KEY: key, LLM_MODEL: process.env.LITELLM_DEFAULT_MODEL || '' };
+      LLM_BASE_URL: ENV.LITELLM_BASE_URL || '', LLM_API_KEY: key, LLM_MODEL: ENV.LITELLM_DEFAULT_MODEL || '' };
     const args = [join(wd, 'src', 'pipeline.py'), 'compare', '--old', pa, '--new', pb, '--report', rep];
     if (!key) args.push('--no-llm', '--no-vision');
     const child = spawn('python3', args, { cwd: wd, env });
@@ -912,7 +764,7 @@ function handleUploadCompare(req, res) {
       try {
         if (!existsSync(rep)) return reply(500, { error: 'Vergleich fehlgeschlagen' + (err ? (': ' + err.slice(-160)) : ' (exit ' + code + ').') });
         reply(200, { ok: true, html: md2html(readFileSync(rep, 'utf8')) });
-      } finally { try { rmSync(up, { recursive: true, force: true }); } catch {} }
+      } finally { try { rmSync(up, { recursive: true, force: true }); rmSync(wd, { recursive: true, force: true }); } catch {} }
     });
   });
 }
@@ -1005,13 +857,15 @@ http.createServer(async (req, res) => {
   if (tm && req.method === 'GET') { handleTemplate(res, tm[1]); return; }
   if (p.startsWith('/pb/') && req.method === 'GET') { servePb(res, url); return; }
   if (p === '/api/plan' && req.method === 'POST') { handlePlan(req, res, url); return; }
-  const dm = p.match(/^\/d\/([a-z0-9-]+)\/out\/(.+)$/);
-  if (dm) { const base = resolveOut(dm[1]); if (!base) { res.writeHead(404).end('nf'); return; } serveFile(res, join(base, dm[2].replace(/\.\./g, ''))); return; }
+  const dm = p.match(/^\/d\/([a-z0-9_-]+)\/out\/(?:(r[0-9a-f]{10})\/)?(.+)$/);
+  if (dm) { const base = resolveOut(dm[1], dm[2]); if (!base) { res.writeHead(404).end('nf'); return; } serveFile(res, join(base, dm[3].replace(/\.\./g, ''))); return; }
   if (p.startsWith('/assets/thumbs/')) { serveFile(res, join(__dir, 'thumbs', p.slice('/assets/thumbs/'.length).replace(/\.\./g, ''))); return; }
-  const pd = p.match(/^\/d\/([a-z0-9-]+)\/?$/);
+  const pd = p.match(/^\/d\/([a-z0-9_-]+)\/?$/);
   if (pd) { const slug = pd[1], d = DEMOS[slug]; if (!d) { res.writeHead(404).end('unknown demo'); return; }
+    if (MERGED[slug]) { res.writeHead(302, { Location: `/d/${MERGED[slug]}${url.search}` }).end(); return; }
+    if (d.type === 'external' && d.live && d.externalUrl) { res.writeHead(302, { Location: d.externalUrl }).end(); return; }
     const lang = normLang(url.searchParams.get('lang'));
-    const PAGES = { 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), audio: (s) => audioPage(s, lang), video: (s) => videoPage(s, lang), landing: (s) => landingPage(s, lang) };
+    const PAGES = { 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), textvideo: (s) => textVideoPage(s, lang), landing: (s) => landingPage(s, lang) };
     const html = d.live && PAGES[d.type] ? PAGES[d.type](slug) : soonPage(slug, lang);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(html); return; }
   res.writeHead(404).end('not found');

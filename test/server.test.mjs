@@ -37,8 +37,7 @@ test('GET / renders in DE and EN (?lang=)', async () => {
 
 test('every /d/<slug> page renders (DE+EN); demos that are not live show an in-preparation page', async () => {
   for (const [slug, d] of Object.entries(DEMOS)) {
-    if (d.type === 'external' && d.live) continue; // external apps have no /d page
-    if (!/^[a-z0-9-]+$/.test(slug)) continue;      // the router only serves [a-z0-9-] slugs (not-live, never linked)
+    if (d.type === 'external' && d.live) continue; // external apps redirect (tested below)
     for (const lang of ['de', 'en']) {
       const r = await fetch(`${base}/d/${slug}?lang=${lang}`);
       assert.equal(r.status, 200, `${slug} ${lang}`);
@@ -65,4 +64,42 @@ test('unknown demo -> 404, existing endpoints still answer', async () => {
 test('/api/start rejects an unknown demo', async () => {
   const r = await fetch(base + '/api/start?demo=does-not-exist');
   assert.equal(r.status, 404);
+});
+
+test('/d/<slug> of a live external demo redirects to its externalUrl', async () => {
+  for (const [slug, d] of Object.entries(DEMOS)) {
+    if (!(d.type === 'external' && d.live)) continue;
+    const r = await fetch(`${base}/d/${slug}`, { redirect: 'manual' });
+    assert.equal(r.status, 302, slug);
+    assert.equal(r.headers.get('location'), d.externalUrl, slug);
+  }
+});
+
+test('slugs with an underscore are routable (sound_generation shows the placeholder, not a 404)', async () => {
+  const r = await fetch(`${base}/d/sound_generation`);
+  assert.equal(r.status, 200);
+});
+
+test('demos.json has no absolute paths and no cookbook', () => {
+  const txt = readFileSync(new URL('../demos.json', import.meta.url), 'utf8');
+  assert.ok(!/"\/(private|Users|Applications|tmp)\b/.test(txt), 'absolute path in demos.json');
+  assert.ok(!('cookbook' in DEMOS));
+});
+
+test('podcast and explainer were merged: /d/<old> redirects to /d/erklaervideo (query kept), cards are hidden', async () => {
+  for (const old of ['podcast', 'explainer']) {
+    const r = await fetch(`${base}/d/${old}?lang=en`, { redirect: 'manual' });
+    assert.equal(r.status, 302, old);
+    assert.equal(r.headers.get('location'), '/d/erklaervideo?lang=en');
+  }
+  const home = await (await fetch(base + '/')).text();
+  assert.ok(!/href="\/d\/(podcast|explainer|travel|sound_generation)/.test(home));
+});
+
+test('erklaervideo without the bundle fails honestly (no fake success)', async () => {
+  const cfg = Buffer.from(JSON.stringify({ text: 'x'.repeat(60), length: 60 })).toString('base64');
+  const r = await fetch(`${base}/api/start?demo=erklaervideo&cfg=${encodeURIComponent(cfg)}`);
+  const t = await r.text();
+  assert.match(t, /event: fail/);
+  assert.ok(!/event: result/.test(t));
 });

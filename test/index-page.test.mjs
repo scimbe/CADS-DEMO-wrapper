@@ -30,7 +30,7 @@ for (const lang of ['de', 'en']) {
   const all = cards(html);
 
   test(`[${lang}] renders every demo as a card, none contain "[object Object]"`, () => {
-    assert.equal(all.length, Object.keys(DEMOS).length);
+    assert.equal(all.length, Object.values(DEMOS).filter((d) => !d.hidden).length);
     assert.ok(!html.includes('[object Object]'));
     for (const c of all) assert.ok(c.search.length > 20 && !c.search.includes('[object'), c.title);
   });
@@ -80,8 +80,8 @@ test('de and en pages differ in content, de is the default', () => {
 
 test('not-yet-startable demos live in a separate collapsed "Demnächst" group, disabled, no links', () => {
   const { live, soon } = partitionDemos(DEMOS);
-  assert.ok(soon.length >= 3);
-  assert.equal(live.length + soon.length, Object.keys(DEMOS).length);
+  assert.ok(soon.length >= 1);
+  assert.equal(live.length + soon.length, Object.values(DEMOS).filter((d) => !d.hidden).length);
   const html = indexPage(DEMOS, 'de');
   const section = html.match(/<details class="soonsec"[\s\S]*?<\/details>\s*<\/section>/)[0];
   assert.ok(!/<details class="soonsec"[^>]* open/.test(section), 'collapsed by default');
@@ -109,4 +109,12 @@ test('hero states the truth: demo runs on our server; planned features are marke
   assert.equal((trust.match(/Aktiv in der Demo/g) || []).length, 1);
   assert.equal((trust.match(/In Vorbereitung/g) || []).length, 3);
   assert.match(trust, /Sandbox/);
+});
+
+test('status widget: an unreachable upstream hides the bar instead of showing a dead note', async () => {
+  const { indexPage } = await import('../lib/index-page.mjs');
+  const DEMOS = JSON.parse((await import('node:fs')).readFileSync(new URL('../demos.json', import.meta.url), 'utf8'));
+  const h = indexPage(DEMOS, 'de');
+  assert.ok(h.includes("if(!j||!j.ok){ show(''); return; }"));
+  assert.ok(!h.includes("status.down.title") || !/show\(note\(f\('status\.down/.test(h));
 });

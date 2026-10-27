@@ -128,23 +128,6 @@
     "tech": "Sechs echte Prozesse reichen Gebote ein; der getestete Clearing-Algorithmus (auction_view) der CADS-Tunnel-Pipeline rechnet live im Browser ab.",
     "tech_en": "Six real processes submit bids; the tested clearing algorithm (auction_view) of the CADS tunnel pipeline settles them live in the browser."
   },
-  "cookbook": {
-    "type": "external",
-    "name": "cookbook",
-    "version": "0.1.0",
-    "title": "Rezept aus dem Kühlschrank",
-    "tagline": "Du gibst einen Text-Prompt und optional ein Foto deiner Zutaten — eine Crew kooperierender KI-Agenten über den Tunnel kocht daraus live ein Rezept.",
-    "blurb": "Beschreibe, was du zu Hause hast, oder fotografiere die Zutaten – und bekomme ein passendes Rezept.",
-    "externalUrl": "https://cookbook.bunsenbrenner.org/",
-    "live": false,
-    "order": 21,
-    "category": "Küche",
-    "category_en": "Kitchen",
-    "title_en": "Recipe from your fridge",
-    "blurb_en": "Describe what you have at home, or photograph the ingredients – and get a matching recipe.",
-    "tech": "Eine Crew unabhängiger KI-Agenten baut das Rezept über die Agent-Fabric. Der Operator sieht nie dein Foto oder Rezept – nur, dass ein Channel zwischen zwei Schlüsseln existiert.",
-    "tech_en": "A crew of independent AI agents builds the recipe through the agent fabric. The operator never sees your photo or recipe – only that a channel between two keys exists."
-  },
   "phototools": {
     "type": "photo-tool",
     "name": "phototools",
@@ -153,8 +136,6 @@
     "tagline": "Sortiert einen Foto-Ordner nach Aufnahmedatum und Ort, setzt ein Wasserzeichen und legt einen Kontaktbogen an – ganz ohne KI.",
     "blurb": "Ein wilder Foto-Stapel wird zu sauber sortierten Ordnern mit Übersichtsbogen – nach Datum und Ort.",
     "manifestDir": "manifests/phototools",
-    "inputDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/wrapper/fotos",
-    "outputDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/wrapper/sortiert",
     "watermark": "bunsenbrenner.org · demo",
     "photos": [
       {
@@ -259,7 +240,7 @@
     "manifestDir": "manifests/newsletter",
     "location": "Hamburg, DE",
     "source": "api.open-meteo.com",
-    "model": "local-devstral-small2",
+    "model": "local-qwen36-35b-a3b-coding",
     "htmlEntry": "report.html",
     "outputRel": "report-output",
     "usesLLM": true,
@@ -453,18 +434,11 @@
     "title": "Diagramm aus Text",
     "tagline": "Beschreibe ein Diagramm in einem Satz — ein LLM schreibt Mermaid-Code, ein echter Renderer prüft ihn und erzeugt ein PNG; bei Syntaxfehlern korrigiert das LLM anhand der echten Fehlermeldung.",
     "blurb": "Beschreibe in einem Satz, was du zeigen willst, und bekomme ein fertiges Diagramm als Bild.",
-    "manifestDir": "manifests/diagram",
-    "tool": "bin/diagram.js",
-    "engine": "mermaid",
-    "description": "A flowchart: a visitor opens a demo, the marketplace installs the tool, the tool runs in a protected environment, the result is shown.",
+    "engine": "graphviz",
+    "description": "Ein Besucher öffnet die Demo, der Marktplatz installiert das Werkzeug, es läuft in einer geschützten Umgebung und das Ergebnis wird gezeigt.",
     "usesLLM": true,
-    "model": "local-devstral-small2",
-    "chromePath": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "produces": {
-      "image": "diagram.png",
-      "log": "attempts.json"
-    },
-    "estSeconds": 25,
+    "model": "local-qwen36-35b-a3b-coding",
+    "estSeconds": 8,
     "live": true,
     "demo_prompt": {
       "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
@@ -496,7 +470,8 @@
     "category_en": "Graphics",
     "blurb_en": "Describe in one sentence what you want to show and get a finished diagram as an image.",
     "tech": "Ein Sprachmodell schreibt Mermaid-Code, ein echter Renderer prüft ihn und erzeugt das PNG. Bei Syntaxfehlern korrigiert das Modell anhand der echten Fehlermeldung (bis zu 3 Versuche).",
-    "tech_en": "A language model writes Mermaid code, a real renderer checks it and produces the PNG. On syntax errors the model corrects itself using the real error message (up to 3 attempts)."
+    "tech_en": "A language model writes Mermaid code, a real renderer checks it and produces the PNG. On syntax errors the model corrects itself using the real error message (up to 3 attempts).",
+    "hasManifest": false
   },
   "temporal-poc": {
     "type": "timeline",
@@ -554,7 +529,7 @@
     "chapters": "chapters.json",
     "transcript": "transcript.srt",
     "estSeconds": 6,
-    "live": true,
+    "live": false,
     "demo_prompt": {
       "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
       "parameters": [
@@ -603,7 +578,8 @@
     "category_en": "Audio",
     "blurb_en": "Listen and see how raw recordings become a finished episode with clickable chapters and a transcript (prepared result of a real run).",
     "tech": "ffmpeg mischt die Spuren, whisper.cpp transkribiert, ein Sprachmodell setzt Kapitelmarken, die gegen die echten Zeitstempel geprüft werden. Die Demo zeigt ein zuvor erzeugtes Ergebnis.",
-    "tech_en": "ffmpeg mixes the tracks, whisper.cpp transcribes, a language model sets chapter markers that are checked against the real timestamps. The demo shows a previously generated result."
+    "tech_en": "ffmpeg mixes the tracks, whisper.cpp transcribes, a language model sets chapter markers that are checked against the real timestamps. The demo shows a previously generated result.",
+    "hidden": true
   },
   "explainer": {
     "type": "video",
@@ -619,7 +595,7 @@
     "scenes": "assets/scenes.json",
     "note": "Noch nicht als Marketplace-Manifest paketiert — läuft aus der Quelle; vorgerendertes echtes Ergebnis (englische Piper-Stimme). Deutsche Mehrstimmen-TTS folgt über den llm2-Channel.",
     "estSeconds": 6,
-    "live": true,
+    "live": false,
     "demo_prompt": {
       "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für eine Erklärvideo-Demo (Thema → Storyboard → Sprecher → Video). Ändere AUSSCHLIESSLICH die erlaubten Felder und halte dich strikt an die erlaubten Werte. Antworte NUR mit striktem JSON (keine Erklärung, keine Markdown-Zäune) und nur mit den Feldern, die der Nutzer ändern will.",
       "parameters": [
@@ -673,7 +649,8 @@
     "category_en": "Video",
     "blurb_en": "A topic becomes a narrated explainer video with scenes – shown here as a finished example.",
     "tech": "Ein Sprachmodell schreibt das Storyboard; danach läuft alles deterministisch: Sprachausgabe pro Szene, GSAP/HTML-Animation, Headless-Chrome-Render, ffmpeg-Schnitt. Die Demo zeigt ein vorgerendertes Ergebnis mit englischer Stimme.",
-    "tech_en": "A language model writes the storyboard; after that everything is deterministic: speech output per scene, GSAP/HTML animation, headless-Chrome render, ffmpeg cut. The demo shows a pre-rendered result with an English voice."
+    "tech_en": "A language model writes the storyboard; after that everything is deterministic: speech output per scene, GSAP/HTML animation, headless-Chrome render, ffmpeg cut. The demo shows a pre-rendered result with an English voice.",
+    "hidden": true
   },
   "travel": {
     "type": "external",
@@ -719,7 +696,8 @@
     "blurb_en": "Describe your trip in one sentence and get a verified route description for Bremen.",
     "tech": "Dauerdienst: OSRM rechnet die echte Route, ein Sprachmodell zieht Start und Ziel aus dem Freitext und formuliert die Wegbeschreibung, die mechanisch gegen die Route zurückgeprüft wird. Benötigt Docker (Compose).",
     "tech_en": "Always-on service: OSRM computes the real route, a language model extracts start and destination from free text and phrases the directions, which are mechanically checked against the route. Requires Docker (Compose).",
-    "title_en": "Plan a route (Bremen)"
+    "title_en": "Plan a route (Bremen)",
+    "hidden": true
   },
   "sound_generation": {
     "type": "audio",
@@ -736,6 +714,27 @@
     "title_en": "Sounds from a description",
     "blurb_en": "Describe a sound in a few words and have it generated.",
     "tech": "Die Audio-Fähigkeit läuft bereits über den Channel des Sprachdienstes; die Bedienoberfläche ist noch in Vorbereitung.",
-    "tech_en": "The audio capability already runs through the language service channel; the user interface is still in preparation."
+    "tech_en": "The audio capability already runs through the language service channel; the user interface is still in preparation.",
+    "hidden": true
+  },
+  "erklaervideo": {
+    "type": "textvideo",
+    "name": "erklaervideo",
+    "version": "0.1.0",
+    "title": "Erklärvideo aus deinem Text",
+    "blurb": "Füge deinen Text ein und bekomme ein kurzes Video mit gesprochener Erklärung.",
+    "title_en": "Explainer video from your text",
+    "blurb_en": "Paste your text and get a short video with a spoken explanation.",
+    "hasManifest": false,
+    "estSeconds": 90,
+    "live": false,
+    "hidden": true,
+    "order": 5,
+    "category": "Video",
+    "category_en": "Video",
+    "tagline": "Füge deinen Text ein und bekomme ein kurzes Video mit gesprochener Erklärung.",
+    "tagline_en": "Paste your text and get a short video with a spoken explanation.",
+    "tech": "Dein Text wird vom Sprachmodell zu einem Skript, per Sprachausgabe vertont und mit ffmpeg zu einem Video mit Untertiteln gesetzt.",
+    "tech_en": "Your text is turned into a script by the language model, voiced by text-to-speech and assembled into a video with subtitles using ffmpeg."
   }
 }
