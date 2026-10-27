@@ -4,7 +4,7 @@
   "installer_kind": "binary",
   "bundle": {
     "url": "bundle.tar.gz",
-    "sha256": "8c1e859eff579f8dafa4e857c51e5baa332aa397fb3c3279bc9755a6a9899d36",
+    "sha256": "d4825c86c54c008502155ca3566a375000f2d074d013974cedf876b414b0726c",
     "compose_file": "run.sh"
   },
   "env_template": [
@@ -48,6 +48,6 @@
   "source": {
     "repo": "scimbe/CADS-DEMO-podcast",
     "path": "explainer-video",
-    "commit": "5b50e1a259a69de0df50023b4c2c6b6bb38a45e7"
+    "commit": "d15b5874f481dac1984e775ff6e45f2d6b7c8a84"
   }
 }
