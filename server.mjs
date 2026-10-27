@@ -26,7 +26,7 @@ import { WASM_DIR } from './lib/prompt-wasm.mjs';
 import { md2html } from './lib/md2html.mjs';
 import { findChrome, withoutPdf } from './lib/pdf.mjs';
 import { generateDiagram } from './lib/diagram.mjs';
-import { parseTimeline, judgeTimeline, patchTemporalPorts } from './lib/timeline.mjs';
+import { parseTimeline, judgeTimeline, patchTemporalPorts, patchWaiter } from './lib/timeline.mjs';
 import { allocatePorts, releasePorts } from './lib/ports.mjs';
 import { createRunDir, runDir, gcRuns, newRunId, RUN_ID_RE } from './lib/runs.mjs';
 
@@ -325,6 +325,12 @@ async function invokeTimeline(slug, rec, emit, stage, done, reg) {
   const patched = patchTemporalPorts(readFileSync(runDemo, 'utf8'), ports[0], ports[1]);
   if (!patched) { emit('fail', 'Ablauf-Skript hat ein unerwartetes Format'); return finish(null); }
   writeFileSync(runDemo, patched);
+  try {
+    const waiter = join(rec.workDir, 'poc', 'wait_for_result.py');
+    const w = patchWaiter(readFileSync(waiter, 'utf8'));
+    if (!w) { emit('fail', 'Warte-Skript hat ein unerwartetes Format'); return finish(null); }
+    writeFileSync(waiter, w);
+  } catch { emit('fail', 'Warte-Skript nicht lesbar'); return finish(null); }
   const env = { PATH: process.env.PATH, HOME: rec.workDir, CT_MANIFEST_PROJECT_NAME: `${slug}-demo`, TEMPORAL_ADDRESS: `127.0.0.1:${ports[0]}`, ...(d.env || {}) };
   let child;
   if (linkVenv(rec.workDir, 'temporal-poc')) child = spawn('bash', ['scripts/run_demo.sh'], { cwd: rec.workDir, env });
