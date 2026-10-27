@@ -14,6 +14,9 @@ import { createHash } from 'node:crypto';
 import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, extname, isAbsolute } from 'node:path';
+import { docOpen, appbar, foot, extLink, newTabMark, jsonForScript } from './lib/chrome.mjs';
+import { tr, di, makeT, normLang, clientStrings } from './lib/i18n.mjs';
+import { indexPage } from './lib/index-page.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const DEMOS = JSON.parse(readFileSync(join(__dir, 'demos.json'), 'utf8'));
@@ -411,290 +414,90 @@ function resolveOut(slug) {
   return null;
 }
 
-// ---- shared design system ----------------------------------------------------------------------
-const BB_CSS = `
-:root{--bg:#0c111d;--card:#141b2c;--ink:#eef1f7;--muted:#8a93ad;--muted2:#c3c9db;--teal:#5fb8ab;--teal-ink:#8fd6c9;--terra:#d98a4f;--terra-ink:#e0a458;--border:#2a3450;--panel:#1a2338;--panel2:#212a41;--bg-blur:rgba(12,17,29,.85);--on-accent:#0c111d;--serif:ui-serif,Georgia,"Iowan Old Style","Palatino Linotype",serif;--sans:-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
-@media (prefers-color-scheme: light){:root{--bg:#F5F7FB;--card:#FFFFFF;--ink:#131A2C;--muted:#5B6478;--muted2:#333D54;--teal:#2F8A7D;--teal-ink:#1F6B60;--terra:#B8672F;--terra-ink:#9A531F;--border:#D7DEEC;--panel:#EEF1F8;--panel2:#E7ECF5;--bg-blur:rgba(245,247,251,.85);--on-accent:#ffffff}}
-*{box-sizing:border-box}a{color:var(--teal-ink);text-decoration:none}a:hover{color:var(--teal)}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:44px 44px;background-position:-1px -1px}
-.appbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:var(--bg-blur);backdrop-filter:blur(6px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
-.appbar .l{display:flex;align-items:center;gap:16px}
-.brand{font-weight:700;font-size:1rem;letter-spacing:-.01em;display:flex;align-items:center;gap:.5ch;color:var(--ink);text-decoration:none}.brand:hover{color:var(--ink)}
-.brand .dot{color:var(--terra)}.brand .tld{color:var(--muted);font-weight:600}
-.crumb{font-family:var(--mono);font-size:.76rem;color:var(--muted);letter-spacing:.04em}.crumb b{color:var(--muted2)}.crumb a{color:var(--muted)}
-.chip{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:.72rem;color:var(--teal-ink);background:rgba(47,138,125,.09);border:1px solid rgba(47,138,125,.25);border-radius:999px;padding:.28rem .66rem}
-.chip .d{width:7px;height:7px;border-radius:50%;background:var(--teal)}
-.wrap{max-width:1120px;margin:0 auto;padding:24px 28px 40px}
-.eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);font-weight:600;margin:26px 0 12px}
-.eyebrow .lead{color:var(--border);margin-right:.6ch}
-h1{font-family:var(--serif);font-weight:600;font-size:2.3rem;line-height:1.1;letter-spacing:-.015em;margin:0 0 12px;max-width:20ch;text-wrap:balance}
-.lede{font-size:1.1rem;color:var(--muted2);max-width:60ch;margin:0}
-.toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--border)}
-.toolbar h1{font-size:1.7rem;margin:0 0 4px}.toolbar p{margin:0;color:var(--muted2);font-size:.95rem;max-width:60ch}
-.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.setting{display:flex;align-items:center;gap:8px;font-size:.82rem;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.42rem .7rem}
-.setting .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.setting .v{font-weight:600}.setting .v.on{color:var(--teal-ink)}
-.btn{font:600 .92rem var(--sans);border-radius:9px;padding:.62rem 1.2rem;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:.5ch}
-.btn-primary{background:var(--terra);color:var(--on-accent)}.btn-primary:hover{background:var(--terra-ink)}
-.btn-ghost{background:var(--card);color:var(--muted2);border:1px solid var(--border)}.btn-ghost:hover{color:var(--ink)}
-.btn:disabled{opacity:.55;cursor:progress}
-.io{display:flex;align-items:center;gap:10px;margin:16px 0 4px;font-family:var(--mono);font-size:.78rem;color:var(--muted2);flex-wrap:wrap}
-.io .path{background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:.28rem .6rem;color:var(--ink)}.io .ar{color:var(--teal)}
-.grid2{display:grid;grid-template-columns:390px 1fr;gap:22px;margin-top:14px;align-items:start}
-@media(max-width:860px){.grid2{grid-template-columns:1fr}}
-.panel{background:var(--card);border:1px solid var(--border);border-radius:13px;box-shadow:0 1px 2px rgba(19,26,44,.03);overflow:hidden}
-.ph{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border)}
-.ph h2{font-family:var(--serif);font-weight:600;font-size:1.05rem;margin:0}.ph .count{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
-.tray{padding:8px 8px 12px}
-.prow{display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px}.prow:hover{background:var(--panel)}
-.prow img{width:60px;height:45px;object-fit:cover;border-radius:6px;flex:0 0 auto;box-shadow:inset 0 0 0 1px rgba(19,26,44,.1)}
-.pn{font-family:var(--mono);font-size:.8rem}
-.pt{display:flex;gap:12px;margin-top:2px;font-size:.72rem;color:var(--muted);flex-wrap:wrap}
-.pt .lab{font-family:var(--mono);font-size:.62rem;letter-spacing:.05em;text-transform:uppercase;color:var(--teal-ink);margin-right:4px}
-.credit{font-size:.68rem;color:var(--muted);margin-top:1px}
-.out{display:flex;flex-direction:column;gap:20px;min-height:120px}
-.placeholder{display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:.9rem;padding:40px 20px;border:1.5px dashed var(--border);border-radius:12px;background:var(--card)}
-.tree{padding:8px 10px 12px}
-.frow{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;font-family:var(--mono);font-size:.82rem;color:var(--muted2)}
-.frow:hover{background:var(--panel)}.frow .car{color:var(--teal);font-size:.7rem}.frow .fold{color:var(--ink);font-weight:600}.frow .yr{color:var(--muted)}
-.frow .n{margin-left:auto;font-size:.72rem;color:var(--muted);background:var(--panel2);border-radius:999px;padding:.15rem .55rem}
-.sheetwrap{padding:16px}.sheetwrap img{width:100%;border:1px solid var(--border);border-radius:9px;display:block}
-.reportframe{width:100%;height:640px;border:1px solid var(--border);border-radius:9px;background:#fff}
-.sheetwrap img.resimg{width:auto;max-width:100%;max-height:75vh;height:auto;object-fit:contain;border:1px solid var(--border);border-radius:9px;display:block;background:#fff;margin:0 auto;padding:10px;box-sizing:border-box}
-ol.timeline{list-style:none;margin:0;padding:10px 16px 16px}
-ol.timeline li.tstep{position:relative;padding:9px 10px 9px 26px;border-left:2px solid var(--border);margin-left:8px;font-size:.9rem}
-ol.timeline li.tstep::before{content:"";position:absolute;left:-7px;top:13px;width:11px;height:11px;border-radius:50%;background:var(--teal);border:2px solid var(--card)}
-ol.timeline li.tstep.rec{border-left-color:var(--terra)}ol.timeline li.tstep.rec::before{background:var(--terra)}
-ol.timeline .ex{color:var(--terra-ink);font-size:.82rem;font-family:var(--mono)}
-ol.chapters,ol.scenes{list-style:none;margin:12px 0 0;padding:0;font-size:.88rem}
-ol.chapters li,ol.scenes li{padding:8px 10px;border-bottom:1px solid var(--border)}
-ol.chapters li{cursor:pointer;border-radius:7px}ol.chapters li:hover{background:var(--panel)}
-ol.chapters .ct{font-family:var(--mono);font-size:.76rem;color:var(--teal-ink);margin-right:8px}
-details.tx summary{cursor:pointer;font-size:.85rem;color:var(--muted2);font-weight:600}
-.txbody{white-space:pre-wrap;font-family:var(--mono);font-size:.74rem;color:var(--muted2);max-height:220px;overflow:auto;background:var(--panel);border-radius:8px;padding:10px 12px;margin-top:8px}
-.stepper{display:flex;gap:10px;margin:16px 0 4px;flex-wrap:wrap}
-.st{display:flex;align-items:center;gap:9px;font-size:.88rem;color:var(--muted);padding:7px 13px;border:1px solid var(--border);border-radius:999px;background:var(--card)}
-.st .n{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--border);display:grid;place-items:center;font:600 .7rem var(--mono);color:var(--muted)}
-.st.active{border-color:var(--teal);color:var(--ink);box-shadow:0 0 0 3px rgba(47,138,125,.1)}.st.active .n,.st.done .n{border-color:var(--teal);background:var(--teal);color:var(--on-accent)}
-.st.done{color:var(--ink)}.st.error{border-color:var(--terra);color:var(--terra-ink)}.st.error .n{border-color:var(--terra);background:var(--terra);color:var(--on-accent)}
-details.tech{margin-top:12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);overflow:hidden}
-details.tech summary{cursor:pointer;padding:11px 15px;font-size:.86rem;color:var(--muted2);font-weight:600;list-style:none;display:flex;align-items:center;gap:8px}
-details.tech summary::-webkit-details-marker{display:none}
-details.tech summary::before{content:"▸";color:var(--teal)}details.tech[open] summary::before{content:"▾"}
-.log{font-family:var(--mono);font-size:.76rem;line-height:1.7;background:#0f1524;color:#c7d2e0;padding:13px 15px;max-height:230px;overflow:auto;white-space:pre-wrap;word-break:break-word}
-.log .l{display:block}.log .step{color:#8fb4ff}.log .real{color:#5fd0ad}.log .sim{color:#e0a458}.log .cache{color:#e0a458}.log .run{color:#c7d2e0}.log .ok{color:#9fb0c4}.log .warn{color:#e0a458}.log .fail{color:#f2726b;font-weight:600}
-.note{display:flex;gap:12px;align-items:flex-start;margin-top:18px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:11px;font-size:.88rem;color:var(--muted2)}
-.note .t{font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-ink);font-weight:600;padding-top:2px;white-space:nowrap}.note b{color:var(--ink)}
-.prov{margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:11px;font-size:.8rem;color:var(--muted2)}
-.prov .ok{color:var(--teal-ink);font-weight:600}.prov .sim{color:var(--terra-ink)}.prov .sep{color:var(--border)}
-.capbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:16px 0 2px}
-.caplabel{color:var(--muted);font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;margin-right:2px}
-.capchip{display:inline-flex;align-items:center;gap:6px;padding:.26rem .62rem;border-radius:999px;border:1px solid var(--border);background:var(--card);font-size:.78rem;color:var(--muted2)}
-.capchip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted);flex:0 0 auto}
-.cap-free::before{background:#2f8a5f}.cap-busy::before{background:var(--terra)}.cap-info::before{background:var(--teal)}.cap-un{color:var(--muted)}
-.upcmp{margin:22px 0 4px;padding:16px 18px;border:1px dashed var(--border);border-radius:12px;background:var(--card)}
-.upttl{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px}
-.uprow{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
-.upf{display:flex;flex-direction:column;gap:5px;font-size:.82rem;color:var(--muted2)}
-.upf input[type=file]{font:inherit;font-size:.78rem;max-width:230px}
-.upmsg{margin-top:10px;font-size:.82rem;color:var(--muted2);min-height:1.1em}
-.res-upreport{margin-top:14px}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;margin-top:26px}
-.dcard{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:13px;padding:20px 22px;box-shadow:0 1px 2px rgba(19,26,44,.03);text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
-.dcard:hover{border-color:var(--teal);transform:translateY(-2px)}
-.dcard .k{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--teal-ink);font-weight:600}
-.dcard h3{font-family:var(--serif);font-weight:600;font-size:1.2rem;margin:8px 0 6px}
-.dcard p{margin:0 0 16px;color:var(--muted2);font-size:.9rem;flex:1}
-.dcard .go{font-weight:600;color:var(--terra-ink);font-size:.88rem}
-.dcard.soon{opacity:.62}.dcard.soon:hover{border-color:var(--border);transform:none}.dcard .soonlbl{color:var(--muted);font-weight:600}
-.progress{margin:16px 0 6px}.pbar{height:8px;background:var(--panel2);border-radius:999px;overflow:hidden;border:1px solid var(--border)}.pbar>i{display:block;height:100%;background:var(--teal);width:0;transition:width .5s ease}
-.pmeta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:9px;font-family:var(--mono);font-size:.75rem;color:var(--muted)}
-.btn-cancel{font:600 .8rem var(--sans);color:var(--terra-ink);background:var(--card);border:1px solid var(--border);border-radius:7px;padding:.34rem .8rem;cursor:pointer}.btn-cancel:hover{border-color:var(--terra)}
-.langtoggle{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;font-family:var(--mono);font-size:.74rem}
-.langtoggle a{padding:.42rem .6rem;color:var(--muted);text-decoration:none;background:var(--card)}.langtoggle a.on{background:var(--teal);color:var(--on-accent)}
-.tune{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:4px 0 18px}
-.tune-h{display:flex;flex-direction:column;gap:3px;margin-bottom:12px}
-.teyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal-ink);font-weight:600}
-.tsub{color:var(--muted2);font-size:.88rem;max-width:74ch}
-.tune-row{display:flex;gap:10px;flex-wrap:wrap}
-.tuneinput{flex:1;min-width:240px;border:1px solid var(--border);border-radius:8px;padding:.6rem .8rem;font:400 .95rem var(--sans);color:var(--ink);background:var(--bg)}
-.tuneinput:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(47,138,125,.12)}
-.descfield{display:block;margin:2px 0 14px}.descfield .dl{display:block;font-size:.82rem;color:var(--muted2);margin-bottom:6px}
-.descinput{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:8px;padding:.6rem .8rem;font:400 .95rem var(--sans);color:var(--ink);background:var(--bg);resize:vertical}
-.descinput:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(47,138,125,.12)}
-.tune-ex{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
-.exlbl{font-size:.76rem;color:var(--muted)}
-.exchip{font:500 .78rem var(--sans);color:var(--muted2);background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:.3rem .7rem;cursor:pointer}
-.exchip:hover{border-color:var(--teal);color:var(--ink)}
-.tunepreview{margin-top:14px;border-top:1px solid var(--border);padding-top:14px}
-.pv-h{font-size:.85rem;color:var(--muted2);font-weight:600;margin-bottom:8px}
-ul.pv{list-style:none;margin:0 0 12px;padding:0;font-family:var(--mono);font-size:.82rem}
-ul.pv li{padding:3px 0}ul.pv li.ok{color:var(--teal-ink)}ul.pv li.ok::before{content:"✓ "}
-ul.pv li.rej{color:var(--terra-ink)}ul.pv li.rej::before{content:"✕ "}
-ul.pv li.pmuted{color:var(--muted)}
-.pmuted{color:var(--muted);font-size:.85rem}.perr{color:var(--terra-ink);font-size:.85rem}
-.appliedbadge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.72rem;color:var(--teal-ink);background:rgba(47,138,125,.09);border:1px solid rgba(47,138,125,.25);border-radius:999px;padding:.26rem .6rem;margin-left:8px}
-footer{margin:34px auto 40px;max-width:1120px;padding:20px 28px 0;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;color:var(--muted);font-size:.82rem}
-footer{flex-direction:column;align-items:flex-start}
-footer .fl{display:flex;gap:18px;flex-wrap:wrap;align-items:center}footer a{color:var(--muted2)}footer .support{color:var(--terra-ink);font-weight:600}footer .fnote{color:var(--muted)}
-footer .attrib{color:var(--muted2)}footer .attrib b{color:var(--ink);font-weight:600}footer .attrib a{color:var(--teal-ink)}
-.m-toggle{display:none;margin:16px 0 2px;font:600 .85rem var(--sans);color:var(--muted2);background:var(--card);border:1px solid var(--border);border-radius:9px;padding:.5rem 1rem;cursor:pointer;align-items:center;gap:.5ch}.m-toggle:hover{color:var(--ink);border-color:var(--teal)}@media(max-width:640px){.m-toggle{display:inline-flex}body:not(.m-open) .io,body:not(.m-open) .note,body:not(.m-open) .prov,body:not(.m-open) .capbar,body:not(.m-open) .caplabel,body:not(.m-open) details.tech,body:not(.m-open) .tune-ex,body:not(.m-open) .grid2>aside{display:none!important}}
-`;
-
-function appbar(crumb, lang) {
-  const t = tr(lang);
-  return `<header class="appbar"><div class="l"><a class="brand" href="https://bunsenbrenner.org"><span class="dot">◆</span>Bunsenbrenner<span class="tld">.org</span></a>
-    <span class="crumb">${crumb}</span></div><span class="chip"><span class="d"></span>${t('lokal aktiv · offline','running locally · offline')}</span></header>`;
-}
-function support(lang) {
-  const t = tr(lang);
-  return `<a class="support" href="https://steady.page/plans/77a32d9c-c399-4ca1-9515-7a628c7a9413" target="_blank" rel="noopener">${t('Als Mitglied unterstützen →','Support as a member →')}</a><a class="support" href="https://buymeacoffee.com/bunsenbrenner" target="_blank" rel="noopener">Buy me a coffee →</a><a href="https://github.com/scimbe/CADS-Tunnel" target="_blank" rel="noopener">GitHub</a><a href="https://bunsenbrenner.org/legal-notice" target="_blank" rel="noopener">Legal Notice</a><a href="https://bunsenbrenner.org/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a><a href="https://bunsenbrenner.org/terms-of-use" target="_blank" rel="noopener">Terms of Use</a>`;
-}
-const SERVED_BY = process.env.SERVED_BY || 'customer';
-function foot(lang) {
-  const t = tr(lang);
-  return `<footer><div class="fl">${support(lang)}</div>
-<div class="attrib"><b>Supported by <a href="https://bunsenbrenner.org" target="_blank" rel="noopener">bunsenbrenner.org</a></b> · served by ${SERVED_BY}</div>
-<div class="fnote">${t('Deterministische Werkzeuge lokal · Sprachmodelle DSGVO-konform in Deutschland, ohne Datenspeicherung · Beispielfotos von','Deterministic tools run locally · language models GDPR-compliant in Germany, no data retention · sample photos by')} <a href="https://www.pexels.com" target="_blank" rel="noopener">Pexels</a></div></footer>`;
-}
-
-const TYPE_LABEL = { 'photo-tool': 'Werkzeug · lokal', 'report-html': 'Report · LLM', 'report-md': 'Vergleich · lokal', image: 'Bild · LLM', timeline: 'Ablauf · lokal', audio: 'Audio', video: 'Video', 'service-proxy': 'Dauerdienst', external: 'Studio · live', landing: 'Übersicht' };
-function indexPage() {
-  const cards = Object.entries(DEMOS).map(([slug, d]) => {
-    const label = TYPE_LABEL[d.type] || 'Demo';
-    // Content search index: match on the demo's actual text, not just the title -- tagline, blurb,
-    // description, notes, tool/engine names + the slug/type-label. Lower-cased, attribute-safe.
-    const ds = ` data-search="${[d.title, d.name, slug, label, d.tagline, d.blurb, d.description, d.note, d.story, d.tool, d.engine, d.demo_prompt]
-      .filter(Boolean).join(' ').toLowerCase().replace(/[&<>"]/g, ' ').replace(/\s+/g, ' ').trim()}"`;
-    // external: a live interactive app served elsewhere (its own subdomain) — link straight out
-    if (d.type === 'external' && d.externalUrl && d.live) return `<a class="dcard"${ds} href="${d.externalUrl}" target="_blank" rel="noopener"><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go">Öffnen →</span></a>`;
-    if (d.live) return `<a class="dcard"${ds} href="/d/${slug}"><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go">Öffnen →</span></a>`;
-    return `<div class="dcard soon"${ds}><span class="k">${label}</span><h3>${d.title}</h3><p>${d.blurb}</p><span class="go soonlbl">bald verfügbar</span></div>`;
-  }).join('');
-  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Marktplatz-Demos · Bunsenbrenner.org</title><style>${BB_CSS}
-.searchbar{display:flex;align-items:center;gap:12px;margin-top:24px}
-.searchbar input{flex:1;min-width:0;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--ink);font:inherit;font-size:.98rem;padding:.7rem .95rem}
-.searchbar input::placeholder{color:var(--muted)}
-.searchbar input:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:var(--teal)}
-.searchbar .scount{color:var(--muted);font-size:.82rem;white-space:nowrap}
-.noresults{margin-top:22px;color:var(--muted2);font-size:.95rem;padding:18px;border:1.5px dashed var(--border);border-radius:12px;background:var(--card);text-align:center}
-.noresults button{margin-left:8px;background:var(--card);color:var(--teal-ink);border:1px solid var(--border);border-radius:8px;padding:.35rem .7rem;font:inherit;cursor:pointer}
-.noresults button:hover{color:var(--ink)}
-@media(max-width:640px){.searchbar .scount{display:none}}
-</style></head><body>
-${appbar('Marktplatz / <b>Demos</b>')}
-<div class="wrap">
-  <div class="eyebrow"><span class="lead">—</span>Marktplatz · besuchbare Demos</div>
-  <h1>Werkzeuge zum Ausprobieren, direkt aus dem Marktplatz.</h1>
-  <p class="lede">Jede Demo wird über den echten Marktplatz-Weg installiert. Die <b>deterministischen Werkzeuge laufen lokal</b> auf diesem Rechner; wo ein Sprachmodell nötig ist, läuft es auf <b>DSGVO-konformen Servern in Deutschland</b> — kleine Modelle, die zu keinem Zeitpunkt Daten speichern. Klick eine an und probier sie aus.</p>
-  <div id="capbar" class="capbar" hidden></div>
-  <div class="searchbar"><input type="search" id="demoSearch" placeholder="Demos durchsuchen — Inhalt, nicht nur Titel …" aria-label="Demos durchsuchen" autocomplete="off" spellcheck="false"><span class="scount" id="scount"></span></div>
-  <div class="cards" id="cards">${cards}</div>
-  <div class="noresults" id="noresults" hidden>Keine Demo passt zu „<span id="nrq"></span>". <button type="button" id="nrclear">Zurücksetzen</button></div>
-  <script>
-  (function(){
-    var inp=document.getElementById('demoSearch'); if(!inp) return;
-    var cards=[].slice.call(document.querySelectorAll('#cards .dcard'));
-    var nr=document.getElementById('noresults'), nrq=document.getElementById('nrq'), clr=document.getElementById('nrclear'), sc=document.getElementById('scount');
-    function apply(){
-      var q=inp.value.trim().toLowerCase();
-      var toks=q.split(/\\s+/).filter(Boolean);
-      var shown=0;
-      cards.forEach(function(c){
-        var hay=c.getAttribute('data-search')||'';
-        var ok=!toks.length||toks.every(function(t){return hay.indexOf(t)!==-1;});
-        c.style.display=ok?'':'none'; if(ok)shown++;
-      });
-      if(sc) sc.textContent=q?(shown+' von '+cards.length):'';
-      if(nr){ if(q&&shown===0){ nr.hidden=false; if(nrq)nrq.textContent=inp.value.trim(); } else nr.hidden=true; }
-    }
-    inp.addEventListener('input',apply);
-    if(clr)clr.addEventListener('click',function(){inp.value='';apply();inp.focus();});
-  })();
-  </script>
-</div>${foot('de')}
-<script>
-(function(){
-  var bar=document.getElementById('capbar'); if(!bar) return;
-  function chip(label,cls,txt){return '<span class="capchip '+cls+'">'+label+': '+txt+'</span>';}
-  function fmt(p){return (p||p===0)?(' · ~'+Number(p).toFixed(1)+' s'):'';}
-  async function poll(){
-    try{
-      var j=await (await fetch('/api/status')).json();
-      if(!j||!j.ok){ bar.innerHTML='<span class="capchip cap-un">Auslastung momentan nicht abrufbar</span>'; bar.hidden=false; return; }
-      var s=j.svc||{}, parts=[];
-      var tts=s['audio_generation.primary'];
-      if(tts){ var busy=(tts.active+tts.queued)>0; parts.push(chip('Sprachausgabe', busy?'cap-busy':'cap-free', (busy?('ausgelastet · '+tts.queued+' in Warteschlange'):'frei')+fmt(tts.p50))); }
-      var ol=s.ollama;
-      if(ol){ parts.push(chip('Sprachmodell','cap-info',((ol.models&&ol.models.length)?ol.models.join(', '):'geladen')+(ol.parallel?(' · '+ol.parallel+'× parallel'):''))); }
-      if(parts.length){ bar.innerHTML='<span class="caplabel">Aktuelle KI-Dienst-Auslastung</span>'+parts.join(''); bar.hidden=false; }
-    }catch(e){ /* keep whatever is shown; never break the page */ }
-  }
-  poll(); setInterval(poll, 15000);
-})();
-</script>
-</body></html>`;
-}
 
 const CLIENT = `
+// Messages come from lib/i18n.mjs (window.__S, language-matched); f() fills {placeholders}.
+var S=window.__S||{};
+function f(k,v){var s=S[k]||k;if(v)for(var n in v)s=s.split('{'+n+'}').join(v[n]);return s;}
+function esc(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 // Mobile-minimal view: on narrow screens the secondary blocks are hidden until the visitor asks.
-(function(){var mt=document.querySelector('.m-toggle');if(!mt)return;mt.addEventListener('click',function(){var o=document.body.classList.toggle('m-open');var en=document.documentElement.lang==='en';mt.setAttribute('aria-expanded',o?'true':'false');mt.textContent=o?(en?'show less \u25b4':'weniger anzeigen \u25b4'):(en?'show more \u25be':'mehr anzeigen \u25be');});})();
-document.querySelectorAll('button.run').forEach(btn=>btn.addEventListener('click',()=>{
+(function(){var mt=document.querySelector('.m-toggle');if(!mt)return;mt.addEventListener('click',function(){var o=document.body.classList.toggle('m-open');var en=document.documentElement.lang==='en';mt.setAttribute('aria-expanded',o?'true':'false');mt.textContent=o?(en?'show less \\u25b4':'weniger anzeigen \\u25b4'):(en?'show more \\u25be':'mehr anzeigen \\u25be');});})();
+function startRun(btn){
   const wrap=document.querySelector('.wrap');const slug=wrap.dataset.slug;const fresh=btn.dataset.fresh;
   const out=document.querySelector('.out');const stepper=out.querySelector('.stepper');const log=out.querySelector('.log');
   const tech=out.querySelector('details.tech');const ph=out.querySelector('.placeholder');
   const rt=out.querySelector('.res-tree');const rs=out.querySelector('.res-sheet');const rr=out.querySelector('.res-report');
   stepper.hidden=false;tech.hidden=false;log.innerHTML='';if(ph)ph.style.display='none';
   out.querySelectorAll('section.panel').forEach(x=>{if(x.className.indexOf('res-')>=0)x.hidden=true});
+  const oldErr=out.querySelector('.runerr');if(oldErr)oldErr.remove();
   const fmt=(s)=>{s=Math.floor(s||0);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
   out.querySelectorAll('.st').forEach(s=>s.className='st');
   document.querySelectorAll('button.run').forEach(b=>b.disabled=true);
   const est=Math.max(4,parseInt(wrap.dataset.est||'20',10));
+  const maxS=Math.max(60,parseInt(wrap.dataset.timeout||'120',10));
+  const longT=Math.max(45,Math.round(est*1.5));
   let prog=out.querySelector('.progress');
   if(!prog){prog=document.createElement('div');prog.className='progress';
-    prog.innerHTML='<div class="pbar"><i></i></div><div class="pmeta"><span class="ptxt"></span><button class="btn-cancel" type="button">Abbrechen</button></div>';
+    prog.innerHTML='<div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="'+esc(f('js.run.starting'))+'"><i></i></div><div class="pmeta"><span class="ptxt"></span></div>';
     stepper.after(prog);}
-  prog.style.display='';const bar=prog.querySelector('.pbar>i');bar.style.background='var(--teal)';const ptxt=prog.querySelector('.ptxt');
-  let cancel=prog.querySelector('.btn-cancel');if(!cancel){cancel=document.createElement('button');cancel.type='button';cancel.className='btn-cancel';cancel.textContent='Abbrechen';prog.querySelector('.pmeta').appendChild(cancel);}
-  const t0=Date.now();let done=false;
-  const tick=()=>{if(done)return;const el=(Date.now()-t0)/1000;bar.style.width=Math.min(95,el/est*100)+'%';ptxt.textContent='läuft … '+Math.round(el)+'s von ~'+est+'s erwartet';};
-  const iv=setInterval(tick,400);tick();
+  let live=out.querySelector('.runlive');
+  if(!live){live=document.createElement('p');live.className='sr-only runlive';live.setAttribute('role','status');live.setAttribute('aria-live','polite');out.insertBefore(live,out.firstChild);}
+  prog.style.display='';const pb=prog.querySelector('.pbar');const bar=pb.querySelector('i');bar.style.background='var(--teal)';bar.style.width='0';const ptxt=prog.querySelector('.ptxt');
+  let cancel=prog.querySelector('.btn-cancel');if(!cancel){cancel=document.createElement('button');cancel.type='button';cancel.className='btn-cancel';cancel.textContent=f('js.run.cancel');prog.querySelector('.pmeta').appendChild(cancel);}
+  const t0=Date.now();let done=false;let failed=false;let failMsg='';let phase=0;
+  const secs=()=>Math.round((Date.now()-t0)/1000);
   const line=(c,t)=>{const e=document.createElement('span');e.className='l '+c;e.textContent=t;log.appendChild(e);log.scrollTop=log.scrollHeight};
   var _cfg={}; try{ if(window.__cfg) _cfg=JSON.parse(decodeURIComponent(escape(atob(window.__cfg)))); }catch(e){}
   var _di=document.querySelector('.descinput'); if(_di && _di.value.trim()) _cfg.description=_di.value.trim();
   var _cfgP=Object.keys(_cfg).length?('&cfg='+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(_cfg)))))):'';
   const es=new EventSource('/api/start?demo='+encodeURIComponent(slug)+'&fresh='+fresh+'&lang='+(wrap.dataset.lang||'de')+_cfgP);
-  const stop=(ok,txt,terra)=>{if(done)return;done=true;clearInterval(iv);bar.style.width='100%';if(terra)bar.style.background='var(--terra)';ptxt.textContent=txt;if(cancel){cancel.remove();cancel=null;}document.querySelectorAll('button.run').forEach(b=>b.disabled=false);try{es.close()}catch(e){}};
-  cancel.addEventListener('click',()=>{const s=Math.round((Date.now()-t0)/1000);line('warn','Abgebrochen durch Nutzer nach '+s+'s.');
+  const stop=(txt,terra)=>{if(done)return;done=true;clearInterval(iv);bar.style.width='100%';pb.setAttribute('aria-valuenow','100');if(terra)bar.style.background='var(--terra)';ptxt.textContent=txt;live.textContent=txt;if(cancel){cancel.remove();cancel=null;}document.querySelectorAll('button.run').forEach(b=>b.disabled=false);try{es.close()}catch(e){}};
+  // Friendly, specific error + retry. role=alert announces it; focus goes to the retry button.
+  const fail=(kind,detail)=>{if(done)return;const s=secs();
     const a=[...out.querySelectorAll('.st')].find(x=>!x.classList.contains('done'));if(a)a.className='st error';
-    stop(false,'abgebrochen nach '+s+'s',true);});
-  ['step','real','sim','run','cache','ok','warn','fail'].forEach(t=>es.addEventListener(t,e=>line(t,({step:'▸ ',real:'✓ ',sim:'· ',run:'  ',cache:'✓ ',ok:'· ',warn:'! ',fail:'✕ '}[t]||'')+JSON.parse(e.data).text)));
-  es.addEventListener('stage',e=>{const {id}=JSON.parse(e.data);const steps=['install','process','done'];const idx=steps.indexOf(id);
+    stop(f('js.run.err.title'),true);
+    const why=kind==='conn'?f('js.run.err.conn'):kind==='timeout'?f('js.run.err.timeout',{s:s}):detail?f('js.run.err.tool',{msg:detail}):f('js.run.err.generic');
+    if(kind==='timeout')line('fail','Timeout nach '+s+'s');
+    const box=document.createElement('div');box.className='runerr';box.setAttribute('role','alert');
+    box.innerHTML='<h3>'+esc(f('js.run.err.title'))+'</h3><p>'+esc(why)+'</p><p class="hint">'+esc(f('js.run.err.hint'))+'</p><button type="button" class="btn btn-primary retry">'+esc(f('js.run.retry'))+'</button>';
+    prog.after(box);const rb=box.querySelector('.retry');rb.addEventListener('click',()=>startRun(btn));try{rb.focus();}catch(e){}};
+  const tick=()=>{if(done)return;const el=(Date.now()-t0)/1000;
+    if(el>=maxS){fail('timeout');return;}
+    bar.style.width=Math.min(95,el/est*100)+'%';pb.setAttribute('aria-valuenow',String(Math.round(Math.min(95,el/est*100))));
+    const p=el<=est?1:(el<longT?2:3);
+    const txt=p===1?f('js.run.p1',{s:Math.round(el),est:est}):p===2?f('js.run.p2',{s:Math.round(el)}):f('js.run.p3',{max:maxS});
+    ptxt.textContent=txt;if(p!==phase){phase=p;live.textContent=txt;}};
+  const iv=setInterval(tick,400);ptxt.textContent=f('js.run.starting');live.textContent=f('js.run.starting');tick();
+  cancel.addEventListener('click',()=>{const s=secs();line('warn',f('js.run.cancelled',{s:s}));
+    const a=[...out.querySelectorAll('.st')].find(x=>!x.classList.contains('done'));if(a)a.className='st error';
+    stop(f('js.run.cancelled',{s:s}),true);});
+  ['step','real','sim','run','cache','ok','warn','fail'].forEach(t=>es.addEventListener(t,e=>{const tx=JSON.parse(e.data).text;if(t==='fail')failMsg=tx;line(t,({step:'▸ ',real:'✓ ',sim:'· ',run:'  ',cache:'✓ ',ok:'· ',warn:'! ',fail:'✕ '}[t]||'')+tx)}));
+  es.addEventListener('stage',e=>{const {id}=JSON.parse(e.data);const steps=['install','process','done'];const idx=steps.indexOf(id);if(id==='error')failed=true;
     out.querySelectorAll('.st').forEach(s=>{const si=steps.indexOf(s.dataset.step);if(id==='error'){if(!s.classList.contains('done'))s.classList.add('active');return}
       s.classList.toggle('done',si<idx||(si===idx&&id==='done'));s.classList.toggle('active',si===idx&&id!=='done')});
     if(id==='error'){const a=[...out.querySelectorAll('.st')].find(s=>!s.classList.contains('done'));if(a)a.className='st error'}});
   es.addEventListener('result',e=>{const r=JSON.parse(e.data);
-    if(r.render==='photo-tool'){rt.querySelector('.count').textContent=r.count+' Fotos · '+r.folders.length+' Ordner';
+    if(r.render==='photo-tool'){rt.querySelector('.count').textContent=f('js.res.count',{n:r.count,f:r.folders.length});
       const tree=rt.querySelector('.tree');tree.innerHTML='';
-      for(const f of r.folders){const p=f.path.split('/');const row=document.createElement('div');row.className='frow';
-        row.innerHTML='<span class="car">▸</span><span class="yr">'+p[0]+' /</span><span class="fold">'+p[1]+'</span><span class="n">'+f.count+(f.count>1?' Fotos':' Foto')+'</span>';tree.appendChild(row)}
+      for(const fo of r.folders){const p=fo.path.split('/');const row=document.createElement('div');row.className='frow';
+        row.innerHTML='<span class="car" aria-hidden="true">▸</span><span class="yr">'+esc(p[0])+' /</span><span class="fold">'+esc(p[1])+'</span><span class="n">'+fo.count+' '+f(fo.count>1?'js.res.photos':'js.res.photo')+'</span>';tree.appendChild(row)}
       rt.hidden=false;rs.querySelector('img').src=r.contact;rs.hidden=false;
       var g=rs.querySelector('.opengal');if(g){if(r.gallery){g.href=r.gallery;g.style.display='';}else{g.style.display='none';}}}
     else if(r.render==='report-html'){const s=out.querySelector('.res-report');const fr=s.querySelector('iframe');fr.src=r.reportUrl;s.hidden=false;
       s.querySelector('.openrep').href=r.reportUrl;const pl=s.querySelector('.pdflink');if(r.pdf){pl.href=r.pdf;pl.hidden=false}else if(pl)pl.hidden=true;}
     else if(r.render==='image'){const s=out.querySelector('.res-image');s.querySelector('.resimg').src=r.image;s.querySelector('.openimg').href=r.image;s.hidden=false;}
     else if(r.render==='timeline'){const s=out.querySelector('.res-timeline');const ol=s.querySelector('.timeline');ol.innerHTML='';
-      for(const st of r.steps){const li=document.createElement('li');li.className='tstep'+(st.recover?' rec':'');li.innerHTML='<b>'+st.label+'</b>'+(st.extra?' <span class="ex">'+st.extra+'</span>':'');ol.appendChild(li)}s.hidden=false;}
+      for(const st of r.steps){const li=document.createElement('li');li.className='tstep'+(st.recover?' rec':'');li.innerHTML=(st.recover?'<span aria-hidden="true">↻ </span>':'')+'<b>'+st.label+'</b>'+(st.extra?' <span class="ex">'+st.extra+'</span>':'');ol.appendChild(li)}s.hidden=false;}
     else if(r.render==='audio'){const s=out.querySelector('.res-audio');s.querySelector('.resaudio').src=r.audio;const ol=s.querySelector('.chapters');ol.innerHTML='';
       for(const c of r.chapters){const li=document.createElement('li');li.innerHTML='<span class="ct">'+fmt(c.t)+'</span> '+c.title;li.onclick=()=>{const a=s.querySelector('.resaudio');a.currentTime=c.t;a.play()};ol.appendChild(li)}
       if(r.transcript)s.querySelector('.txbody').textContent=r.transcript;s.hidden=false;}
     else if(r.render==='video'){const s=out.querySelector('.res-video');s.querySelector('.resvideo').src=r.video;const ol=s.querySelector('.scenes');ol.innerHTML='';
-      for(const sc of r.scenes){const li=document.createElement('li');li.textContent='Szene '+sc.n+' — '+sc.title+(sc.dur?' ('+Math.round(sc.dur)+' s)':'');ol.appendChild(li)}s.hidden=false;}
+      for(const sc of r.scenes){const li=document.createElement('li');li.textContent=f('js.res.scene',{n:sc.n,title:sc.title})+(sc.dur?' ('+Math.round(sc.dur)+' s)':'');ol.appendChild(li)}s.hidden=false;}
   });
-  es.addEventListener('done',()=>stop(true,'fertig in '+Math.round((Date.now()-t0)/1000)+'s',false));
-  es.onerror=()=>stop(false,'Verbindung beendet',true);
-}));
+  es.addEventListener('done',()=>{if(failed)fail('tool',failMsg);else stop(f('js.run.done',{s:secs()}),false);});
+  es.onerror=()=>{if(done)return;if(failed)fail('tool',failMsg);else fail('conn');};
+}
+document.querySelectorAll('button.run').forEach(btn=>btn.addEventListener('click',()=>startRun(btn)));
 (function(){
   var tune=document.querySelector('.tune'); if(!tune)return;
   var wrap=document.querySelector('.wrap'); var slug=wrap&&wrap.dataset.slug;
@@ -702,40 +505,36 @@ document.querySelectorAll('button.run').forEach(btn=>btn.addEventListener('click
   tune.querySelectorAll('.exchip').forEach(function(c){c.addEventListener('click',function(){inp.value=c.textContent;inp.focus();});});
   tune.querySelector('.tunebtn').addEventListener('click',function(){
     var text=inp.value.trim(); if(!text)return;
-    prev.hidden=false; prev.innerHTML='<span class="pmuted">Das LLM übersetzt deinen Wunsch in eine geprüfte Konfiguration …</span>';
+    prev.hidden=false; prev.innerHTML='<span class="pmuted">'+esc(f('js.tune.working'))+'</span>';
     fetch('/api/plan?demo='+encodeURIComponent(slug),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text})}).then(function(r){return r.json();}).then(function(j){
-      if(j.error){prev.innerHTML='<span class="perr">'+j.error+'</span>';window.__cfg='';return;}
-      var changed=(j.changed||[]).map(function(c){return '<li class="ok">'+c+'</li>';}).join('');
-      var rej=(j.rejected||[]).map(function(c){return '<li class="rej">'+c+'</li>';}).join('');
+      if(j.error){prev.innerHTML='<span class="perr" role="alert">'+esc(f('js.tune.err',{msg:j.error}))+'</span>';window.__cfg='';return;}
+      var changed=(j.changed||[]).map(function(c){return '<li class="ok">'+esc(c)+'</li>';}).join('');
+      var rej=(j.rejected||[]).map(function(c){return '<li class="rej">'+esc(c)+'</li>';}).join('');
       var hasChange=Object.keys(j.config||{}).length>0;
       window.__cfg=hasChange?btoa(unescape(encodeURIComponent(JSON.stringify(j.config)))):'';
-      prev.innerHTML='<div class="pv-h">Aufgelöste Anpassung — Vorschau, nichts wird gespeichert:</div><ul class="pv">'+(changed||'<li class="pmuted">keine gültige Änderung erkannt</li>')+rej+'</ul>'+(hasChange?'<button class="btn btn-primary tunerun" type="button">Übernehmen &amp; ausführen ▸</button> <button class="btn btn-ghost tuneclear" type="button">Verwerfen</button>':'');
+      prev.innerHTML='<div class="pv-h">'+esc(f('js.tune.head'))+'</div><ul class="pv">'+(changed||'<li class="pmuted">'+esc(f('js.tune.none'))+'</li>')+rej+'</ul>'+(hasChange?'<button class="btn btn-primary tunerun" type="button">'+esc(f('js.tune.apply'))+'</button> <button class="btn btn-ghost tuneclear" type="button">'+esc(f('js.tune.discard'))+'</button>':'');
       var tr=prev.querySelector('.tunerun'); if(tr)tr.addEventListener('click',function(){var b=document.querySelector('button.run.btn-primary'); if(b)b.click();});
       var tc=prev.querySelector('.tuneclear'); if(tc)tc.addEventListener('click',function(){window.__cfg='';prev.hidden=true;inp.value='';});
-    }).catch(function(e){prev.innerHTML='<span class="perr">Fehler: '+e.message+'</span>';});
+    }).catch(function(e){prev.innerHTML='<span class="perr" role="alert">'+esc(f('js.tune.err',{msg:e.message}))+'</span>';});
   });
 })();
 `;
 
-// --- i18n: German is the source/default. tr(lang) returns a picker (de,en)=> that
-// chooses the English string in EN mode and always falls back to German, so a missing
-// translation can never blank the page. di() picks a per-demo *_en field the same way.
-const tr = (lang) => (de, en) => (lang === 'en' && en != null ? en : de);
-const di = (d, field, lang) => (lang === 'en' && d[field + '_en'] != null ? d[field + '_en'] : d[field]);
-
 function toolShell(slug, inner, lang) {
   const d = DEMOS[slug];
   const t = tr(lang);
-  lang = lang === 'en' ? 'en' : 'de';
-  const toggle = `<span class="langtoggle" title="${t('Sprache umschalten','Switch language')}"><a href="?lang=de"${lang === 'de' ? ' class="on"' : ''}>DE</a><a href="?lang=en"${lang === 'en' ? ' class="on"' : ''}>EN</a></span>`;
-  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${di(d, 'title', lang)} · Bunsenbrenner.org</title><style>${BB_CSS}</style></head><body>
-${appbar(`<a href="/">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang)}
-<div class="wrap" data-slug="${slug}" data-est="${d.estSeconds || 20}" data-lang="${lang}">
-  <div class="toolbar"><div><h1>${di(d, 'title', lang)}</h1><p>${di(d, 'tagline', lang)}</p></div><div class="controls">${toggle}${inner.controls}</div></div>
+  const tt = makeT(lang);
+  lang = normLang(lang);
+  const home = lang === 'en' ? '/?lang=en' : '/';
+  const timeout = Math.max(90, Math.round((d.estSeconds || 20) * 2.5));
+  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool' })}
+${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang)}
+<main class="wrap" id="main" tabindex="-1" data-slug="${slug}" data-est="${d.estSeconds || 20}" data-timeout="${timeout}" data-lang="${lang}">
+  <noscript><div class="noscript-note" role="note">${tt('noscript.demo')}</div></noscript>
+  <div class="toolbar"><div><h1>${di(d, 'title', lang)}</h1><p>${di(d, 'tagline', lang)}</p></div><div class="controls">${inner.controls}</div></div>
   <button class="m-toggle" type="button" aria-expanded="false">${t('mehr anzeigen ▾','show more ▾')}</button>
   ${inner.body}
-</div>${foot(lang)}<script>${CLIENT}</script></body></html>`;
+</main>${foot(lang)}<script>window.__S=${jsonForScript(clientStrings(lang))};</script><script>${CLIENT}</script></body></html>`;
 }
 
 function photoToolPage(slug, lang) {
@@ -743,7 +542,7 @@ function photoToolPage(slug, lang) {
   const t = tr(lang);
   const tray = d.photos.map((p) => `<div class="prow"><img src="/assets/thumbs/${p.file}" alt="${p.city}"/>
     <div><div class="pn">${p.file}</div><div class="pt"><span><span class="lab">${t('Datum','Date')}</span>${p.date}</span><span><span class="lab">${t('Ort','Place')}</span>${p.city}</span></div>
-    <div class="credit">${t('Foto','Photo')}: <a href="${p.pexels_url}" target="_blank" rel="noopener">${p.photographer}</a> · Pexels</div></div></div>`).join('');
+    <div class="credit">${t('Foto','Photo')}: ${extLink(p.pexels_url, p.photographer, lang)} · Pexels</div></div></div>`).join('');
   const controls = `<span class="setting"><span class="k">${t('Sortieren','Sort by')}</span><span class="v">${t('Datum · Ort','Date · Place')}</span></span>
     <span class="setting"><span class="k">${t('Wasserzeichen','Watermark')}</span><span class="v on">${t('an','on')}</span></span>
     <button class="btn btn-primary run" data-fresh="0">${t('Organisieren ▸','Organize ▸')}</button>
@@ -752,13 +551,13 @@ function photoToolPage(slug, lang) {
   <div class="io"><span>${t('Eingang','Input')}</span><span class="path">fotos/</span><span class="ar">→</span><span>${t('Werkzeug','Tool')}</span><span class="path">phototools organize</span><span class="ar">→</span><span>${t('Ausgabe','Output')}</span><span class="path">sortiert/</span></div>
   <div class="grid2">
     <aside class="panel"><div class="ph"><h2>${t('Eingang','Input')}</h2><span class="count">${t('6 Fotos · fotos/','6 photos · fotos/')}</span></div><div class="tray">${tray}</div></aside>
-    <main class="out">
+    <div class="out">
       <div class="stepper" hidden><div class="st" data-step="install"><span class="n">1</span> ${t('Installieren','Install')}</div><div class="st" data-step="process"><span class="n">2</span> ${t('Fotos verarbeiten','Process photos')}</div><div class="st" data-step="done"><span class="n">3</span> ${t('Fertig','Done')}</div></div>
       <div class="placeholder">${t('Noch nicht organisiert — klick <b style="color:var(--ink)">&nbsp;Organisieren&nbsp;</b>, und die 6 Fotos landen sortiert in <span style="font-family:var(--mono)">&nbsp;sortiert/</span>.','Not organized yet — click <b style="color:var(--ink)">&nbsp;Organize&nbsp;</b>, and the 6 photos land sorted into <span style="font-family:var(--mono)">&nbsp;sortiert/</span>.')}</div>
       <section class="panel res-tree" hidden><div class="ph"><h2>${t('Sortierte Ordner','Sorted folders')}</h2><span class="count"></span></div><div class="tree"></div></section>
-      <section class="panel res-sheet" hidden><div class="ph"><h2>${t('Kontaktbogen','Contact sheet')}</h2><span><a class="chip opengal" href="#" target="_blank" style="display:none">🖼 ${t('Galerie (Lightbox)','Gallery (lightbox)')}</a> <a class="chip openrep" href="#" target="_blank">${t('Öffnen','Open')}</a></span></div><div class="sheetwrap"><img alt="${t('Kontaktbogen','Contact sheet')}"/></div></section>
+      <section class="panel res-sheet" hidden><div class="ph"><h2>${t('Kontaktbogen','Contact sheet')}</h2><span><a class="chip opengal" href="#" target="_blank" rel="noopener noreferrer" style="display:none">🖼 ${t('Galerie (Lightbox)','Gallery (lightbox)')}${newTabMark(lang)}</a> <a class="chip openrep" href="#" target="_blank" rel="noopener noreferrer">${t('Öffnen','Open')}${newTabMark(lang)}</a></span></div><div class="sheetwrap"><img alt="${t('Kontaktbogen','Contact sheet')}"/></div></section>
       <details class="tech" hidden><summary>${t('Technische Details — Installation &amp; Werkzeuglauf','Technical details — installation &amp; tool run')}</summary><div class="log"></div></details>
-    </main>
+    </div>
   </div>
   <div class="note"><span class="t">${t('Ohne KI','No AI')}</span><div>${t('Kein Modell „schaut" die Fotos an. <b>exiftool</b> liest die Metadaten der Kamera, ein <b>Gazetteer</b> übersetzt GPS→Stadt, <b>ImageMagick</b> setzt Wasserzeichen &amp; Kontaktbogen. Die Beispiel-Fotos stammen von <b>Pexels</b> und tragen kein Kamera-GPS — dafür sind ihnen Beispiel-Metadaten aufgeprägt (offengelegt); ein echtes Handyfoto bringt Datum &amp; Ort selbst mit.','No model „looks at" the photos. <b>exiftool</b> reads the camera metadata, a <b>gazetteer</b> maps GPS→city, <b>ImageMagick</b> adds the watermark &amp; contact sheet. The sample photos come from <b>Pexels</b> and carry no camera GPS — instead sample metadata was stamped onto them (disclosed); a real phone photo brings its own date &amp; place.')}</div></div>
   <div class="prov"><span>${t('Bereitgestellt über den <b>Marktplatz</b>','Provided via the <b>Marketplace</b>')}</span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>${t('Signatur/Registry','Signature/Registry')} <span class="sim">Demo</span></span></div>`;
@@ -792,12 +591,12 @@ function reportHtmlPage(slug, lang) {
   <p class="subtle" style="margin:-6px 0 14px">${t('Sprache oben rechts umschaltbar (DE/EN): das LLM schreibt den Report in der gewählten Sprache — über denselben DSGVO-konformen Endpunkt in Deutschland.','Switch the language top right (DE/EN): the LLM writes the report in the chosen language — via the same GDPR-compliant endpoint in Germany.')}</p>
   ${tuneBlock(slug, lang)}
   <div class="io"><span>${t('Eingang','Input')}</span><span class="path">${d.source}</span><span class="ar">→</span><span>${t('Werkzeug','Tool')}</span><span class="path">${t('Kennzahlen · Diagramme · LLM-Narrativ','Metrics · charts · LLM narrative')}</span><span class="ar">→</span><span>${t('Ausgabe','Output')}</span><span class="path">report.html</span></div>
-  <main class="out" style="margin-top:14px">
+  <div class="out" style="margin-top:14px">
     <div class="stepper" hidden><div class="st" data-step="install"><span class="n">1</span> ${t('Installieren','Install')}</div><div class="st" data-step="process"><span class="n">2</span> ${t('Report erstellen','Build report')}</div><div class="st" data-step="done"><span class="n">3</span> ${t('Fertig','Done')}</div></div>
     <div class="placeholder">${t(`Noch kein Briefing — klick <b style="color:var(--ink)">&nbsp;Briefing erstellen&nbsp;</b>. Holt echte Wetterdaten für ${d.location}, rechnet Kennzahlen &amp; Diagramme und lässt ein LLM ein faktentreues Kurz-Briefing schreiben.`,`No briefing yet — click <b style="color:var(--ink)">&nbsp;Create briefing&nbsp;</b>. Fetches real weather data for ${d.location}, computes metrics &amp; charts and lets an LLM write a fact-faithful short briefing.`)}</div>
-    <section class="panel res-report" hidden><div class="ph"><h2>${t('Wetter-Briefing','Weather briefing')}</h2><span><a class="chip pdflink" href="#" target="_blank" hidden>PDF</a> <a class="chip openrep" href="#" target="_blank">${t('In neuem Tab','In new tab')}</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>
+    <section class="panel res-report" hidden><div class="ph"><h2>${t('Wetter-Briefing','Weather briefing')}</h2><span><a class="chip pdflink" href="#" target="_blank" rel="noopener noreferrer" hidden>PDF${newTabMark(lang)}</a> <a class="chip openrep" href="#" target="_blank" rel="noopener noreferrer">${t('In neuem Tab','In new tab')}${newTabMark(lang)}</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>
     <details class="tech" hidden><summary>${t('Technische Details — Installation &amp; Werkzeuglauf','Technical details — installation &amp; tool run')}</summary><div class="log"></div></details>
-  </main>
+  </div>
   <div class="note"><span class="t">${t('Faktentreu','Fact-faithful')}</span><div>${t('Das LLM schreibt <b>nur den Fließtext</b> — aus eingefrorenen Fakten (Open-Meteo). Ein <b>narrative_guard</b> prüft, dass keine Zahl erfunden wird; Kennzahlen, Tabellen und Diagramme kommen aus deterministischem Code, nicht aus dem Modell. Quelle &amp; Roh-Hash stehen im Report.','The LLM writes <b>only the prose</b> — from frozen facts (Open-Meteo). A <b>narrative_guard</b> checks that no number is invented; metrics, tables and charts come from deterministic code, not from the model. Source &amp; raw hash are in the report.')}</div></div>
   <div class="prov"><span>${t('Bereitgestellt über den <b>Marktplatz</b>','Provided via the <b>Marketplace</b>')}</span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>${t('Signatur/Registry','Signature/Registry')} <span class="sim">Demo</span></span></div>`;
   return toolShell(slug, { controls, body }, lang);
@@ -806,18 +605,18 @@ function reportHtmlPage(slug, lang) {
 function outBlock(steps, placeholder, panels, note, prov, lang) {
   const t = tr(lang);
   const st = steps.map((s, i) => `<div class="st" data-step="${['install', 'process', 'done'][i]}"><span class="n">${i + 1}</span> ${s}</div>`).join('');
-  return `<main class="out" style="margin-top:14px">
+  return `<div class="out" style="margin-top:14px">
     <div class="stepper" hidden>${st}</div>
     <div class="placeholder">${placeholder}</div>
     ${panels}
     <details class="tech" hidden><summary>${t('Technische Details — Installation &amp; Werkzeuglauf','Technical details — installation &amp; tool run')}</summary><div class="log"></div></details>
-  </main>${note || ''}
+  </div>${note || ''}
   <div class="prov">${prov || t('<span>Bereitgestellt über den <b>Marktplatz</b></span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>Signatur/Registry <span class="sim">Demo</span></span>','<span>Provided via the <b>Marketplace</b></span><span class="sep">|</span><span>Manifest <span class="ok">sha256 ✓</span></span><span class="sep">|</span><span>Signature/Registry <span class="sim">Demo</span></span>')}</div>`;
 }
 // How-to for running/customizing a demo on your own machine (marketplace docs). Replaces the old
 // "Werkzeug neu installieren" button, which the operator asked to swap for a real install guide link.
 const HOWTO_URL = 'https://scimbe.github.io/CADS-agent-marketplace-docs/how-to/install-and-customize-a-demo/';
-const installLink = (lang) => `<a class="btn btn-ghost" href="${HOWTO_URL}" target="_blank" rel="noopener">${tr(lang)('Lokal installieren &amp; anpassen ↗','Install &amp; customize locally ↗')}</a>`;
+const installLink = (lang) => extLink(HOWTO_URL, tr(lang)('Anleitung: selbst installieren &amp; anpassen', 'Guide: install &amp; customize yourself'), lang, 'class="btn btn-ghost"');
 const runBtns = (primary, lang) => `<button class="btn btn-primary run" data-fresh="0">${primary}</button>${installLink(lang)}`;
 const NOTE = (tag, html) => `<div class="note"><span class="t">${tag}</span><div>${html}</div></div>`;
 
@@ -826,19 +625,21 @@ const UPLOAD_CLIENT = `
   var btn=document.getElementById('upbtn'); if(!btn) return;
   var msg=document.getElementById('upmsg'), fa=document.getElementById('pdfa'), fb=document.getElementById('pdfb');
   var panel=document.querySelector('.res-upreport'), frame=document.querySelector('.upframe');
+  var TIMEOUT_S=120; // the compare normally takes 20-40 s; after this we stop waiting and offer a retry
   function b64(file){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(r.result)};r.onerror=rej;r.readAsDataURL(file);});}
   btn.addEventListener('click',async function(){
-    if(!fa.files[0]||!fb.files[0]){msg.textContent='Bitte zwei PDF-Dateien wählen.';return;}
-    if(fa.files[0].size>16e6||fb.files[0].size>16e6){msg.textContent='Jede Datei höchstens ~16 MB.';return;}
-    btn.disabled=true; msg.textContent='Vergleiche … (Text-Diff + Bildvergleich, kann ~20–40 s dauern)';
+    if(!fa.files[0]||!fb.files[0]){msg.textContent=f('js.up.pick');return;}
+    if(fa.files[0].size>16e6||fb.files[0].size>16e6){msg.textContent=f('js.up.size');return;}
+    btn.disabled=true; msg.setAttribute('role','status'); msg.textContent=f('js.up.working');
+    var ctl=new AbortController(), to=setTimeout(function(){ctl.abort();},TIMEOUT_S*1000);
     try{
       var a=await b64(fa.files[0]), b=await b64(fb.files[0]);
-      var r=await fetch('/api/upload-compare',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({a:a,b:b})});
+      var r=await fetch('/api/upload-compare',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({a:a,b:b}),signal:ctl.signal});
       var j=await r.json();
-      if(!j.ok){msg.textContent='Fehler: '+(j.error||'unbekannt');btn.disabled=false;return;}
-      frame.srcdoc=j.html; panel.hidden=false; msg.textContent='Fertig — Ihr Vergleich unten.'; panel.scrollIntoView({behavior:'smooth',block:'nearest'});
-    }catch(e){msg.textContent='Netzwerkfehler: '+e.message;}
-    btn.disabled=false;
+      if(!j.ok){msg.textContent=f('js.up.err',{msg:j.error||f('js.up.err.unknown')});return;}
+      frame.srcdoc=j.html; panel.hidden=false; msg.textContent=f('js.up.done'); panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    }catch(e){msg.textContent=(e&&e.name==='AbortError')?f('js.up.err.timeout',{s:TIMEOUT_S}):f('js.up.err.net');}
+    finally{clearTimeout(to);btn.disabled=false;}
   });
 })();`;
 
@@ -864,7 +665,7 @@ function reportMdPage(slug, lang) {
   ${upload}
   ${outBlock([t('Installieren','Install'), t('Vergleichen','Compare'), t('Fertig','Done')],
     t('Noch nicht verglichen — klick <b style="color:var(--ink)">&nbsp;Vergleichen&nbsp;</b>, dann siehst du den <b>Text-Unterschied</b> Klausel für Klausel und einen <b>Bildvergleich</b> der Seiten.','Not compared yet — click <b style="color:var(--ink)">&nbsp;Compare&nbsp;</b>, then you see the <b>text difference</b> clause by clause and an <b>image comparison</b> of the pages.'),
-    `<section class="panel res-report" hidden><div class="ph"><h2>${t('Vergleich (Text + Bild)','Comparison (text + image)')}</h2><span><a class="chip pdflink" href="#" target="_blank" hidden>PDF</a> <a class="chip openrep" href="#" target="_blank">${t('In neuem Tab','In new tab')}</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>`,
+    `<section class="panel res-report" hidden><div class="ph"><h2>${t('Vergleich (Text + Bild)','Comparison (text + image)')}</h2><span><a class="chip pdflink" href="#" target="_blank" rel="noopener noreferrer" hidden>PDF${newTabMark(lang)}</a> <a class="chip openrep" href="#" target="_blank" rel="noopener noreferrer">${t('In neuem Tab','In new tab')}${newTabMark(lang)}</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>`,
     NOTE(t('Text deterministisch · Bild per Vision','Text deterministic · image via vision'), t('Der <b>Text-Vergleich</b> ist deterministisch: <b>pdftotext</b> liest beide PDFs, Pythons <b>difflib</b> rechnet die Zeilenunterschiede (kein Modell entscheidet, was sich geändert hat); eine kurze <b>LLM-Zusammenfassung</b> fasst sie zusammen. Der <b>Bild-Vergleich</b> rendert jede Seite (<b>pdftoppm</b>) und lässt ein <b>Vision-Modell</b> die visuellen Unterschiede beschreiben — byte-gleiche Seiten werden ohne Modellaufruf als identisch erkannt.','The <b>text comparison</b> is deterministic: <b>pdftotext</b> reads both PDFs, Python difflib computes the line differences (no model decides what changed); a short <b>LLM summary</b> sums them up. The <b>image comparison</b> renders each page (<b>pdftoppm</b>) and lets a <b>vision model</b> describe the visual differences — byte-identical pages are recognized as identical without a model call.')), undefined, lang)}`;
   return toolShell(slug, { controls, body }, lang);
 }
@@ -876,12 +677,12 @@ function imagePage(slug, lang) {
   const body = `
   <p class="lede" style="margin:2px 0 14px">${di(d, 'tagline', lang)}</p>
   <label class="descfield"><span class="dl">${t('Deine Beschreibung — schreib in einem Satz, was das Diagramm zeigen soll:','Your description — write in one sentence what the diagram should show:')}</span>
-  <textarea class="descinput" rows="3" maxlength="600" placeholder="${t('z. B. Ein Flussdiagramm: Nutzer öffnet die Demo, der Marktplatz installiert das Werkzeug, es läuft lokal, das Ergebnis wird gezeigt.','e.g. A flowchart: a user opens the demo, the marketplace installs the tool, it runs locally, the result is shown.')}">${di(d, 'description', lang)}</textarea></label>
+  <textarea class="descinput" rows="3" maxlength="600" placeholder="${t('z. B. Ein Flussdiagramm: Nutzer öffnet die Demo, der Marktplatz installiert das Werkzeug, es läuft in einer geschützten Umgebung, das Ergebnis wird gezeigt.','e.g. A flowchart: a user opens the demo, the marketplace installs the tool, it runs in a protected environment, the result is shown.')}">${di(d, 'description', lang)}</textarea></label>
   ${tuneBlock(slug, lang)}
   <div class="io"><span>${t('Beschreibung','Description')}</span><span class="ar">→</span><span>LLM → ${d.engine === 'graphviz' ? 'Graphviz' : 'Mermaid'}</span><span class="ar">→</span><span>${t('Renderer prüft','Renderer checks')}</span><span class="ar">→</span><span class="path">diagram.png</span></div>
   ${outBlock([t('Installieren','Install'), t('Diagramm erzeugen','Generate diagram'), t('Fertig','Done')],
     t('Noch kein Diagramm — klick <b style="color:var(--ink)">&nbsp;Diagramm erzeugen&nbsp;</b>. Das LLM schreibt Mermaid-Code, der Renderer prüft ihn und macht ein PNG.','No diagram yet — click <b style="color:var(--ink)">&nbsp;Generate diagram&nbsp;</b>. The LLM writes Mermaid code, the renderer checks it and makes a PNG.'),
-    `<section class="panel res-image" hidden><div class="ph"><h2>${t('Erzeugtes Diagramm','Generated diagram')}</h2><a class="chip openimg" href="#" target="_blank">${t('Öffnen','Open')}</a></div><div class="sheetwrap"><img class="resimg" alt="${t('Diagramm','Diagram')}"/></div></section>`,
+    `<section class="panel res-image" hidden><div class="ph"><h2>${t('Erzeugtes Diagramm','Generated diagram')}</h2><a class="chip openimg" href="#" target="_blank" rel="noopener noreferrer">${t('Öffnen','Open')}${newTabMark(lang)}</a></div><div class="sheetwrap"><img class="resimg" alt="${t('Diagramm','Diagram')}"/></div></section>`,
     NOTE(t('Selbstkorrektur','Self-correction'), t('Das LLM schreibt nur die <b>Mermaid-Beschreibung</b>; ein echter Renderer (mermaid-cli) prüft sie, indem er sie tatsächlich zeichnet. Bei einem Syntaxfehler bekommt das LLM die echte Fehlermeldung zurück und korrigiert — bis zu 3 Versuche.','The LLM writes only the <b>Mermaid description</b>; a real renderer (mermaid-cli) checks it by actually drawing it. On a syntax error the LLM gets the real error message back and corrects — up to 3 attempts.')), undefined, lang)}`;
   return toolShell(slug, { controls, body }, lang);
 }
@@ -944,8 +745,8 @@ function landingPage(slug, lang) {
         <span class="k">${tk.tagline || ''}</span>
         <h3>${tk.name}</h3>
         <p>${tk.blurb || ''}${tk.loginNote ? `<br><span style="color:var(--muted);font-size:.8rem">${tk.loginNote}</span>` : ''}</p>
-        <span class="go">${t('Öffnen →','Open →')}</span>
-      </a>${tk.docsUrl ? `<a class="btn btn-ghost" style="margin-top:12px;align-self:flex-start" href="${tk.docsUrl}/${lang}/${tk.docsPath || ''}" target="_blank" rel="noopener">${t('Dokumentation ↗','Documentation ↗')}</a>` : ''}
+        <span class="go">${t('Öffnen','Open')} →${newTabMark(lang)}</span>
+      </a>${tk.docsUrl ? `<a class="btn btn-ghost" style="margin-top:12px;align-self:flex-start" href="${tk.docsUrl}/${lang}/${tk.docsPath || ''}" target="_blank" rel="noopener">${t('Dokumentation','Documentation')}${newTabMark(lang)}</a>` : ''}
     </div>`).join('');
   const body = `
   <p class="lede" style="margin:2px 0 20px">${di(d, 'blurb', lang)}</p>
@@ -999,15 +800,16 @@ async function handleStudio(req, res, url) {
   stage('done', 'Fertig'); emit('done', ''); res.end();
 }
 
-function soonPage(slug) {
+function soonPage(slug, lang) {
   const d = DEMOS[slug];
-  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${d.title} · Bunsenbrenner.org</title><style>${BB_CSS}</style></head><body>
-${appbar(`<a href="/">Marktplatz</a> / <b>${d.name}</b>`)}
-<div class="wrap"><div class="eyebrow"><span class="lead">—</span>${TYPE_LABEL[d.type] || 'Demo'} · in Vorbereitung</div>
-<h1>${d.title}</h1><p class="lede">${d.tagline}</p>
-<div class="note" style="margin-top:24px"><span class="t">Bald</span><div>Diese Demo ist spezifiziert und wird gerade im gleichen Stil verdrahtet.${d.note ? ' ' + d.note : ''} Schau gleich nochmal rein — oder <a href="/">zurück zur Übersicht</a>.</div></div>
-</div>${foot('de')}</body></html>`;
+  lang = normLang(lang);
+  const t = tr(lang);
+  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org` })}
+${appbar(`<a href="${lang === 'en' ? '/?lang=en' : '/'}">${t('Marktplatz', 'Marketplace')}</a> / <b>${d.name}</b>`, lang)}
+<main class="wrap" id="main" tabindex="-1"><div class="eyebrow"><span class="lead" aria-hidden="true">—</span>${di(d, 'category', lang) || 'Demo'} · ${t('in Vorbereitung', 'in preparation')}</div>
+<h1>${di(d, 'title', lang)}</h1><p class="lede">${di(d, 'blurb', lang)}</p>
+<div class="note" style="margin-top:24px"><span class="t">${t('In Vorbereitung', 'In preparation')}</span><div>${t('Diese Demo ist noch nicht startklar.', 'This demo is not ready to start yet.')} ${t('Schau später nochmal rein – oder', 'Check back later – or')} <a href="${lang === 'en' ? '/?lang=en' : '/'}">${t('zurück zur Übersicht', 'back to the overview')}</a>.</div></div>
+</main>${foot(lang)}</body></html>`;
 }
 
 // Live capacity indicator: server-side proxy of llm2's read-only /status (avoids CORS; the flaky
@@ -1029,14 +831,14 @@ async function fetchStatus() {
 function handleStatus(res) {
   fetchStatus().then((j) => {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    if (!j) { res.end(JSON.stringify({ ok: false })); return; }
+    if (!j) { res.end(JSON.stringify({ ok: false, reason: 'upstream-unreachable' })); return; }
     const svc = {};
     for (const [k, v] of Object.entries(j)) {
       if (k === 'ollama_backed' && v) { svc.ollama = { models: v.loaded_models || [], parallel: v.num_parallel_configured }; continue; }
       if (v && typeof v === 'object' && 'active_requests' in v) svc[k] = { active: v.active_requests, queued: v.queued_requests, p50: v.p50_latency_s };
     }
     res.end(JSON.stringify({ ok: true, svc }));
-  }).catch(() => { try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false })); } catch {} });
+  }).catch(() => { try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, reason: 'upstream-error' })); } catch {} });
 }
 
 // contractcheck: compare TWO user-uploaded PDFs (base64 JSON, no multipart parsing needed).
@@ -1078,7 +880,7 @@ let reqSeq = 0;
 http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
-  if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage()); return; }
+  if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage(DEMOS, normLang(url.searchParams.get('lang')))); return; }
   if (p === '/api/status') { handleStatus(res); return; }
   if (p === '/api/upload-compare' && req.method === 'POST') { handleUploadCompare(req, res); return; }
   if (p === '/api/start') { handleStart(req, res, url); return; }
@@ -1088,9 +890,9 @@ http.createServer((req, res) => {
   if (p.startsWith('/assets/thumbs/')) { serveFile(res, join(__dir, 'thumbs', p.slice('/assets/thumbs/'.length).replace(/\.\./g, ''))); return; }
   const pd = p.match(/^\/d\/([a-z0-9-]+)\/?$/);
   if (pd) { const slug = pd[1], d = DEMOS[slug]; if (!d) { res.writeHead(404).end('unknown demo'); return; }
-    const lang = url.searchParams.get('lang') === 'en' ? 'en' : 'de';
+    const lang = normLang(url.searchParams.get('lang'));
     const PAGES = { 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), audio: (s) => audioPage(s, lang), video: (s) => videoPage(s, lang), landing: (s) => landingPage(s, lang) };
-    const html = d.live && PAGES[d.type] ? PAGES[d.type](slug) : soonPage(slug);
+    const html = d.live && PAGES[d.type] ? PAGES[d.type](slug) : soonPage(slug, lang);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(html); return; }
   res.writeHead(404).end('not found');
 }).listen(PORT, HOST, () => console.log(`wrapper on http://${HOST}:${PORT}`));
