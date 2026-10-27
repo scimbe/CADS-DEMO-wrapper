@@ -85,3 +85,21 @@ test('demos.json has no absolute paths and no cookbook', () => {
   assert.ok(!/"\/(private|Users|Applications|tmp)\b/.test(txt), 'absolute path in demos.json');
   assert.ok(!('cookbook' in DEMOS));
 });
+
+test('podcast and explainer were merged: /d/<old> redirects to /d/erklaervideo (query kept), cards are hidden', async () => {
+  for (const old of ['podcast', 'explainer']) {
+    const r = await fetch(`${base}/d/${old}?lang=en`, { redirect: 'manual' });
+    assert.equal(r.status, 302, old);
+    assert.equal(r.headers.get('location'), '/d/erklaervideo?lang=en');
+  }
+  const home = await (await fetch(base + '/')).text();
+  assert.ok(!/href="\/d\/(podcast|explainer|travel|sound_generation)/.test(home));
+});
+
+test('erklaervideo without the bundle fails honestly (no fake success)', async () => {
+  const cfg = Buffer.from(JSON.stringify({ text: 'x'.repeat(60), length: 60 })).toString('base64');
+  const r = await fetch(`${base}/api/start?demo=erklaervideo&cfg=${encodeURIComponent(cfg)}`);
+  const t = await r.text();
+  assert.match(t, /event: fail/);
+  assert.ok(!/event: result/.test(t));
+});

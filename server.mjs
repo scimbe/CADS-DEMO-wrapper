@@ -23,7 +23,6 @@ import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
 import { WASM_DIR } from './lib/prompt-wasm.mjs';
-import { transcriptText } from './lib/transcript.mjs';
 import { md2html } from './lib/md2html.mjs';
 import { findChrome, withoutPdf } from './lib/pdf.mjs';
 import { generateDiagram } from './lib/diagram.mjs';
@@ -34,6 +33,8 @@ import { createRunDir, runDir, gcRuns, newRunId, RUN_ID_RE } from './lib/runs.mj
 const __dir = dirname(fileURLToPath(import.meta.url));
 const DEMOS = JSON.parse(readFileSync(join(__dir, 'demos.json'), 'utf8'));
 const WORK = join(__dir, 'work');
+// retired demos that became one: /d/<old> redirects to the new slug
+const MERGED = { podcast: 'erklaervideo', explainer: 'erklaervideo' };
 const RUNS = join(WORK, 'runs'); // one directory per visitor run (lib/runs.mjs)
 // Signed prompt templates ("Eigene Angaben"). The wrapper never takes a template from a request: it
 // reads it from here, re-verifies it and renders it itself (lib/templates.mjs).
@@ -343,25 +344,34 @@ async function invokeTimeline(slug, rec, emit, stage, done, reg) {
   });
 }
 
-// ---- invoke: serve-existing media (podcast audio, explainer video) -----------------------------
-const staticDir = (d) => (isAbsolute(d.staticOut) ? d.staticOut : join(__dir, d.staticOut));
-function invokeServeMedia(slug, rec, emit, stage, done) {
-  const d = DEMOS[slug];
-  stage('process', d.type === 'audio' ? 'Folge bereitstellen' : 'Video bereitstellen');
-  
-  emit('ok', d.hasManifest === false ? 'läuft aus der Quelle (noch kein Marktplatz-Manifest) · echtes, vorgerendertes Ergebnis' : 'echtes Ergebnis eines früheren Laufs (voller Render dauert zu lange für einen Klick)');
-  if (d.type === 'audio') {
-    let chapters = [], transcript = '';
-    try { const c = JSON.parse(readFileSync(join(staticDir(d), d.chapters), 'utf8')); chapters = (c.chapters || c).map((x) => ({ t: (x.start_ms || 0) / 1000, title: x.title })); } catch {}
-    try { transcript = transcriptText(readFileSync(join(staticDir(d), d.transcript), 'utf8')); } catch {}
-    emit('real', `echt · Folge + ${chapters.length} Kapitel + Transkript`);
-    done({ render: 'audio', audio: `/d/${slug}/out/${d.audio}?t=${Date.now()}`, chapters, transcript });
-  } else {
-    let scenes = [];
-    try { const s = JSON.parse(readFileSync(join(staticDir(d), d.scenes), 'utf8')); scenes = (s.scenes || s).map((x, i) => ({ n: i + 1, title: x.title || x.heading || `Szene ${i + 1}`, dur: x.duration || x.durationSec })); } catch {}
-    emit('real', `echt · Video + ${scenes.length} Szenen`);
-    done({ render: 'video', video: `/d/${slug}/out/${d.video}?t=${Date.now()}`, scenes });
-  }
+// ---- invoke: textvideo ("Erklärvideo aus deinem Text") ------------------------------------------
+// Bundle contract (bundles/erklaervideo/API.md, built by another branch): config JSON in, progress
+// lines on stdout, files in <cwd>/out/: video.mp4, subtitles.vtt, script.json, poster.jpg.
+const TEXTVIDEO_DIR = join(__dir, 'bundles', 'erklaervideo');
+const TEXTVIDEO_LENGTHS = [30, 60, 90];
+function invokeTextVideo(slug, rec, emit, stage, done, reg, cfg = {}) {
+  stage('process', 'Video erstellen');
+  const text = typeof cfg.text === 'string' ? cfg.text.trim().slice(0, 4000) : '';
+  const length = TEXTVIDEO_LENGTHS.includes(Number(cfg.length)) ? Number(cfg.length) : 60;
+  if (text.length < 30) { emit('fail', 'Bitte gib mindestens 30 Zeichen Text ein.'); return done(null); }
+  const entry = ['run.sh', 'run'].map((f) => join(TEXTVIDEO_DIR, f)).find((p) => existsSync(p));
+  if (!entry) { emit('fail', 'Die Video-Erzeugung ist noch nicht installiert.'); return done(null); }
+  const { runId, dir } = createRunDir(RUNS, slug);
+  rec.runId = runId; rec.workDir = dir; rec.outputDir = join(dir, 'out');
+  mkdirSync(rec.outputDir, { recursive: true });
+  const cfgPath = join(dir, 'config.json');
+  writeFileSync(cfgPath, JSON.stringify({ text, length_s: length, language: 'de', llm: { base_url: ENV.LITELLM_BASE_URL || '', api_key: ENV.LITELLM_API_KEY || '', model: ENV.LITELLM_DEFAULT_MODEL || '' } }));
+  const child = spawn('bash', [entry, cfgPath], { cwd: dir, env: { PATH: process.env.PATH, HOME: dir } });
+  if (reg) reg(child);
+  const on = (b) => b.toString().split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200)));
+  child.stdout.on('data', on); child.stderr.on('data', on);
+  child.on('close', (code) => {
+    const out = rec.outputDir;
+    if (code !== 0 || !existsSync(join(out, 'video.mp4'))) { emit('fail', `Video nicht erzeugt (exit ${code})`); return done(null); }
+    emit('real', 'echt · Video erzeugt');
+    const base = `/d/${slug}/out/${runId}`;
+    done({ render: 'textvideo', video: `${base}/video.mp4`, poster: existsSync(join(out, 'poster.jpg')) ? `${base}/poster.jpg` : '', subtitles: existsSync(join(out, 'subtitles.vtt')) ? `${base}/subtitles.vtt` : '' });
+  });
 }
 
 // `post` is set by handlePostStart: { demo, lang, cfg, extra, rendered } -- all server-derived. The GET
@@ -383,7 +393,7 @@ function handleStart(req, res, url, post = null) {
   (post ? res : req).on('close', () => { aborted = true; if (child && !child.killed) { try { child.kill('SIGKILL'); } catch {} } });
   let rec = null;
   try {
-    if (d.hasManifest === false || d.type === 'audio' || d.type === 'video' || d.type === 'image') { stage('install', 'Bereit'); rec = {}; }
+    if (d.hasManifest === false || d.type === 'textvideo' || d.type === 'image') { stage('install', 'Bereit'); rec = {}; }
     else rec = installActivate(slug, emit, stage);
   } catch (e) { emit('fail', 'Abbruch bei der Installation'); stage('error', 'Fehlgeschlagen'); res.end(); return; }
   if (aborted) { res.end(); return; }
@@ -394,7 +404,7 @@ function handleStart(req, res, url, post = null) {
   else if (d.type === 'report-md') invokeReportMd(slug, rec, emit, stage, cb, reg);
   else if (d.type === 'image') invokeImage(slug, rec, emit, stage, cb, reg, cfg, extra);
   else if (d.type === 'timeline') invokeTimeline(slug, rec, emit, stage, cb, reg);
-  else if (d.type === 'audio' || d.type === 'video') invokeServeMedia(slug, rec, emit, stage, cb);
+  else if (d.type === 'textvideo') invokeTextVideo(slug, rec, emit, stage, cb, reg, cfg);
   else { emit('fail', 'Unbekannter Demo-Typ'); cb(null); }
 }
 
@@ -412,6 +422,7 @@ function resolveOut(slug, runId) {
   if (!runId || !RUN_ID_RE.test(runId) || !/^[a-z0-9_-]+$/.test(slug)) return null;
   const wd = runDir(RUNS, slug, runId);
   if (d.type === 'photo-tool') return join(wd, 'sortiert');
+  if (d.type === 'textvideo') return join(wd, 'out');
   if (d.type === 'report-html') return join(wd, d.outputRel);
   if (d.type === 'report-md' || d.type === 'image' || d.type === 'timeline') return wd;
   return null;
@@ -471,7 +482,7 @@ function startRun(btn){
   const secs=()=>Math.round((Date.now()-t0)/1000);
   const line=(c,t)=>{const e=document.createElement('span');e.className='l '+c;e.textContent=t;log.appendChild(e);log.scrollTop=log.scrollHeight};
   var _cfg={}; try{ if(window.__cfg) _cfg=JSON.parse(decodeURIComponent(escape(atob(window.__cfg)))); }catch(e){}
-  var _di=document.querySelector('.descinput'); if(_di && _di.value.trim()) _cfg.description=_di.value.trim();
+  var _di=document.querySelector('.descinput'); if(_di && _di.value.trim()){ if(_di.id==='tvtext'){_cfg.text=_di.value.trim();var _tl=document.getElementById('tvlen');if(_tl)_cfg.length=parseInt(_tl.value,10);} else _cfg.description=_di.value.trim(); }
   var _cfgP=Object.keys(_cfg).length?('&cfg='+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(_cfg)))))):'';
   const es=pbRun?postStream('/api/start?lang='+(wrap.dataset.lang||'de'),pbRun):new EventSource('/api/start?demo='+encodeURIComponent(slug)+'&lang='+(wrap.dataset.lang||'de')+_cfgP);
   const stop=(txt,terra)=>{if(done)return;done=true;clearInterval(iv);bar.style.width='100%';pb.setAttribute('aria-valuenow','100');if(terra)bar.style.background='var(--terra)';ptxt.textContent=txt;live.textContent=txt;if(cancel){cancel.remove();cancel=null;}document.querySelectorAll('button.run,button[data-runlock]').forEach(b=>b.disabled=false);try{es.close()}catch(e){}};
@@ -508,14 +519,10 @@ function startRun(btn){
       var g=rs.querySelector('.opengal');if(g){if(r.gallery){g.href=r.gallery;g.style.display='';}else{g.style.display='none';}}}
     else if(r.render==='report-html'){const s=out.querySelector('.res-report');const fr=s.querySelector('iframe');fr.src=r.reportUrl;s.hidden=false;
       s.querySelector('.openrep').href=r.reportUrl;const pr=s.querySelector('.printrep');if(pr){pr.hidden=!!r.pdf;pr.onclick=function(){try{fr.contentWindow.focus();fr.contentWindow.print();}catch(e){window.open(r.reportUrl);}};}const pl=s.querySelector('.pdflink');if(r.pdf){pl.href=r.pdf;pl.hidden=false}else if(pl)pl.hidden=true;}
+    else if(r.render==='textvideo'){const s=out.querySelector('.res-textvideo');const v=s.querySelector('.resvideo');v.src=r.video;if(r.poster)v.poster=r.poster;s.querySelector('.dlvideo').href=r.video;s.hidden=false;}
     else if(r.render==='diagram'){const s=out.querySelector('.res-diagram');var u='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(r.svg);s.querySelector('.resimg').src=u;var dl=s.querySelector('.dlsvg');dl.href=u;dl.download='diagramm.svg';s.hidden=false;}
     else if(r.render==='timeline'){const s=out.querySelector('.res-timeline');const ol=s.querySelector('.timeline');ol.innerHTML='';
       for(const st of r.steps){const li=document.createElement('li');li.className='tstep'+(st.recover?' rec':'');li.innerHTML=(st.recover?'<span aria-hidden="true">↻ </span>':'')+'<b>'+st.label+'</b>'+(st.extra?' <span class="ex">'+st.extra+'</span>':'');ol.appendChild(li)}s.hidden=false;}
-    else if(r.render==='audio'){const s=out.querySelector('.res-audio');s.querySelector('.resaudio').src=r.audio;const ol=s.querySelector('.chapters');ol.innerHTML='';
-      for(const c of r.chapters){const li=document.createElement('li');li.innerHTML='<span class="ct">'+fmt(c.t)+'</span> '+c.title;li.onclick=()=>{const a=s.querySelector('.resaudio');a.currentTime=c.t;a.play()};ol.appendChild(li)}
-      if(r.transcript)s.querySelector('.txbody').textContent=r.transcript;s.hidden=false;}
-    else if(r.render==='video'){const s=out.querySelector('.res-video');s.querySelector('.resvideo').src=r.video;const ol=s.querySelector('.scenes');ol.innerHTML='';
-      for(const sc of r.scenes){const li=document.createElement('li');li.textContent=f('js.res.scene',{n:sc.n,title:sc.title})+(sc.dur?' ('+Math.round(sc.dur)+' s)':'');ol.appendChild(li)}s.hidden=false;}
   });
   es.addEventListener('done',()=>{if(failed)fail(es.refused?'refused':'tool',failMsg);else stop(f('js.run.done',{s:secs()}),false);});
   es.onerror=()=>{if(done)return;if(failed)fail('tool',failMsg);else fail('conn');};
@@ -651,16 +658,16 @@ function timelinePage(slug, lang) {
   return toolShell(slug, { controls: '', body: `<div class="miniform">${runButton(t('Ablauf starten ▸','Start run ▸'))}</div>${miniOut(panels, lang)}`, mini: true }, lang);
 }
 
-function audioPage(slug, lang) {
+function textVideoPage(slug, lang) {
   const t = tr(lang);
-  const panels = `<section class="panel res-audio" hidden><div class="ph"><h2>${t('Folge','Episode')}</h2></div><div class="sheetwrap"><audio class="resaudio" controls style="width:100%"></audio><ol class="chapters"></ol><details class="tx" style="margin-top:12px"><summary>${t('Transkript','Transcript')}</summary><pre class="txbody"></pre></details></div></section>`;
-  return toolShell(slug, { controls: '', body: `<div class="miniform">${runButton(t('Folge abspielen ▸','Play episode ▸'))}</div>${miniOut(panels, lang)}`, mini: true, builder: false }, lang);
-}
-
-function videoPage(slug, lang) {
-  const t = tr(lang);
-  const panels = `<section class="panel res-video" hidden><div class="ph"><h2>${t('Erklärvideo','Explainer video')}</h2></div><div class="sheetwrap"><video class="resvideo" controls preload="metadata" style="width:100%;border:1px solid var(--border);border-radius:9px"></video><ol class="scenes"></ol></div></section>`;
-  return toolShell(slug, { controls: '', body: `<div class="miniform">${runButton(t('Video abspielen ▸','Play video ▸'))}</div>${miniOut(panels, lang)}`, mini: true }, lang);
+  const body = `<div class="miniform">
+    <label for="tvtext">${t('Dein Text','Your text')}</label>
+    <textarea id="tvtext" class="descinput" rows="7" maxlength="4000" placeholder="${t('Füge hier deine Notizen oder einen Text ein …','Paste your notes or a text here …')}"></textarea>
+    <label for="tvlen">${t('Länge','Length')}</label>
+    <select id="tvlen" class="miniinput" style="max-width:10rem"><option value="30">30 s</option><option value="60" selected>60 s</option><option value="90">90 s</option></select>
+    <button class="btn btn-primary run" type="button">${t('Video erstellen ▸','Create video ▸')}</button></div>
+  ${miniOut(`<section class="panel res-textvideo" hidden><div class="ph"><h2>${t('Dein Video','Your video')}</h2><a class="chip dlvideo" href="#" download="erklaervideo.mp4">${t('Video herunterladen','Download video')}</a></div><div class="sheetwrap"><video class="resvideo" controls preload="metadata" style="width:100%;border-radius:9px"></video></div></section>`, lang)}`;
+  return toolShell(slug, { controls: '', body, mini: true, builder: false }, lang);
 }
 
 // ---- landing: a static, public collection page linking out to N sibling demos ("tracks") --
@@ -854,9 +861,10 @@ http.createServer(async (req, res) => {
   if (p.startsWith('/assets/thumbs/')) { serveFile(res, join(__dir, 'thumbs', p.slice('/assets/thumbs/'.length).replace(/\.\./g, ''))); return; }
   const pd = p.match(/^\/d\/([a-z0-9_-]+)\/?$/);
   if (pd) { const slug = pd[1], d = DEMOS[slug]; if (!d) { res.writeHead(404).end('unknown demo'); return; }
+    if (MERGED[slug]) { res.writeHead(302, { Location: `/d/${MERGED[slug]}${url.search}` }).end(); return; }
     if (d.type === 'external' && d.live && d.externalUrl) { res.writeHead(302, { Location: d.externalUrl }).end(); return; }
     const lang = normLang(url.searchParams.get('lang'));
-    const PAGES = { 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), audio: (s) => audioPage(s, lang), video: (s) => videoPage(s, lang), landing: (s) => landingPage(s, lang) };
+    const PAGES = { 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), textvideo: (s) => textVideoPage(s, lang), landing: (s) => landingPage(s, lang) };
     const html = d.live && PAGES[d.type] ? PAGES[d.type](slug) : soonPage(slug, lang);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(html); return; }
   res.writeHead(404).end('not found');
