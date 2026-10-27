@@ -31,6 +31,7 @@ import { generateDiagram } from './lib/diagram.mjs';
 import { parseTimeline, judgeTimeline, patchTemporalPorts, patchWaiter } from './lib/timeline.mjs';
 import { allocatePorts, releasePorts } from './lib/ports.mjs';
 import { createRunDir, runDir, gcRuns, newRunId, RUN_ID_RE } from './lib/runs.mjs';
+import { parseBundleLine } from './lib/bundle-lines.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const DEMOS = JSON.parse(readFileSync(join(__dir, 'demos.json'), 'utf8'));
@@ -354,32 +355,65 @@ async function invokeTimeline(slug, rec, emit, stage, done, reg) {
 }
 
 // ---- invoke: textvideo ("Erklärvideo aus deinem Text") ------------------------------------------
-// Bundle contract (bundles/erklaervideo/API.md, built by another branch): config JSON in, progress
-// lines on stdout, files in <cwd>/out/: video.mp4, subtitles.vtt, script.json, poster.jpg.
-const TEXTVIDEO_DIR = join(__dir, 'bundles', 'erklaervideo');
+// Signed-manifest bundle manifests/erklaervideo (contract: its API.md): config JSON in, `PROGRESS {json}`
+// lines on stdout, then one `RESULT {json}` or `ERROR {json}`; files in <out>/: video.mp4, subtitles.vtt,
+// script.json, poster.jpg, meta.json. The voice "Thomas" is reached through the ct-agent channel
+// (audio_generation) -- the same mechanism as the call-center app: a read-only mount holding ct-agent +
+// relay.env, wired by CT_AGENT_BIN / CT_RELAY_ENV / CT_AUDIO_CHANNEL_ID. No ports are opened.
 const TEXTVIDEO_LENGTHS = [30, 60, 90];
+const TEXTVIDEO_MAX_RUNNING = 2;
+const TEXTVIDEO_TIMEOUT_MS = 300000;
+let textVideoRunning = 0;
+// Only what the bundle needs reaches it: LLM access and the TTS wiring, nothing else from the process env.
+const TEXTVIDEO_PASS = /^(EVGEN_|CT_AGENT_BIN$|CT_RELAY_ENV$|CT_AUDIO_CHANNEL_ID$|LD_LIBRARY_PATH$)/;
 function invokeTextVideo(slug, rec, emit, stage, done, reg, cfg = {}) {
   stage('process', 'Video erstellen');
   const text = typeof cfg.text === 'string' ? cfg.text.trim().slice(0, 4000) : '';
+  const title = typeof cfg.title === 'string' ? cfg.title.trim().slice(0, 100) : '';
   const length = TEXTVIDEO_LENGTHS.includes(Number(cfg.length)) ? Number(cfg.length) : 60;
-  if (text.length < 30) { emit('fail', 'Bitte gib mindestens 30 Zeichen Text ein.'); return done(null); }
-  const entry = ['run.sh', 'run'].map((f) => join(TEXTVIDEO_DIR, f)).find((p) => existsSync(p));
-  if (!entry) { emit('fail', 'Die Video-Erzeugung ist noch nicht installiert.'); return done(null); }
-  const { runId, dir } = createRunDir(RUNS, slug);
-  rec.runId = runId; rec.workDir = dir; rec.outputDir = join(dir, 'out');
+  if (text.length < 40) { emit('fail', 'Bitte gib mindestens 40 Zeichen Text ein.'); return done(null); }
+  const entry = join(rec.workDir, 'run.sh');
+  if (!existsSync(entry)) { emit('fail', 'Die Video-Erzeugung ist nicht installiert.'); return done(null); }
+  if (textVideoRunning >= TEXTVIDEO_MAX_RUNNING) { emit('fail', 'Gerade werden schon zwei Videos erstellt – bitte in einer Minute noch einmal versuchen.'); return done(null); }
+  textVideoRunning++;
+  rec.outputDir = join(rec.workDir, 'out');
   mkdirSync(rec.outputDir, { recursive: true });
-  const cfgPath = join(dir, 'config.json');
-  writeFileSync(cfgPath, JSON.stringify({ text, length_s: length, language: 'de', llm: { base_url: ENV.LITELLM_BASE_URL || '', api_key: ENV.LITELLM_API_KEY || '', model: ENV.LITELLM_DEFAULT_MODEL || '' } }));
-  const child = spawn('bash', [entry, cfgPath], { cwd: dir, env: { PATH: process.env.PATH, HOME: dir } });
+  const cfgPath = join(rec.workDir, 'config.json');
+  // The bundle currently speaks German only (the channel serves one German voice): lang is fixed to 'de'.
+  writeFileSync(cfgPath, JSON.stringify({ text, ...(title ? { title } : {}), length, lang: 'de' }));
+  const passed = Object.fromEntries(Object.entries(process.env).filter(([k]) => TEXTVIDEO_PASS.test(k)));
+  const env = { ...passed, PATH: process.env.PATH, HOME: rec.workDir,
+    LLM_BASE_URL: ENV.LITELLM_BASE_URL || '', LLM_API_KEY: ENV.LITELLM_API_KEY || '', LLM_MODEL: ENV.LITELLM_DEFAULT_MODEL || '' };
+  const child = spawn('bash', [entry, cfgPath, rec.outputDir], { cwd: rec.workDir, env });
   if (reg) reg(child);
-  const on = (b) => b.toString().split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200)));
-  child.stdout.on('data', on); child.stderr.on('data', on);
+  const timer = setTimeout(() => { try { child.kill('SIGKILL'); } catch {} }, TEXTVIDEO_TIMEOUT_MS);
+  let result = null, error = null, buf = '', lastStage = '';
+  const STAGES = { config: 'Eingabe prüfen', script: 'Skript aus deinem Text', scenes: 'Sprache, Folien und Clips', encode: 'Video zusammensetzen', done: 'Fertig' };
+  const onLine = (raw) => {
+    const m = parseBundleLine(raw.trim());
+    if (!m) return;
+    if (m.kind === 'PROGRESS') {
+      if (m.data.stage !== lastStage && STAGES[m.data.stage]) { lastStage = m.data.stage; emit('step', STAGES[m.data.stage]); }
+      emit('run', `${String(m.data.pct).padStart(3)} %  ${String(m.data.message || '').slice(0, 160)}`);
+    } else if (m.kind === 'RESULT') result = m.data;
+    else error = m.data;
+  };
+  child.stdout.on('data', (b) => { buf += b.toString(); let i; while ((i = buf.indexOf('\n')) >= 0) { onLine(buf.slice(0, i)); buf = buf.slice(i + 1); } });
+  child.stderr.on('data', () => {});   // diagnostics stay server-side; never shown to visitors
+  child.on('error', () => { /* handled in close */ });
   child.on('close', (code) => {
+    clearTimeout(timer); textVideoRunning--;
+    if (buf.trim()) onLine(buf);
     const out = rec.outputDir;
-    if (code !== 0 || !existsSync(join(out, 'video.mp4'))) { emit('fail', `Video nicht erzeugt (exit ${code})`); return done(null); }
-    emit('real', 'echt · Video erzeugt');
-    const base = `/d/${slug}/out/${runId}`;
-    done({ render: 'textvideo', video: `${base}/video.mp4`, poster: existsSync(join(out, 'poster.jpg')) ? `${base}/poster.jpg` : '', subtitles: existsSync(join(out, 'subtitles.vtt')) ? `${base}/subtitles.vtt` : '' });
+    if (code !== 0 || !result || !existsSync(join(out, 'video.mp4'))) {
+      emit('fail', error && error.message ? String(error.message).slice(0, 240) : `Video nicht erzeugt (exit ${code})`);
+      return done(null);
+    }
+    for (const w of result.warnings || []) emit('warn', String(w).slice(0, 200));
+    emit(result.stub ? 'warn' : 'real', result.stub ? `Testlauf: Video erzeugt (${Math.round(result.duration_s)} s) mit Testton statt der Stimme Thomas` : `echt · Video erzeugt (${Math.round(result.duration_s)} s, Stimme Thomas)`);
+    const base = `/d/${slug}/out/${rec.runId}`;
+    done({ render: 'textvideo', video: `${base}/video.mp4`, poster: existsSync(join(out, 'poster.jpg')) ? `${base}/poster.jpg` : '',
+      subtitles: existsSync(join(out, 'subtitles.vtt')) ? `${base}/subtitles.vtt` : '', title: result.title || '' });
   });
 }
 
@@ -402,7 +436,7 @@ function handleStart(req, res, url, post = null) {
   (post ? res : req).on('close', () => { aborted = true; if (child && !child.killed) { try { child.kill('SIGKILL'); } catch {} } });
   let rec = null;
   try {
-    if (d.hasManifest === false || d.type === 'textvideo' || d.type === 'image') { stage('install', 'Bereit'); rec = {}; }
+    if (d.hasManifest === false || d.type === 'image') { stage('install', 'Bereit'); rec = {}; }
     else rec = installActivate(slug, emit, stage);
   } catch (e) { emit('fail', 'Abbruch bei der Installation'); stage('error', 'Fehlgeschlagen'); res.end(); return; }
   if (aborted) { res.end(); return; }
@@ -491,7 +525,7 @@ function startRun(btn){
   const secs=()=>Math.round((Date.now()-t0)/1000);
   const line=(c,t)=>{const e=document.createElement('span');e.className='l '+c;e.textContent=t;log.appendChild(e);log.scrollTop=log.scrollHeight};
   var _cfg={}; try{ if(window.__cfg) _cfg=JSON.parse(decodeURIComponent(escape(atob(window.__cfg)))); }catch(e){}
-  var _di=document.querySelector('.descinput'); if(_di && _di.value.trim()){ if(_di.id==='tvtext'){_cfg.text=_di.value.trim();var _tl=document.getElementById('tvlen');if(_tl)_cfg.length=parseInt(_tl.value,10);} else _cfg.description=_di.value.trim(); }
+  var _di=document.querySelector('.descinput'); if(_di && _di.value.trim()){ if(_di.id==='tvtext'){_cfg.text=_di.value.trim();var _tl=document.getElementById('tvlen');if(_tl)_cfg.length=parseInt(_tl.value,10);var _tt=document.getElementById('tvtitle');if(_tt&&_tt.value.trim())_cfg.title=_tt.value.trim();} else _cfg.description=_di.value.trim(); }
   var _cfgP=Object.keys(_cfg).length?('&cfg='+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(_cfg)))))):'';
   const es=pbRun?postStream('/api/start?lang='+(wrap.dataset.lang||'de'),pbRun):new EventSource('/api/start?demo='+encodeURIComponent(slug)+'&lang='+(wrap.dataset.lang||'de')+_cfgP);
   const stop=(txt,terra)=>{if(done)return;done=true;clearInterval(iv);bar.style.width='100%';pb.setAttribute('aria-valuenow','100');if(terra)bar.style.background='var(--terra)';ptxt.textContent=txt;live.textContent=txt;if(cancel){cancel.remove();cancel=null;}document.querySelectorAll('button.run,button[data-runlock]').forEach(b=>b.disabled=false);try{es.close()}catch(e){}};
@@ -528,7 +562,7 @@ function startRun(btn){
       var g=rs.querySelector('.opengal');if(g){if(r.gallery){g.href=r.gallery;g.style.display='';}else{g.style.display='none';}}}
     else if(r.render==='report-html'){const s=out.querySelector('.res-report');const fr=s.querySelector('iframe');fr.src=r.reportUrl;s.hidden=false;
       s.querySelector('.openrep').href=r.reportUrl;const pr=s.querySelector('.printrep');if(pr){pr.hidden=!!r.pdf;pr.onclick=function(){try{fr.contentWindow.focus();fr.contentWindow.print();}catch(e){window.open(r.reportUrl);}};}const pl=s.querySelector('.pdflink');if(r.pdf){pl.href=r.pdf;pl.hidden=false}else if(pl)pl.hidden=true;}
-    else if(r.render==='textvideo'){const s=out.querySelector('.res-textvideo');const v=s.querySelector('.resvideo');v.src=r.video;if(r.poster)v.poster=r.poster;s.querySelector('.dlvideo').href=r.video;s.hidden=false;}
+    else if(r.render==='textvideo'){const s=out.querySelector('.res-textvideo');const v=s.querySelector('.resvideo');v.querySelectorAll('track').forEach(function(x){x.remove();});v.src=r.video;if(r.poster)v.poster=r.poster;if(r.subtitles){var tr=document.createElement('track');tr.kind='subtitles';tr.srclang='de';tr.label='Deutsch';tr.src=r.subtitles;tr.default=true;v.appendChild(tr);}var ds=s.querySelector('.dlsubs');if(ds){if(r.subtitles){ds.href=r.subtitles;ds.hidden=false;}else ds.hidden=true;}s.querySelector('.dlvideo').href=r.video;s.hidden=false;}
     else if(r.render==='diagram'){const s=out.querySelector('.res-diagram');var u='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(r.svg);s.querySelector('.resimg').src=u;var dl=s.querySelector('.dlsvg');dl.href=u;dl.download='diagramm.svg';s.hidden=false;}
     else if(r.render==='timeline'){const s=out.querySelector('.res-timeline');const ol=s.querySelector('.timeline');ol.innerHTML='';
       for(const st of r.steps){const li=document.createElement('li');li.className='tstep'+(st.recover?' rec':'');li.innerHTML=(st.recover?'<span aria-hidden="true">↻ </span>':'')+'<b>'+st.label+'</b>'+(st.extra?' <span class="ex">'+st.extra+'</span>':'');ol.appendChild(li)}s.hidden=false;}
@@ -672,10 +706,16 @@ function textVideoPage(slug, lang) {
   const body = `<div class="miniform">
     <label for="tvtext">${t('Dein Text','Your text')}</label>
     <textarea id="tvtext" class="descinput" rows="7" maxlength="4000" placeholder="${t('Füge hier deine Notizen oder einen Text ein …','Paste your notes or a text here …')}"></textarea>
+    <label for="tvfile" class="sub">${t('… oder eine Datei laden (.txt, .md)','… or load a file (.txt, .md)')}</label>
+    <input id="tvfile" type="file" accept=".txt,.md,text/plain,text/markdown" class="miniinput" style="max-width:100%"/>
+    <label for="tvtitle">${t('Titel (optional)','Title (optional)')}</label>
+    <input id="tvtitle" class="miniinput" maxlength="100" type="text" style="max-width:100%"/>
     <label for="tvlen">${t('Länge','Length')}</label>
     <select id="tvlen" class="miniinput" style="max-width:10rem"><option value="30">30 s</option><option value="60" selected>60 s</option><option value="90">90 s</option></select>
+    <p class="sub" style="margin:.4rem 0 .8rem">${t('Die Erzählstimme „Thomas“ ist deutsch; das Video wird auf Deutsch erstellt.','The narrator “Thomas” is German; the video is created in German for now.')}</p>
     <button class="btn btn-primary run" type="button">${t('Video erstellen ▸','Create video ▸')}</button></div>
-  ${miniOut(`<section class="panel res-textvideo" hidden><div class="ph"><h2>${t('Dein Video','Your video')}</h2><a class="chip dlvideo" href="#" download="erklaervideo.mp4">${t('Video herunterladen','Download video')}</a></div><div class="sheetwrap"><video class="resvideo" controls preload="metadata" style="width:100%;border-radius:9px"></video></div></section>`, lang)}`;
+  <script>(function(){var f=document.getElementById('tvfile');if(!f)return;f.addEventListener('change',function(){var x=f.files&&f.files[0];if(!x)return;if(x.size>200000){alert('${t('Die Datei ist zu groß (max. 200 KB Text).','The file is too large (max 200 KB of text).')}');f.value='';return;}var r=new FileReader();r.onload=function(){document.getElementById('tvtext').value=String(r.result||'').slice(0,4000);};r.readAsText(x,'utf-8');});})();</script>
+  ${miniOut(`<section class="panel res-textvideo" hidden><div class="ph"><h2>${t('Dein Video','Your video')}</h2><span><a class="chip dlvideo" href="#" download="erklaervideo.mp4">${t('Video herunterladen','Download video')}</a> <a class="chip dlsubs" href="#" download="untertitel.vtt" hidden>${t('Untertitel (VTT)','Subtitles (VTT)')}</a></span></div><div class="sheetwrap"><video class="resvideo" controls preload="metadata" style="width:100%;border-radius:9px"></video></div></section>`, lang)}`;
   return toolShell(slug, { controls: '', body, mini: true, builder: false }, lang);
 }
 
