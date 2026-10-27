@@ -618,7 +618,7 @@ const UPLOAD_CLIENT = `
 })();`;
 
 // ---- minimal pages: ONE sentence, ONE input, ONE button, the result; details stay closed -----------
-const MINI_CSS = `.mini .stepper,.mini .placeholder{display:none!important}.mini .miniform{margin:18px 0 6px;display:flex;flex-direction:column;gap:12px;align-items:flex-start}.mini .miniform .descinput,.mini .miniform .miniinput{width:100%;max-width:44rem}.mini .miniform label{font-size:.9rem;color:var(--muted2)}.mini .out{margin-top:8px}.mini details.tech{margin-top:12px}.mini .resimg{max-width:100%;height:auto;display:block;margin:0 auto}.mini .miniactions{display:flex;gap:10px;flex-wrap:wrap}`;
+const MINI_CSS = `.mini .stepper,.mini .placeholder{display:none!important}.mini .miniform{margin:18px 0 6px;display:flex;flex-direction:column;gap:12px;align-items:flex-start}.mini .miniform .descinput,.mini .miniform .miniinput{width:100%;max-width:44rem}.mini .miniform label{font-size:.9rem;color:var(--muted2)}.mini .out{margin-top:8px}.mini details.tech{margin-top:12px}.mini .resimg{max-width:100%;height:auto;display:block;margin:0 auto}.mini .miniactions{display:flex;gap:10px;flex-wrap:wrap}.mini .pb-lede,.mini .pb-startnote{display:none}.mini .pb{margin-top:8px}`;
 const miniOut = (panels, lang) => {
   const t = tr(lang);
   return `<div class="out"><div class="stepper" hidden><div class="st" data-step="install"></div><div class="st" data-step="process"></div><div class="st" data-step="done"></div></div>
