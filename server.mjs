@@ -406,7 +406,9 @@ function invokeTextVideo(slug, rec, emit, stage, done, reg, cfg = {}) {
     if (buf.trim()) onLine(buf);
     const out = rec.outputDir;
     if (code !== 0 || !result || !existsSync(join(out, 'video.mp4'))) {
-      emit('fail', error && error.message ? String(error.message).slice(0, 240) : `Video nicht erzeugt (exit ${code})`);
+      // Visitors only ever see the friendly sentence; raw tool output goes to the log under "Technische Details".
+      if (error && error.details) emit('run', `Technische Details: ${String(error.details).slice(0, 300)}`);
+      emit('fail', error && error.message ? String(error.message).slice(0, 240) : 'Das Video konnte gerade nicht erstellt werden – bitte in einer Minute erneut versuchen.');
       return done(null);
     }
     for (const w of result.warnings || []) emit('warn', String(w).slice(0, 200));
