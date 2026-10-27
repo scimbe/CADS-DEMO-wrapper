@@ -10,6 +10,14 @@ cp .env.template .env   # fill LITELLM_* (shared proxy) on the host
 node server.mjs         # listens on 127.0.0.1:8790
 ```
 
+## Test
+```
+node --test test/    # dependency-free (node:test); boots the server without LLM credentials
+```
+Layout: `server.mjs` (routes, demo pages, run client), `lib/` (page chrome + CSS, index page,
+search blob, DE/EN dictionary), `demos.json` (per-demo copy: `title`/`blurb`/`tech`/`category`,
+each with an `_en` variant).
+
 ## Behind demos.bunsenbrenner.org (CADS-Tunnel, Browser Plane)
 Onboard a ct-agent with `CT_AGENT_ORIGIN=127.0.0.1:8790` (plain TCP proxy) — see the deploy
 notes. No `CT_AGENT_SERVICE_HANDLER` needed (that is the channel path, not plain onboard/serve).
