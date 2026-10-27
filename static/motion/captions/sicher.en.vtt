@@ -1,17 +1,17 @@
 WEBVTT
 
 1
-00:00:00.000 --> 00:00:03.000
-Safe on every device
+00:00:00.300 --> 00:00:02.063
+Safe on every device.
 
 2
-00:00:03.000 --> 00:00:12.500
-The same installation on macOS, Linux, Windows and Android. Windows and Android are in preparation.
+00:00:03.200 --> 00:00:10.245
+The same installation on macOS, Linux, Windows and Android. Windows and Android are still in preparation.
 
 3
-00:00:12.500 --> 00:00:24.500
-An escape attempt from the sandbox is blocked. The tests on macOS (Seatbelt) and Linux (bubblewrap) pass.
+00:00:12.700 --> 00:00:18.329
+An escape attempt from the sandbox is blocked. The tests on macOS and Linux pass.
 
 4
-00:00:24.500 --> 00:00:34.000
+00:00:24.700 --> 00:00:27.473
 Without a sandbox, nothing starts.

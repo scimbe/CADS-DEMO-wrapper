@@ -1,29 +1,29 @@
 WEBVTT
 
 1
-00:00:00.000 --> 00:00:03.500
-Nordwind — one real day. Scenario; the weather part runs live.
+00:00:00.200 --> 00:00:02.346
+Nordwind: one real day.
 
 2
-00:00:03.500 --> 00:00:12.000
-Field staff fill in the signed template “Törn-Briefing Samstag Bremen” on an Android phone.
+00:00:03.700 --> 00:00:08.760
+Field staff fill in the signed template for the Bremen sailing briefing on an Android phone.
 
 3
-00:00:12.000 --> 00:00:17.000
+00:00:12.200 --> 00:00:14.659
 The installation is saved in the account.
 
 4
-00:00:17.000 --> 00:00:21.700
-HQ Hamburg runs it in the sandbox with its own Claude plan.
+00:00:17.100 --> 00:00:20.918
+Hamburg runs it in the sandbox, with its own Claude plan.
 
 5
-00:00:21.700 --> 00:00:31.000
-Workshop GPU and harbour office join in over encrypted, outbound-only channels. The edge sees nothing.
+00:00:21.900 --> 00:00:26.728
+The workshop and the harbour office help over encrypted channels. The edge sees nothing.
 
 6
-00:00:31.000 --> 00:00:38.500
-The real briefing returns to the phone.
+00:00:31.200 --> 00:00:33.625
+The real briefing comes back to the phone.
 
 7
-00:00:38.500 --> 00:00:45.000
-Real run for Bremen (German output): “Für fünf Tage bleibt es trocken, was Outdoor-Aktivitäten wie Segeln begünstigt.”
+00:00:38.600 --> 00:00:43.637
+A real run for Bremen, translated: five dry days ahead, good for sailing.
