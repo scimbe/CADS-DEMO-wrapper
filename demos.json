@@ -240,7 +240,7 @@
     "manifestDir": "manifests/newsletter",
     "location": "Hamburg, DE",
     "source": "api.open-meteo.com",
-    "model": "local-devstral-small2",
+    "model": "local-qwen36-35b-a3b-coding",
     "htmlEntry": "report.html",
     "outputRel": "report-output",
     "usesLLM": true,
@@ -437,7 +437,7 @@
     "engine": "graphviz",
     "description": "Ein Besucher öffnet die Demo, der Marktplatz installiert das Werkzeug, es läuft in einer geschützten Umgebung und das Ergebnis wird gezeigt.",
     "usesLLM": true,
-    "model": "local-devstral-small2",
+    "model": "local-qwen36-35b-a3b-coding",
     "estSeconds": 8,
     "live": true,
     "demo_prompt": {

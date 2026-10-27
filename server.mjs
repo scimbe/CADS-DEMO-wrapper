@@ -225,10 +225,11 @@ async function callLLM(system, user, maxTokens = 300, temp = 0.1, timeoutMs = 30
   try {
     const r = await fetch(base + '/v1/chat/completions', {
       method: 'POST', headers: { Authorization: 'Bearer ' + ENV.LITELLM_API_KEY, 'Content-Type': 'application/json' }, signal: ctl.signal,
-      body: JSON.stringify({ model: ENV.LITELLM_DEFAULT_MODEL, temperature: temp, max_tokens: maxTokens, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
+      body: JSON.stringify({ model: ENV.LITELLM_DEFAULT_MODEL || 'local-qwen36-35b-a3b-coding', temperature: temp, max_tokens: maxTokens, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json();
+    // only `content`: reasoning_content (a thinking model) is never shown nor parsed
     return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
   } finally { clearTimeout(to); }
 }
