@@ -1,0 +1,36 @@
+{
+  "what": "Browser/Node binding for PromptTemplate and ServiceManifest sign/verify/render (wasm-bindgen --target web)",
+  "source": {
+    "repo": "https://github.com/scimbe/CADS-agent-marketplace.git",
+    "commit": "701146af76a0391cb090b251a0eee6af97cf5173",
+    "branch": "feat/prompt-template",
+    "crate": "manifest-core-wasm",
+    "crate_version": "0.1.1",
+    "dirty": false
+  },
+  "toolchain": {
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "target": "wasm32-unknown-unknown",
+    "profile": "release",
+    "wasm_bindgen_cli": "0.2.127"
+  },
+  "build": [
+    "cargo build --locked -p manifest-core-wasm --target wasm32-unknown-unknown --release",
+    "wasm-bindgen --target web --out-name manifest_core_wasm"
+  ],
+  "reproduce": "bin/vendor-wasm.sh <checkout of source.repo at source.commit>",
+  "files": {
+    "manifest_core_wasm.d.ts": {
+      "sha256": "9ec2b86bd1b16f9d0c2b5ae2d888741c14bcf778986c70c4864ad2926f7687ce",
+      "bytes": 6258
+    },
+    "manifest_core_wasm.js": {
+      "sha256": "d70ba0a93d5a58ebcbd6288e4c5573351bd0cbc0dc5ac21094dd05318b7343ce",
+      "bytes": 15731
+    },
+    "manifest_core_wasm_bg.wasm": {
+      "sha256": "9c66dbf2793c69117197be5930b5740698ac8e4cb2424b3c7ea4a13b70d4ceed",
+      "bytes": 665483
+    }
+  }
+}
