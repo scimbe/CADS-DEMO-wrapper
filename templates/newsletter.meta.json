@@ -18,7 +18,7 @@
     },
     "accent_color": { "label": { "de": "Akzentfarbe", "en": "Accent colour" }, "help": { "de": "Farbe der Überschriften und Diagramme im Briefing.", "en": "Colour of the headings and charts in the briefing." }, "default": "#1f4e79" },
     "own_context": {
-      "label": { "de": "Eigener Hinweis (optional)", "en": "Your own note (optional)" },
+      "label": { "de": "Eigener Hinweis", "en": "Your own note" },
       "help": { "de": "Zum Beispiel: Wir planen am Samstag ein Gartenfest. Dein Text wird als Angabe behandelt, nicht als Anweisung.", "en": "For example: we are planning a garden party on Saturday. Your text is treated as data, not as an instruction." },
       "default": ""
     }

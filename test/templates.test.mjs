@@ -110,7 +110,7 @@ test('bound violations produce friendly, specific messages in German and English
   const t = tpl('newsletter');
   const base = defaults('newsletter');
   const cases = [
-    [{ own_context: 'x'.repeat(601) }, 'toolong', /„Eigener Hinweis \(optional\)“ ist zu lang.*600 Zeichen/, /too long.*600 characters/],
+    [{ own_context: 'x'.repeat(601) }, 'toolong', /„Eigener Hinweis“ ist zu lang.*600 Zeichen/, /too long.*600 characters/],
     [{ own_context: Array(9).fill('a').join('\n') }, 'toomanylines', /zu viele Zeilen.*8/, /too many lines.*8/],
     [{ own_context: 'hallo​welt' }, 'forbidden', /nicht erlaubt/, /not allowed/],
     [{ days: 99 }, 'range', /ganze Zahl zwischen 3 und 14/, /whole number between 3 and 14/],
