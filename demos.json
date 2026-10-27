@@ -5,37 +5,58 @@
     "version": "0.1.0",
     "title": "Flappy-Spiel bauen",
     "tagline": "Ein Live-Studio: Du stellst dein Flappy-Bird ein, und eine echte Rollen-Ketten-Pipeline über den Tunnel baut daraus dein spielbares Spiel — payload-blind am Edge.",
-    "blurb": "Spiel einstellen, Pipeline baut es, direkt im Browser spielen.",
+    "blurb": "Stell dein Flappy-Bird nach deinen Wünschen ein und spiel es direkt im Browser.",
     "externalUrl": "https://flappy-demo.bunsenbrenner.org/",
-    "live": true
+    "live": true,
+    "order": 7,
+    "category": "Spiel",
+    "category_en": "Game",
+    "blurb_en": "Set up your own Flappy Bird the way you like it and play it right in the browser.",
+    "tech": "Eigenständige Live-App. Eine Rollen-Kette (Pipeline) baut das Spiel über den CADS-Tunnel; der Tunnel-Betreiber sieht den Inhalt nicht (payload-blind am Edge).",
+    "tech_en": "Standalone live app. A role chain (pipeline) builds the game through the CADS tunnel; the tunnel operator cannot see the content (payload-blind at the edge).",
+    "title_en": "Build a Flappy game"
   },
   "callcenter": {
     "type": "external",
     "name": "callcenter",
     "version": "0.1.0",
-    "title": "Deutschlandatlas Sprach-Callcenter",
+    "title": "Sprachassistent für Regionaldaten",
     "tagline": "Ein Sprach-Callcenter über den Tunnel: Du fragst Thorsten nach Regionaldaten, eine geführte Dialog-State-Machine holt live echte Zahlen aus dem Deutschlandatlas — geerdet gesprochen, mit sinnvollen Rückfragen und aktiver Weiterführung.",
-    "blurb": "Frage stellen, Thorsten antwortet gesprochen mit echten, live abgefragten Regionaldaten.",
+    "blurb": "Frag Thorsten nach Zahlen zu einer Region in Deutschland – die Antwort kommt gesprochen und mit echten Daten.",
     "externalUrl": "https://callcenter-34a13a96.bunsenbrenner.org/",
-    "live": true
+    "live": true,
+    "order": 8,
+    "category": "Sprache",
+    "category_en": "Voice",
+    "title_en": "Voice assistant for regional data",
+    "blurb_en": "Ask Thorsten for figures about a region in Germany – the answer is spoken and based on real data.",
+    "tech": "Sprach-Callcenter über den Tunnel: Eine geführte Dialog-State-Machine holt live Zahlen aus dem Deutschlandatlas. Antworten sind auf diese Daten gestützt (grounded), mit sinnvollen Rückfragen.",
+    "tech_en": "Voice call centre through the tunnel: a guided dialogue state machine fetches live figures from the Deutschlandatlas. Answers are grounded in that data, with sensible follow-up questions."
   },
   "keyforge": {
     "type": "external",
     "name": "keyforge",
     "version": "0.1.0",
-    "title": "KeyForge — Manifeste signieren & prüfen",
+    "title": "Echtheit von Vorlagen prüfen",
     "tagline": "Signiere und verifiziere CADS-Manifeste vollständig im Browser.",
-    "blurb": "Holder-Identität erzeugen, ein Manifest signieren und ein echtes, vom Publisher signiertes Manifest live aus der Registry verifizieren — kein serverseitiges Vertrauen, die gesamte Krypto läuft clientseitig via WASM.",
+    "blurb": "Prüfe selbst, ob eine Vorlage wirklich von ihrem Herausgeber stammt und nicht verändert wurde – direkt im Browser.",
     "externalUrl": "https://keyforge-34a13a96.bunsenbrenner.org",
-    "live": true
+    "live": true,
+    "order": 11,
+    "category": "Sicherheit",
+    "category_en": "Security",
+    "title_en": "Check a template's authenticity",
+    "blurb_en": "Check for yourself whether a template really comes from its publisher and has not been altered – right in your browser.",
+    "tech": "KeyForge: Holder-Identität erzeugen, ein Manifest signieren und ein vom Publisher signiertes Manifest live aus der Registry verifizieren. Die gesamte Kryptografie läuft clientseitig via WASM, ohne serverseitiges Vertrauen.",
+    "tech_en": "KeyForge: create a holder identity, sign a manifest and verify a publisher-signed manifest live from the registry. All cryptography runs client-side via WASM, with no server-side trust."
   },
   "cads-tutor": {
     "type": "landing",
     "name": "cads-tutor",
     "version": "0.1.0",
-    "title": "CaDS Tutor — Geführtes Lernen im Browser",
+    "title": "Programmieren lernen im Browser",
     "tagline": "Ein interaktiver Programmier-Tutor im Browser — drei Spuren (Firmware, Rust, JavaScript), geführte Curricula mit geerdeten Antworten und echten Zitaten.",
-    "blurb": "Alle drei Spuren laufen auf derselben CaDS-Tutor-Extension (`bunsenbrenner.review-cli-vscode`) — geführte Curricula, grounded Q&amp;A mit echten Zitaten, nie geraten. tutor-lab ist die leichtgewichtige Variante ohne Embedded-Toolchain.",
+    "blurb": "Geführte Lernpfade für Firmware, Rust und JavaScript. Antworten kommen mit Quellenangabe – bei Unbekanntem sagt der Tutor ehrlich, dass er es nicht weiß.",
     "live": true,
     "tracks": [
       {
@@ -64,45 +85,73 @@
         "docsPath": "javascript/",
         "loginNote": "Anmeldung erforderlich (Login erst beim Track-Klick)"
       }
-    ]
+    ],
+    "order": 9,
+    "category": "Lernen",
+    "category_en": "Learning",
+    "title_en": "Learn to code in your browser",
+    "blurb_en": "Guided learning paths for firmware, Rust and JavaScript. Answers come with sources – when the tutor does not know, it says so honestly.",
+    "tech": "Alle drei Spuren laufen auf derselben CaDS-Tutor-Extension (bunsenbrenner.review-cli-vscode): geführte Curricula und Q&A, das gegen indiziertes Referenzmaterial (Rust Book, MDN) geerdet ist und echte Zitate liefert.",
+    "tech_en": "All three tracks run on the same CaDS Tutor extension (bunsenbrenner.review-cli-vscode): guided curricula and Q&A grounded in indexed reference material (Rust Book, MDN) with real citations."
   },
   "a2a-demo": {
     "type": "external",
     "name": "a2a-demo",
     "version": "0.1.0",
-    "title": "Agent-zu-Agent — ohne offene Ports",
+    "title": "Zwei Geräte sicher verbinden",
     "tagline": "Zwei Maschinen in getrennten Netzen erreichen sich Ende-zu-Ende-verschlüsselt über das Relay der Plattform — keine Seite öffnet einen Port oder einen Listener.",
-    "blurb": "Live-Topologie im Browser: echte Rechner, echte Agent-Fabric-Channel-Calls, durchgehend verschlüsselt und über das Relay durchgereicht — ohne dass eine Seite lauscht. Grün = jetzt verbunden, gestrichelt = offline.",
+    "blurb": "Zwei Computer in verschiedenen Netzen finden sich verschlüsselt, ohne dass am Router etwas freigegeben werden muss.",
     "externalUrl": "https://a2a-demo.bunsenbrenner.org/",
-    "live": false
+    "live": false,
+    "order": 20,
+    "category": "Vernetzung",
+    "category_en": "Networking",
+    "title_en": "Connect two devices securely",
+    "blurb_en": "Two computers in different networks reach each other encrypted, without opening anything on the router.",
+    "tech": "Agent-zu-Agent über das Relay der Plattform: Ende-zu-Ende-verschlüsselte Agent-Fabric-Channel-Calls, auf keiner Seite ein offener Port oder Listener.",
+    "tech_en": "Agent-to-agent through the platform relay: end-to-end encrypted agent-fabric channel calls, no open port or listener on either side."
   },
   "auction-demo": {
     "type": "external",
     "name": "auction-demo",
     "version": "0.1.0",
-    "title": "Live-Auktion — echte Pipeline",
+    "title": "Live-Auktion: Wer bekommt den Zuschlag?",
     "tagline": "Sechs echte Prozesse bieten, ein echter Clearing-Algorithmus rechnet ab — der getestete per-Rollen-Auktionsalgorithmus von CADS-Tunnel, live im Browser.",
-    "blurb": "Live-Bieter-Board: der reale, getestete Clearing-Algorithmus der Pipeline (auction_view) läuft live im Browser über echte, von sechs Prozessen eingereichte Gebote.",
+    "blurb": "Sieh live, wie sechs Teilnehmer bieten und ein geprüftes Verfahren den Zuschlag berechnet.",
     "externalUrl": "https://auction-demo.bunsenbrenner.org/",
-    "live": true
+    "live": true,
+    "order": 10,
+    "category": "Live-Demo",
+    "category_en": "Live demo",
+    "title_en": "Live auction: who wins the bid?",
+    "blurb_en": "Watch six participants bid live while a tested procedure works out who wins.",
+    "tech": "Sechs echte Prozesse reichen Gebote ein; der getestete Clearing-Algorithmus (auction_view) der CADS-Tunnel-Pipeline rechnet live im Browser ab.",
+    "tech_en": "Six real processes submit bids; the tested clearing algorithm (auction_view) of the CADS tunnel pipeline settles them live in the browser."
   },
   "cookbook": {
     "type": "external",
     "name": "cookbook",
     "version": "0.1.0",
-    "title": "Cookbook — Rezept aus dem Kühlschrank",
+    "title": "Rezept aus dem Kühlschrank",
     "tagline": "Du gibst einen Text-Prompt und optional ein Foto deiner Zutaten — eine Crew kooperierender KI-Agenten über den Tunnel kocht daraus live ein Rezept.",
-    "blurb": "Ein Rezeptgenerator, live gebaut von einer Crew unabhängiger KI-Agenten über die Agent-Fabric. Jeder Schritt wird live gezeigt, während er passiert. Der Operator sieht nie dein Foto oder Rezept — nur, dass ein Channel zwischen zwei Schlüsseln existiert.",
+    "blurb": "Beschreibe, was du zu Hause hast, oder fotografiere die Zutaten – und bekomme ein passendes Rezept.",
     "externalUrl": "https://cookbook.bunsenbrenner.org/",
-    "live": false
+    "live": false,
+    "order": 21,
+    "category": "Küche",
+    "category_en": "Kitchen",
+    "title_en": "Recipe from your fridge",
+    "blurb_en": "Describe what you have at home, or photograph the ingredients – and get a matching recipe.",
+    "tech": "Eine Crew unabhängiger KI-Agenten baut das Rezept über die Agent-Fabric. Der Operator sieht nie dein Foto oder Rezept – nur, dass ein Channel zwischen zwei Schlüsseln existiert.",
+    "tech_en": "A crew of independent AI agents builds the recipe through the agent fabric. The operator never sees your photo or recipe – only that a channel between two keys exists."
   },
   "phototools": {
     "type": "photo-tool",
     "name": "phototools",
     "version": "0.1.2",
     "title": "Foto-Ordner ordnen",
-    "tagline": "Sortiert einen Foto-Ordner nach Aufnahmedatum und Ort, setzt ein Wasserzeichen und legt einen Kontaktbogen an — lokal, ohne KI.",
-    "blurb": "Wilder Foto-Stapel rein, sauber sortierte Ordner + Kontaktbogen raus.",
+    "tagline": "Sortiert einen Foto-Ordner nach Aufnahmedatum und Ort, setzt ein Wasserzeichen und legt einen Kontaktbogen an – ganz ohne KI.",
+    "blurb": "Ein wilder Foto-Stapel wird zu sauber sortierten Ordnern mit Übersichtsbogen – nach Datum und Ort.",
     "manifestDir": "manifests/phototools",
     "inputDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/wrapper/fotos",
     "outputDir": "/private/tmp/claude-502/-Users-dev-claude-workspace/4ae51a65-64df-4538-ac1e-2ad5aeb2b44f/scratchpad/wrapper/sortiert",
@@ -192,7 +241,13 @@
       ]
     },
     "title_en": "Sort a photo folder",
-    "tagline_en": "Sorts a photo folder by capture date and place, adds a watermark and builds a contact sheet — locally, no AI."
+    "tagline_en": "Sorts a photo folder by capture date and place, adds a watermark and builds a contact sheet – no AI involved.",
+    "order": 1,
+    "category": "Fotos",
+    "category_en": "Photos",
+    "blurb_en": "A messy pile of photos becomes tidy folders with an overview sheet – sorted by date and place.",
+    "tech": "Das Werkzeug „phototools\": exiftool liest die Kamera-Metadaten, ein Ortsverzeichnis (Gazetteer) ordnet GPS-Koordinaten einer Stadt zu, ImageMagick setzt Wasserzeichen und Kontaktbogen. Es kommt kein KI-Modell zum Einsatz.",
+    "tech_en": "The \"phototools\" tool: exiftool reads the camera metadata, a gazetteer maps GPS coordinates to a city, ImageMagick adds the watermark and contact sheet. No AI model is involved."
   },
   "newsletter": {
     "type": "report-html",
@@ -200,7 +255,7 @@
     "version": "0.1.1",
     "title": "Wetter-Briefing erstellen",
     "tagline": "Holt echte Wetterdaten (Open-Meteo), rechnet Kennzahlen und Diagramme, und lässt ein LLM ein faktentreues Kurz-Briefing schreiben — als fertiger HTML-Report.",
-    "blurb": "Standort rein, redaktionelles Wochen-Wetterbriefing als HTML raus.",
+    "blurb": "Du wählst einen Ort und bekommst einen fertigen Wochen-Wetterbericht mit Zahlen und Diagrammen.",
     "manifestDir": "manifests/newsletter",
     "location": "Hamburg, DE",
     "source": "api.open-meteo.com",
@@ -326,7 +381,13 @@
     },
     "servedBy": "customer",
     "title_en": "Create a weather briefing",
-    "tagline_en": "Fetches real weather data (Open-Meteo), computes metrics and charts, and lets an LLM write a fact-faithful short briefing — as a finished HTML report."
+    "tagline_en": "Fetches real weather data (Open-Meteo), computes metrics and charts, and lets an LLM write a fact-faithful short briefing — as a finished HTML report.",
+    "order": 3,
+    "category": "Bericht",
+    "category_en": "Report",
+    "blurb_en": "Pick a place and get a finished weekly weather report with figures and charts.",
+    "tech": "Echte Wetterdaten (Open-Meteo). Kennzahlen und Diagramme werden mit gewöhnlichem Code berechnet; ein Sprachmodell schreibt nur den Fließtext, jede Zahl darin wird gegen die Rohdaten geprüft. Ergebnis ist ein HTML-Report.",
+    "tech_en": "Real weather data (Open-Meteo). Metrics and charts are computed with ordinary code; a language model writes only the prose, and every number in it is checked against the raw data. The result is an HTML report."
   },
   "contractcheck": {
     "type": "report-md",
@@ -334,7 +395,7 @@
     "version": "0.1.0",
     "title": "Verträge vergleichen",
     "tagline": "Findet inhaltliche Änderungen zwischen zwei Vertragsversionen — Text-Diff deterministisch (pdftotext+difflib), dazu eine KI-Zusammenfassung und ein Bildvergleich der Seiten per Vision-Modell.",
-    "blurb": "Zwei Vertrags-PDFs rein, geänderte Klauseln (Text) und Seiten-Unterschiede (Bild) raus.",
+    "blurb": "Zwei Fassungen eines Vertrags prüfen und sofort sehen, welche Klauseln sich geändert haben – auch mit deinen eigenen PDFs.",
     "manifestDir": "manifests/contractcheck",
     "entrypoint": "run.sh",
     "outputRel": ".",
@@ -377,7 +438,13 @@
     },
     "title_en": "Compare contracts",
     "tagline_en": "Finds substantive changes between two contract versions — text diff deterministic (pdftotext+difflib), plus an AI summary and a visual page comparison via a vision model.",
-    "story_en": "Two versions of the same contract. Clause 4 (payment term) changes from 30 to 45 days — 15 more days waiting for the money. Nothing else. The diff shows exactly that line."
+    "story_en": "Two versions of the same contract. Clause 4 (payment term) changes from 30 to 45 days — 15 more days waiting for the money. Nothing else. The diff shows exactly that line.",
+    "order": 2,
+    "category": "Dokumente",
+    "category_en": "Documents",
+    "blurb_en": "Check two versions of a contract and see at once which clauses changed – also with your own PDFs.",
+    "tech": "Der Textvergleich ist deterministisch (pdftotext + difflib). Eine KI fasst die Unterschiede zusammen, ein Vision-Modell vergleicht die Seitenbilder. Eigene PDFs werden zur Verarbeitung an unseren Server gesendet und danach dort gelöscht.",
+    "tech_en": "The text comparison is deterministic (pdftotext + difflib). An AI summarises the differences, a vision model compares the page images. Your own PDFs are sent to our server for processing and deleted there afterwards."
   },
   "diagram": {
     "type": "image",
@@ -385,11 +452,11 @@
     "version": "0.1.0",
     "title": "Diagramm aus Text",
     "tagline": "Beschreibe ein Diagramm in einem Satz — ein LLM schreibt Mermaid-Code, ein echter Renderer prüft ihn und erzeugt ein PNG; bei Syntaxfehlern korrigiert das LLM anhand der echten Fehlermeldung.",
-    "blurb": "Satz rein, gerendertes Diagramm-Bild raus.",
+    "blurb": "Beschreibe in einem Satz, was du zeigen willst, und bekomme ein fertiges Diagramm als Bild.",
     "manifestDir": "manifests/diagram",
     "tool": "bin/diagram.js",
     "engine": "mermaid",
-    "description": "A flowchart: a visitor opens a demo, the marketplace installs the tool, the tool runs locally, the result is shown.",
+    "description": "A flowchart: a visitor opens a demo, the marketplace installs the tool, the tool runs in a protected environment, the result is shown.",
     "usesLLM": true,
     "model": "local-devstral-small2",
     "chromePath": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -423,7 +490,13 @@
       ]
     },
     "title_en": "Diagram from text",
-    "tagline_en": "Describe a diagram in one sentence — an LLM writes Mermaid code, a real renderer checks it and produces a PNG; on syntax errors the LLM corrects using the real error message."
+    "tagline_en": "Describe a diagram in one sentence — an LLM writes Mermaid code, a real renderer checks it and produces a PNG; on syntax errors the LLM corrects using the real error message.",
+    "order": 4,
+    "category": "Grafik",
+    "category_en": "Graphics",
+    "blurb_en": "Describe in one sentence what you want to show and get a finished diagram as an image.",
+    "tech": "Ein Sprachmodell schreibt Mermaid-Code, ein echter Renderer prüft ihn und erzeugt das PNG. Bei Syntaxfehlern korrigiert das Modell anhand der echten Fehlermeldung (bis zu 3 Versuche).",
+    "tech_en": "A language model writes Mermaid code, a real renderer checks it and produces the PNG. On syntax errors the model corrects itself using the real error message (up to 3 attempts)."
   },
   "temporal-poc": {
     "type": "timeline",
@@ -431,7 +504,7 @@
     "version": "0.1.0",
     "title": "Absturzsichere Abläufe",
     "tagline": "Ein Dokument wird gerendert; mitten im Lauf wird der Arbeiter-Prozess hart gekillt. Temporal merkt am ausbleibenden Heartbeat den Ausfall und ein zweiter Arbeiter bringt die Aufgabe automatisch zu Ende.",
-    "blurb": "Arbeiter stürzt mitten in der Aufgabe ab — die Aufgabe läuft trotzdem zu Ende.",
+    "blurb": "Mitten in einer Aufgabe fällt ein Helfer-Prozess aus – und die Aufgabe wird trotzdem fertig. Du siehst den echten Ablauf (ca. 45 s).",
     "manifestDir": "manifests/temporal-poc",
     "entrypoint": "run.sh",
     "env": {
@@ -459,7 +532,13 @@
       ]
     },
     "title_en": "Crash-proof workflows",
-    "tagline_en": "A document is rendered; mid-run the worker process is killed hard. Temporal notices the failure from the missing heartbeat and a second worker finishes the task automatically."
+    "tagline_en": "A document is rendered; mid-run the worker process is killed hard. Temporal notices the failure from the missing heartbeat and a second worker finishes the task automatically.",
+    "order": 12,
+    "category": "Zuverlässigkeit",
+    "category_en": "Reliability",
+    "blurb_en": "A helper process fails in the middle of a task – and the task still finishes. You see the real sequence (about 45 s).",
+    "tech": "Temporal-Workflow mit Durable Execution: Der Worker wird hart beendet, der ausbleibende Heartbeat wird erkannt und ein zweiter Worker übernimmt. Die Demo startet dafür einen lokalen Temporal-Dev-Server auf unserem Server.",
+    "tech_en": "Temporal workflow with durable execution: the worker is killed hard, the missing heartbeat is detected and a second worker takes over. The demo starts a Temporal dev server on our server for this."
   },
   "podcast": {
     "type": "audio",
@@ -467,7 +546,7 @@
     "version": "0.1.0",
     "title": "Podcast-Folge montieren",
     "tagline": "Mischt Roh-Spuren zu einer Folge (ffmpeg), transkribiert sie mit whisper.cpp und lässt ein LLM Kapitelmarken setzen — mit Prüfung gegen die echten Zeitstempel.",
-    "blurb": "Roh-Spuren rein, fertige Folge mit Kapiteln & Transkript raus.",
+    "blurb": "Hör und sieh, wie aus rohen Aufnahmen eine fertige Folge mit anklickbaren Kapiteln und Textabschrift wird (vorbereitetes Ergebnis eines echten Laufs).",
     "manifestDir": "manifests/podcast",
     "staticOut": "static/podcast",
     "serveExisting": true,
@@ -518,7 +597,13 @@
       ]
     },
     "title_en": "Assemble a podcast episode",
-    "tagline_en": "Mixes raw tracks into an episode (ffmpeg), transcribes it with whisper.cpp and lets an LLM set chapter markers — verified against the real timestamps."
+    "tagline_en": "Mixes raw tracks into an episode (ffmpeg), transcribes it with whisper.cpp and lets an LLM set chapter markers — verified against the real timestamps.",
+    "order": 5,
+    "category": "Audio",
+    "category_en": "Audio",
+    "blurb_en": "Listen and see how raw recordings become a finished episode with clickable chapters and a transcript (prepared result of a real run).",
+    "tech": "ffmpeg mischt die Spuren, whisper.cpp transkribiert, ein Sprachmodell setzt Kapitelmarken, die gegen die echten Zeitstempel geprüft werden. Die Demo zeigt ein zuvor erzeugtes Ergebnis.",
+    "tech_en": "ffmpeg mixes the tracks, whisper.cpp transcribes, a language model sets chapter markers that are checked against the real timestamps. The demo shows a previously generated result."
   },
   "explainer": {
     "type": "video",
@@ -526,7 +611,7 @@
     "version": "0.1.0",
     "title": "Erklärvideo aus einem Thema",
     "tagline": "Ein LLM schreibt ein Storyboard; danach ist alles deterministisch: Text-to-Speech pro Szene, GSAP/HTML-Animation, Headless-Chrome-Render, ffmpeg-Schnitt zum fertigen MP4.",
-    "blurb": "Thema rein, vertontes Erklärvideo raus.",
+    "blurb": "Aus einem Thema wird ein vertontes Erklärvideo mit Szenen – hier als fertiges Beispiel zum Ansehen.",
     "hasManifest": false,
     "staticOut": "static/explainer",
     "serveExisting": true,
@@ -582,7 +667,13 @@
     },
     "title_en": "Explainer video from a topic",
     "tagline_en": "An LLM writes a storyboard; after that everything is deterministic: text-to-speech per scene, GSAP/HTML animation, headless-Chrome render, ffmpeg cut to the finished MP4.",
-    "note_en": "Not yet packaged as a marketplace manifest — runs from source; pre-rendered real result (English Piper voice). German multi-voice TTS follows via the llm2 channel."
+    "note_en": "Not yet packaged as a marketplace manifest — runs from source; pre-rendered real result (English Piper voice). German multi-voice TTS follows via the llm2 channel.",
+    "order": 6,
+    "category": "Video",
+    "category_en": "Video",
+    "blurb_en": "A topic becomes a narrated explainer video with scenes – shown here as a finished example.",
+    "tech": "Ein Sprachmodell schreibt das Storyboard; danach läuft alles deterministisch: Sprachausgabe pro Szene, GSAP/HTML-Animation, Headless-Chrome-Render, ffmpeg-Schnitt. Die Demo zeigt ein vorgerendertes Ergebnis mit englischer Stimme.",
+    "tech_en": "A language model writes the storyboard; after that everything is deterministic: speech output per scene, GSAP/HTML animation, headless-Chrome render, ffmpeg cut. The demo shows a pre-rendered result with an English voice."
   },
   "travel": {
     "type": "external",
@@ -591,7 +682,7 @@
     "version": "0.1.0",
     "title": "Route planen (Bremen)",
     "tagline": "Ein Dauerdienst: OSRM rechnet die echte Route, ein LLM extrahiert Start/Ziel aus Freitext und formuliert die Wegbeschreibung — mechanisch gegen die echte Route rückgeprüft.",
-    "blurb": "Freitext-Routenwunsch rein, geprüfte Wegbeschreibung raus.",
+    "blurb": "Beschreibe deine Fahrt in einem Satz und bekomme eine geprüfte Wegbeschreibung für Bremen.",
     "manifestDir": "manifests/travel",
     "compose": true,
     "bridgePort": 8789,
@@ -621,16 +712,30 @@
         "kürzeste Strecke",
         "mautfrei"
       ]
-    }
+    },
+    "order": 22,
+    "category": "Reisen",
+    "category_en": "Travel",
+    "blurb_en": "Describe your trip in one sentence and get a verified route description for Bremen.",
+    "tech": "Dauerdienst: OSRM rechnet die echte Route, ein Sprachmodell zieht Start und Ziel aus dem Freitext und formuliert die Wegbeschreibung, die mechanisch gegen die Route zurückgeprüft wird. Benötigt Docker (Compose).",
+    "tech_en": "Always-on service: OSRM computes the real route, a language model extracts start and destination from free text and phrases the directions, which are mechanically checked against the route. Requires Docker (Compose).",
+    "title_en": "Plan a route (Bremen)"
   },
   "sound_generation": {
     "type": "audio",
     "name": "sound_generation",
     "version": "0.1.0",
-    "title": "Sound-Generierung",
+    "title": "Klänge aus einer Beschreibung",
     "tagline": "Aus einer kurzen Beschreibung Klänge und Audio erzeugen — über den Agenten-Channel.",
-    "blurb": "Prompt eingeben, der Dienst erzeugt daraus Audio.",
+    "blurb": "Beschreibe einen Klang in ein paar Worten und lass ihn erzeugen.",
     "live": false,
-    "note": "UI in Vorbereitung — die Audio-Capability läuft bereits über llm2s Channel."
+    "note": "UI in Vorbereitung — die Audio-Capability läuft bereits über llm2s Channel.",
+    "order": 23,
+    "category": "Audio",
+    "category_en": "Audio",
+    "title_en": "Sounds from a description",
+    "blurb_en": "Describe a sound in a few words and have it generated.",
+    "tech": "Die Audio-Fähigkeit läuft bereits über den Channel des Sprachdienstes; die Bedienoberfläche ist noch in Vorbereitung.",
+    "tech_en": "The audio capability already runs through the language service channel; the user interface is still in preparation."
   }
 }
