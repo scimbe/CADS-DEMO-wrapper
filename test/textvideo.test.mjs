@@ -88,3 +88,15 @@ test('full run through SSE with the stub backend: progress, result, playable fil
     assert.equal((await fetch(base + res.video)).headers.get('content-type'), 'video/mp4');
   } finally { proc.kill(); }
 });
+
+test('busy TTS: visitor sees one friendly sentence, raw error only in the log ("Technische Details")', { skip: !haveTools && 'ffmpeg/ImageMagick missing' }, async () => {
+  const { proc, base } = await boot({ EVGEN_TTS_BACKEND: 'stub', EVGEN_STUB_SCRIPT: '1', EVGEN_STUB_FAIL_FIRST: '1000000', EVGEN_TTS_SCENE_BUDGET: '0.05', EVGEN_TTS_BACKOFF_SCALE: '0.01' });
+  try {
+    const t = await (await fetch(`${base}/api/start?demo=erklaervideo&cfg=${encodeURIComponent(b64({ text: 'Ein Text mit genug Zeichen für die Eingabeprüfung der Demo.', length: 30 }))}`)).text();
+    const fail = JSON.parse(/event: fail\ndata: (.*)\n/.exec(t)[1]).text;
+    assert.equal(fail, 'Die Stimme ist gerade ausgelastet – bitte in einer Minute erneut versuchen.');
+    assert.ok(!/503|ERROR|stream-start/.test(fail));
+    assert.match(t, /event: run\ndata: \{"text":"Technische Details: [^"]*503/);
+    assert.ok(!/event: result/.test(t));
+  } finally { proc.kill(); }
+});
