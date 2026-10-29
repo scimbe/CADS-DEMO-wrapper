@@ -1,5 +1,44 @@
 # Claude Motion – Erklär-Animationen
 
+## Anwendungsfall-Videos (in der Galerie eingebunden)
+
+Drei Videos zeigen, was man mit dem Marktplatz im Alltag macht, nicht wie er
+gebaut ist. Mit Sprecher (Deutsch: Piper `de_DE-thorsten-high`, „Thomas“;
+Englisch: Piper `en_US-joe-medium`), Untertiteln und je 16:9 und 9:16.
+Storyboard und Selbstprüfung: `motion/STORYBOARD.md`.
+
+| Datei (DE)                  | Inhalt                                                    | Länge DE |
+|-----------------------------|-----------------------------------------------------------|----------|
+| `so-einfach-*.mp4`          | Hauptvideo: Wetter-Briefing für die Segelgruppe in 3 Schritten | 36 s |
+| `termin-per-anruf-*.mp4`    | Friseurtermin per Anruf buchen und wieder absagen         | 19 s     |
+| `frag-deine-region-*.mp4`   | Regionaldaten per Sprache fragen (Deutschlandatlas)       | 23 s     |
+
+Was echt ist: alle Bilder sind Bildschirmaufnahmen der laufenden Demos
+(`motion/scripts/capture-usecases.mjs`, Ablage `motion/public/real/uc/`).
+Das Briefing stammt aus dem echten Lauf für Bremen (siehe unten). Der Termin
+wurde im Terminassistenten per Textfeld gebucht (Kalender am 03.11.: 35 → 32
+freie Plätze) und im selben Lauf wieder abgesagt (zurück auf 35); Name und
+Telefonnummer sind fiktiv (Nummernbereich der Bundesnetzagentur für Film und
+Fernsehen). Die Hannover-Antwort ist die Ausgabe des Callcenters mit Quelle
+`v_harzt_HA2023`.
+
+Neu erzeugen:
+
+```bash
+cd motion
+node scripts/capture-usecases.mjs          # Aufnahmen (bucht und storniert einen Termin)
+for f in public/real/uc/*.png; do sips -s format jpeg -s formatOptions 82 "$f" --out "${f%.png}.jpg"; done
+PIPER_DE=… PIPER_EN=… <piper-venv>/bin/python scripts/voice.py   # Sprecher, Zeitachse, Untertitel
+node scripts/render.mjs so-einfach,termin-per-anruf,frag-deine-region
+```
+
+Die Sprachausgabe läuft lokal (`pip install piper-tts`), nicht auf einem
+geteilten Knoten. `voice.py` misst jede Zeile und legt danach die
+Szenenlängen fest (`src/vo-timing.json`); Remotion mischt den Sprecher
+direkt ein, die Untertitel kommen aus denselben Zeiten.
+
+## Ältere Animationen (Technik-Themen)
+
 Vier kurze Animationen für den bunsenbrenner.org Agent-Marktplatz. Wenig Text,
 große Bilder, Deutsch zuerst (Englisch über Props). Gebaut mit Remotion
 (`motion/`), gerendert als H.264 (CRF 28), stumm, jeweils 16:9 und 9:16.

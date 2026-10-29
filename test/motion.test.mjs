@@ -60,12 +60,16 @@ test('safeMediaPath / parseRange units', () => {
   assert.equal(parseRange('bytes=-0', 100), 'unsatisfiable');
 });
 
-test('embeds: hero die-idee (no autoplay, preload none), row nordwind+sicher, EN files for lang=en, herkunft collapsed on newsletter', async () => {
+test('embeds: hero so-einfach (no autoplay, preload none), row termin-per-anruf + frag-deine-region with live links, EN files for lang=en, herkunft collapsed on newsletter', async () => {
   const de = await (await fetch(base + '/')).text();
-  assert.match(de, /die-idee-16x9\.mp4/); assert.match(de, /nordwind-16x9\.mp4/); assert.match(de, /sicher-16x9\.mp4/);
+  assert.match(de, /so-einfach-16x9\.mp4/); assert.match(de, /so-einfach-9x16\.mp4/);
+  assert.match(de, /termin-per-anruf-16x9\.mp4/); assert.match(de, /frag-deine-region-16x9\.mp4/);
+  assert.ok(!/die-idee-16x9|nordwind-16x9|sicher-16x9/.test(de), 'old technology videos are no longer embedded');
+  assert.match(de, /href="https:\/\/assistent-cal-f29c55da\.bunsenbrenner\.org\/" target="_blank" rel="noopener noreferrer"/);
+  assert.match(de, /captions\/so-einfach\.de\.vtt/);
   assert.ok(!/autoplay/i.test(de)); assert.match(de, /preload="none"/);
   const en = await (await fetch(base + '/?lang=en')).text();
-  assert.match(en, /die-idee-16x9\.en\.mp4/); assert.match(en, /srclang="en"[^>]*default/);
+  assert.match(en, /so-einfach-16x9\.en\.mp4/); assert.match(en, /frag-deine-region-9x16\.en\.mp4/); assert.match(en, /srclang="en"[^>]*default/);
   const nl = await (await fetch(base + '/d/newsletter')).text();
   assert.match(nl, /<details class="motion-d"><summary>Wie funktioniert die Prüfung\?<\/summary>[\s\S]*herkunft-16x9\.mp4/);
   assert.ok(!/autoplay/i.test(nl));
@@ -73,4 +77,26 @@ test('embeds: hero die-idee (no autoplay, preload none), row nordwind+sicher, EN
   for (const m of new Set([...(de + en + nl).matchAll(/(?:data-wide|data-tall|data-poster-wide|data-poster-tall|src|poster)="(\/static\/motion\/[^"]+)"/g)].map((x) => x[1]))) {
     assert.equal((await raw(m)).status, 200, m);
   }
+});
+
+test('use-case videos: every cut, poster and caption exists; captions follow the narration and end inside the video', async () => {
+  const { readFileSync, existsSync } = await import('node:fs');
+  const M = new URL('../motion/src/', import.meta.url).pathname;
+  const narr = JSON.parse(readFileSync(M + 'narration.json', 'utf8'));
+  const timing = JSON.parse(readFileSync(M + 'vo-timing.json', 'utf8'));
+  for (const [slug, scenes] of Object.entries(narr)) {
+    for (const lang of ['de', 'en']) {
+      for (const shape of ['16x9', '9x16']) for (const ext of ['mp4', 'jpg']) {
+        const f = `${ROOT}${slug}-${shape}${lang === 'en' ? '.en' : ''}.${ext}`;
+        assert.ok(existsSync(f), f);
+      }
+      const vtt = readFileSync(`${ROOT}captions/${slug}.${lang}.vtt`, 'utf8');
+      const cues = [...vtt.matchAll(/(\d\d):(\d\d):(\d\d\.\d{3}) --> (\d\d):(\d\d):(\d\d\.\d{3})\n(.+)/g)];
+      assert.deepEqual(cues.map((c) => c[7]), scenes.map((s) => s[lang]), `${slug}.${lang}: captions = spoken lines`);
+      const end = (c) => +c[4] * 3600 + +c[5] * 60 + +c[6];
+      assert.ok(end(cues.at(-1)) <= timing[slug][lang].total / 30, `${slug}.${lang}: last cue inside the video`);
+    }
+  }
+  assert.ok(timing['so-einfach'].de.total / 30 < 40, 'main video under 40 s');
+  for (const s of ['termin-per-anruf', 'frag-deine-region']) for (const l of ['de', 'en']) assert.ok(timing[s][l].total / 30 <= 25, `${s}.${l} at most 25 s`);
 });
