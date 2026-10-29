@@ -14,7 +14,7 @@ import { createHash } from 'node:crypto';
 import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, extname, isAbsolute } from 'node:path';
-import { docOpen, appbar, foot, extLink, newTabMark, jsonForScript } from './lib/chrome.mjs';
+import { docOpen, appbar, foot, extLink, newTabMark, jsonForScript, esc } from './lib/chrome.mjs';
 import { tr, di, makeT, normLang, clientStrings } from './lib/i18n.mjs';
 import { indexPage } from './lib/index-page.mjs';
 import { loadEnv } from './lib/env.mjs';
@@ -32,6 +32,7 @@ import { parseTimeline, judgeTimeline, patchTemporalPorts, patchWaiter } from '.
 import { allocatePorts, releasePorts } from './lib/ports.mjs';
 import { createRunDir, runDir, gcRuns, newRunId, RUN_ID_RE } from './lib/runs.mjs';
 import { parseBundleLine } from './lib/bundle-lines.mjs';
+import { createThrottle, planRoute, ROUTE_TEXT_MAX } from './lib/route.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const DEMOS = JSON.parse(readFileSync(join(__dir, 'demos.json'), 'utf8'));
@@ -419,6 +420,31 @@ function invokeTextVideo(slug, rec, emit, stage, done, reg, cfg = {}) {
   });
 }
 
+// ---- invoke: route (travel, "Route planen (Bremen)") ---------------------------------------------
+// No install step: the bridge (signed bundle manifests/travel) runs as an always-on service on the
+// service host; the wrapper calls it over its public tunnel URL (lib/route.mjs). One throttle per
+// process keeps the calls >= 1 s apart (the bridge geocodes through Nominatim: 1 req/s).
+const ROUTE_THROTTLE = createThrottle({ minGapMs: 1000 });
+const ROUTE_TIMEOUT_MS = Number(process.env.TRAVEL_TIMEOUT_MS || 60000);
+async function invokeRoute(slug, rec, emit, stage, done, reg, lang, cfg = {}) {
+  const d = DEMOS[slug];
+  const de = lang !== 'en';
+  stage('process', de ? 'Route planen' : 'Plan route');
+  const bridgeUrl = process.env.TRAVEL_BRIDGE_URL || d.bridgeUrl;
+  if (!bridgeUrl) { emit('fail', de ? 'Der Routendienst ist nicht eingerichtet.' : 'The route service is not configured.', { plain: true }); return done(null); }
+  emit('step', de ? 'Sprachmodell liest Start und Ziel, OSRM rechnet die echte Route, der Text wird gegen die Route geprüft' : 'The language model reads start and destination, OSRM computes the real route, the text is checked against the route');
+  const r = await planRoute({ bridgeUrl, text: cfg.text, lang, throttle: ROUTE_THROTTLE, timeoutMs: ROUTE_TIMEOUT_MS });
+  if (!r.ok) {
+    if (r.details) emit('run', `${de ? 'Technische Details' : 'Technical details'}: ${String(r.details).slice(0, 240)}`);
+    emit('fail', r.msg, { plain: true });
+    return done(null);
+  }
+  const x = r.result;
+  emit('real', `${de ? 'echt · Route berechnet' : 'real · route computed'} (${x.engine || 'OSRM'}${x.dataset ? ', ' + x.dataset : ''})`);
+  emit(x.verified ? 'real' : 'warn', x.verified ? (de ? 'Text gegen die echte Route geprüft: bestanden' : 'Text checked against the real route: passed') : (de ? 'Text gegen die echte Route geprüft: NICHT bestanden' : 'Text checked against the real route: NOT passed'));
+  done(x);
+}
+
 // `post` is set by handlePostStart: { demo, lang, cfg, extra, rendered } -- all server-derived. The GET
 // path (EventSource) keeps taking its options from the query string and can never set `extra`.
 function handleStart(req, res, url, post = null) {
@@ -430,7 +456,8 @@ function handleStart(req, res, url, post = null) {
   if (!d) { res.writeHead(404).end('unknown'); return; }
   const extra = post ? post.extra : null;
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
-  const emit = (t, text) => res.write(`event: ${t}\ndata: ${JSON.stringify({ text })}\n\n`);
+  // extra.plain: the message is already a complete sentence for visitors (shown as is, not wrapped).
+  const emit = (t, text, extra) => res.write(`event: ${t}\ndata: ${JSON.stringify({ text, ...(extra || {}) })}\n\n`);
   const stage = (id, label) => res.write(`event: stage\ndata: ${JSON.stringify({ id, label })}\n\n`);
   let child = null; let aborted = false;
   const reg = (c) => { child = c; if (aborted && c && !c.killed) try { c.kill('SIGKILL'); } catch {} };
@@ -438,7 +465,7 @@ function handleStart(req, res, url, post = null) {
   (post ? res : req).on('close', () => { aborted = true; if (child && !child.killed) { try { child.kill('SIGKILL'); } catch {} } });
   let rec = null;
   try {
-    if (d.hasManifest === false || d.type === 'image') { stage('install', 'Bereit'); rec = {}; }
+    if (d.hasManifest === false || d.type === 'image' || d.type === 'route') { stage('install', 'Bereit'); rec = {}; }
     else rec = installActivate(slug, emit, stage);
   } catch (e) { emit('fail', 'Abbruch bei der Installation'); stage('error', 'Fehlgeschlagen'); res.end(); return; }
   if (aborted) { res.end(); return; }
@@ -450,6 +477,7 @@ function handleStart(req, res, url, post = null) {
   else if (d.type === 'image') invokeImage(slug, rec, emit, stage, cb, reg, cfg, extra);
   else if (d.type === 'timeline') invokeTimeline(slug, rec, emit, stage, cb, reg);
   else if (d.type === 'textvideo') invokeTextVideo(slug, rec, emit, stage, cb, reg, cfg);
+  else if (d.type === 'route') invokeRoute(slug, rec, emit, stage, cb, reg, lang, cfg);
   else { emit('fail', 'Unbekannter Demo-Typ'); cb(null); }
 }
 
@@ -523,11 +551,11 @@ function startRun(btn){
   if(!live){live=document.createElement('p');live.className='sr-only runlive';live.setAttribute('role','status');live.setAttribute('aria-live','polite');out.insertBefore(live,out.firstChild);}
   prog.style.display='';const pb=prog.querySelector('.pbar');const bar=pb.querySelector('i');bar.style.background='var(--teal)';bar.style.width='0';const ptxt=prog.querySelector('.ptxt');
   let cancel=prog.querySelector('.btn-cancel');if(!cancel){cancel=document.createElement('button');cancel.type='button';cancel.className='btn-cancel';cancel.textContent=f('js.run.cancel');prog.querySelector('.pmeta').appendChild(cancel);}
-  const t0=Date.now();let done=false;let failed=false;let failMsg='';let phase=0;
+  const t0=Date.now();let done=false;let failed=false;let failMsg='';let plainFail=false;let phase=0;
   const secs=()=>Math.round((Date.now()-t0)/1000);
   const line=(c,t)=>{const e=document.createElement('span');e.className='l '+c;e.textContent=t;log.appendChild(e);log.scrollTop=log.scrollHeight};
   var _cfg={}; try{ if(window.__cfg) _cfg=JSON.parse(decodeURIComponent(escape(atob(window.__cfg)))); }catch(e){}
-  var _di=document.querySelector('.descinput'); if(_di && _di.value.trim()){ if(_di.id==='tvtext'){_cfg.text=_di.value.trim();var _tl=document.getElementById('tvlen');if(_tl)_cfg.length=parseInt(_tl.value,10);var _tt=document.getElementById('tvtitle');if(_tt&&_tt.value.trim())_cfg.title=_tt.value.trim();} else _cfg.description=_di.value.trim(); }
+  var _di=document.querySelector('.descinput'); if(_di && _di.value.trim()){ if(_di.id==='rttext'){_cfg.text=_di.value.trim();} else if(_di.id==='tvtext'){_cfg.text=_di.value.trim();var _tl=document.getElementById('tvlen');if(_tl)_cfg.length=parseInt(_tl.value,10);var _tt=document.getElementById('tvtitle');if(_tt&&_tt.value.trim())_cfg.title=_tt.value.trim();} else _cfg.description=_di.value.trim(); }
   var _cfgP=Object.keys(_cfg).length?('&cfg='+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(_cfg)))))):'';
   const es=pbRun?postStream('/api/start?lang='+(wrap.dataset.lang||'de'),pbRun):new EventSource('/api/start?demo='+encodeURIComponent(slug)+'&lang='+(wrap.dataset.lang||'de')+_cfgP);
   const stop=(txt,terra)=>{if(done)return;done=true;clearInterval(iv);bar.style.width='100%';pb.setAttribute('aria-valuenow','100');if(terra)bar.style.background='var(--terra)';ptxt.textContent=txt;live.textContent=txt;if(cancel){cancel.remove();cancel=null;}document.querySelectorAll('button.run,button[data-runlock]').forEach(b=>b.disabled=false);try{es.close()}catch(e){}};
@@ -550,7 +578,7 @@ function startRun(btn){
   cancel.addEventListener('click',()=>{const s=secs();line('warn',f('js.run.cancelled',{s:s}));
     const a=[...out.querySelectorAll('.st')].find(x=>!x.classList.contains('done'));if(a)a.className='st error';
     stop(f('js.run.cancelled',{s:s}),true);});
-  ['step','real','sim','run','cache','ok','warn','fail'].forEach(t=>es.addEventListener(t,e=>{const tx=JSON.parse(e.data).text;if(t==='fail')failMsg=tx;line(t,({step:'▸ ',real:'✓ ',sim:'· ',run:'  ',cache:'✓ ',ok:'· ',warn:'! ',fail:'✕ '}[t]||'')+tx)}));
+  ['step','real','sim','run','cache','ok','warn','fail'].forEach(t=>es.addEventListener(t,e=>{const dd=JSON.parse(e.data);const tx=dd.text;if(t==='fail'){failMsg=tx;if(dd.plain)plainFail=true;}line(t,({step:'▸ ',real:'✓ ',sim:'· ',run:'  ',cache:'✓ ',ok:'· ',warn:'! ',fail:'✕ '}[t]||'')+tx)}));
   es.addEventListener('stage',e=>{const {id}=JSON.parse(e.data);const steps=['install','process','done'];const idx=steps.indexOf(id);if(id==='error')failed=true;
     out.querySelectorAll('.st').forEach(s=>{const si=steps.indexOf(s.dataset.step);if(id==='error'){if(!s.classList.contains('done'))s.classList.add('active');return}
       s.classList.toggle('done',si<idx||(si===idx&&id==='done'));s.classList.toggle('active',si===idx&&id!=='done')});
@@ -566,13 +594,38 @@ function startRun(btn){
       s.querySelector('.openrep').href=r.reportUrl;const pr=s.querySelector('.printrep');if(pr){pr.hidden=!!r.pdf;pr.onclick=function(){try{fr.contentWindow.focus();fr.contentWindow.print();}catch(e){window.open(r.reportUrl);}};}const pl=s.querySelector('.pdflink');if(r.pdf){pl.href=r.pdf;pl.hidden=false}else if(pl)pl.hidden=true;}
     else if(r.render==='textvideo'){const s=out.querySelector('.res-textvideo');const v=s.querySelector('.resvideo');v.querySelectorAll('track').forEach(function(x){x.remove();});v.src=r.video;if(r.poster)v.poster=r.poster;if(r.subtitles){var tr=document.createElement('track');tr.kind='subtitles';tr.srclang='de';tr.label='Deutsch';tr.src=r.subtitles;tr.default=true;v.appendChild(tr);}var ds=s.querySelector('.dlsubs');if(ds){if(r.subtitles){ds.href=r.subtitles;ds.hidden=false;}else ds.hidden=true;}s.querySelector('.dlvideo').href=r.video;s.hidden=false;}
     else if(r.render==='diagram'){const s=out.querySelector('.res-diagram');var u='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(r.svg);s.querySelector('.resimg').src=u;var dl=s.querySelector('.dlsvg');dl.href=u;dl.download='diagramm.svg';s.hidden=false;}
+    else if(r.render==='route'){renderRoute(out.querySelector('.res-route'),r);}
     else if(r.render==='timeline'){const s=out.querySelector('.res-timeline');const ol=s.querySelector('.timeline');ol.innerHTML='';
       for(const st of r.steps){const li=document.createElement('li');li.className='tstep'+(st.recover?' rec':'');li.innerHTML=(st.recover?'<span aria-hidden="true">↻ </span>':'')+'<b>'+st.label+'</b>'+(st.extra?' <span class="ex">'+st.extra+'</span>':'');ol.appendChild(li)}s.hidden=false;}
   });
-  es.addEventListener('done',()=>{if(failed)fail(es.refused?'refused':'tool',failMsg);else stop(f('js.run.done',{s:secs()}),false);});
+  es.addEventListener('done',()=>{if(failed)fail(es.refused||plainFail?'refused':'tool',failMsg);else stop(f('js.run.done',{s:secs()}),false);});
   es.onerror=()=>{if(done)return;if(failed)fail('tool',failMsg);else fail('conn');};
 }
+// travel: numbers come from OSRM (picked_route), the text from the language model, the badge from the
+// bridge's own check of that text against the route. The map is a plain SVG line, no tiles.
+function renderRoute(s,r){if(!s)return;var en=document.documentElement.lang==='en',loc=en?'en-GB':'de-DE';
+  var km=(r.distance_m/1000).toLocaleString(loc,{maximumFractionDigits:1,minimumFractionDigits:1})+' km';
+  var mn=Math.max(1,Math.round(r.duration_s/60))+' min';
+  s.querySelector('.rt-from').textContent=r.origin;s.querySelector('.rt-to').textContent=r.destination;
+  s.querySelector('.rt-dist').textContent=km;s.querySelector('.rt-dur').textContent=mn;
+  var b=s.querySelector('.rt-badge');b.textContent=f(r.verified?'js.route.verified':'js.route.unverified');b.className='rt-badge '+(r.verified?'ok':'bad');
+  s.querySelector('.rt-vnote').textContent=f(r.verified?'js.route.verified.note':'js.route.unverified.note');
+  s.querySelector('.rt-text').textContent=r.text||f('js.route.notext');
+  var cl=s.querySelector('.rt-checks');cl.innerHTML='';(r.checks||[]).forEach(function(c){var li=document.createElement('li');li.textContent=(c.pass?'✓ ':'✗ ')+c.name;li.className=c.pass?'ok':'bad';cl.appendChild(li);});
+  s.querySelector('.rt-prov').textContent=[r.engine,r.dataset].filter(Boolean).join(' · ');
+  var c=r.coords||[],W=640,H=380,P=18;var lat0=c.reduce(function(a,p){return a+p[1];},0)/Math.max(1,c.length),k=Math.cos(lat0*Math.PI/180);
+  var xs=c.map(function(p){return p[0]*k;}),ys=c.map(function(p){return -p[1];});
+  var x0=Math.min.apply(null,xs),x1=Math.max.apply(null,xs),y0=Math.min.apply(null,ys),y1=Math.max.apply(null,ys);
+  var sc=Math.min((W-2*P)/Math.max(x1-x0,1e-9),(H-2*P)/Math.max(y1-y0,1e-9));var ox=(W-(x1-x0)*sc)/2,oy=(H-(y1-y0)*sc)/2;
+  var pt=c.map(function(p,i){return ((xs[i]-x0)*sc+ox).toFixed(1)+','+((ys[i]-y0)*sc+oy).toFixed(1);});
+  var a=pt[0].split(','),z=pt[pt.length-1].split(',');
+  var svg=s.querySelector('.rt-map');svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('aria-label',f('js.route.map',{a:r.origin,b:r.destination}));
+  svg.innerHTML='<polyline points="'+pt.join(' ')+'" fill="none" stroke="var(--teal)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><circle cx="'+a[0]+'" cy="'+a[1]+'" r="7" fill="var(--teal-ink)"/><circle cx="'+z[0]+'" cy="'+z[1]+'" r="7" fill="var(--terra)"/>';
+  var o=c[0],d=c[c.length-1];var osm=s.querySelector('.rt-osm');osm.href='https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route='+o[1].toFixed(5)+'%2C'+o[0].toFixed(5)+'%3B'+d[1].toFixed(5)+'%2C'+d[0].toFixed(5);
+  s.hidden=false;}
 document.querySelectorAll('button.run').forEach(btn=>btn.addEventListener('click',()=>startRun(btn)));
+(function(){var i=document.getElementById('rttext');if(!i)return;document.querySelectorAll('.rtex').forEach(function(c){c.addEventListener('click',function(){i.value=c.textContent;i.focus();});});
+  i.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();var b=document.querySelector('button.run');if(b&&!b.disabled)b.click();}});})();
 (function(){
   var tune=document.querySelector('.tune'); if(!tune)return;
   var wrap=document.querySelector('.wrap'); var slug=wrap&&wrap.dataset.slug;
@@ -603,7 +656,7 @@ function toolShell(slug, inner, lang) {
   const home = lang === 'en' ? '/?lang=en' : '/';
   const timeout = Math.max(90, Math.round((d.estSeconds || 20) * 2.5));
   const builder = d.live && inner.builder !== false && TEMPLATES.has(slug) ? builderBlock(slug, lang, builderVersions()) : '';
-  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (inner.mini ? MINI_CSS : '') + (inner.motion ? MOTION_CSS : '') })}
+  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (inner.mini ? MINI_CSS : '') + (inner.motion ? MOTION_CSS : '') + (inner.css || '') })}
 ${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang)}
 <main class="wrap" id="main" tabindex="-1" data-slug="${slug}" data-est="${d.estSeconds || 20}" data-timeout="${timeout}" data-lang="${lang}">
   <noscript><div class="noscript-note" role="note">${tt('noscript.demo')}</div></noscript>
@@ -719,6 +772,37 @@ function textVideoPage(slug, lang) {
   <script>(function(){var f=document.getElementById('tvfile');if(!f)return;f.addEventListener('change',function(){var x=f.files&&f.files[0];if(!x)return;if(x.size>200000){alert('${t('Die Datei ist zu groß (max. 200 KB Text).','The file is too large (max 200 KB of text).')}');f.value='';return;}var r=new FileReader();r.onload=function(){document.getElementById('tvtext').value=String(r.result||'').slice(0,4000);};r.readAsText(x,'utf-8');});})();</script>
   ${miniOut(`<section class="panel res-textvideo" hidden><div class="ph"><h2>${t('Dein Video','Your video')}</h2><span><a class="chip dlvideo" href="#" download="erklaervideo.mp4">${t('Video herunterladen','Download video')}</a> <a class="chip dlsubs" href="#" download="untertitel.vtt" hidden>${t('Untertitel (VTT)','Subtitles (VTT)')}</a></span></div><div class="sheetwrap"><video class="resvideo" controls preload="metadata" style="width:100%;border-radius:9px"></video></div></section>`, lang)}`;
   return toolShell(slug, { controls: '', body, mini: true, builder: false }, lang);
+}
+
+// travel: one sentence in, one button, the checked route out. Examples are phrasings that the live
+// bridge plans successfully with correctly placed start/end (checked live; it geocodes within the
+// Bremen bounding box only, and e.g. "Marktplatz Bremen" lands on the wrong square).
+const ROUTE_EXAMPLES = {
+  de: ['Von Bremen Hauptbahnhof nach Bremen Weserstadion', 'Von Bremen Weserstadion nach Bremen Flughafen', 'Von Bremen Hauptbahnhof nach Bremen Flughafen, Autobahnen meiden'],
+  en: ['From Bremen Hauptbahnhof to Bremen Weserstadion', 'From Bremen Hauptbahnhof to Bremen Flughafen, avoid highways'],
+};
+const ROUTE_CSS = `.rtex-row{display:flex;flex-wrap:wrap;gap:8px}.rt-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:10px;margin:0;padding:14px 16px}.rt-facts div{background:var(--panel);border-radius:9px;padding:10px 12px}.rt-facts dt{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.rt-facts dd{margin:2px 0 0;font-weight:600;color:var(--ink);overflow-wrap:anywhere}
+.rt-badge{display:inline-flex;align-items:center;padding:.3rem .75rem;border-radius:999px;font:600 .85rem var(--sans);border:1px solid var(--border)}.rt-badge.ok{color:var(--teal-ink);border-color:var(--teal)}.rt-badge.bad{color:var(--terra-ink);border-color:var(--terra)}
+.rt-check{padding:0 16px 6px}.rt-vnote{margin:8px 0 0;color:var(--muted2);font-size:.88rem}.rt-text{margin:0;padding:6px 16px 14px;white-space:pre-wrap;color:var(--ink)}.rt-sub{margin:0;padding:10px 16px 0;font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.rt-mapwrap{padding:6px 16px 4px}.rt-map{display:block;width:100%;height:auto;max-height:380px;background:var(--panel);border-radius:9px}.rt-legend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:6px 16px 14px;font-size:.82rem;color:var(--muted2)}.rt-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.rt-more{margin:0 16px 14px}.rt-more summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--muted2);font-size:.85rem}.rt-checks{margin:0;padding:0 0 0 2px;list-style:none;font-family:var(--mono);font-size:.78rem}.rt-checks .ok{color:var(--teal-ink)}.rt-checks .bad{color:var(--terra-ink)}.rt-prov{margin:6px 0 0;font-family:var(--mono);font-size:.72rem;color:var(--muted);overflow-wrap:anywhere}`;
+function routePage(slug, lang) {
+  const t = tr(lang);
+  const ex = ROUTE_EXAMPLES[normLang(lang)].map((x) => `<button class="exchip rtex" type="button">${esc(x)}</button>`).join('');
+  const body = `<div class="miniform">
+    <label for="rttext">${t('Wohin soll es gehen? Ein Satz mit Start und Ziel in Bremen.','Where to? One sentence with start and destination in Bremen.')}</label>
+    <input id="rttext" class="descinput miniinput tuneinput" type="text" maxlength="${ROUTE_TEXT_MAX}" autocomplete="off" placeholder="${t('z. B. Von Bremen Hauptbahnhof nach Bremen Weserstadion','e.g. From Bremen Hauptbahnhof to Bremen Weserstadion')}"/>
+    <div class="rtex-row" role="group" aria-label="${t('Beispiele','Examples')}">${ex}</div>
+    ${lang === 'en' ? '<p class="sub" style="margin:0">The route description is written in German.</p>' : ''}
+    <button class="btn btn-primary run" type="button">${t('Route planen ▸','Plan route ▸')}</button></div>
+  ${miniOut(`<section class="panel res-route" hidden><div class="ph"><h2>${t('Deine Route','Your route')}</h2><span><a class="chip rt-osm" href="#" target="_blank" rel="noopener noreferrer">${t('In OpenStreetMap öffnen','Open in OpenStreetMap')}${newTabMark(lang)}</a></span></div>
+    <dl class="rt-facts"><div><dt>${t('Start','From')}</dt><dd class="rt-from"></dd></div><div><dt>${t('Ziel','To')}</dt><dd class="rt-to"></dd></div><div><dt>${t('Distanz','Distance')}</dt><dd class="rt-dist"></dd></div><div><dt>${t('Dauer (Auto)','Duration (car)')}</dt><dd class="rt-dur"></dd></div></dl>
+    <div class="rt-check"><span class="rt-badge" role="status"></span><p class="rt-vnote"></p></div>
+    <p class="rt-sub">${t('Wegbeschreibung des Sprachmodells','Route description by the language model')}</p><p class="rt-text"></p>
+    <div class="rt-mapwrap"><svg class="rt-map" role="img" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="rt-legend"><span><i style="background:var(--teal-ink)"></i>${t('Start','From')}</span><span><i style="background:var(--terra)"></i>${t('Ziel','To')}</span><span>${t('Linie: echte Routengeometrie (OSRM), Daten © OpenStreetMap-Mitwirkende','Line: real route geometry (OSRM), data © OpenStreetMap contributors')}</span></div>
+    <details class="rt-more"><summary>${t('Einzelne Prüfungen','Individual checks')}</summary><ul class="rt-checks"></ul><p class="rt-prov"></p></details></section>`, lang)}`;
+  return toolShell(slug, { controls: '', body, mini: true, builder: false, css: ROUTE_CSS }, lang);
 }
 
 // ---- landing: a static, public collection page linking out to N sibling demos ("tracks") --
@@ -916,7 +1000,7 @@ http.createServer(async (req, res) => {
     if (MERGED[slug]) { res.writeHead(302, { Location: `/d/${MERGED[slug]}${url.search}` }).end(); return; }
     if (d.type === 'external' && d.live && d.externalUrl) { res.writeHead(302, { Location: d.externalUrl }).end(); return; }
     const lang = normLang(url.searchParams.get('lang'));
-    const PAGES = { 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), textvideo: (s) => textVideoPage(s, lang), landing: (s) => landingPage(s, lang) };
+    const PAGES = { 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), textvideo: (s) => textVideoPage(s, lang), route: (s) => routePage(s, lang), landing: (s) => landingPage(s, lang) };
     const html = d.live && PAGES[d.type] ? PAGES[d.type](slug) : soonPage(slug, lang);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(html); return; }
   res.writeHead(404).end('not found');

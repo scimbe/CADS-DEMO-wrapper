@@ -93,7 +93,15 @@ test('podcast and explainer were merged: /d/<old> redirects to /d/erklaervideo (
     assert.equal(r.headers.get('location'), '/d/erklaervideo?lang=en');
   }
   const home = await (await fetch(base + '/')).text();
-  assert.ok(!/href="\/d\/(podcast|explainer|travel|sound_generation)/.test(home));
+  assert.ok(!/href="\/d\/(podcast|explainer|sound_generation)/.test(home));
+});
+
+test('travel is a visible gallery card that links to its own route page, not to the bare bridge', async () => {
+  const home = await (await fetch(base + '/')).text();
+  assert.match(home, /href="\/d\/travel"/);
+  assert.ok(!home.includes('travel-34a13a96.bunsenbrenner.org'), 'the card must not point at the bridge (GET / there is 404)');
+  const r = await fetch(`${base}/d/travel`, { redirect: 'manual' });
+  assert.equal(r.status, 200);
 });
 
 test('erklaervideo without the bundle fails honestly (no fake success)', async () => {
