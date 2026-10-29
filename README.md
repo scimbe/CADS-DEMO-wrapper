@@ -66,6 +66,13 @@ mit dem Gate-Mechanismus allein nicht moeglich (er gilt je Hostname); sie werden
 Onboard a ct-agent with `CT_AGENT_ORIGIN=127.0.0.1:8790` (plain TCP proxy) — see the deploy
 notes. No `CT_AGENT_SERVICE_HANDLER` needed (that is the channel path, not plain onboard/serve).
 
+## Route planen (travel)
+`/d/travel` ruft die Route-Bridge (signiertes Bundle `manifests/travel`, Dauerdienst auf dem Service-Host)
+serverseitig ueber ihre oeffentliche Tunnel-URL auf (`bridgeUrl` in `demos.json`, ueberschreibbar mit
+`TRAVEL_BRIDGE_URL`; Timeout `TRAVEL_TIMEOUT_MS`, Default 60000). Hoechstens eine Anfrage pro Sekunde und
+Prozess (Nominatim-Limit der Bridge). Ausfuehren laeuft ueber `/api/start` und ist damit wie alle Laeufe
+login-pflichtig (`DEMO_AUTH_MODE=gate`). Code: `lib/route.mjs`, Tests: `test/route.test.mjs` (Bridge-Mock).
+
 ## Notes
 - Secrets (`.env`, `.pexels-key`, `.registry-token`) are NOT in this repo — provide out-of-band.
 - `work/` is the runtime install dir (demo bundles install on first "Start"); not committed.

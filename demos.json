@@ -653,22 +653,16 @@
     "hidden": true
   },
   "travel": {
-    "type": "external",
-    "externalUrl": "https://travel-34a13a96.bunsenbrenner.org/",
+    "type": "route",
+    "bridgeUrl": "https://travel-34a13a96.bunsenbrenner.org",
     "name": "travel",
     "version": "0.1.0",
     "title": "Route planen (Bremen)",
-    "tagline": "Ein Dauerdienst: OSRM rechnet die echte Route, ein LLM extrahiert Start/Ziel aus Freitext und formuliert die Wegbeschreibung — mechanisch gegen die echte Route rückgeprüft.",
+    "tagline": "Beschreibe deine Fahrt in einem Satz: Ein Sprachmodell zieht Start und Ziel heraus, OSRM rechnet die echte Route, und der Text wird mechanisch gegen diese Route geprüft.",
     "blurb": "Beschreibe deine Fahrt in einem Satz und bekomme eine geprüfte Wegbeschreibung für Bremen.",
     "manifestDir": "manifests/travel",
-    "compose": true,
-    "bridgePort": 8789,
     "needsLLM": true,
-    "runDir": "$HOME/travelrun",
-    "status": "needs-compose",
-    "note": "Compose-Dauerdienst (OSRM Bremen + Bridge). Braucht Docker/colima + Operator-Bestätigung für Subdomain travel.bunsenbrenner.org. Eigene persistente Wrapper-Form, kein Batch.",
-    "estSeconds": 30,
-    "live": false,
+    "estSeconds": 10,
     "demo_prompt": {
       "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
       "parameters": [
@@ -690,14 +684,15 @@
         "mautfrei"
       ]
     },
+    "live": true,
     "order": 22,
     "category": "Reisen",
     "category_en": "Travel",
     "blurb_en": "Describe your trip in one sentence and get a verified route description for Bremen.",
-    "tech": "Dauerdienst: OSRM rechnet die echte Route, ein Sprachmodell zieht Start und Ziel aus dem Freitext und formuliert die Wegbeschreibung, die mechanisch gegen die Route zurückgeprüft wird. Benötigt Docker (Compose).",
-    "tech_en": "Always-on service: OSRM computes the real route, a language model extracts start and destination from free text and phrases the directions, which are mechanically checked against the route. Requires Docker (Compose).",
+    "tech": "Dauerdienst auf unserem Server: Ein Sprachmodell zieht Start und Ziel aus dem Freitext, Nominatim findet die Orte, OSRM rechnet die echte Route (Kartendaten Bremen, OpenStreetMap). Distanz und Dauer im Text werden mechanisch gegen die Route geprüft.",
+    "tech_en": "Always-on service on our server: a language model extracts start and destination from free text, Nominatim finds the places, OSRM computes the real route (Bremen map data, OpenStreetMap). Distance and duration in the text are mechanically checked against the route.",
     "title_en": "Plan a route (Bremen)",
-    "hidden": true
+    "tagline_en": "Describe your trip in one sentence: a language model extracts start and destination, OSRM computes the real route, and the text is mechanically checked against that route."
   },
   "sound_generation": {
     "type": "audio",
