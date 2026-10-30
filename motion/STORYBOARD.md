@@ -56,14 +56,15 @@ einer Aufzeichnung, weil das Ausführen ein Konto braucht.
 
 ### Flappy-Spiel bauen (`flappy-spiel`)
 
-Live, ohne Login. Eigene Einstellungen im Studio, Vorschau wirklich gespielt.
+Live, ohne Login. Echter Crew-Lauf je Sprache: Wunsch eintippen, bauen lassen, das geänderte Spiel spielen (DE „Ein Traktor-Spiel auf dem Bauernmarkt“, EN „harvester market“).
 
 | # | Sprechtext DE |
 |---|---------------|
 | 1 | Lust auf dein eigenes kleines Spiel, ganz ohne Programmieren? |
-| 2 | Such dir Figur, Thema und Schwierigkeit aus. |
-| 3 | Die Vorschau ändert sich sofort, und du spielst direkt im Browser. |
-| 4 | Probier es aus: Öffne Flappy-Spiel bauen und wähl deine Figur. |
+| 2 | Schreib einfach auf, was für ein Spiel du willst. |
+| 3 | Ein Klick, kurz warten, und dein Wunsch ist eingebaut. |
+| 4 | Dein neues Spiel läuft sofort im Browser. |
+| 5 | Probier es aus: Öffne Flappy-Spiel bauen und schreib deinen Wunsch. |
 
 ### Live-Auktion (`wer-macht-den-auftrag`)
 

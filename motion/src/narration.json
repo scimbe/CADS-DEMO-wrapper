@@ -98,21 +98,27 @@
   },
   {
    "id": "s1",
-   "min": 4.5,
-   "de": "Such dir Figur, Thema und Schwierigkeit aus.",
-   "en": "Pick your character, theme and difficulty."
+   "min": 4,
+   "de": "Schreib einfach auf, was für ein Spiel du willst.",
+   "en": "Just write down the kind of game you want."
   },
   {
    "id": "s2",
-   "min": 5,
-   "de": "Die Vorschau ändert sich sofort, und du spielst direkt im Browser.",
-   "en": "The preview changes right away, and you play straight in your browser."
+   "min": 4.5,
+   "de": "Ein Klick, kurz warten, und dein Wunsch ist eingebaut.",
+   "en": "One click, a short wait, and your wish is built in."
+  },
+  {
+   "id": "s3",
+   "min": 4.5,
+   "de": "Dein neues Spiel läuft sofort im Browser.",
+   "en": "Your new game runs right away in your browser."
   },
   {
    "id": "n",
    "min": 4,
-   "de": "Probier es aus: Öffne Flappy-Spiel bauen und wähl deine Figur.",
-   "en": "Try it: open Build a Flappy game and pick your character."
+   "de": "Probier es aus: Öffne Flappy-Spiel bauen und schreib deinen Wunsch.",
+   "en": "Try it: open Build a Flappy game and write your wish."
   }
  ],
  "wer-macht-den-auftrag": [

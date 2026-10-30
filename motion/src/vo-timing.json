@@ -180,51 +180,61 @@
    "scenes": [
     {
      "from": 0,
-     "len": 125,
-     "dur": 3.1
+     "len": 120,
+     "dur": 2.956
     },
     {
-     "from": 125,
+     "from": 120,
+     "len": 120,
+     "dur": 2.366
+    },
+    {
+     "from": 240,
      "len": 135,
-     "dur": 2.495
+     "dur": 2.884
     },
     {
-     "from": 260,
-     "len": 150,
-     "dur": 3.5
+     "from": 375,
+     "len": 135,
+     "dur": 2.091
     },
     {
-     "from": 410,
-     "len": 166,
-     "dur": 3.5
+     "from": 510,
+     "len": 178,
+     "dur": 3.9
     }
    ],
-   "total": 576
+   "total": 688
   },
   "en": {
    "scenes": [
     {
      "from": 0,
      "len": 105,
-     "dur": 2.449
+     "dur": 2.368
     },
     {
      "from": 105,
+     "len": 120,
+     "dur": 1.777
+    },
+    {
+     "from": 225,
      "len": 135,
-     "dur": 2.006
+     "dur": 2.989
     },
     {
-     "from": 240,
-     "len": 150,
-     "dur": 3.4
+     "from": 360,
+     "len": 135,
+     "dur": 2.109
     },
     {
-     "from": 390,
+     "from": 495,
      "len": 150,
-     "dur": 2.921
+     "dur": 2.806
     }
    ],
-   "total": 540
+   "total": 645
   }
  },
  "wer-macht-den-auftrag": {
