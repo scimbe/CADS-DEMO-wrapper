@@ -7,7 +7,7 @@
 //
 // There is deliberately no upload code here; test/untertitel.test.mjs keeps it that way.
 import { FFmpeg } from '/static/vendor/untertitel/ffmpeg/index.js';
-import { MAX_BYTES, COMPONENT_FILES, componentsFor, checkFile, parseProbe, outputSize, wordsFromResult, groupCues, toSrt, toAss, burnArgs, isOutOfMemory } from '/pb/untertitel-core.mjs';
+import { MAX_BYTES, COMPONENT_FILES, componentsFor, isSilent, checkFile, parseProbe, outputSize, wordsFromResult, groupCues, toSrt, toAss, burnArgs, isOutOfMemory } from '/pb/untertitel-core.mjs';
 import { makeApi, inspectTemplate, shortDigest } from '/pb/prompt-core.mjs';
 
 const root = document.getElementById('ut');
@@ -182,6 +182,7 @@ async function run() {
     const ff = job.ff = await startFfmpeg(blobs);
     job.probe = await probe(ff);
     const pcm = await timed('audio', () => readAudio(ff));
+    if (isSilent(pcm)) throw new Stop('no-speech');
     step(S.step.transcribe);
     const result = await timed('transcribe', () => transcribe(blobs, blobs.get('whisper-model-' + v.model), pcm, v.language));
     const cues = groupCues(wordsFromResult(result));

@@ -2,6 +2,7 @@
   "flappy": {
     "type": "external",
     "name": "flappy",
+    "video": "flappy-spiel",
     "version": "0.1.0",
     "title": "Flappy-Spiel bauen",
     "tagline": "Ein Live-Studio: Du stellst dein Flappy-Bird ein, und eine echte Rollen-Ketten-Pipeline über den Tunnel baut daraus dein spielbares Spiel — payload-blind am Edge.",
@@ -19,6 +20,7 @@
   "callcenter": {
     "type": "external",
     "name": "callcenter",
+    "video": "frag-deine-region",
     "version": "0.1.0",
     "title": "Sprachassistent für Regionaldaten",
     "tagline": "Ein Sprach-Callcenter über den Tunnel: Du fragst Thorsten nach Regionaldaten, eine geführte Dialog-State-Machine holt live echte Zahlen aus dem Deutschlandatlas — geerdet gesprochen, mit sinnvollen Rückfragen und aktiver Weiterführung.",
@@ -36,6 +38,7 @@
   "keyforge": {
     "type": "external",
     "name": "keyforge",
+    "video": "vorlage-pruefen",
     "version": "0.1.0",
     "title": "Echtheit von Vorlagen prüfen",
     "tagline": "Signiere und verifiziere CADS-Manifeste vollständig im Browser.",
@@ -53,6 +56,7 @@
   "cads-tutor": {
     "type": "landing",
     "name": "cads-tutor",
+    "video": "programmieren-lernen",
     "version": "0.1.0",
     "title": "Programmieren lernen im Browser",
     "tagline": "Ein interaktiver Programmier-Tutor im Browser — drei Spuren (Firmware, Rust, JavaScript), geführte Curricula mit geerdeten Antworten und echten Zitaten.",
@@ -114,6 +118,7 @@
   "auction-demo": {
     "type": "external",
     "name": "auction-demo",
+    "video": "wer-macht-den-auftrag",
     "version": "0.1.0",
     "title": "Live-Auktion: Wer bekommt den Zuschlag?",
     "tagline": "Sechs echte Prozesse bieten, ein echter Clearing-Algorithmus rechnet ab — der getestete per-Rollen-Auktionsalgorithmus von CADS-Tunnel, live im Browser.",
@@ -131,6 +136,7 @@
   "phototools": {
     "type": "photo-tool",
     "name": "phototools",
+    "video": "fotos-ordnen",
     "version": "0.1.2",
     "title": "Foto-Ordner ordnen",
     "tagline": "Sortiert einen Foto-Ordner nach Aufnahmedatum und Ort, setzt ein Wasserzeichen und legt einen Kontaktbogen an – ganz ohne KI.",
@@ -233,6 +239,7 @@
   "newsletter": {
     "type": "report-html",
     "name": "newsletter",
+    "video": "so-einfach",
     "version": "0.1.1",
     "title": "Wetter-Briefing erstellen",
     "tagline": "Holt echte Wetterdaten (Open-Meteo), rechnet Kennzahlen und Diagramme, und lässt ein LLM ein faktentreues Kurz-Briefing schreiben — als fertiger HTML-Report.",
@@ -373,6 +380,7 @@
   "contractcheck": {
     "type": "report-md",
     "name": "contractcheck",
+    "video": "vertrag-vergleichen",
     "version": "0.1.0",
     "title": "Verträge vergleichen",
     "tagline": "Findet inhaltliche Änderungen zwischen zwei Vertragsversionen — Text-Diff deterministisch (pdftotext+difflib), dazu eine KI-Zusammenfassung und ein Bildvergleich der Seiten per Vision-Modell.",
@@ -382,7 +390,7 @@
     "outputRel": ".",
     "reportMd": "report.md",
     "story": "Zwei Versionen desselben Vertrags. Klausel 4 (Zahlungsziel) ändert sich von 30 auf 45 Tage — 15 Tage länger aufs Geld warten. Sonst nichts. Der Diff zeigt genau diese Zeile.",
-    "estSeconds": 10,
+    "estSeconds": 75,
     "live": true,
     "demo_prompt": {
       "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
@@ -430,9 +438,10 @@
   "diagram": {
     "type": "image",
     "name": "diagram",
+    "video": "diagramm-aus-text",
     "version": "0.1.0",
     "title": "Diagramm aus Text",
-    "tagline": "Beschreibe ein Diagramm in einem Satz — ein LLM schreibt Mermaid-Code, ein echter Renderer prüft ihn und erzeugt ein PNG; bei Syntaxfehlern korrigiert das LLM anhand der echten Fehlermeldung.",
+    "tagline": "Beschreibe ein Diagramm in einem Satz — ein LLM schreibt Graphviz-Code, das Werkzeug dot prüft ihn und erzeugt ein SVG; bei Syntaxfehlern korrigiert das LLM anhand der echten Fehlermeldung.",
     "blurb": "Beschreibe in einem Satz, was du zeigen willst, und bekomme ein fertiges Diagramm als Bild.",
     "engine": "graphviz",
     "description": "Ein Besucher öffnet die Demo, der Marktplatz installiert das Werkzeug, es läuft in einer geschützten Umgebung und das Ergebnis wird gezeigt.",
@@ -464,18 +473,19 @@
       ]
     },
     "title_en": "Diagram from text",
-    "tagline_en": "Describe a diagram in one sentence — an LLM writes Mermaid code, a real renderer checks it and produces a PNG; on syntax errors the LLM corrects using the real error message.",
+    "tagline_en": "Describe a diagram in one sentence — an LLM writes Graphviz code, the dot tool checks it and produces an SVG; on syntax errors the LLM corrects using the real error message.",
     "order": 4,
     "category": "Grafik",
     "category_en": "Graphics",
     "blurb_en": "Describe in one sentence what you want to show and get a finished diagram as an image.",
-    "tech": "Ein Sprachmodell schreibt Mermaid-Code, ein echter Renderer prüft ihn und erzeugt das PNG. Bei Syntaxfehlern korrigiert das Modell anhand der echten Fehlermeldung (bis zu 3 Versuche).",
-    "tech_en": "A language model writes Mermaid code, a real renderer checks it and produces the PNG. On syntax errors the model corrects itself using the real error message (up to 3 attempts).",
+    "tech": "Ein Sprachmodell schreibt Graphviz-Code, das Werkzeug dot prüft ihn und erzeugt das SVG. Bei Syntaxfehlern korrigiert das Modell anhand der echten Fehlermeldung (bis zu 3 Versuche).",
+    "tech_en": "A language model writes Graphviz code, the dot tool checks it and produces the SVG. On syntax errors the model corrects itself using the real error message (up to 3 attempts).",
     "hasManifest": false
   },
   "temporal-poc": {
     "type": "timeline",
     "name": "temporal-poc",
+    "video": "absturzsicher",
     "version": "0.1.0",
     "title": "Absturzsichere Abläufe",
     "tagline": "Ein Dokument wird gerendert; mitten im Lauf wird der Arbeiter-Prozess hart gekillt. Temporal merkt am ausbleibenden Heartbeat den Ausfall und ein zweiter Arbeiter bringt die Aufgabe automatisch zu Ende.",
@@ -656,6 +666,7 @@
     "type": "route",
     "bridgeUrl": "https://travel-34a13a96.bunsenbrenner.org",
     "name": "travel",
+    "video": "route-planen",
     "version": "0.1.0",
     "title": "Route planen (Bremen)",
     "tagline": "Beschreibe deine Fahrt in einem Satz: Ein Sprachmodell zieht Start und Ziel heraus, OSRM rechnet die echte Route, und der Text wird mechanisch gegen diese Route geprüft.",
@@ -715,6 +726,7 @@
   "erklaervideo": {
     "type": "textvideo",
     "name": "erklaervideo",
+    "video": "text-wird-video",
     "version": "0.1.0",
     "title": "Erklärvideo aus deinem Text",
     "blurb": "Füge deinen Text ein und bekomme ein kurzes Video mit gesprochener Erklärung.",

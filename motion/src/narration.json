@@ -1,50 +1,376 @@
 {
-  "so-einfach": [
-    {"id": "problem", "min": 3.5,
-     "de": "Samstag will deine Segelgruppe raus. Aber hält das Wetter?",
-     "en": "On Saturday, your sailing group wants to head out. But will the weather hold?"},
-    {"id": "step1", "min": 5,
-     "de": "Schritt eins: Im Marktplatz die Vorlage Wetter-Briefing wählen.",
-     "en": "Step one: in the marketplace, pick the weather briefing template."},
-    {"id": "step2", "min": 5,
-     "de": "Schritt zwei: Ort eintragen, dazu ein Satz in deinen eigenen Worten.",
-     "en": "Step two: enter the place, plus one sentence in your own words."},
-    {"id": "step3", "min": 6,
-     "de": "Schritt drei: Du bekommst ein fertiges Briefing mit echten Wetterdaten. Fünf trockene Tage, gut zum Segeln.",
-     "en": "Step three: you get a finished briefing with real weather data. Five dry days, good for sailing."},
-    {"id": "trust", "min": 5,
-     "de": "Kein Programmieren, kein Prompt. Und dein Browser prüft vorher, dass die Vorlage unverändert ist.",
-     "en": "No coding, no prompts. And your browser checks first that the template is unchanged."},
-    {"id": "next", "min": 6,
-     "de": "Ob Wetter, Vertrag oder Diagramm: immer dieselben drei Schritte. Such dir unten eine Vorlage aus und klick auf Ausprobieren.",
-     "en": "Weather, contracts or charts: always the same three steps. Pick a template below and click Try it."}
-  ],
-  "termin-per-anruf": [
-    {"id": "problem", "min": 4,
-     "de": "Neuer Haarschnitt? Ruf einfach Thomas an, die digitale Empfangskraft.",
-     "en": "Need a haircut? Just call Thomas, the salon's digital receptionist."},
-    {"id": "book", "min": 5,
-     "de": "Sag, was du möchtest. Thomas findet eine freie Zeit und bestätigt den Termin.",
-     "en": "Say what you want. Thomas finds a free slot and confirms the appointment."},
-    {"id": "cancel", "min": 3.5,
-     "de": "Absagen geht genauso: Ein Satz genügt.",
-     "en": "Cancelling works the same way: one sentence is enough."},
-    {"id": "next", "min": 4,
-     "de": "Probier es aus: Anruf starten und ganz normal sprechen.",
-     "en": "Try it: start the call and just talk normally."}
-  ],
-  "frag-deine-region": [
-    {"id": "problem", "min": 3.5,
-     "de": "Du willst wissen, wie gut deine Region versorgt ist?",
-     "en": "Want to know how well your region is served?"},
-    {"id": "ask", "min": 3.5,
-     "de": "Ruf an, oder tipp die Frage einfach ein.",
-     "en": "Call, or simply type your question."},
-    {"id": "answer", "min": 7,
-     "de": "Die Antwort kommt gesprochen, mit echten Zahlen aus dem Deutschlandatlas: In der Region Hannover sind es 65 Hausärzte je 100.000 Einwohner.",
-     "en": "The answer is spoken, with real figures from the Deutschlandatlas: the Hannover region has 65 family doctors per 100,000 residents."},
-    {"id": "next", "min": 4,
-     "de": "Frag nach deiner Region: in der Galerie unter Sprachassistent für Regionaldaten.",
-     "en": "Ask about your region: in the gallery, under voice assistant for regional data."}
-  ]
+ "so-einfach": [
+  {
+   "id": "problem",
+   "min": 3.5,
+   "de": "Samstag will deine Segelgruppe raus. Aber hält das Wetter?",
+   "en": "On Saturday, your sailing group wants to head out. But will the weather hold?"
+  },
+  {
+   "id": "step1",
+   "min": 5,
+   "de": "Schritt eins: Im Marktplatz die Vorlage Wetter-Briefing wählen.",
+   "en": "Step one: in the marketplace, pick the weather briefing template."
+  },
+  {
+   "id": "step2",
+   "min": 5,
+   "de": "Schritt zwei: Ort eintragen, dazu ein Satz in deinen eigenen Worten.",
+   "en": "Step two: enter the place, plus one sentence in your own words."
+  },
+  {
+   "id": "step3",
+   "min": 6,
+   "de": "Schritt drei: Du bekommst ein fertiges Briefing mit echten Wetterdaten. Fünf trockene Tage, gut zum Segeln.",
+   "en": "Step three: you get a finished briefing with real weather data. Five dry days, good for sailing."
+  },
+  {
+   "id": "trust",
+   "min": 5,
+   "de": "Kein Programmieren, kein Prompt. Und dein Browser prüft vorher, dass die Vorlage unverändert ist.",
+   "en": "No coding, no prompts. And your browser checks first that the template is unchanged."
+  },
+  {
+   "id": "next",
+   "min": 6,
+   "de": "Ob Wetter, Vertrag oder Diagramm: immer dieselben drei Schritte. Such dir unten eine Vorlage aus und klick auf Ausprobieren.",
+   "en": "Weather, contracts or charts: always the same three steps. Pick a template below and click Try it."
+  }
+ ],
+ "termin-per-anruf": [
+  {
+   "id": "problem",
+   "min": 4,
+   "de": "Neuer Haarschnitt? Ruf einfach Thomas an, die digitale Empfangskraft.",
+   "en": "Need a haircut? Just call Thomas, the salon's digital receptionist."
+  },
+  {
+   "id": "book",
+   "min": 5,
+   "de": "Sag, was du möchtest. Thomas findet eine freie Zeit und bestätigt den Termin.",
+   "en": "Say what you want. Thomas finds a free slot and confirms the appointment."
+  },
+  {
+   "id": "cancel",
+   "min": 7.5,
+   "de": "Absagen geht genauso: Ein Satz genügt. Thomas bestätigt die Absage, und der Termin ist wieder frei.",
+   "en": "Cancelling works the same way: one sentence is enough. Thomas confirms it, and the slot is free again."
+  },
+  {
+   "id": "next",
+   "min": 4,
+   "de": "Probier es aus: Anruf starten und ganz normal sprechen.",
+   "en": "Try it: start the call and just talk normally."
+  }
+ ],
+ "frag-deine-region": [
+  {
+   "id": "problem",
+   "min": 3.5,
+   "de": "Du willst wissen, wie gut deine Region versorgt ist?",
+   "en": "Want to know how well your region is served?"
+  },
+  {
+   "id": "ask",
+   "min": 3.5,
+   "de": "Ruf an, oder tipp die Frage einfach ein.",
+   "en": "Call, or simply type your question."
+  },
+  {
+   "id": "answer",
+   "min": 7,
+   "de": "Die Antwort kommt gesprochen, mit echten Zahlen aus dem Deutschlandatlas: In der Region Hannover sind es 65 Hausärzte je 100.000 Einwohner.",
+   "en": "The answer is spoken, with real figures from the Deutschlandatlas: the Hannover region has 65 family doctors per 100,000 residents."
+  },
+  {
+   "id": "next",
+   "min": 4,
+   "de": "Frag nach deiner Region: in der Galerie unter Sprachassistent für Regionaldaten.",
+   "en": "Ask about your region: in the gallery, under voice assistant for regional data."
+  }
+ ],
+ "flappy-spiel": [
+  {
+   "id": "p",
+   "min": 3.5,
+   "de": "Lust auf dein eigenes kleines Spiel, ganz ohne Programmieren?",
+   "en": "Fancy your own little game, without any coding?"
+  },
+  {
+   "id": "s1",
+   "min": 4,
+   "de": "Schreib einfach auf, was für ein Spiel du willst.",
+   "en": "Just write down the kind of game you want."
+  },
+  {
+   "id": "s2",
+   "min": 4.5,
+   "de": "Ein Klick, kurz warten, und dein Wunsch ist eingebaut.",
+   "en": "One click, a short wait, and your wish is built in."
+  },
+  {
+   "id": "s3",
+   "min": 4.5,
+   "de": "Dein neues Spiel läuft sofort im Browser.",
+   "en": "Your new game runs right away in your browser."
+  },
+  {
+   "id": "n",
+   "min": 4,
+   "de": "Probier es aus: Öffne Flappy-Spiel bauen und schreib deinen Wunsch.",
+   "en": "Try it: open Build a Flappy game and write your wish."
+  }
+ ],
+ "wer-macht-den-auftrag": [
+  {
+   "id": "p",
+   "min": 3.5,
+   "de": "Du hast einen Auftrag. Aber wer soll ihn erledigen?",
+   "en": "You have a job. But who should do it?"
+  },
+  {
+   "id": "s1",
+   "min": 4,
+   "de": "Text und Budget eintragen und den Auftrag ausschreiben.",
+   "en": "Enter your text and budget, then put the job out to tender."
+  },
+  {
+   "id": "s2",
+   "min": 5,
+   "de": "Mehrere Anbieter bieten live. Du siehst, wer gewinnt und warum.",
+   "en": "Several providers bid live. You see who wins and why."
+  },
+  {
+   "id": "s3",
+   "min": 5,
+   "de": "Die Kurzfassung kommt sofort, ein zweiter Anbieter prüft sie.",
+   "en": "The short version arrives right away, and a second provider reviews it."
+  },
+  {
+   "id": "n",
+   "min": 4,
+   "de": "Probier es aus: Klick auf Auftrag ausschreiben.",
+   "en": "Try it: click Put job out to tender."
+  }
+ ],
+ "vorlage-pruefen": [
+  {
+   "id": "p",
+   "min": 3.5,
+   "de": "Stammt diese Vorlage wirklich vom Herausgeber?",
+   "en": "Does this template really come from its publisher?"
+  },
+  {
+   "id": "s1",
+   "min": 4,
+   "de": "Hol dir mit einem Klick eine echte Vorlage aus dem Marktplatz.",
+   "en": "With one click, fetch a real template from the marketplace."
+  },
+  {
+   "id": "s2",
+   "min": 5.5,
+   "de": "Dein Browser rechnet selbst nach: echt, und seit der Unterschrift unverändert.",
+   "en": "Your browser checks it itself: authentic, and unchanged since it was signed."
+  },
+  {
+   "id": "n",
+   "min": 4,
+   "de": "Probier es aus: Klick auf den Knopf zum Abrufen.",
+   "en": "Try it: click the fetch button."
+  }
+ ],
+ "programmieren-lernen": [
+  {
+   "id": "p",
+   "min": 3.5,
+   "de": "Programmieren lernen, ohne etwas zu installieren?",
+   "en": "Learn to code without installing anything?"
+  },
+  {
+   "id": "s1",
+   "min": 4,
+   "de": "Such dir im Browser einen Lernpfad aus.",
+   "en": "Pick a learning path in your browser."
+  },
+  {
+   "id": "s2",
+   "min": 4.5,
+   "de": "Jeder Schritt hat kleine Aufgaben, die automatisch geprüft werden.",
+   "en": "Each step has small tasks that are checked automatically."
+  },
+  {
+   "id": "s3",
+   "min": 4.5,
+   "de": "Hängst du fest, gibt es erst einen Hinweis und nicht gleich die Lösung.",
+   "en": "If you get stuck, you get a hint first, not the solution."
+  },
+  {
+   "id": "n",
+   "min": 4,
+   "de": "Wähl deinen Lernpfad und klick auf Öffnen. Dafür brauchst du ein Konto.",
+   "en": "Choose your path and click Open. You need an account for this."
+  }
+ ],
+ "fotos-ordnen": [
+  {
+   "id": "p",
+   "min": 3.5,
+   "de": "Dein Foto-Ordner ist ein einziges Durcheinander?",
+   "en": "Is your photo folder one big mess?"
+  },
+  {
+   "id": "s1",
+   "min": 3.5,
+   "de": "Ein Klick auf Organisieren genügt.",
+   "en": "One click on Organize is enough."
+  },
+  {
+   "id": "s2",
+   "min": 6,
+   "de": "Die Fotos landen in sauberen Ordnern, nach Datum und Ort. Im Beispiel: sechs Fotos in fünf Ordnern.",
+   "en": "The photos land in tidy folders, by date and place. In this example: six photos in five folders."
+  },
+  {
+   "id": "n",
+   "min": 4,
+   "de": "Probier es aus: Öffne Foto-Ordner ordnen und klick auf Organisieren.",
+   "en": "Try it: open Sort a photo folder and click Organize."
+  }
+ ],
+ "vertrag-vergleichen": [
+  {
+   "id": "p",
+   "min": 3.5,
+   "de": "Was hat sich in deinem neuen Mietvertrag geändert?",
+   "en": "What changed in your new rental contract?"
+  },
+  {
+   "id": "s1",
+   "min": 4,
+   "de": "Lade die alte und die neue Fassung hoch.",
+   "en": "Upload the old and the new version."
+  },
+  {
+   "id": "s2",
+   "min": 9,
+   "de": "Du siehst jede Änderung: Die Miete steigt von 800 auf 950 Euro, die Kündigungsfrist von drei auf sechs Monate, und Haustiere sind neu verboten.",
+   "en": "You see every change: rent goes from 800 to 950 euros, the notice period from three to six months, and pets are now banned."
+  },
+  {
+   "id": "n",
+   "min": 4,
+   "de": "Probier es aus: Zwei Dateien wählen und auf Vergleichen klicken.",
+   "en": "Try it: choose two files and click Compare."
+  }
+ ],
+ "diagramm-aus-text": [
+  {
+   "id": "p",
+   "min": 3.5,
+   "de": "Du willst einen Ablauf schnell als Bild zeigen?",
+   "en": "Want to show a process as a picture, quickly?"
+  },
+  {
+   "id": "s1",
+   "min": 3.5,
+   "de": "Beschreib ihn in einem Satz.",
+   "en": "Describe it in one sentence."
+  },
+  {
+   "id": "s2",
+   "min": 4,
+   "de": "Kurz warten, und das fertige Diagramm ist da.",
+   "en": "A short wait, and the finished diagram is there."
+  },
+  {
+   "id": "n",
+   "min": 4,
+   "de": "Probier es aus: Satz eintragen und auf Diagramm erzeugen klicken.",
+   "en": "Try it: enter a sentence and click Generate diagram."
+  }
+ ],
+ "absturzsicher": [
+  {
+   "id": "p",
+   "min": 4,
+   "de": "Was passiert, wenn mitten in einer wichtigen Aufgabe ein Helfer ausfällt?",
+   "en": "What happens if a helper drops out in the middle of an important task?"
+  },
+  {
+   "id": "s1",
+   "min": 5.5,
+   "de": "Hier wird genau das ausprobiert: Ein Klick startet den Ablauf, mittendrin fällt ein Helfer aus.",
+   "en": "This demo tries exactly that: one click starts the run, and a helper drops out halfway."
+  },
+  {
+   "id": "s2",
+   "min": 5,
+   "de": "Ein zweiter Helfer übernimmt, und die Aufgabe wird trotzdem fertig.",
+   "en": "A second helper takes over, and the task still gets finished."
+  },
+  {
+   "id": "n",
+   "min": 4,
+   "de": "Sieh es dir an: Klick auf Ablauf starten.",
+   "en": "See for yourself: click Start run."
+  }
+ ],
+ "route-planen": [
+  {
+   "id": "p",
+   "min": 3.5,
+   "de": "Wie weit ist es vom Weserstadion zum Bremer Flughafen?",
+   "en": "How far is it from the Weser stadium to Bremen airport?"
+  },
+  {
+   "id": "s1",
+   "min": 3.5,
+   "de": "Schreib deine Fahrt einfach in einem Satz.",
+   "en": "Just write your trip in one sentence."
+  },
+  {
+   "id": "s2",
+   "min": 6.5,
+   "de": "Du bekommst Strecke und Dauer: 5,7 Kilometer, 10 Minuten, geprüft gegen die echte Route.",
+   "en": "You get distance and time: 5.7 kilometres, 10 minutes, checked against the real route."
+  },
+  {
+   "id": "s3",
+   "min": 3.5,
+   "de": "Dazu siehst du den Weg als Linie.",
+   "en": "You also see the way as a line."
+  },
+  {
+   "id": "n",
+   "min": 4,
+   "de": "Probier es aus: Satz eintragen und auf Route planen klicken.",
+   "en": "Try it: enter a sentence and click Plan route."
+  }
+ ],
+ "text-wird-video": [
+  {
+   "id": "p",
+   "min": 3.5,
+   "de": "Du hast einen Text, aber keine Zeit für ein Video?",
+   "en": "You have a text, but no time to make a video?"
+  },
+  {
+   "id": "s1",
+   "min": 4,
+   "de": "Füg deinen Text ein und wähl die Länge.",
+   "en": "Paste your text and choose the length."
+  },
+  {
+   "id": "s2",
+   "min": 5,
+   "de": "Kurz warten: Du bekommst ein Video mit Folien und gesprochener Erklärung.",
+   "en": "A short wait: you get a video with slides and a spoken explanation."
+  },
+  {
+   "id": "n",
+   "min": 4,
+   "de": "Probier es aus: Text einfügen und auf Video erstellen klicken.",
+   "en": "Try it: paste a text and click Create video."
+  }
+ ]
 }

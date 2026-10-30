@@ -1,0 +1,1098 @@
+{
+ "flappy-spiel": {
+  "id": "FlappySpiel",
+  "url": "flappy-demo.bunsenbrenner.org",
+  "poster": 3,
+  "scenes": [
+   {
+    "kind": "problem",
+    "big": [
+     {
+      "de": "Dein eigenes Spiel?",
+      "en": "Your own game?"
+     },
+     {
+      "de": "Ohne Programmieren.",
+      "en": "No coding.",
+      "flame": true
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 1,
+    "title": {
+     "de": "Wunsch eintippen",
+     "en": "Type your wish"
+    },
+    "sub": {
+     "de": "in deinen Worten",
+     "en": "in your words"
+    },
+    "shots": [
+     {
+      "name": "fl-prompt",
+      "focus": "prompt",
+      "marks": [
+       {
+        "key": "prompt",
+        "at": 0.3
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Echter Lauf",
+     "en": "Real run"
+    }
+   },
+   {
+    "kind": "step",
+    "n": 2,
+    "title": {
+     "de": "Bauen lassen",
+     "en": "Let it build"
+    },
+    "sub": {
+     "de": "Build with the crew",
+     "en": "Build with the crew"
+    },
+    "shots": [
+     {
+      "name": "fl-prompt",
+      "focus": "build",
+      "marks": [
+       {
+        "key": "build",
+        "at": 0.1
+       }
+      ]
+     },
+     {
+      "name": "fl-built",
+      "focus": "done",
+      "at": 0.5,
+      "marks": [
+       {
+        "key": "done",
+        "at": 0.6,
+        "color": "ok"
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Echter Lauf",
+     "en": "Real run"
+    }
+   },
+   {
+    "kind": "step",
+    "n": 3,
+    "title": {
+     "de": "Dein neues Spiel",
+     "en": "Your new game"
+    },
+    "sub": {
+     "de": "sofort im Browser",
+     "en": "right in your browser"
+    },
+    "shots": [
+     {
+      "name": "fl-game",
+      "cut": "desk",
+      "focus": "game",
+      "scale": 1.6,
+      "marks": [
+       {
+        "key": "game",
+        "at": 0.3,
+        "color": "ok"
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Echter Lauf",
+     "en": "Real run"
+    }
+   },
+   {
+    "kind": "close",
+    "title": {
+     "de": "Baue dein Spiel",
+     "en": "Build your game"
+    },
+    "cta": {
+     "de": "Flappy-Spiel bauen ↗",
+     "en": "Build a Flappy game ↗"
+    }
+   }
+  ]
+ },
+ "wer-macht-den-auftrag": {
+  "id": "WerMachtAuftrag",
+  "url": "auction-demo.bunsenbrenner.org",
+  "poster": 2,
+  "scenes": [
+   {
+    "kind": "problem",
+    "big": [
+     {
+      "de": "Wer erledigt",
+      "en": "Who does"
+     },
+     {
+      "de": "deinen Auftrag?",
+      "en": "your job?",
+      "flame": true
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 1,
+    "title": {
+     "de": "Ausschreiben",
+     "en": "Put it out"
+    },
+    "sub": {
+     "de": "Text und Budget",
+     "en": "Text and budget"
+    },
+    "shots": [
+     {
+      "name": "au-form",
+      "focus": "go",
+      "marks": [
+       {
+        "key": "go",
+        "at": 0.45
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Echter Lauf",
+     "en": "Real run"
+    }
+   },
+   {
+    "kind": "step",
+    "n": 2,
+    "title": {
+     "de": "Anbieter bieten",
+     "en": "Providers bid"
+    },
+    "sub": {
+     "de": "Du siehst, warum",
+     "en": "You see why"
+    },
+    "shots": [
+     {
+      "name": "au-bids",
+      "focus": "bids",
+      "marks": [
+       {
+        "key": "why",
+        "at": 0.5,
+        "color": "ok"
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Echter Lauf",
+     "en": "Real run"
+    }
+   },
+   {
+    "kind": "step",
+    "n": 3,
+    "title": {
+     "de": "Kurzfassung",
+     "en": "Short version"
+    },
+    "sub": {
+     "de": "und zweite Prüfung",
+     "en": "plus a second review"
+    },
+    "shots": [
+     {
+      "name": "au-short",
+      "focus": "exec",
+      "marks": [
+       {
+        "key": "exec",
+        "at": 0.3,
+        "color": "ok"
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Echter Lauf",
+     "en": "Real run"
+    }
+   },
+   {
+    "kind": "close",
+    "title": {
+     "de": "Probier es aus",
+     "en": "Try it"
+    },
+    "cta": {
+     "de": "Auftrag ausschreiben",
+     "en": "Put job out to tender"
+    }
+   }
+  ]
+ },
+ "vorlage-pruefen": {
+  "id": "VorlagePruefen",
+  "url": "keyforge-34a13a96.bunsenbrenner.org",
+  "poster": 2,
+  "scenes": [
+   {
+    "kind": "problem",
+    "big": [
+     {
+      "de": "Stammt die Vorlage",
+      "en": "Is the template"
+     },
+     {
+      "de": "wirklich vom Herausgeber?",
+      "en": "really from its publisher?",
+      "flame": true
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 1,
+    "title": {
+     "de": "Vorlage holen",
+     "en": "Fetch a template"
+    },
+    "sub": {
+     "de": "echte Vorlage, ein Klick",
+     "en": "a real one, one click"
+    },
+    "shots": [
+     {
+      "name": "kf-fetch",
+      "focus": "fetch",
+      "marks": [
+       {
+        "key": "fetch",
+        "at": 0.4
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Echter Lauf",
+     "en": "Real run"
+    }
+   },
+   {
+    "kind": "step",
+    "n": 2,
+    "title": {
+     "de": "Dein Browser prüft",
+     "en": "Your browser checks"
+    },
+    "sub": {
+     "de": "echt und unverändert",
+     "en": "authentic and unchanged"
+    },
+    "shots": [
+     {
+      "name": "kf-ok",
+      "focus": "ok",
+      "marks": [
+       {
+        "key": "ok",
+        "at": 0.35,
+        "color": "ok"
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Echter Lauf",
+     "en": "Real run"
+    }
+   },
+   {
+    "kind": "close",
+    "title": {
+     "de": "Prüf es selbst",
+     "en": "Check it yourself"
+    },
+    "cta": {
+     "de": "Fetch live from registry",
+     "en": "Fetch live from registry"
+    }
+   }
+  ]
+ },
+ "programmieren-lernen": {
+  "id": "ProgrammierenLernen",
+  "url": "demos-34a13a96.bunsenbrenner.org/d/cads-tutor",
+  "poster": 2,
+  "scenes": [
+   {
+    "kind": "problem",
+    "big": [
+     {
+      "de": "Programmieren lernen?",
+      "en": "Learn to code?"
+     },
+     {
+      "de": "Ohne Installation.",
+      "en": "Nothing to install.",
+      "flame": true
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 1,
+    "title": {
+     "de": "Lernpfad wählen",
+     "en": "Pick a path"
+    },
+    "sub": {
+     "de": "im Browser",
+     "en": "in your browser"
+    },
+    "shots": [
+     {
+      "name": "tu-tracks",
+      "focus": "track",
+      "marks": [
+       {
+        "key": "track",
+        "at": 0.4
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Echter Lauf",
+     "en": "Real run"
+    }
+   },
+   {
+    "kind": "step",
+    "n": 2,
+    "title": {
+     "de": "Aufgaben lösen",
+     "en": "Solve tasks"
+    },
+    "sub": {
+     "de": "automatisch geprüft",
+     "en": "checked automatically"
+    },
+    "shots": [
+     {
+      "src": "real/uc/tutor-12-hint-tier.jpg",
+      "size": {
+       "w": 1440,
+       "h": 900
+      },
+      "r": {
+       "x": 0.285,
+       "y": 0.455,
+       "w": 0.27,
+       "h": 0.1
+      },
+      "marks": [
+       {
+        "key": "a",
+        "at": 0.4,
+        "r": {
+         "x": 0.285,
+         "y": 0.455,
+         "w": 0.27,
+         "h": 0.1
+        }
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Aus der Dokumentation",
+     "en": "From the documentation"
+    },
+    "url": "scimbe.github.io/CADS-DEMO-firmware-lab-docs"
+   },
+   {
+    "kind": "step",
+    "n": 3,
+    "title": {
+     "de": "Erst ein Hinweis",
+     "en": "A hint first"
+    },
+    "sub": {
+     "de": "„Lies die Meldung genau“",
+     "en": "“Read the message closely”"
+    },
+    "shots": [
+     {
+      "src": "real/uc/tutor-12-hint-tier.jpg",
+      "size": {
+       "w": 1440,
+       "h": 900
+      },
+      "r": {
+       "x": 0.285,
+       "y": 0.545,
+       "w": 0.27,
+       "h": 0.058
+      },
+      "marks": [
+       {
+        "key": "h",
+        "at": 0.3,
+        "color": "ok",
+        "r": {
+         "x": 0.285,
+         "y": 0.545,
+         "w": 0.27,
+         "h": 0.058
+        }
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Aus der Dokumentation",
+     "en": "From the documentation"
+    },
+    "url": "scimbe.github.io/CADS-DEMO-firmware-lab-docs"
+   },
+   {
+    "kind": "close",
+    "title": {
+     "de": "Fang an",
+     "en": "Get started"
+    },
+    "cta": {
+     "de": "Öffnen →",
+     "en": "Open →"
+    },
+    "small": {
+     "de": "Anmeldung beim Öffnen erforderlich",
+     "en": "Sign-in needed when you open it"
+    }
+   }
+  ]
+ },
+ "fotos-ordnen": {
+  "id": "FotosOrdnen",
+  "url": "demos-34a13a96.bunsenbrenner.org/d/phototools",
+  "poster": 2,
+  "scenes": [
+   {
+    "kind": "problem",
+    "big": [
+     {
+      "de": "Foto-Chaos?",
+      "en": "Photo chaos?"
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 1,
+    "title": {
+     "de": "Ein Klick",
+     "en": "One click"
+    },
+    "sub": {
+     "de": "Organisieren",
+     "en": "Organize"
+    },
+    "shots": [
+     {
+      "name": "ph-start",
+      "focus": "run",
+      "marks": [
+       {
+        "key": "run",
+        "at": 0.3
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 2,
+    "title": {
+     "de": "Sauber sortiert",
+     "en": "Neatly sorted"
+    },
+    "sub": {
+     "de": "nach Datum und Ort",
+     "en": "by date and place"
+    },
+    "shots": [
+     {
+      "name": "ph-result",
+      "focus": "res",
+      "marks": [
+       {
+        "key": "res",
+        "at": 0.35,
+        "color": "ok"
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Aufgezeichneter echter Lauf",
+     "en": "Recorded real run"
+    }
+   },
+   {
+    "kind": "close",
+    "title": {
+     "de": "Probier es aus",
+     "en": "Try it"
+    },
+    "cta": {
+     "de": "Organisieren ▸",
+     "en": "Organize ▸"
+    },
+    "small": {
+     "de": "Ansehen frei, Ausführen mit Konto",
+     "en": "Viewing is free, running needs an account"
+    }
+   }
+  ]
+ },
+ "vertrag-vergleichen": {
+  "id": "VertragVergleichen",
+  "url": "demos-34a13a96.bunsenbrenner.org/d/contractcheck",
+  "poster": 2,
+  "scenes": [
+   {
+    "kind": "problem",
+    "big": [
+     {
+      "de": "Was hat sich im Vertrag",
+      "en": "What changed"
+     },
+     {
+      "de": "geändert?",
+      "en": "in the contract?",
+      "flame": true
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 1,
+    "title": {
+     "de": "Zwei Fassungen",
+     "en": "Two versions"
+    },
+    "sub": {
+     "de": "alt und neu",
+     "en": "old and new"
+    },
+    "shots": [
+     {
+      "name": "cc-form",
+      "focus": "go",
+      "marks": [
+       {
+        "key": "a",
+        "at": 0.25
+       },
+       {
+        "key": "b",
+        "at": 0.4
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Aufgezeichneter echter Lauf",
+     "en": "Recorded real run"
+    }
+   },
+   {
+    "kind": "step",
+    "n": 2,
+    "title": {
+     "de": "Jede Änderung",
+     "en": "Every change"
+    },
+    "sub": {
+     "de": "rot alt, grün neu",
+     "en": "red old, green new"
+    },
+    "shots": [
+     {
+      "name": "cc-result",
+      "focus": "diff",
+      "clip": {
+       "x": 0.01,
+       "w": 0.41
+      },
+      "marks": []
+     }
+    ],
+    "chip": {
+     "de": "Aufgezeichneter echter Lauf",
+     "en": "Recorded real run"
+    }
+   },
+   {
+    "kind": "close",
+    "title": {
+     "de": "Probier es aus",
+     "en": "Try it"
+    },
+    "cta": {
+     "de": "Vergleichen ▸",
+     "en": "Compare ▸"
+    },
+    "small": {
+     "de": "Ansehen frei, Ausführen mit Konto",
+     "en": "Viewing is free, running needs an account"
+    }
+   }
+  ]
+ },
+ "diagramm-aus-text": {
+  "id": "DiagrammAusText",
+  "url": "demos-34a13a96.bunsenbrenner.org/d/diagram",
+  "poster": 2,
+  "scenes": [
+   {
+    "kind": "problem",
+    "big": [
+     {
+      "de": "Ein Ablauf als Bild?",
+      "en": "A process as a picture?"
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 1,
+    "title": {
+     "de": "Ein Satz",
+     "en": "One sentence"
+    },
+    "sub": {
+     "de": "in deinen Worten",
+     "en": "in your words"
+    },
+    "shots": [
+     {
+      "name": "dg-start",
+      "focus": "desc",
+      "marks": [
+       {
+        "key": "desc",
+        "at": 0.3
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Aufgezeichneter echter Lauf",
+     "en": "Recorded real run"
+    }
+   },
+   {
+    "kind": "step",
+    "n": 2,
+    "title": {
+     "de": "Fertiges Diagramm",
+     "en": "Finished diagram"
+    },
+    "sub": {
+     "de": "als Bild",
+     "en": "as an image"
+    },
+    "shots": [
+     {
+      "name": "dg-result",
+      "cut": "desk",
+      "focus": "img",
+      "scale": 1.05,
+      "marks": [
+       {
+        "key": "img",
+        "at": 0.35,
+        "color": "ok"
+       }
+      ],
+      "scaleV": 1.25
+     }
+    ],
+    "chip": {
+     "de": "Aufgezeichneter echter Lauf",
+     "en": "Recorded real run"
+    }
+   },
+   {
+    "kind": "close",
+    "title": {
+     "de": "Probier es aus",
+     "en": "Try it"
+    },
+    "cta": {
+     "de": "Diagramm erzeugen ▸",
+     "en": "Generate diagram ▸"
+    },
+    "small": {
+     "de": "Ansehen frei, Ausführen mit Konto",
+     "en": "Viewing is free, running needs an account"
+    }
+   }
+  ]
+ },
+ "absturzsicher": {
+  "id": "Absturzsicher",
+  "url": "demos-34a13a96.bunsenbrenner.org/d/temporal-poc",
+  "poster": 2,
+  "scenes": [
+   {
+    "kind": "problem",
+    "big": [
+     {
+      "de": "Helfer fällt aus.",
+      "en": "A helper drops out."
+     },
+     {
+      "de": "Und die Aufgabe?",
+      "en": "And the task?",
+      "flame": true
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 1,
+    "title": {
+     "de": "Ablauf starten",
+     "en": "Start the run"
+    },
+    "sub": {
+     "de": "mittendrin fällt ein Helfer aus",
+     "en": "a helper drops out halfway"
+    },
+    "shots": [
+     {
+      "name": "te-start",
+      "focus": "run",
+      "marks": [
+       {
+        "key": "run",
+        "at": 0.3
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 2,
+    "title": {
+     "de": "Trotzdem fertig",
+     "en": "Finished anyway"
+    },
+    "sub": {
+     "de": "ein zweiter Helfer übernimmt",
+     "en": "a second helper takes over"
+    },
+    "shots": [
+     {
+      "name": "te-result",
+      "focus": "res",
+      "marks": [
+       {
+        "key": "res",
+        "at": 0.35,
+        "color": "ok"
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Aufgezeichneter echter Lauf",
+     "en": "Recorded real run"
+    }
+   },
+   {
+    "kind": "close",
+    "title": {
+     "de": "Sieh es dir an",
+     "en": "See for yourself"
+    },
+    "cta": {
+     "de": "Ablauf starten ▸",
+     "en": "Start run ▸"
+    },
+    "small": {
+     "de": "Ansehen frei, Ausführen mit Konto",
+     "en": "Viewing is free, running needs an account"
+    }
+   }
+  ]
+ },
+ "route-planen": {
+  "id": "RoutePlanen",
+  "url": "demos-34a13a96.bunsenbrenner.org/d/travel",
+  "poster": 2,
+  "scenes": [
+   {
+    "kind": "problem",
+    "big": [
+     {
+      "de": "Wie weit ist es",
+      "en": "How far is it"
+     },
+     {
+      "de": "zum Flughafen?",
+      "en": "to the airport?",
+      "flame": true
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 1,
+    "title": {
+     "de": "Ein Satz",
+     "en": "One sentence"
+    },
+    "sub": {
+     "de": "Start und Ziel in Bremen",
+     "en": "start and destination in Bremen"
+    },
+    "shots": [
+     {
+      "src": "real/uc/travel-1-eingabe.jpg",
+      "size": {
+       "w": 375,
+       "h": 812
+      },
+      "r": {
+       "x": 0,
+       "y": 0.33,
+       "w": 1,
+       "h": 0.1
+      },
+      "marks": [
+       {
+        "key": "i",
+        "at": 0.3,
+        "r": {
+         "x": 0.04,
+         "y": 0.352,
+         "w": 0.92,
+         "h": 0.06
+        }
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Aufgezeichneter echter Lauf",
+     "en": "Recorded real run"
+    }
+   },
+   {
+    "kind": "step",
+    "n": 2,
+    "title": {
+     "de": "Strecke und Dauer",
+     "en": "Distance and time"
+    },
+    "sub": {
+     "de": "geprüft gegen die echte Route",
+     "en": "checked against the real route"
+    },
+    "shots": [
+     {
+      "src": "real/uc/travel-2-ergebnis.jpg",
+      "size": {
+       "w": 375,
+       "h": 812
+      },
+      "r": {
+       "x": 0,
+       "y": 0.1,
+       "w": 1,
+       "h": 0.33
+      },
+      "marks": [
+       {
+        "key": "k",
+        "at": 0.35,
+        "color": "ok",
+        "r": {
+         "x": 0.09,
+         "y": 0.3,
+         "w": 0.82,
+         "h": 0.14
+        }
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Aufgezeichneter echter Lauf",
+     "en": "Recorded real run"
+    }
+   },
+   {
+    "kind": "step",
+    "n": 3,
+    "title": {
+     "de": "Der Weg als Linie",
+     "en": "The way as a line"
+    },
+    "sub": {
+     "de": "",
+     "en": ""
+    },
+    "shots": [
+     {
+      "src": "real/uc/travel-3-karte.jpg",
+      "size": {
+       "w": 375,
+       "h": 812
+      },
+      "r": {
+       "x": 0,
+       "y": 0.13,
+       "w": 1,
+       "h": 0.28
+      }
+     }
+    ],
+    "chip": {
+     "de": "Aufgezeichneter echter Lauf",
+     "en": "Recorded real run"
+    }
+   },
+   {
+    "kind": "close",
+    "title": {
+     "de": "Probier es aus",
+     "en": "Try it"
+    },
+    "cta": {
+     "de": "Route planen ▸",
+     "en": "Plan route ▸"
+    },
+    "small": {
+     "de": "Ansehen frei, Ausführen mit Konto",
+     "en": "Viewing is free, running needs an account"
+    }
+   }
+  ]
+ },
+ "text-wird-video": {
+  "id": "TextWirdVideo",
+  "url": "demos-34a13a96.bunsenbrenner.org/d/erklaervideo",
+  "poster": 2,
+  "scenes": [
+   {
+    "kind": "problem",
+    "big": [
+     {
+      "de": "Text da.",
+      "en": "You have a text."
+     },
+     {
+      "de": "Video fehlt.",
+      "en": "No video yet.",
+      "flame": true
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 1,
+    "title": {
+     "de": "Text einfügen",
+     "en": "Paste your text"
+    },
+    "sub": {
+     "de": "Länge wählen",
+     "en": "Choose the length"
+    },
+    "shots": [
+     {
+      "name": "ev-form",
+      "focus": "text",
+      "marks": [
+       {
+        "key": "text",
+        "at": 0.3
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 2,
+    "title": {
+     "de": "Fertiges Video",
+     "en": "Finished video"
+    },
+    "sub": {
+     "de": "Folien und Sprecher",
+     "en": "Slides and a narrator"
+    },
+    "shots": [
+     {
+      "src": "real/uc/ev-frame-a.jpg",
+      "whole": true
+     },
+     {
+      "src": "real/uc/ev-frame-b.jpg",
+      "whole": true,
+      "at": 0.33
+     },
+     {
+      "src": "real/uc/ev-frame-c.jpg",
+      "whole": true,
+      "at": 0.66
+     }
+    ],
+    "chip": {
+     "de": "Aufgezeichneter echter Lauf",
+     "en": "Recorded real run"
+    }
+   },
+   {
+    "kind": "close",
+    "title": {
+     "de": "Probier es aus",
+     "en": "Try it"
+    },
+    "cta": {
+     "de": "Video erstellen ▸",
+     "en": "Create video ▸"
+    },
+    "small": {
+     "de": "Ansehen frei, Ausführen mit Konto",
+     "en": "Viewing is free, running needs an account"
+    }
+   }
+  ]
+ }
+}

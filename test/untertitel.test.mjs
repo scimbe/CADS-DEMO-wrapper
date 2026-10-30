@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import net from 'node:net';
 import { wasm, nowSec } from '../lib/prompt-wasm.mjs';
 import { inspectTemplate } from '../lib/prompt-core.mjs';
-import { MAX_BYTES, MAX_SECONDS, COMPONENT_FILES, componentsFor, checkFile, parseProbe, outputSize, wordsFromResult, groupCues, toSrt, toAss, burnArgs, cleanCue, isOutOfMemory } from '../lib/untertitel-core.mjs';
+import { MAX_BYTES, MAX_SECONDS, COMPONENT_FILES, componentsFor, isSilent, checkFile, parseProbe, outputSize, wordsFromResult, groupCues, toSrt, toAss, burnArgs, cleanCue, isOutOfMemory } from '../lib/untertitel-core.mjs';
 import { UT_DIR, UT_PAGE_HEADERS, untertitelStrings, downloadBytes } from '../lib/untertitel-page.mjs';
 
 const ROOT = join(fileURLToPath(import.meta.url), '..', '..');
@@ -52,6 +52,12 @@ test('wordsFromResult joins tokens into words and drops special tokens and noise
   const words = wordsFromResult({ transcription: [{ tokens: [tok('[_BEG_]', 0, 0), tok(' ze', 1000, 1070), tok('ige', 1160, 1350), tok(' euch', 1570, 1850), tok(',', 1850, 1890), tok(' [Musik]', 2000, 2500), tok('[_TT_262]', 2600, 2600)] }] });
   assert.deepEqual(words, [{ start: 1, end: 1.35, text: 'zeige' }, { start: 1.57, end: 1.89, text: 'euch,' }]);
   assert.deepEqual(wordsFromResult({}), []);
+});
+
+test('isSilent stops a silent track before whisper invents text', () => {
+  assert.ok(isSilent(new Float32Array(16000)));
+  assert.ok(isSilent(new Float32Array(0)));
+  assert.ok(!isSilent(Float32Array.from({ length: 16000 }, (_, i) => 0.1 * Math.sin(i / 10))));
 });
 
 test('groupCues breaks on punctuation, length, word count and pauses', () => {

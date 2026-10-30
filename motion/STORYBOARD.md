@@ -33,7 +33,7 @@ auf 35). Getippt statt gesprochen; das sagt die Folie.
 |---|-------|------|---------------|
 | 1 | Problem | „Friseurtermin? Einfach anrufen.“, Salon-Seite mit „Anruf starten“ markiert | Neuer Haarschnitt? Ruf einfach Thomas an, die digitale Empfangskraft. |
 | 2 | Buchen | Echtes Gespräch, Antwort „Ihr Termin ist bestätigt …“ markiert | Sag, was du möchtest. Thomas findet eine freie Zeit und bestätigt den Termin. |
-| 3 | Absagen | Echtes Gespräch, „… wurde erfolgreich abgesagt.“ markiert | Absagen geht genauso: ein Satz genügt. |
+| 3 | Absagen | Echtes Gespräch, „… wurde erfolgreich abgesagt.“ markiert, Hinweis „getippt“ (mindestens 7,5 s) | Absagen geht genauso: Ein Satz genügt. Thomas bestätigt die Absage, und der Termin ist wieder frei. |
 | 4 | Was als Nächstes | „Anruf starten“ markiert, Adresse der Demo | Probier es aus: Anruf starten und ganz normal sprechen. |
 
 ## 3. Frag deine Region (`frag-deine-region`, ≤ 25 s)
@@ -47,6 +47,132 @@ Echter Lauf im Callcenter: Frage per Textfeld, Antwort aus dem Deutschlandatlas
 | 2 | Fragen | Echte Seite, „Anrufen“ markiert | Ruf an oder tipp die Frage einfach ein. |
 | 3 | Antwort | Echte Antwort „65 Hausärzte je 100.000 Einwohner“, Quelle markiert | Die Antwort kommt gesprochen, mit echten Zahlen aus dem Deutschlandatlas: In der Region Hannover sind es 65 Hausärzte je 100.000 Einwohner. |
 | 4 | Was als Nächstes | „Sprachassistent für Regionaldaten“ in der Galerie | Frag nach deiner Region: in der Galerie unter „Sprachassistent für Regionaldaten“. |
+
+## Weitere Anwendungsfälle (`src/usecases.json`, je ≤ 25 s)
+
+Alle folgen demselben Muster: Alltagsfrage, Schritte mit echten Aufnahmen, genau ein nächster Klick.
+Steht im Bild „Aufgezeichneter echter Lauf“, kommt die Seite live aus der Galerie, das Ergebnis aus
+einer Aufzeichnung, weil das Ausführen ein Konto braucht.
+
+### Flappy-Spiel bauen (`flappy-spiel`)
+
+Live, ohne Login. Echter Crew-Lauf je Sprache: Wunsch eintippen, bauen lassen, das geänderte Spiel spielen (DE „Ein Traktor-Spiel auf dem Bauernmarkt“, EN „harvester market“).
+
+| # | Sprechtext DE |
+|---|---------------|
+| 1 | Lust auf dein eigenes kleines Spiel, ganz ohne Programmieren? |
+| 2 | Schreib einfach auf, was für ein Spiel du willst. |
+| 3 | Ein Klick, kurz warten, und dein Wunsch ist eingebaut. |
+| 4 | Dein neues Spiel läuft sofort im Browser. |
+| 5 | Probier es aus: Öffne Flappy-Spiel bauen und schreib deinen Wunsch. |
+
+### Live-Auktion (`wer-macht-den-auftrag`)
+
+Live, ohne Login. Echter Lauf je Sprache.
+
+| # | Sprechtext DE |
+|---|---------------|
+| 1 | Du hast einen Auftrag. Aber wer soll ihn erledigen? |
+| 2 | Text und Budget eintragen und den Auftrag ausschreiben. |
+| 3 | Mehrere Anbieter bieten live. Du siehst, wer gewinnt und warum. |
+| 4 | Die Kurzfassung kommt sofort, ein zweiter Anbieter prüft sie. |
+| 5 | Probier es aus: Klick auf Auftrag ausschreiben. |
+
+### Echtheit von Vorlagen prüfen (`vorlage-pruefen`)
+
+Live, ohne Login. Echte Vorlage aus dem Marktplatz im Browser geprüft.
+
+| # | Sprechtext DE |
+|---|---------------|
+| 1 | Stammt diese Vorlage wirklich vom Herausgeber? |
+| 2 | Hol dir mit einem Klick eine echte Vorlage aus dem Marktplatz. |
+| 3 | Dein Browser rechnet selbst nach: echt, und seit der Unterschrift unverändert. |
+| 4 | Probier es aus: Klick auf den Knopf zum Abrufen. |
+
+### Programmieren lernen (`programmieren-lernen`)
+
+Lernpfade live; Aufgabe und Hinweis sind Bilder aus der öffentlichen Dokumentation, im Video so bezeichnet.
+
+| # | Sprechtext DE |
+|---|---------------|
+| 1 | Programmieren lernen, ohne etwas zu installieren? |
+| 2 | Such dir im Browser einen Lernpfad aus. |
+| 3 | Jeder Schritt hat kleine Aufgaben, die automatisch geprüft werden. |
+| 4 | Hängst du fest, gibt es erst einen Hinweis und nicht gleich die Lösung. |
+| 5 | Wähl deinen Lernpfad und klick auf Öffnen. Dafür brauchst du ein Konto. |
+
+### Foto-Ordner ordnen (`fotos-ordnen`)
+
+Aufzeichnung `recordings/phototools.sse`.
+
+| # | Sprechtext DE |
+|---|---------------|
+| 1 | Dein Foto-Ordner ist ein einziges Durcheinander? |
+| 2 | Ein Klick auf Organisieren genügt. |
+| 3 | Die Fotos landen in sauberen Ordnern, nach Datum und Ort. Im Beispiel: sechs Fotos in fünf Ordnern. |
+| 4 | Probier es aus: Öffne Foto-Ordner ordnen und klick auf Organisieren. |
+
+### Verträge vergleichen (`vertrag-vergleichen`)
+
+Aufzeichnung `recordings/contractcheck-mietvertrag.json` mit den beiden PDFs daneben.
+
+| # | Sprechtext DE |
+|---|---------------|
+| 1 | Was hat sich in deinem neuen Mietvertrag geändert? |
+| 2 | Lade die alte und die neue Fassung hoch. |
+| 3 | Du siehst jede Änderung: Die Miete steigt von 800 auf 950 Euro, die Kündigungsfrist von drei auf sechs Monate, und Haustiere sind neu verboten. |
+| 4 | Probier es aus: Zwei Dateien wählen und auf Vergleichen klicken. |
+
+### Diagramm aus Text (`diagramm-aus-text`)
+
+Aufzeichnung `recordings/diagram.sse`.
+
+| # | Sprechtext DE |
+|---|---------------|
+| 1 | Du willst einen Ablauf schnell als Bild zeigen? |
+| 2 | Beschreib ihn in einem Satz. |
+| 3 | Kurz warten, und das fertige Diagramm ist da. |
+| 4 | Probier es aus: Satz eintragen und auf Diagramm erzeugen klicken. |
+
+### Absturzsichere Abläufe (`absturzsicher`)
+
+Aufzeichnung `recordings/temporal-poc.sse`.
+
+| # | Sprechtext DE |
+|---|---------------|
+| 1 | Was passiert, wenn mitten in einer wichtigen Aufgabe ein Helfer ausfällt? |
+| 2 | Hier wird genau das ausprobiert: Ein Klick startet den Ablauf, mittendrin fällt ein Helfer aus. |
+| 3 | Ein zweiter Helfer übernimmt, und die Aufgabe wird trotzdem fertig. |
+| 4 | Sieh es dir an: Klick auf Ablauf starten. |
+
+### Route planen (`route-planen`)
+
+Bildschirmfotos des echten Laufs aus PR #33 (Weserstadion nach Flughafen).
+
+| # | Sprechtext DE |
+|---|---------------|
+| 1 | Wie weit ist es vom Weserstadion zum Bremer Flughafen? |
+| 2 | Schreib deine Fahrt einfach in einem Satz. |
+| 3 | Du bekommst Strecke und Dauer: 5,7 Kilometer, 10 Minuten, geprüft gegen die echte Route. |
+| 4 | Dazu siehst du den Weg als Linie. |
+| 5 | Probier es aus: Satz eintragen und auf Route planen klicken. |
+
+### Erklärvideo (`text-wird-video`)
+
+Formular live; Ergebnis sind Bilder aus einem echten Produktionsvideo (Nordwind Bootsservice).
+
+| # | Sprechtext DE |
+|---|---------------|
+| 1 | Du hast einen Text, aber keine Zeit für ein Video? |
+| 2 | Füg deinen Text ein und wähl die Länge. |
+| 3 | Kurz warten: Du bekommst ein Video mit Folien und gesprochener Erklärung. |
+| 4 | Probier es aus: Text einfügen und auf Video erstellen klicken. |
+
+## Lesbarkeit
+
+Alle Aufnahmen zeigen einen Ausschnitt in fester Vergrößerung (`src/crop.ts`): 16-px-Text ergibt
+etwa 32 px im 16:9-Bild und 38 px im 9:16-Bild. Quelle sind die Handy-Aufnahmen, weil sie einspaltig
+sind. Ausnahmen: das breite Diagramm und die Folien des Erklärvideos werden ganz gezeigt.
 
 ## Selbstprüfung gegen das Ziel
 

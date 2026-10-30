@@ -1,8 +1,8 @@
 {
-  "publisher_pubkey": "77800a1611b6efe32f8c653e23a7d1a737bad44ec143fa739c57e13add968ac4",
-  "manifest_id": "fd2bd0983825249a6bd6ff54126aec6fbbb87de8337014418e642cd3c6060d48",
+  "publisher_pubkey": "2535b618dc4984119e6b1b966f53a8ee9b9583f6a082b70eed895c1045e88a90",
+  "manifest_id": "c1b17cc95cfdab213c1f5789d442083741e7e9cb21fbf88710ee86b70a88f0a5",
   "name": "contractcheck",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "installer_kind": "binary",
   "bundle": {
     "url": "bundle.tar.gz",
@@ -30,7 +30,40 @@
     "script": "verify.sh",
     "timeout_secs": 30
   },
-  "issued_at": 1787953069,
-  "expires_at": 1819489069,
-  "signature": "1a8040d3801e28245a6aee5fcbf7536c01aec3e4221a23e41d1f0e7fe1809b1e082b713f89e39cbb420ffdb0fc75e25968dab64d450eb287ea865f168f753408"
+  "issued_at": 1793383098,
+  "expires_at": 1824919098,
+  "demo_prompt": {
+    "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+    "parameters": [
+      {
+        "name": "focus",
+        "type": "enum",
+        "options": [
+          "all",
+          "payment_only",
+          "changes_only"
+        ]
+      },
+      {
+        "name": "context_lines",
+        "type": "int",
+        "min": 0,
+        "max": 6
+      },
+      {
+        "name": "llm_summary",
+        "type": "enum",
+        "options": [
+          "on",
+          "off"
+        ]
+      }
+    ],
+    "examples": [
+      "nur Zahlungsklauseln",
+      "mit mehr Kontext",
+      "mit KI-Zusammenfassung"
+    ]
+  },
+  "signature": "f5957fc0f79c84ec224b24c1bb84143f9200fd9cbac0cef46cc9790b8b693019a3fc39df7b66e9c55da6ba8010c3c1cea6ad8126ebcaf7ba6bee6266b7ac4b01"
 }

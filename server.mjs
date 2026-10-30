@@ -1,7 +1,7 @@
 // CADS marketplace demo wrapper — multi-demo, application-oriented, bunsenbrenner.org style.
 //
 // Index (/) lists the portfolio; /d/<slug> is one demo's tool workspace. Every demo:
-//   - installs via the real marketplace path (installActivate = the sim->real seam), Variante 1;
+//   - installs via the real marketplace path (installActivate, signature check in lib/manifest-trust.mjs), Variante 1;
 //   - is invoked per TYPE (photo-tool: run the installed tool on a real photo folder;
 //     report-html: run the bundle entrypoint, render the produced HTML report);
 //   - renders results in the bunsenbrenner.org design system (shared shell + per-type view).
@@ -9,7 +9,7 @@
 // Secrets (LLM key, Pexels key) load from wrapper/.env — never demos.json / shared artifacts.
 
 import http from 'node:http';
-import { readFileSync, writeFileSync, appendFileSync, existsSync, rmSync, mkdirSync, createReadStream, copyFileSync, symlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, rmSync, mkdirSync, createReadStream, copyFileSync, symlinkSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -19,15 +19,18 @@ import { tr, di, makeT, normLang, clientStrings } from './lib/i18n.mjs';
 import { indexPage } from './lib/index-page.mjs';
 import { loadEnv } from './lib/env.mjs';
 import { createAuth } from './lib/auth.mjs';
+import { LOCAL_RUN_CSS, hasLocalRun, installScript, localRunBlock, localRunConfig } from './lib/local-run.mjs';
+import { DEFAULT_REGISTRY_URL, REFUSAL, loadVerifiedManifest, readTrustRoot } from './lib/manifest-trust.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
-import { WASM_DIR } from './lib/prompt-wasm.mjs';
+import { WASM_DIR, wasm, nowSec } from './lib/prompt-wasm.mjs';
 import { md2html } from './lib/md2html.mjs';
 import { serveMedia } from './lib/static-media.mjs';
 import { UT_CSS, UT_DIR, UT_PAGE_HEADERS, untertitelBody } from './lib/untertitel-page.mjs';
 import { motionTrust, motionScript, MOTION_CSS } from './lib/motion.mjs';
 import { findChrome, withoutPdf } from './lib/pdf.mjs';
+import { patchParser, patchGuard, germanizeReport, reportConfigPatch, readRunOutcome } from './lib/newsletter.mjs';
 import { generateDiagram } from './lib/diagram.mjs';
 import { parseTimeline, judgeTimeline, patchTemporalPorts, patchWaiter } from './lib/timeline.mjs';
 import { allocatePorts, releasePorts } from './lib/ports.mjs';
@@ -44,6 +47,9 @@ const RUNS = join(WORK, 'runs'); // one directory per visitor run (lib/runs.mjs)
 // Signed prompt templates ("Eigene Angaben"). The wrapper never takes a template from a request: it
 // reads it from here, re-verifies it and renders it itself (lib/templates.mjs).
 const TEMPLATES = createTemplateStore(process.env.TEMPLATES_DIR || join(__dir, 'templates'));
+const LOCAL_RUN = localRunConfig();
+const REGISTRY_URL = process.env.REGISTRY_URL || DEFAULT_REGISTRY_URL;
+const MANIFEST_TRUST_ROOT = join(__dir, 'manifests', 'publishers.json'); // deliberately no env override: the trust root ships with the code
 const PORT = Number(process.env.PORT || 8790);
 // Default 0.0.0.0, not 127.0.0.1: a container bound to its own loopback is unreachable
 // through Docker's port-publish NAT (the compose file's co-located ct-agent sidecar never hit
@@ -51,6 +57,9 @@ const PORT = Number(process.env.PORT || 8790);
 // that NAT) -- caught deploying standalone (host ct-agent -> published port) where GET / just
 // hung/connection-refused despite the container logging "wrapper on http://127.0.0.1:8790".
 const HOST = process.env.HOST || '0.0.0.0';
+// DEMOS comes from JSON, but `DEMOS['constructor']` is still truthy: only own keys are demos.
+const demoOf = (slug) => (typeof slug === 'string' && Object.hasOwn(DEMOS, slug) ? DEMOS[slug] : null);
+const staticDir = (d) => (isAbsolute(d.staticOut) ? d.staticOut : join(__dir, d.staticOut));
 const sha256File = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
 
 // LLM creds: process env (docker -e / env_file), a local .env overrides (see lib/env.mjs)
@@ -65,29 +74,33 @@ const STAMP = {
   'photo5.jpg': ['2025:06:02 14:20:00', 48.1351, 11.5820], 'photo6.jpg': ['2025:11:30 08:05:00', 48.1351, 11.5820],
 };
 
-// ---- install seam (shared, sim->real) ----------------------------------------------------------
-function installActivate(slug, emit, stage, runId = newRunId()) {
+// ---- install seam (shared): real signature check, see lib/manifest-trust.mjs ----------------------------------------------------------
+async function installActivate(slug, emit, stage, runId = newRunId()) {
   const d = DEMOS[slug];
   // manifestDir may be repo-relative (bundled in the image at manifests/<slug>, so it works on any
   // host) or an absolute path (legacy/local dev). Resolve relative paths against the wrapper dir —
   // this is what makes the bundle demos portable to the hosting machine (they used to point at a
   // local scratchpad path that only existed on the author's laptop -> "Abbruch bei der Installation").
   const md = isAbsolute(d.manifestDir) ? d.manifestDir : join(__dir, d.manifestDir);
-  const manifest = JSON.parse(readFileSync(join(md, 'manifest.json'), 'utf8'));
+  const localRaw = readFileSync(join(md, 'manifest.json'), 'utf8');
   const bundlePath = join(md, 'bundle.tar.gz');
   stage('install', 'Installieren');
-  emit('step', `Manifest beziehen — ${manifest.name} v${manifest.version}`);
-  emit('sim', 'simuliert · Registry ist live (registry.bunsenbrenner.org), aber dieses Manifest ist noch nicht publiziert (blockiert von #37/#38) — lokal geladen');
-  emit('step', 'Signatur (ed25519) prüfen');
-  emit('sim', 'simuliert · braucht den Trust-Root der Live-Registry');
+  emit('step', 'Manifest beziehen und Signatur (ed25519) prüfen');
+  const checked = await loadVerifiedManifest(localRaw, { api: wasm(), trusted: readTrustRoot(MANIFEST_TRUST_ROOT), now: nowSec(), name: slug, registryUrl: REGISTRY_URL });
+  if (!checked.ok) { emit('fail', `Installation abgelehnt · ${REFUSAL[checked.code]}`); throw new Error(checked.code); }
+  const { manifest, publisher, source } = checked;
+  const from = { registry: `aus der Registry bezogen (${new URL(REGISTRY_URL).host})`, unpublished: 'lokale signierte Kopie, in der Registry noch nicht veröffentlicht', offline: 'lokale signierte Kopie, Registry gerade nicht erreichbar' }[source];
+  emit(source === 'registry' ? 'real' : 'warn', `Manifest ${manifest.name} v${manifest.version} · ${from}`);
+  emit('real', `echt geprüft · ed25519-Signatur gültig · ${publisher.label} (${manifest.publisher_pubkey.slice(0, 8)}…)`);
   emit('step', 'Bundle-Integrität (sha256) prüfen');
-  const got = sha256File(bundlePath);
-  if (got !== manifest.bundle.sha256) { emit('fail', 'sha256-Mismatch'); throw new Error('sha256'); }
-  emit('real', `echt geprüft · sha256 ${got.slice(0, 12)}… == Manifest`);
+  const bundle = readFileSync(bundlePath); // one read: what is hashed is what gets unpacked
+  const got = createHash('sha256').update(bundle).digest('hex');
+  if (got !== manifest.bundle.sha256) { emit('fail', 'Installation abgelehnt · sha256 passt nicht zum signierten Manifest'); throw new Error('sha256'); }
+  emit('real', `echt geprüft · sha256 ${got.slice(0, 12)}… == signiertes Manifest`);
   emit('step', 'Bundle entpacken & aktivieren');
   gcRuns(RUNS);
   const workDir = createRunDir(RUNS, slug, runId).dir;
-  if (spawnSync('tar', ['xzf', bundlePath, '-C', workDir]).status !== 0) { emit('fail', 'entpacken fehlgeschlagen'); throw new Error('unpack'); }
+  if (spawnSync('tar', ['xzf', '-', '-C', workDir], { input: bundle }).status !== 0) { emit('fail', 'entpacken fehlgeschlagen'); throw new Error('unpack'); }
   emit('real', 'echt · installiert');
   return { workDir, runId, manifest, outputDir: null };
 }
@@ -128,27 +141,6 @@ function invokePhotoTool(slug, rec, emit, stage, done, reg) {
 }
 
 // ---- invoke: report-html -----------------------------------------------------------------------
-const DE_MAP = [
-  ['Hamburg Weekly Weather Briefing', 'Wöchentliches Wetter-Briefing Hamburg'],
-  ['This Week at a Glance', 'Die Woche auf einen Blick'],
-  ['Warmest day', 'Wärmster Tag'], ['Wettest day', 'Nassester Tag'], ['Windiest day', 'Windigster Tag'],
-  ['Dry days (< 1mm)', 'Trockene Tage (< 1 mm)'], ['Dry days', 'Trockene Tage'],
-  ['Daily Data', 'Tageswerte'], ['Temperature chart', 'Temperaturdiagramm'], ['Precipitation chart', 'Niederschlagsdiagramm'],
-  ['>Temperature<', '>Temperatur<'], ['>Precipitation<', '>Niederschlag<'], ['>Date<', '>Datum<'],
-  ['High (°C)', 'Höchst (°C)'], ['Low (°C)', 'Tiefst (°C)'], ['Precip (mm)', 'Niederschlag (mm)'], ['Wind max (km/h)', 'Wind max (km/h)'],
-  ['Average daily high', 'Durchschnittliche Höchsttemperatur'], ['Average daily low', 'Durchschnittliche Tiefsttemperatur'],
-  ['Coldest day', 'Kältester Tag'], ['Total precipitation', 'Gesamtniederschlag'], ['Calmest day', 'Windstillster Tag'],
-  ['generated', 'erstellt'], ['source:', 'Quelle:'],
-  ['Every figure above comes directly from the Open-Meteo forecast API response', 'Jede Zahl oben stammt direkt aus der Open-Meteo-Vorhersage-API-Antwort'],
-  ['the narrative text above was written by', 'der obige Fließtext wurde geschrieben von'],
-  ['selecting and phrasing these figures under an enforced facts-only guard', 'das die Zahlen unter einem erzwungenen Fakten-Guard auswählt und formuliert'],
-  ['This is a demo artifact; forecast data is not archived and will differ on each regeneration', 'Dies ist ein Demo-Artefakt; die Vorhersagedaten werden nicht archiviert und unterscheiden sich bei jeder Erzeugung'],
-  ['Generated by', 'Erzeugt von'],
-];
-function germanizeReport(html) {
-  for (const [en, de] of DE_MAP) html = html.split(en).join(de);
-  return html.replace(/([A-Za-zÄÖÜäöü]+) Weekly Weather Briefing/g, 'Wöchentliches Wetter-Briefing $1').replace(/(\d(?:\.\d)?)days/g, '$1 Tage').replace(/lang="en"/g, 'lang="de"');
-}
 function invokeReportHtml(slug, rec, emit, stage, done, reg, lang, cfg, extra) {
   const d = DEMOS[slug]; cfg = cfg || {};
   lang = lang === 'en' ? 'en' : 'de';
@@ -173,15 +165,19 @@ function invokeReportHtml(slug, rec, emit, stage, done, reg, lang, cfg, extra) {
     }
   } catch {}
   // Guided parameterization: apply the validated config (location/forecast_days) to config.yaml.
-  if ((cfg.location && d.locations && d.locations[cfg.location]) || cfg.forecast_days) {
+  const place = cfg.location && d.locations && Object.hasOwn(d.locations, cfg.location) ? cfg.location : null;
+  if (place || cfg.forecast_days) {
     try {
-      const yp = join(rec.workDir, 'config', 'report.yaml'); let y = readFileSync(yp, 'utf8');
-      if (cfg.location && d.locations[cfg.location]) { const [lat, lon, tz] = d.locations[cfg.location];
-        y = y.replace(/name:\s*".*"/, `name: "${cfg.location}, DE"`).replace(/latitude:\s*[\d.]+/, `latitude: ${lat}`).replace(/longitude:\s*[\d.]+/, `longitude: ${lon}`).replace(/timezone:\s*".*"/, `timezone: "${tz}"`).replace(/report_title:\s*".*"/, `report_title: "${cfg.location} Weekly Weather Briefing"`); }
-      if (cfg.forecast_days) y = y.replace(/days:\s*\d+/, `days: ${cfg.forecast_days}`);
-      writeFileSync(yp, y);
-      emit('ok', `Anpassung übernommen: ${[cfg.location && 'Ort ' + cfg.location, cfg.forecast_days && cfg.forecast_days + ' Tage'].filter(Boolean).join(', ')}`);
-    } catch {}
+      const yp = join(rec.workDir, 'config', 'report.yaml');
+      writeFileSync(yp, reportConfigPatch(readFileSync(yp, 'utf8'), { location: place, coords: place && d.locations[place], days: cfg.forecast_days }));
+      emit('ok', `Anpassung übernommen: ${[place && 'Ort ' + place, cfg.forecast_days && cfg.forecast_days + ' Tage'].filter(Boolean).join(', ')}`);
+    } catch { emit('warn', 'Die Anpassung konnte nicht übernommen werden, der Report zeigt die Standardwerte.'); }
+  }
+  // Bundle fixes on this run's copy (lib/newsletter.mjs). If one no longer applies, say so: the report still
+  // runs, but the text may fall back.
+  for (const [rel, patch] of [['src/llm_narrative.py', patchParser], ['src/narrative_guard.py', patchGuard]]) {
+    try { const p = join(rec.workDir, rel); const out = patch(readFileSync(p, 'utf8')); if (out) writeFileSync(p, out); else emit('warn', `Wrapper-Patch für ${rel} greift nicht mehr`); }
+    catch { emit('warn', `Wrapper-Patch für ${rel} greift nicht mehr`); }
   }
   const chrome = findChrome(process.env);
   const runPath = join(rec.workDir, 'run.sh');
@@ -208,7 +204,7 @@ function invokeReportHtml(slug, rec, emit, stage, done, reg, lang, cfg, extra) {
     if (!existsSync(html)) { emit('fail', `Report nicht erzeugt (exit ${code})`); return done(null); }
     rec.outputDir = outDir;
     try { const py = join(rec.workDir, '.venv', 'bin', 'python'); if (existsSync(py) && existsSync(join(__dir, 'restyle_charts.py'))) { const rs = spawnSync(py, [join(__dir, 'restyle_charts.py'), outDir, cfg.accent_color || ''], { encoding: 'utf8' }); if (rs.status === 0) emit('ok', 'Diagramme im bunsenbrenner-Stil neu gestaltet'); } } catch {}
-    if (lang === 'de') { try { const hp = join(outDir, d.htmlEntry); writeFileSync(hp, germanizeReport(readFileSync(hp, 'utf8'))); emit('ok', 'Report ins Deutsche übersetzt (Labels + LLM-Narrativ auf Deutsch)'); } catch {} }
+    if (lang === 'de') { try { const hp = join(outDir, d.htmlEntry); writeFileSync(hp, germanizeReport(readFileSync(hp, 'utf8'))); emit('ok', 'Beschriftungen ins Deutsche übersetzt'); } catch {} }
     if (cfg.accent_color || cfg.font || (cfg.include && cfg.include.length < 3)) { try { const hp = join(outDir, d.htmlEntry); let h = readFileSync(hp, 'utf8');
       if (cfg.accent_color) h = h.replace(/#1f4e79/g, cfg.accent_color);
       if (cfg.font === 'serif') h = h.replace('</style>', 'h1,h2{font-family:Georgia,"Iowan Old Style",serif}</style>');
@@ -217,9 +213,11 @@ function invokeReportHtml(slug, rec, emit, stage, done, reg, lang, cfg, extra) {
       if (cfg.include && !cfg.include.includes('temperature')) h = h.replace(/<h2>(Temperature|Temperatur)<\/h2>\s*<div class="chart">[\s\S]*?<\/div>/, '');
       writeFileSync(hp, h); emit('ok', `Stil angewandt: ${[cfg.accent_color, cfg.font, cfg.include && cfg.include.join('+')].filter(Boolean).join(' · ')}`); } catch {} }
     if (code !== 0) emit('warn', `Nebenschritt exit ${code} — HTML-Report trotzdem erzeugt`);
-    else emit('real', 'echt · Report erzeugt');
+    const outcome = readRunOutcome(outDir);
+    if (outcome.fallback) emit('warn', `Text NICHT vom Sprachmodell: fester Ersatzsatz (${outcome.reason.slice(0, 160)})`);
+    else if (code === 0) emit('real', outcome.known ? 'echt · Report erzeugt, Text vom Sprachmodell, Zahlen geprüft' : 'echt · Report erzeugt');
     const hasPdf = !!chrome && lang !== 'de' && existsSync(join(outDir, 'report.pdf'));
-    done({ render: 'report-html', reportUrl: `/d/${slug}/out/${rec.runId}/${d.htmlEntry}`, pdf: hasPdf ? `/d/${slug}/out/${rec.runId}/report.pdf` : null, lang });
+    done({ render: 'report-html', reportUrl: `/d/${slug}/out/${rec.runId}/${d.htmlEntry}`, pdf: hasPdf ? `/d/${slug}/out/${rec.runId}/report.pdf` : null, lang, fallback: outcome.fallback });
   });
 }
 
@@ -262,7 +260,7 @@ async function planConfig(slug, text) {
 }
 function handlePlan(req, res, url) {
   const slug = url.searchParams.get('demo');
-  if (!DEMOS[slug]) { res.writeHead(404).end('unknown'); return; }
+  if (!demoOf(slug)) { res.writeHead(404).end('unknown'); return; }
   let body = ''; req.on('data', (c) => { body += c; if (body.length > 4000) req.destroy(); });
   req.on('end', async () => {
     let text = ''; try { text = JSON.parse(body).text || ''; } catch {}
@@ -280,7 +278,7 @@ function invokeReportMd(slug, rec, emit, stage, done, reg) {
   const runPath = join(rec.workDir, d.entrypoint); spawnSync('chmod', ['+x', runPath]);
   // pass the LLM creds so contractcheck's `compare` can run its LLM text-summary + the visual (vision) comparison
   const child = spawn(runPath, [], { cwd: rec.workDir, env: { PATH: process.env.PATH, HOME: rec.workDir, CT_MANIFEST_PROJECT_NAME: `${slug}-demo`,
-    LLM_BASE_URL: ENV.LITELLM_BASE_URL || '', LLM_API_KEY: ENV.LITELLM_API_KEY || '', LLM_MODEL: ENV.LITELLM_DEFAULT_MODEL || '' } });
+    LLM_BASE_URL: ENV.LITELLM_BASE_URL || '', LLM_API_KEY: ENV.LITELLM_API_KEY || '', LLM_MODEL_NAME: ENV.LITELLM_DEFAULT_MODEL || '' } });
   if (reg) reg(child);
   let o = ''; const on = (b) => { const s = b.toString(); o += s; s.split('\n').filter(Boolean).forEach((l) => emit('run', l.slice(0, 200))); };
   child.stdout.on('data', on); child.stderr.on('data', on);
@@ -296,15 +294,17 @@ function invokeReportMd(slug, rec, emit, stage, done, reg) {
 
 // ---- invoke: image (diagram) -------------------------------------------------------------------
 // One LLM call writes Graphviz DOT, `dot` renders it server-side (lib/diagram.mjs); no install step.
-async function invokeImage(slug, rec, emit, stage, done, reg, cfg = {}, extra = null) {
+async function invokeImage(slug, rec, emit, stage, done, reg, cfg = {}, extra = null, lang = 'de') {
   const d = DEMOS[slug];
   // A server-rendered prompt from a signed template wins over the free-text field.
   const desc = (extra && extra.promptText) ? extra.promptText.slice(0, 4000)
-    : (cfg && typeof cfg.description === 'string' && cfg.description.trim()) ? cfg.description.trim().slice(0, 600) : d.description;
+    : (cfg && typeof cfg.description === 'string' && cfg.description.trim()) ? cfg.description.trim().slice(0, 600) : '';
   stage('process', 'Diagramm erzeugen');
+  // No stored example in place of the visitor's input: the page would pass it off as their diagram.
+  if (!desc) { emit('fail', lang === 'en' ? 'Please describe what the diagram should show.' : 'Bitte beschreibe, was das Diagramm zeigen soll.', { plain: true }); return done(null); }
   if (!ENV.LITELLM_BASE_URL) { emit('fail', 'LLM-Zugang fehlt (LITELLM_*) — diagram braucht das Modell'); return done(null); }
   emit('step', 'Das Sprachmodell schreibt Graphviz-DOT, dot prüft und zeichnet es');
-  const r = await generateDiagram({ description: desc, llm: (sys, usr) => callLLM(sys, usr, 700, 0.2), onAttempt: (n) => emit('run', `Versuch ${n}`) });
+  const r = await generateDiagram({ description: desc, lang, llm: (sys, usr) => callLLM(sys, usr, 700, 0.2), onAttempt: (n) => emit('run', `Versuch ${n}`) });
   if (!r.ok) { emit('fail', r.error); return done(null); }
   emit('real', `echt · Diagramm gezeichnet (${r.attempts === 1 ? 'erster Versuch' : r.attempts + ' Versuche'})`);
   done({ render: 'diagram', svg: r.svg, dot: r.dot, desc });
@@ -448,12 +448,13 @@ async function invokeRoute(slug, rec, emit, stage, done, reg, lang, cfg = {}) {
 
 // `post` is set by handlePostStart: { demo, lang, cfg, extra, rendered } -- all server-derived. The GET
 // path (EventSource) keeps taking its options from the query string and can never set `extra`.
-function handleStart(req, res, url, post = null) {
+async function handleStart(req, res, url, post = null) {
   const slug = post ? post.demo : url.searchParams.get('demo');
   let lang = (post ? post.lang : url.searchParams.get('lang')) === 'en' ? 'en' : 'de';
   let cfg = post ? post.cfg : {}; if (!post) try { const c = url.searchParams.get('cfg'); if (c) cfg = JSON.parse(Buffer.from(c, 'base64').toString('utf8')); } catch {}
+  if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) cfg = {};
   if (cfg.language === 'en' || cfg.language === 'de') lang = cfg.language;
-  const d = DEMOS[slug];
+  const d = demoOf(slug);
   if (!d) { res.writeHead(404).end('unknown'); return; }
   const extra = post ? post.extra : null;
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
@@ -461,13 +462,15 @@ function handleStart(req, res, url, post = null) {
   const emit = (t, text, extra) => res.write(`event: ${t}\ndata: ${JSON.stringify({ text, ...(extra || {}) })}\n\n`);
   const stage = (id, label) => res.write(`event: stage\ndata: ${JSON.stringify({ id, label })}\n\n`);
   let child = null; let aborted = false;
-  const reg = (c) => { child = c; if (aborted && c && !c.killed) try { c.kill('SIGKILL'); } catch {} };
+  // 'error' without a listener would end the whole process (e.g. a bundle's interpreter is missing); each
+  // invoke's 'close' handler reports the failed run.
+  const reg = (c) => { child = c; if (c) c.on('error', () => {}); if (aborted && c && !c.killed) try { c.kill('SIGKILL'); } catch {} };
   // POST: 'close' on the request fires once its body is consumed, so watch the response (the connection) instead.
   (post ? res : req).on('close', () => { aborted = true; if (child && !child.killed) { try { child.kill('SIGKILL'); } catch {} } });
   let rec = null;
   try {
     if (d.hasManifest === false || d.type === 'image' || d.type === 'route') { stage('install', 'Bereit'); rec = {}; }
-    else rec = installActivate(slug, emit, stage);
+    else rec = await installActivate(slug, emit, stage);
   } catch (e) { emit('fail', 'Abbruch bei der Installation'); stage('error', 'Fehlgeschlagen'); res.end(); return; }
   if (aborted) { res.end(); return; }
   if (post) emit('ok', makeT(lang)('pb.run.checked', { tid: shortDigest(post.rendered.template_id, 8), td: shortDigest(post.rendered.template_digest, 12), vd: shortDigest(post.rendered.values_digest, 12) }));
@@ -475,7 +478,7 @@ function handleStart(req, res, url, post = null) {
   if (d.type === 'photo-tool') invokePhotoTool(slug, rec, emit, stage, cb, reg);
   else if (d.type === 'report-html') invokeReportHtml(slug, rec, emit, stage, cb, reg, lang, cfg, extra);
   else if (d.type === 'report-md') invokeReportMd(slug, rec, emit, stage, cb, reg);
-  else if (d.type === 'image') invokeImage(slug, rec, emit, stage, cb, reg, cfg, extra);
+  else if (d.type === 'image') invokeImage(slug, rec, emit, stage, cb, reg, cfg, extra, lang);
   else if (d.type === 'timeline') invokeTimeline(slug, rec, emit, stage, cb, reg);
   else if (d.type === 'textvideo') invokeTextVideo(slug, rec, emit, stage, cb, reg, cfg);
   else if (d.type === 'route') invokeRoute(slug, rec, emit, stage, cb, reg, lang, cfg);
@@ -484,14 +487,16 @@ function handleStart(req, res, url, post = null) {
 
 const MIME = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml', '.html': 'text/html; charset=utf-8', '.pdf': 'application/pdf', '.json': 'application/json', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.mp4': 'video/mp4', '.webm': 'video/webm', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8' };
 function serveFile(res, path) {
-  if (!existsSync(path)) { res.writeHead(404).end('nf'); return; }
+  // A directory exists too, and reading one raises EISDIR on the stream.
+  let isFile = false; try { isFile = statSync(path).isFile(); } catch {}
+  if (!isFile) { res.writeHead(404).end('nf'); return; }
   res.writeHead(200, { 'Content-Type': MIME[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
-  createReadStream(path).pipe(res);
+  createReadStream(path).on('error', () => res.destroy()).pipe(res);
 }
 // Resolve a demo's output dir from the live activation OR from disk (so report/PDF/media links keep
 // working across server restarts — the "nf" bug). staticOut demos serve a fixed pre-rendered dir.
 function resolveOut(slug, runId) {
-  const d = DEMOS[slug]; if (!d) return null;
+  const d = demoOf(slug); if (!d) return null;
   if (d.staticOut) return staticDir(d);   // repo-relative -> portable to any host (same fix class as #10)
   if (!runId || !RUN_ID_RE.test(runId) || !/^[a-z0-9_-]+$/.test(slug)) return null;
   const wd = runDir(RUNS, slug, runId);
@@ -513,13 +518,13 @@ function esc(x){return String(x).replace(/[&<>"]/g,function(c){return {'&':'&amp
 // POST variant of EventSource for runs with signed-template values: same addEventListener/close/onerror
 // surface, so startRun does not care which one it got. A refusal (HTTP 4xx, JSON body) is replayed as
 // fail + error stage + done, with .refused set so the message is shown as is.
-function postStream(url,body){
+function postStream(url,body){ // body null: GET
   var L={},ctl=new AbortController(),gotDone=false,api={onerror:null,refused:false,
     addEventListener:function(t,fn){(L[t]=L[t]||[]).push(fn);},
     close:function(){try{ctl.abort();}catch(e){}}};
   function emit(t,d){if(t==='done')gotDone=true;(L[t]||[]).forEach(function(fn){fn({data:JSON.stringify(d)});});}
-  fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctl.signal}).then(function(r){
-    if(!r.ok){return r.json().catch(function(){return {};}).then(function(j){api.refused=true;emit('fail',{text:j.message||''});emit('stage',{id:'error'});emit('done',{});});}
+  fetch(url,body===null?{signal:ctl.signal}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctl.signal}).then(function(r){
+    if(!r.ok){return r.json().catch(function(){return {};}).then(function(j){api.refused=true;emit('fail',j.login_url?{text:j.message||'',login_url:j.login_url}:{text:j.message||''});emit('stage',{id:'error'});emit('done',{});});}
     var rd=r.body.getReader(),dec=new TextDecoder(),buf='';
     function block(b){var ev='message',data='';b.split('\\n').forEach(function(l){if(l.indexOf('event:')===0)ev=l.slice(6).trim();else if(l.indexOf('data:')===0)data+=l.slice(5).trim();});if(data){try{emit(ev,JSON.parse(data));}catch(e){}}}
     function pump(){return rd.read().then(function(x){
@@ -552,13 +557,13 @@ function startRun(btn){
   if(!live){live=document.createElement('p');live.className='sr-only runlive';live.setAttribute('role','status');live.setAttribute('aria-live','polite');out.insertBefore(live,out.firstChild);}
   prog.style.display='';const pb=prog.querySelector('.pbar');const bar=pb.querySelector('i');bar.style.background='var(--teal)';bar.style.width='0';const ptxt=prog.querySelector('.ptxt');
   let cancel=prog.querySelector('.btn-cancel');if(!cancel){cancel=document.createElement('button');cancel.type='button';cancel.className='btn-cancel';cancel.textContent=f('js.run.cancel');prog.querySelector('.pmeta').appendChild(cancel);}
-  const t0=Date.now();let done=false;let failed=false;let failMsg='';let plainFail=false;let phase=0;
+  const t0=Date.now();let done=false;let failed=false;let failMsg='';let plainFail=false;let loginUrl='';let phase=0;
   const secs=()=>Math.round((Date.now()-t0)/1000);
   const line=(c,t)=>{const e=document.createElement('span');e.className='l '+c;e.textContent=t;log.appendChild(e);log.scrollTop=log.scrollHeight};
   var _cfg={}; try{ if(window.__cfg) _cfg=JSON.parse(decodeURIComponent(escape(atob(window.__cfg)))); }catch(e){}
   var _di=document.querySelector('.descinput'); if(_di && _di.value.trim()){ if(_di.id==='rttext'){_cfg.text=_di.value.trim();} else if(_di.id==='tvtext'){_cfg.text=_di.value.trim();var _tl=document.getElementById('tvlen');if(_tl)_cfg.length=parseInt(_tl.value,10);var _tt=document.getElementById('tvtitle');if(_tt&&_tt.value.trim())_cfg.title=_tt.value.trim();} else _cfg.description=_di.value.trim(); }
   var _cfgP=Object.keys(_cfg).length?('&cfg='+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(_cfg)))))):'';
-  const es=pbRun?postStream('/api/start?lang='+(wrap.dataset.lang||'de'),pbRun):new EventSource('/api/start?demo='+encodeURIComponent(slug)+'&lang='+(wrap.dataset.lang||'de')+_cfgP);
+  const es=pbRun?postStream('/api/start?lang='+(wrap.dataset.lang||'de'),pbRun):postStream('/api/start?demo='+encodeURIComponent(slug)+'&lang='+(wrap.dataset.lang||'de')+_cfgP,null);
   const stop=(txt,terra)=>{if(done)return;done=true;clearInterval(iv);bar.style.width='100%';pb.setAttribute('aria-valuenow','100');if(terra)bar.style.background='var(--terra)';ptxt.textContent=txt;live.textContent=txt;if(cancel){cancel.remove();cancel=null;}document.querySelectorAll('button.run,button[data-runlock]').forEach(b=>b.disabled=false);try{es.close()}catch(e){}};
   // Friendly, specific error + retry. role=alert announces it; focus goes to the retry button.
   const fail=(kind,detail)=>{if(done)return;const s=secs();
@@ -567,7 +572,7 @@ function startRun(btn){
     const why=kind==='refused'?detail:kind==='conn'?f('js.run.err.conn'):kind==='timeout'?f('js.run.err.timeout',{s:s}):detail?f('js.run.err.tool',{msg:detail}):f('js.run.err.generic');
     if(kind==='timeout')line('fail','Timeout nach '+s+'s');
     const box=document.createElement('div');box.className='runerr';box.setAttribute('role','alert');
-    box.innerHTML='<h3>'+esc(f('js.run.err.title'))+'</h3><p>'+esc(why)+'</p><p class="hint">'+esc(f('js.run.err.hint'))+'</p><button type="button" class="btn btn-primary retry">'+esc(f('js.run.retry'))+'</button>';
+    box.innerHTML='<h3>'+esc(f('js.run.err.title'))+'</h3><p>'+esc(why)+'</p>'+(kind==='refused'?'':'<p class="hint">'+esc(f('js.run.err.hint'))+'</p>')+''+(loginUrl?'<a class="btn btn-primary" href="'+esc(loginUrl)+'">'+esc(f('js.run.login'))+'</a> ':'')+'<button type="button" class="btn '+(loginUrl?'btn-ghost':'btn-primary')+' retry">'+esc(f('js.run.retry'))+'</button>';
     prog.after(box);const rb=box.querySelector('.retry');rb.addEventListener('click',()=>{window.__pbRun=pbRun;startRun(btn);});try{rb.focus();}catch(e){}};
   const tick=()=>{if(done)return;const el=(Date.now()-t0)/1000;
     if(el>=maxS){fail('timeout');return;}
@@ -579,7 +584,7 @@ function startRun(btn){
   cancel.addEventListener('click',()=>{const s=secs();line('warn',f('js.run.cancelled',{s:s}));
     const a=[...out.querySelectorAll('.st')].find(x=>!x.classList.contains('done'));if(a)a.className='st error';
     stop(f('js.run.cancelled',{s:s}),true);});
-  ['step','real','sim','run','cache','ok','warn','fail'].forEach(t=>es.addEventListener(t,e=>{const dd=JSON.parse(e.data);const tx=dd.text;if(t==='fail'){failMsg=tx;if(dd.plain)plainFail=true;}line(t,({step:'▸ ',real:'✓ ',sim:'· ',run:'  ',cache:'✓ ',ok:'· ',warn:'! ',fail:'✕ '}[t]||'')+tx)}));
+  ['step','real','sim','run','cache','ok','warn','fail'].forEach(t=>es.addEventListener(t,e=>{const dd=JSON.parse(e.data);const tx=dd.text;if(t==='fail'){failMsg=tx;if(dd.plain)plainFail=true;if(dd.login_url)loginUrl=dd.login_url;}line(t,({step:'▸ ',real:'✓ ',sim:'· ',run:'  ',cache:'✓ ',ok:'· ',warn:'! ',fail:'✕ '}[t]||'')+tx)}));
   es.addEventListener('stage',e=>{const {id}=JSON.parse(e.data);const steps=['install','process','done'];const idx=steps.indexOf(id);if(id==='error')failed=true;
     out.querySelectorAll('.st').forEach(s=>{const si=steps.indexOf(s.dataset.step);if(id==='error'){if(!s.classList.contains('done'))s.classList.add('active');return}
       s.classList.toggle('done',si<idx||(si===idx&&id==='done'));s.classList.toggle('active',si===idx&&id!=='done')});
@@ -592,7 +597,7 @@ function startRun(btn){
       rt.hidden=false;rs.querySelector('img').src=r.contact;rs.hidden=false;
       var g=rs.querySelector('.opengal');if(g){if(r.gallery){g.href=r.gallery;g.style.display='';}else{g.style.display='none';}}}
     else if(r.render==='report-html'){const s=out.querySelector('.res-report');const fr=s.querySelector('iframe');fr.src=r.reportUrl;s.hidden=false;
-      s.querySelector('.openrep').href=r.reportUrl;const pr=s.querySelector('.printrep');if(pr){pr.hidden=!!r.pdf;pr.onclick=function(){try{fr.contentWindow.focus();fr.contentWindow.print();}catch(e){window.open(r.reportUrl);}};}const pl=s.querySelector('.pdflink');if(r.pdf){pl.href=r.pdf;pl.hidden=false}else if(pl)pl.hidden=true;}
+      s.querySelector('.openrep').href=r.reportUrl;const fb=s.querySelector('.rep-fallback');if(fb){fb.hidden=!r.fallback;fb.textContent=f('js.res.fallback');}const pr=s.querySelector('.printrep');if(pr){pr.hidden=!!r.pdf;pr.onclick=function(){try{fr.contentWindow.focus();fr.contentWindow.print();}catch(e){window.open(r.reportUrl);}};}const pl=s.querySelector('.pdflink');if(r.pdf){pl.href=r.pdf;pl.hidden=false}else if(pl)pl.hidden=true;}
     else if(r.render==='textvideo'){const s=out.querySelector('.res-textvideo');const v=s.querySelector('.resvideo');v.querySelectorAll('track').forEach(function(x){x.remove();});v.src=r.video;if(r.poster)v.poster=r.poster;if(r.subtitles){var tr=document.createElement('track');tr.kind='subtitles';tr.srclang='de';tr.label='Deutsch';tr.src=r.subtitles;tr.default=true;v.appendChild(tr);}var ds=s.querySelector('.dlsubs');if(ds){if(r.subtitles){ds.href=r.subtitles;ds.hidden=false;}else ds.hidden=true;}s.querySelector('.dlvideo').href=r.video;s.hidden=false;}
     else if(r.render==='diagram'){const s=out.querySelector('.res-diagram');var u='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(r.svg);s.querySelector('.resimg').src=u;var dl=s.querySelector('.dlsvg');dl.href=u;dl.download='diagramm.svg';s.hidden=false;}
     else if(r.render==='route'){renderRoute(out.querySelector('.res-route'),r);}
@@ -657,7 +662,8 @@ function toolShell(slug, inner, lang) {
   const home = lang === 'en' ? '/?lang=en' : '/';
   const timeout = Math.max(90, Math.round((d.estSeconds || 20) * 2.5));
   const builder = d.live && inner.builder !== false && TEMPLATES.has(slug) ? builderBlock(slug, lang, builderVersions()) : '';
-  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (inner.mini ? MINI_CSS : '') + (inner.motion ? MOTION_CSS : '') + (inner.css || '') })}
+  const localRun = d.live && hasLocalRun(slug, LOCAL_RUN) ? localRunBlock(slug, lang, LOCAL_RUN) : '';
+  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (localRun ? LOCAL_RUN_CSS : '') + (inner.mini ? MINI_CSS : '') + (inner.motion ? MOTION_CSS : '') + (inner.css || '') })}
 ${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang, inner.chip)}
 <main class="wrap" id="main" tabindex="-1" data-slug="${slug}" data-est="${d.estSeconds || 20}" data-timeout="${timeout}" data-lang="${lang}">
   <noscript><div class="noscript-note" role="note">${tt('noscript.demo')}</div></noscript>
@@ -665,6 +671,7 @@ ${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}<
   ${inner.mini ? '' : `<button class="m-toggle" type="button" aria-expanded="false">${t('mehr anzeigen ▾','show more ▾')}</button>`}
   ${builder}
   ${inner.body}
+  ${localRun}
 </main>${foot(lang)}<script>window.__S=${jsonForScript(clientStrings(lang))};</script><script>${CLIENT}</script>${inner.motion ? motionScript() : ''}</body></html>`;
 }
 
@@ -673,7 +680,7 @@ const NOTE = (tag, html) => `<div class="note"><span class="t">${tag}</span><div
 // The simplest page: one sentence (toolbar), one form (optional), one button, the result.
 function reportPanel(lang, extraChips = '') {
   const t = tr(lang);
-  return `<section class="panel res-report" hidden><div class="ph"><h2>${t('Ergebnis','Result')}</h2><span><button class="chip printrep" type="button">${t('Als PDF drucken','Print as PDF')}</button> <a class="chip pdflink" href="#" target="_blank" rel="noopener noreferrer" hidden>PDF${newTabMark(lang)}</a> <a class="chip openrep" href="#" target="_blank" rel="noopener noreferrer">${t('In neuem Tab','In new tab')}${newTabMark(lang)}</a></span></div><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>`;
+  return `<section class="panel res-report" hidden><div class="ph"><h2>${t('Ergebnis','Result')}</h2><span><button class="chip printrep" type="button">${t('Als PDF drucken','Print as PDF')}</button> <a class="chip pdflink" href="#" target="_blank" rel="noopener noreferrer" hidden>PDF${newTabMark(lang)}</a> <a class="chip openrep" href="#" target="_blank" rel="noopener noreferrer">${t('In neuem Tab','In new tab')}${newTabMark(lang)}</a></span></div><p class="note rep-fallback" role="status" hidden></p><div class="sheetwrap"><iframe class="reportframe" title="Report"></iframe></div></section>`;
 }
 const runButton = (label) => `<button class="btn btn-primary run" type="button">${label}</button>`;
 
@@ -708,7 +715,7 @@ const UPLOAD_CLIENT = `
       var a=await b64(fa.files[0]), b=await b64(fb.files[0]);
       var r=await fetch('/api/upload-compare',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({a:a,b:b}),signal:ctl.signal});
       var j=await r.json();
-      if(!j.ok){msg.textContent=f('js.up.err',{msg:j.error||f('js.up.err.unknown')});return;}
+      if(!j.ok){msg.textContent=f('js.up.err',{msg:j.message||j.error||f('js.up.err.unknown')});if(j.login_url){var la=document.createElement('a');la.href=j.login_url;la.textContent=' '+f('js.run.login');msg.appendChild(la);}return;}
       frame.srcdoc=j.html; panel.hidden=false; msg.textContent=f('js.up.done'); panel.scrollIntoView({behavior:'smooth',block:'nearest'});
     }catch(e){msg.textContent=(e&&e.name==='AbortError')?f('js.up.err.timeout',{s:TIMEOUT_S}):f('js.up.err.net');}
     finally{clearTimeout(to);btn.disabled=false;}
@@ -884,13 +891,13 @@ function handleUploadCompare(req, res) {
   const reply = (code, obj) => { try { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj)); } catch {} };
   let body = ''; let tooBig = false;
   req.on('data', (c) => { body += c; if (body.length > 24 * 1024 * 1024) { tooBig = true; req.destroy(); } });
-  req.on('end', () => {
+  req.on('end', async () => {
     if (tooBig) return reply(413, { error: 'Dateien zu groß (max. ~16 MB je PDF).' });
     let a, b; try { const j = JSON.parse(body); a = j.a; b = j.b; } catch { return reply(400, { error: 'Ungültige Anfrage.' }); }
     const decode = (s) => { const m = String(s || '').match(/^data:[^;]*;base64,(.*)$/s); try { return Buffer.from(m ? m[1] : String(s || ''), 'base64'); } catch { return Buffer.alloc(0); } };
     const bufA = decode(a), bufB = decode(b);
     if (bufA.slice(0, 5).toString() !== '%PDF-' || bufB.slice(0, 5).toString() !== '%PDF-') return reply(400, { error: 'Bitte zwei gültige PDF-Dateien hochladen.' });
-    let rec; try { rec = installActivate('contractcheck', () => {}, () => {}); } catch { return reply(500, { error: 'Werkzeug konnte nicht vorbereitet werden.' }); }
+    let rec; try { rec = await installActivate('contractcheck', () => {}, () => {}); } catch { return reply(500, { error: 'Werkzeug konnte nicht vorbereitet werden.' }); }
     const wd = rec.workDir;
     const up = join(WORK, '_uploads', String(process.pid) + '-' + reqSeq++);
     try { mkdirSync(up, { recursive: true }); } catch {}
@@ -898,7 +905,7 @@ function handleUploadCompare(req, res) {
     try { writeFileSync(pa, bufA); writeFileSync(pb, bufB); } catch { return reply(500, { error: 'Konnte Uploads nicht ablegen.' }); }
     const key = ENV.LITELLM_API_KEY || '';
     const env = { PATH: process.env.PATH, HOME: wd, PYTHONPATH: join(wd, 'vendor'),
-      LLM_BASE_URL: ENV.LITELLM_BASE_URL || '', LLM_API_KEY: key, LLM_MODEL: ENV.LITELLM_DEFAULT_MODEL || '' };
+      LLM_BASE_URL: ENV.LITELLM_BASE_URL || '', LLM_API_KEY: key, LLM_MODEL_NAME: ENV.LITELLM_DEFAULT_MODEL || '' };
     const args = [join(wd, 'src', 'pipeline.py'), 'compare', '--old', pa, '--new', pb, '--report', rep];
     if (!key) args.push('--no-llm', '--no-vision');
     const child = spawn('python3', args, { cwd: wd, env });
@@ -906,13 +913,22 @@ function handleUploadCompare(req, res) {
     child.on('error', () => reply(500, { error: 'python3 nicht verfügbar.' }));
     child.on('close', (code) => {
       try {
-        if (!existsSync(rep)) return reply(500, { error: 'Vergleich fehlgeschlagen' + (err ? (': ' + err.slice(-160)) : ' (exit ' + code + ').') });
+        if (!existsSync(rep)) {
+          console.log(JSON.stringify({ event: 'compare-failed', code, stderr: err.slice(-200).replaceAll(WORK, '') }));
+          return reply(422, { error: compareError(err) });
+        }
         reply(200, { ok: true, html: md2html(readFileSync(rep, 'utf8')) });
       } finally { try { rmSync(up, { recursive: true, force: true }); rmSync(wd, { recursive: true, force: true }); } catch {} }
     });
   });
 }
 let reqSeq = 0;
+// Visitors get a sentence; tool output (with server paths) stays in the log.
+function compareError(err) {
+  if (/scanned\/image-only|No extractable text/.test(err)) return 'Eine der Dateien enthält keinen lesbaren Text (eingescanntes PDF). Bitte PDFs mit echtem Text verwenden.';
+  if (/Syntax Error|Couldn't|Could not|PDF/.test(err)) return 'Eine der Dateien lässt sich nicht als PDF lesen.';
+  return 'Der Vergleich ist fehlgeschlagen.';
+}
 
 // ---- signed prompt templates ("Eigene Angaben") -----------------------------------------------
 const jsonReply = (res, code, obj) => { try { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(obj)); } catch {} };
@@ -962,7 +978,7 @@ function handlePostStart(req, res, url) {
     if (!r.ok) { console.log(JSON.stringify({ event: 'prompt-run-refused', demo: slug, code: r.code })); return refuse(r.status, r.code, r.message, r.errors ? { errors: r.errors } : {}); }
     if (RUN_MODE_TYPE[r.run.mode] !== DEMOS[slug].type) return refuse(409, 'not-runnable', makeT(lang)('pb.srv.not-runnable'));
     console.log(logLine(slug, r.rendered));
-    handleStart(req, res, url, { demo: slug, lang, cfg: cfgFromValues(r.run, body.values), extra: { mode: r.run.mode, promptText: r.rendered.text }, rendered: r.rendered });
+    handleStart(req, res, url, { demo: slug, lang, cfg: cfgFromValues(r.run, body.values), extra: { mode: r.run.mode, promptText: r.rendered.text }, rendered: r.rendered }).catch(() => res.end());
   });
 }
 
@@ -989,14 +1005,21 @@ function builderVersions() {
 
 
 const AUTH = createAuth(); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
-http.createServer(async (req, res) => {
+// One failing request answers 500; it never takes the gallery (and everybody's runs) down with it.
+http.createServer((req, res) => route(req, res).catch((e) => {
+  console.log(JSON.stringify({ event: 'request-error', path: String(req.url).split('?')[0].slice(0, 120), error: String(e && e.message || e).slice(0, 200) }));
+  if (res.headersSent) res.destroy(); else res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }).end('server error');
+})).listen(PORT, HOST, () => console.log(`wrapper on http://${HOST}:${PORT}`));
+
+async function route(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
   if (await AUTH.guard(req, res, url)) return;
-  if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage(DEMOS, normLang(url.searchParams.get('lang')))); return; }
+  if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage(DEMOS, normLang(url.searchParams.get('lang')), { sandboxLive: !!LOCAL_RUN.version })); return; }
+  if (p === '/cads-run.sh' && LOCAL_RUN.version) { res.writeHead(200, { 'Content-Type': 'text/x-shellscript; charset=utf-8', 'Cache-Control': 'no-cache' }).end(installScript(LOCAL_RUN)); return; }
   if (p === '/api/status') { handleStatus(res); return; }
   if (p === '/api/upload-compare' && req.method === 'POST') { handleUploadCompare(req, res); return; }
-  if (p === '/api/start') { if (req.method === 'POST') handlePostStart(req, res, url); else handleStart(req, res, url); return; }
+  if (p === '/api/start') { if (req.method === 'POST') handlePostStart(req, res, url); else handleStart(req, res, url).catch(() => res.end()); return; }
   const tm = p.match(/^\/api\/template\/([a-z0-9-]+)$/);
   if (tm && req.method === 'GET') { handleTemplate(res, tm[1]); return; }
   if (p.startsWith('/pb/') && req.method === 'GET') { servePb(res, url); return; }
@@ -1008,7 +1031,7 @@ http.createServer(async (req, res) => {
   if (dm) { const base = resolveOut(dm[1], dm[2]); if (!base) { res.writeHead(404).end('nf'); return; } serveFile(res, join(base, dm[3].replace(/\.\./g, ''))); return; }
   if (p.startsWith('/assets/thumbs/')) { serveFile(res, join(__dir, 'thumbs', p.slice('/assets/thumbs/'.length).replace(/\.\./g, ''))); return; }
   const pd = p.match(/^\/d\/([a-z0-9_-]+)\/?$/);
-  if (pd) { const slug = pd[1], d = DEMOS[slug]; if (!d) { res.writeHead(404).end('unknown demo'); return; }
+  if (pd) { const slug = pd[1], d = demoOf(slug); if (!d) { res.writeHead(404).end('unknown demo'); return; }
     if (MERGED[slug]) { res.writeHead(302, { Location: `/d/${MERGED[slug]}${url.search}` }).end(); return; }
     if (d.type === 'external' && d.live && d.externalUrl) { res.writeHead(302, { Location: d.externalUrl }).end(); return; }
     const lang = normLang(url.searchParams.get('lang'));
@@ -1016,4 +1039,4 @@ http.createServer(async (req, res) => {
     const html = d.live && PAGES[d.type] ? PAGES[d.type](slug) : soonPage(slug, lang);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', ...(d.type === 'browser-wasm' ? UT_PAGE_HEADERS : {}) }).end(html); return; }
   res.writeHead(404).end('not found');
-}).listen(PORT, HOST, () => console.log(`wrapper on http://${HOST}:${PORT}`));
+}

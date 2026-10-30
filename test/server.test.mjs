@@ -111,3 +111,78 @@ test('erklaervideo without the bundle fails honestly (no fake success)', async (
   assert.match(t, /event: fail/);
   assert.ok(!/event: result/.test(t));
 });
+
+// A single anonymous GET must never take the process down: every line here killed the server once
+// (ReferenceError staticDir, EISDIR from a directory, a cfg that decodes to null).
+test('URLs that used to crash the server answer normally and leave it running', async () => {
+  const alive = async () => assert.equal((await fetch(base + '/')).status, 200);
+  const cases = [
+    ['/d/podcast/out/chapters.json', 200], ['/d/podcast/out/missing.mp3', 404], ['/d/explainer/out/renders/final.mp4', 200],
+    ['/assets/thumbs/', 404], ['/assets/thumbs/photo1.jpg', 200], ['/d/podcast/out/renders', 404], ['/d/explainer/out/renders', 404],
+  ];
+  for (const [path, status] of cases) {
+    const r = await fetch(base + path); await r.arrayBuffer();
+    assert.equal(r.status, status, path);
+    await alive();
+  }
+  const r = await fetch(`${base}/api/start?demo=diagram&cfg=${Buffer.from('null').toString('base64')}`);
+  await r.body?.cancel();
+  await alive();
+});
+
+test('names of Object.prototype are not demos', async () => {
+  for (const slug of ['constructor', '__proto__']) {
+    const r = await fetch(`${base}/d/${slug}`, { redirect: 'manual' });
+    assert.equal(r.status, 404, slug);
+    assert.equal(r.headers.get('location'), null, slug);
+  }
+});
+
+// The run client against a login gate: fetch is stubbed, the rest is the code the page really ships.
+test('a run without login says so and links the login, it does not claim a broken connection', async () => {
+  const h = await (await fetch(`${base}/d/diagram`)).text();
+  const src = h.slice(h.indexOf('function postStream('), h.indexOf('function startRun('));
+  const events = [];
+  const fetchStub = async (url, opt) => {
+    events.push(['req', opt && opt.method || 'GET']);
+    return { ok: false, json: async () => ({ message: 'Bitte anmelden.', login_url: 'https://bunsenbrenner.org/gate/start' }) };
+  };
+  const api = new Function('fetch', 'AbortController', `${src}; return postStream('/api/start?demo=diagram', null);`)(fetchStub, AbortController);
+  for (const t of ['fail', 'stage', 'done']) api.addEventListener(t, (e) => events.push([t, JSON.parse(e.data)]));
+  await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(events[0], ['req', 'GET']);
+  assert.deepEqual(events[1], ['fail', { text: 'Bitte anmelden.', login_url: 'https://bunsenbrenner.org/gate/start' }]);
+  assert.equal(api.refused, true);
+});
+
+test('diagram without a description asks for one instead of drawing a stored example', async () => {
+  const r = await fetch(`${base}/api/start?demo=diagram`);
+  const t = await r.text();
+  assert.match(t, /event: fail/); assert.ok(!t.includes('event: result'));
+});
+
+test('the diagram card describes what really runs (Graphviz, SVG)', () => {
+  const d = DEMOS.diagram;
+  for (const k of ['tagline', 'tagline_en', 'tech', 'tech_en']) { assert.doesNotMatch(d[k], /Mermaid|PNG/, k); assert.match(d[k], /Graphviz/, k); }
+});
+
+test('sample contract: the promised duration and the client timeout fit the real 75 s run', () => {
+  assert.ok(DEMOS.contractcheck.estSeconds >= 60);
+});
+
+test('the report panel has a visible place for the fallback notice', async () => {
+  assert.match(await (await fetch(`${base}/d/newsletter`)).text(), /class="note rep-fallback"/);
+});
+
+test('a broken PDF gets a sentence, no tool output and no server path', async () => {
+  const bad = 'data:application/pdf;base64,' + Buffer.from('%PDF-1.4 kaputt').toString('base64');
+  const r = await fetch(`${base}/api/upload-compare`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ a: bad, b: bad }) });
+  const j = await r.json();
+  assert.equal(r.status, 422); assert.doesNotMatch(j.error, /\/|Syntax|exit|Traceback/);
+});
+
+test('contractcheck gets the configured model under the name it reads (LLM_MODEL_NAME)', () => {
+  const src = readFileSync(new URL('../server.mjs', import.meta.url), 'utf8');
+  const llm = readFileSync(new URL('../manifests/contractcheck/manifest.json', import.meta.url), 'utf8') && src.slice(src.indexOf('function invokeReportMd'), src.indexOf('// ---- invoke: image'));
+  assert.match(llm, /LLM_MODEL_NAME:/); assert.doesNotMatch(llm, /LLM_MODEL:/);
+});
