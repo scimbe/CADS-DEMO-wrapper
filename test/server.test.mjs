@@ -111,3 +111,29 @@ test('erklaervideo without the bundle fails honestly (no fake success)', async (
   assert.match(t, /event: fail/);
   assert.ok(!/event: result/.test(t));
 });
+
+// A single anonymous GET must never take the process down: every line here killed the server once
+// (ReferenceError staticDir, EISDIR from a directory, a cfg that decodes to null).
+test('URLs that used to crash the server answer normally and leave it running', async () => {
+  const alive = async () => assert.equal((await fetch(base + '/')).status, 200);
+  const cases = [
+    ['/d/podcast/out/chapters.json', 200], ['/d/podcast/out/missing.mp3', 404], ['/d/explainer/out/renders/final.mp4', 200],
+    ['/assets/thumbs/', 404], ['/assets/thumbs/photo1.jpg', 200], ['/d/podcast/out/renders', 404], ['/d/explainer/out/renders', 404],
+  ];
+  for (const [path, status] of cases) {
+    const r = await fetch(base + path); await r.arrayBuffer();
+    assert.equal(r.status, status, path);
+    await alive();
+  }
+  const r = await fetch(`${base}/api/start?demo=diagram&cfg=${Buffer.from('null').toString('base64')}`);
+  await r.body?.cancel();
+  await alive();
+});
+
+test('names of Object.prototype are not demos', async () => {
+  for (const slug of ['constructor', '__proto__']) {
+    const r = await fetch(`${base}/d/${slug}`, { redirect: 'manual' });
+    assert.equal(r.status, 404, slug);
+    assert.equal(r.headers.get('location'), null, slug);
+  }
+});
