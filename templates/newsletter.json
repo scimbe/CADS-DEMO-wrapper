@@ -61,11 +61,11 @@
     {
       "name": "newsletter-bundle",
       "sha256": "e2c5172aec10646aea0edf1658244cd8207e08341f4426c79590314ca66b408f",
-      "manifest_id": "b7723b25b01b758fd065f77322e6a9042d08805a3c2cf752d73191fe226a9212",
-      "usage": "newsletter 0.1.1 (Bundle bundle.tar.gz, Einstieg run.sh, Prüfsumme e2c5172aec10…). In dieser Demo-Umgebung entpackt der Wrapper das Bundle, vergleicht seine sha256 mit dem Manifest und startet ./run.sh: Wetterdaten von Open-Meteo, Kennzahlen und Diagramme mit gewöhnlichem Code, den Fließtext schreibt ein Sprachmodell und ein narrative_guard prüft die Zahlen. Die Prüfsumme bindet genau dieses Bundle; sie sagt nichts darüber, woher es ursprünglich stammt, und nicht, dass sein Inhalt harmlos ist. Dasselbe Bundle steht mit dieser Prüfsumme auch im Manifest des Marktplatz-Herausgebers (newsletter-dp-signed.json, Schlüssel 1292c0cc…)."
+      "manifest_id": "724a891946c9b15eeb1e6ad099b018043729aa6020b87b1b47397b8015277040",
+      "usage": "newsletter 0.1.2 (Bundle bundle.tar.gz, Einstieg run.sh, Prüfsumme e2c5172aec10…). In dieser Demo-Umgebung entpackt der Wrapper das Bundle, vergleicht seine sha256 mit dem Manifest und startet ./run.sh: Wetterdaten von Open-Meteo, Kennzahlen und Diagramme mit gewöhnlichem Code, den Fließtext schreibt ein Sprachmodell und ein narrative_guard prüft die Zahlen. Die Prüfsumme bindet genau dieses Bundle; sie sagt nichts darüber, woher es ursprünglich stammt, und nicht, dass sein Inhalt harmlos ist. Dasselbe Bundle steht mit dieser Prüfsumme auch im Manifest des Marktplatz-Herausgebers (newsletter-dp-signed.json, Schlüssel 1292c0cc…)."
     }
   ],
   "issued_at": 1793093418,
   "expires_at": 1824629418,
-  "signature": "54b0ab63063b3509b2e6935bb344c0955c7b21f807e93a4ca103f63e3f031a780e1cf107a86c42a4f39f62334f2ee7abc3d8f79215d416d08de15772216dd108"
+  "signature": "65f7c6835def764379005687a860650060885d4577edaccd149ca763d4cf6dac103870db6779f67b16e9177f6ffadb0249c02dbaa9f2d18ef68dfa5aaf5b7c09"
 }
