@@ -5,12 +5,12 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import net from 'node:net';
 import { spawn } from 'node:child_process';
-import { createThrottle, proseOf, thinLine, summarizePlan, explainBridgeError, planRoute } from '../lib/route.mjs';
+import { createThrottle, proseOf, thinLine, summarizePlan, explainBridgeError, planRoute, checkPlaces } from '../lib/route.mjs';
 
 // The shape the live bridge answers with (trimmed: real responses carry ~190 points).
 const coords = [[8.8135, 53.0831], [8.82, 53.08], [8.83, 53.07], [8.8377, 53.0664]];
-const OK_BODY = (pass = true) => ({
-  intent: { origin: 'Bremen Hauptbahnhof', destination: 'Bremen Weserstadion', preference: 'fastest', toolCallId: 'c1' },
+const OK_BODY = (pass = true, origin = 'Bremen Hauptbahnhof', destination = 'Bremen Weserstadion') => ({
+  intent: { origin, destination, preference: 'fastest', toolCallId: 'c1' },
   raw_osrm: { code: 'Ok', routes: [{ geometry: { type: 'LineString', coordinates: coords }, distance: 4064.1, duration: 467 }] },
   picked_route: { geometry: { type: 'LineString', coordinates: coords }, legs: [], distance: 4064.1, duration: 467 },
   provenance: { engine: 'osrm-backend v5.25.0 / MLD', dataset: 'bremen-latest (md5 x)', preference: 'fastest' },
@@ -84,8 +84,17 @@ test('planRoute: empty input never reaches the bridge; timeout, unreachable and 
   const busy = await planRoute({ bridgeUrl: 'http://x', text: 'Von A nach B', throttle: async () => null, fetchImpl: never });
   assert.equal(busy.ok, false); assert.match(busy.msg, /viele Besucher/); assert.equal(called, 0);
   let sent = null;
-  const ok = await planRoute({ bridgeUrl: 'http://x/', text: 'Von A nach B', fetchImpl: async (u, o) => { sent = { u, body: JSON.parse(o.body) }; return Response.json(OK_BODY(true)); } });
-  assert.equal(ok.ok, true); assert.equal(sent.u, 'http://x/api/plan'); assert.deepEqual(sent.body, { text: 'Von A nach B' });
+  const ok = await planRoute({ bridgeUrl: 'http://x/', text: 'Von Bremen Hauptbahnhof nach Bremen Weserstadion', fetchImpl: async (u, o) => { sent = { u, body: JSON.parse(o.body) }; return Response.json(OK_BODY(true)); } });
+  assert.equal(ok.ok, true); assert.equal(sent.u, 'http://x/api/plan'); assert.deepEqual(sent.body, { text: 'Von Bremen Hauptbahnhof nach Bremen Weserstadion' });
+});
+
+test('checkPlaces: only places from the sentence, and only places named as Bremen', () => {
+  assert.deepEqual(checkPlaces('Von Bremen Hauptbahnhof nach Bremen Flughafen, Autobahnen meiden', 'Bremen Hauptbahnhof', 'Bremen Flughafen'), { ok: true });
+  assert.deepEqual(checkPlaces('vom weserstadion bremen zum BREMEN hauptbahnhof', 'Weserstadion Bremen', 'Bremen Hauptbahnhof'), { ok: true });
+  assert.equal(checkPlaces('Mach mir einen Kaffee', 'Bremen Hauptbahnhof', 'Vegesack').reason, 'invented');
+  assert.deepEqual(checkPlaces('Von Hamburg nach München', 'Hamburg', 'München'), { ok: false, reason: 'outside', place: 'Hamburg' });
+  assert.equal(checkPlaces('Von Bremen Hauptbahnhof nach München', 'Bremen Hauptbahnhof', 'München').place, 'München');
+  assert.equal(checkPlaces('irgendwas', '', '').reason, 'invented');
 });
 
 // ---- integration: wrapper + mock bridge ------------------------------------------------------------
@@ -109,6 +118,8 @@ before(async () => {
       if (req.url !== '/api/plan' || req.method !== 'POST') return send(404, { error: 'not found' });
       if (/Bremer Hauptbahnhof/.test(text)) return send(502, { error: 'no geocode result for "Bremer Hauptbahnhof" within the Bremen bounding box' });
       if (/falsch/.test(text)) return send(200, OK_BODY(false));
+      if (/Hamburg/.test(text)) return send(200, OK_BODY(true, 'Hamburg', 'München'));
+      if (/Kaffee/.test(text)) return send(200, OK_BODY(true, 'Bremen Hauptbahnhof', 'Vegesack'));
       return send(200, OK_BODY(true));
     });
   });
@@ -164,7 +175,7 @@ test('a run returns the real numbers, the text without the facts block and verif
 });
 
 test('a failed check is shown as such (verified=false + warning), never as a pass', async () => {
-  const ev = events((await run(base, 'falsch geprüft')).body);
+  const ev = events((await run(base, 'falsch: Von Bremen Hauptbahnhof nach Bremen Weserstadion')).body);
   assert.equal(ev.find((e) => e.ev === 'result').data.verified, false);
   assert.ok(ev.some((e) => e.ev === 'warn' && /NICHT bestanden/.test(e.data.text)));
 });
@@ -178,6 +189,15 @@ test('unknown place: friendly plain message, no result event, error stage', asyn
   assert.ok(ev.some((e) => e.ev === 'stage' && e.data.id === 'error'));
   const en = events((await run(base, 'Vom Bremer Hauptbahnhof zum Weserstadion', 'en')).body);
   assert.match(en.find((e) => e.ev === 'fail').data.text, /^Place not found/);
+});
+
+test('a 200 with a route that does not fit the request is no success, even with verify.pass=true', async () => {
+  const far = events((await run(base, 'Von Hamburg nach München')).body);
+  assert.ok(!far.some((e) => e.ev === 'result'));
+  assert.match(far.find((e) => e.ev === 'fail').data.text, /nur innerhalb von Bremen/);
+  const coffee = events((await run(base, 'Mach mir einen Kaffee')).body);
+  assert.ok(!coffee.some((e) => e.ev === 'result'));
+  assert.match(coffee.find((e) => e.ev === 'fail').data.text, /Start und Ziel wurden nicht erkannt/);
 });
 
 test('empty input is refused before the bridge is called', async () => {
