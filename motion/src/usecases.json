@@ -2,7 +2,7 @@
  "flappy-spiel": {
   "id": "FlappySpiel",
   "url": "flappy-demo.bunsenbrenner.org",
-  "poster": 2,
+  "poster": 3,
   "scenes": [
    {
     "kind": "problem",
@@ -22,24 +22,23 @@
     "kind": "step",
     "n": 1,
     "title": {
-     "de": "Einstellen",
-     "en": "Set it up"
+     "de": "Wunsch eintippen",
+     "en": "Type your wish"
     },
     "sub": {
-     "de": "Figur, Thema, Schwierigkeit",
-     "en": "Character, theme, difficulty"
+     "de": "in deinen Worten",
+     "en": "in your words"
     },
     "shots": [
      {
-      "name": "fl-opts",
-      "focus": "theme",
+      "name": "fl-prompt",
+      "focus": "prompt",
       "marks": [
        {
-        "key": "theme",
-        "at": 0.4
+        "key": "prompt",
+        "at": 0.3
        }
-      ],
-      "cut": "desk"
+      ]
      }
     ],
     "chip": {
@@ -51,16 +50,57 @@
     "kind": "step",
     "n": 2,
     "title": {
-     "de": "Sofort spielen",
-     "en": "Play right away"
+     "de": "Bauen lassen",
+     "en": "Let it build"
     },
     "sub": {
-     "de": "direkt im Browser",
+     "de": "Build with the crew",
+     "en": "Build with the crew"
+    },
+    "shots": [
+     {
+      "name": "fl-prompt",
+      "focus": "build",
+      "marks": [
+       {
+        "key": "build",
+        "at": 0.1
+       }
+      ]
+     },
+     {
+      "name": "fl-built",
+      "focus": "done",
+      "at": 0.5,
+      "marks": [
+       {
+        "key": "done",
+        "at": 0.6,
+        "color": "ok"
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Echter Lauf",
+     "en": "Real run"
+    }
+   },
+   {
+    "kind": "step",
+    "n": 3,
+    "title": {
+     "de": "Dein neues Spiel",
+     "en": "Your new game"
+    },
+    "sub": {
+     "de": "sofort im Browser",
      "en": "right in your browser"
     },
     "shots": [
      {
       "name": "fl-game",
+      "cut": "desk",
       "focus": "game",
       "scale": 1.6,
       "marks": [
@@ -69,8 +109,7 @@
         "at": 0.3,
         "color": "ok"
        }
-      ],
-      "cut": "desk"
+      ]
      }
     ],
     "chip": {

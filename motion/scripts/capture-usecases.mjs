@@ -24,7 +24,7 @@ const GALLERY = 'https://demos-34a13a96.bunsenbrenner.org';
 const CALL = 'https://callcenter-34a13a96.bunsenbrenner.org/';
 const CAL = 'https://assistent-cal-f29c55da.bunsenbrenner.org/';
 const only = process.argv.slice(2);
-const want = (k) => (only.length ? only.includes(k) : k !== 'termin'); // Termin bucht wirklich: nur ausdruecklich
+const want = (k) => (only.length ? only.includes(k) : k !== 'termin' && k !== 'termin-start'); // Termin bucht wirklich: nur ausdruecklich
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const DESK = {w: 1440, h: 900};
 const MOB = {w: 390, h: 844};
@@ -62,7 +62,7 @@ const scrollToText = (page, t, off = 24) => ev(page, (t, off) => {
 }, t, off).then(() => sleep(700));
 
 // ---------- Galerie ----------
-const LANGS = [['', ''], ['-en', '?lang=en']];
+const LANGS = [['', '?lang=de'], ['-en', '?lang=en']]; // Sprache fest setzen: die Galerie merkt sich die zuletzt gewaehlte
 if (want('gallery')) for (const [L, q] of LANGS) for (const [k0, vp] of [['desk', DESK], ['mob', MOB]]) {
   const k = k0 + L;
   const p = await open(GALLERY + '/' + q, vp);
@@ -124,6 +124,14 @@ if (want('callcenter')) for (const [k, vp] of [['desk', DESK], ['mob', MOB]]) {
 }
 
 // ---------- Terminassistent: buchen und wieder absagen ----------
+if (want('termin-start')) for (const [k, vp] of [['desk', DESK], ['mob', MOB]]) {
+  // Nur die Startseite, ohne Termin
+  const p = await open(CAL, vp);
+  await ev(p, () => { const d = document.querySelector('details.steps-details'); if (d) d.open = false; });
+  await snap(p, `cal-start-${k}`);
+  await mark(p, `cal-start-${k}`, 'call', {sel: '#call-btn'});
+  await p.close({silent: true});
+}
 if (want('termin')) {
   const p = await open(CAL, DESK);
   await ev(p, () => { const d = document.querySelector('details.steps-details'); if (d) d.open = false; });
@@ -237,42 +245,42 @@ if (want('keyforge')) {
   for (let i = 0; i < 30 && !(await ev(p, () => document.getElementById('verify-input').value.length > 50)); i++) await sleep(500);
   await sleep(800);
   await ev(p, () => document.getElementById('verify-manifest').click());
-  for (let i = 0; i < 30 && !(await ev(p, () => document.body.innerText.includes('Signature verifies'))); i++) await sleep(500);
+  for (let i = 0; i < 30 && !(await ev(p, () => document.body.innerText.includes('Signature is valid'))); i++) await sleep(500);
   await sleep(500);
   await bothCuts(p, async (k0) => {
-    await scrollToText(p, 'Signature verifies', 300);
+    await scrollToText(p, 'Signature is valid', 300);
     await snap(p, `kf-ok-${k0}`);
-    await mark(p, `kf-ok-${k0}`, 'ok', {t: 'Signature verifies'});
+    await mark(p, `kf-ok-${k0}`, 'ok', {t: 'Signature is valid'});
     await mark(p, `kf-ok-${k0}`, 'btn', {sel: '#verify-manifest'});
   });
-  stamp('keyforge', await ev(p, () => ({manifest: document.getElementById('manifest-picker').selectedOptions[0]?.text, msg: [...document.querySelectorAll('body *')].filter((e) => e.children.length === 0 && (e.textContent || '').includes('Signature verifies')).map((e) => e.textContent)[0]})));
+  stamp('keyforge', await ev(p, () => ({manifest: document.getElementById('manifest-picker').selectedOptions[0]?.text, msg: [...document.querySelectorAll('body *')].filter((e) => e.children.length === 0 && (e.textContent || '').includes('Signature is valid')).map((e) => e.textContent)[0]})));
   await p.close({silent: true});
 }
 
-if (want('flappy')) {
-  // Eigene Einstellungen im Studio (laeuft im Browser). Der Crew-Lauf aenderte im Test nur Regler, nicht das Aussehen.
-  const p = await open('https://flappy-demo.bunsenbrenner.org/', DESK);
-  await ev(p, () => {
-    [...document.querySelectorAll('button')].find((b) => b.innerText.trim() === '🚀').click();
-    const th = document.getElementById('theme'); th.value = 'night'; th.dispatchEvent(new Event('change', {bubbles: true}));
-    const t = document.getElementById('title'); t.value = 'Rocket Night'; t.dispatchEvent(new Event('input', {bubbles: true}));
-    const pr = document.getElementById('preset'); pr.value = 'easy'; pr.dispatchEvent(new Event('change', {bubbles: true}));
-  });
-  await sleep(1200);
-  await bothCuts(p, async (k0) => { await ev(p, () => { document.getElementById('title').scrollIntoView({block: 'start'}); window.scrollBy(0, -60); }); await sleep(400); await snap(p, `fl-opts-${k0}`); await mark(p, `fl-opts-${k0}`, 'opts', {sel: '#title'}); await mark(p, `fl-opts-${k0}`, 'theme', {sel: '#theme'}); });
-  const c = async (k0) => {
-    await ev(p, () => document.getElementById('playBtn').click());
-    await ev(p, () => { document.querySelector('canvas, iframe#preview, iframe')?.scrollIntoView({block: 'center'}); }); await sleep(500);
-    const tap = () => ev(p, () => { const c = document.querySelector('canvas'); if (!c) return; const b = c.getBoundingClientRect(); for (const n of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click', 'touchstart']) c.dispatchEvent(new MouseEvent(n, {bubbles: true, clientX: b.left + 20, clientY: b.top + 20})); document.dispatchEvent(new KeyboardEvent('keydown', {code: 'Space', key: ' ', bubbles: true})); });
-    for (let i = 0; i < 10; i++) { await tap(); await sleep(330); }
-    await snap(p, `fl-game-${k0}`); await mark(p, `fl-game-${k0}`, 'game', {sel: 'canvas'});
-  };
-  await bothCuts(p, c);
+if (want('flappy')) for (const [L, prompt] of [['', 'Ein Traktor-Spiel auf dem Bauernmarkt'], ['-en', 'harvester market']]) {
+  // Echter Crew-Lauf: Wunsch eintippen, bauen lassen, das geaenderte Spiel spielen.
+  const p = await open('https://flappy-demo.bunsenbrenner.org/', MOB);
+  await ev(p, (t) => { const i = document.getElementById('prompt'); i.value = t; i.dispatchEvent(new Event('input', {bubbles: true})); }, prompt);
+  await ev(p, () => document.getElementById('prompt').scrollIntoView({block: 'center'})); await sleep(500);
+  await snap(p, `fl-prompt-mob${L}`); await mark(p, `fl-prompt-mob${L}`, 'prompt', {sel: '#prompt'}); await mark(p, `fl-prompt-mob${L}`, 'build', {sel: '#buildBtn'});
+  const t0 = Date.now();
+  await ev(p, () => document.getElementById('buildBtn').click());
+  for (let i = 0; i < 120 && !(await ev(p, () => document.body.innerText.includes('Built live'))); i++) await sleep(500);
+  const secs = Math.round((Date.now() - t0) / 1000);
+  await sleep(1500);
+  await ev(p, () => document.getElementById('buildBtn').scrollIntoView({block: 'center'})); await sleep(500);
+  await snap(p, `fl-built-mob${L}`); await mark(p, `fl-built-mob${L}`, 'done', {t: 'Built live'});
+  await p.setViewport({width: DESK.w, height: DESK.h, deviceScaleFactor: 2}); await sleep(900);
+  await ev(p, () => document.getElementById('playBtn').click());
+  await ev(p, () => { document.querySelector('canvas')?.scrollIntoView({block: 'center'}); }); await sleep(500);
+  const tap = () => ev(p, () => { const c = document.querySelector('canvas'); if (!c) return; const b = c.getBoundingClientRect(); for (const n of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) c.dispatchEvent(new MouseEvent(n, {bubbles: true, clientX: b.left + 20, clientY: b.top + 20})); document.dispatchEvent(new KeyboardEvent('keydown', {code: 'Space', key: ' ', bubbles: true})); });
+  for (let i = 0; i < 10; i++) { await tap(); await sleep(330); }
+  await snap(p, `fl-game-desk${L}`); await mark(p, `fl-game-desk${L}`, 'game', {sel: 'canvas'});
+  stamp(`flappy${L}`, {prompt, secs, result: await ev(p, () => ({title: document.getElementById('title').value, msg: [...document.querySelectorAll('body *')].filter((e) => !e.children.length && (e.textContent || '').includes('Built live')).map((e) => e.textContent)[0]}))});
   await p.close({silent: true});
 }
 
-const LANGS2 = [['', '?lang=de'], ['-en', '?lang=en']]; // Sprache fest setzen: die Galerie merkt sich die zuletzt gewaehlte
-if (want('tutor')) for (const [L, q] of LANGS2) for (const [k0, vp] of [['desk', DESK], ['mob', MOB]]) {
+if (want('tutor')) for (const [L, q] of LANGS) for (const [k0, vp] of [['desk', DESK], ['mob', MOB]]) {
   const k = k0 + L; const p = await open(GALLERY + '/d/cads-tutor' + q, vp);
   await scrollToText(p, 'Firmware (STM32)', 120);
   await snap(p, `tu-tracks-${k}`);
@@ -287,14 +295,15 @@ if (want('tutor')) for (const [L, q] of LANGS2) for (const [k0, vp] of [['desk',
 const REC = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'recordings');
 const rec = (f, enc = 'utf8') => fs.readFileSync(path.join(REC, f), enc);
 async function replayInstall(p, sse) {
+  // Der Seitencode holt den Lauf per fetch('/api/start...'): Antwort kommt aus der Aufzeichnung, nichts geht ans Netz.
   await ev(p, (sse) => {
-    const events = sse.trim().split(/\n\n+/).map((b) => ({type: /event: (.*)/.exec(b)?.[1], data: /data: (.*)/.exec(b)?.[1]}));
-    window.EventSource = class { constructor() { this.h = {}; setTimeout(() => events.forEach((e, i) => setTimeout(() => (this.h[e.type] || []).forEach((f) => f({data: e.data})), i * 12)), 50); } addEventListener(t, f) { (this.h[t] ??= []).push(f); } close() {} };
+    const real = window.fetch;
+    window.fetch = (u, o) => String(u).includes('/api/start') ? Promise.resolve(new Response(sse, {headers: {'content-type': 'text/event-stream'}})) : real(u, o);
   }, sse);
 }
 const runAndWait = async (p, sel) => { await ev(p, () => document.querySelector('button.run').click()); for (let i = 0; i < 40 && !(await ev(p, (s) => { const e = document.querySelector(s); return e && !e.hidden && e.getBoundingClientRect().height > 10; }, sel)); i++) await sleep(250); await sleep(900); };
 
-for (const [name, slug, sse, res] of [['ph', 'phototools', 'phototools.sse', '.res-tree'], ['te', 'temporal-poc', 'temporal-poc.sse', '.res-timeline'], ['dg', 'diagram', 'diagram.sse', '.res-diagram']]) if (want(slug)) for (const [L, q] of LANGS2) {
+for (const [name, slug, sse, res] of [['ph', 'phototools', 'phototools.sse', '.res-tree'], ['te', 'temporal-poc', 'temporal-poc.sse', '.res-timeline'], ['dg', 'diagram', 'diagram.sse', '.res-diagram']]) if (want(slug)) for (const [L, q] of LANGS) {
   const p = await open(GALLERY + '/d/' + slug + q, DESK);
   await bothCuts(p, async (k0) => {
     const k = k0 + L;
@@ -341,7 +350,7 @@ if (want('contractcheck')) for (const [L, q] of LANGS) {
   await p.close({silent: true});
 }
 
-if (want('erklaervideo')) for (const [L, q] of LANGS2) for (const [k0, vp] of [['desk', DESK], ['mob', MOB]]) {
+if (want('erklaervideo')) for (const [L, q] of LANGS) for (const [k0, vp] of [['desk', DESK], ['mob', MOB]]) {
   const k = k0 + L; const p = await open(GALLERY + '/d/erklaervideo' + q, vp);
   await ev(p, () => { document.getElementById('tvtext').scrollIntoView({block: 'center'}); }); await sleep(400);
   await snap(p, `ev-form-${k}`); await mark(p, `ev-form-${k}`, 'text', {sel: '#tvtext'}); await mark(p, `ev-form-${k}`, 'run', {sel: 'button.run'});
