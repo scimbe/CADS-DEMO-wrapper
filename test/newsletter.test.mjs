@@ -9,7 +9,7 @@ import { patchParser, patchGuard, germanizeReport, reportConfigPatch, readRunOut
 
 // The two functions of the signed bundle, as they ship (manifests/newsletter/bundle.tar.gz).
 const bundle = mkdtempSync(join(tmpdir(), 'nl-'));
-execFileSync('tar', ['xzf', new URL('../manifests/newsletter/bundle.tar.gz', import.meta.url).pathname, '-C', bundle, 'src/llm_narrative.py', 'src/narrative_guard.py']);
+execFileSync('tar', ['xzf', new URL('../manifests/newsletter/bundle.tar.gz', import.meta.url).pathname, '-C', bundle]);
 const PY = spawnSync('python3', ['--version']).status === 0;
 const parser = readFileSync(join(bundle, 'src/llm_narrative.py'), 'utf8');
 const guard = readFileSync(join(bundle, 'src/narrative_guard.py'), 'utf8');
