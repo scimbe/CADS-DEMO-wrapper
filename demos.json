@@ -747,6 +747,7 @@
   "untertitel": {
     "type": "browser-wasm",
     "name": "untertitel",
+    "video": "untertitel",
     "version": "1.0.0",
     "title": "Untertitel für Reels und TikTok",
     "tagline": "Video rein, Text prüfen, Video mit Untertiteln raus. Alles läuft in deinem Browser.",

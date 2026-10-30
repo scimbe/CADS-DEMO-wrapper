@@ -15,6 +15,7 @@
 import {openBrowser, ensureBrowser} from '@remotion/renderer';
 import path from 'node:path';
 import fs from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public', 'real', 'uc');
 fs.mkdirSync(out, {recursive: true});
@@ -347,6 +348,50 @@ if (want('contractcheck')) for (const [L, q] of LANGS) {
     await snap(p, `cc-result-${k}`);
     await mark(p, `cc-result-${k}`, 'diff', {t: 'Die Miete betraegt 950', up: 1});
   });
+  await p.close({silent: true});
+}
+
+// Untertitel: echter Lauf im Browser mit eigenem Clip (recordings/untertitel-clip-*.mp4). Es wird nichts hochgeladen;
+// das fertige Video kommt aus der Seite selbst und liegt danach in recordings/.
+if (want('untertitel')) for (const [L, lang] of [['', 'de'], ['-en', 'en']]) {
+  const model = process.env.UT_MODEL || 'schnell';
+  const fix = JSON.parse(process.env.UT_FIX || '{}');
+  const p = await open(`${GALLERY}/d/untertitel?lang=${lang}`, MOB);
+  await ev(p, (b64, n) => { const f = new File([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], n, {type: 'video/mp4'}); const dt = new DataTransfer(); dt.items.add(f); const i = document.getElementById('ut-file'); i.files = dt.files; i.dispatchEvent(new Event('change', {bubbles: true})); }, rec(`untertitel-clip-${lang}.mp4`, 'base64'), `clip-${lang}.mp4`);
+  await sleep(1500);
+  console.log('opts', JSON.stringify(await ev(p, () => Object.fromEntries(['ut-language', 'ut-model', 'ut-look', 'ut-position'].map((id) => { const s = document.getElementById(id); return [id, {v: s.value, o: [...s.options].map((o) => o.value)}]; })))));
+  await ev(p, (l, m) => { for (const [id, v] of [['ut-language', l], ['ut-model', m]]) { const s = document.getElementById(id); s.value = v; s.dispatchEvent(new Event('change', {bubbles: true})); } }, lang, model);
+  for (let i = 0; i < 40 && (await ev(p, () => document.getElementById('ut-go').disabled)); i++) await sleep(250);
+  await ev(p, () => document.getElementById('ut-drop').scrollIntoView({block: 'start'})); await ev(p, () => window.scrollBy(0, -60)); await sleep(400);
+  await snap(p, `ut-pick-mob${L}`); await mark(p, `ut-pick-mob${L}`, 'drop', {sel: '#ut-drop'}); await mark(p, `ut-pick-mob${L}`, 'go', {sel: '#ut-go'});
+  const t0 = Date.now();
+  await ev(p, () => document.getElementById('ut-go').click());
+  for (let i = 0; i < 600 && (await ev(p, () => document.getElementById('ut-edit').hidden && document.getElementById('ut-error').hidden)); i++) await sleep(500);
+  const err = await ev(p, () => (document.getElementById('ut-error').hidden ? '' : document.getElementById('ut-error').innerText));
+  if (err) throw new Error('untertitel: ' + err);
+  await sleep(600);
+  const cues = () => ev(p, () => [...document.querySelectorAll('#ut-cues input, #ut-cues textarea')].map((e) => e.value));
+  const heard = await cues(); console.log('heard', lang, JSON.stringify(heard), Math.round((Date.now() - t0) / 1000) + 's');
+  await ev(p, () => { document.getElementById('ut-edit').scrollIntoView({block: 'start'}); window.scrollBy(0, -70); }); await sleep(400);
+  await snap(p, `ut-text-mob${L}`); await mark(p, `ut-text-mob${L}`, 'cues', {sel: '#ut-cues'});
+  if (Object.keys(fix).length) {
+    // Korrektur wie ein Nutzer: Wort im Eingabefeld ersetzen
+    await ev(p, (fix) => { document.querySelectorAll('#ut-cues input, #ut-cues textarea').forEach((e) => { let v = e.value; for (const [a, b] of Object.entries(fix)) v = v.replaceAll(a, b); if (v !== e.value) { e.value = v; e.dispatchEvent(new Event('input', {bubbles: true})); e.dispatchEvent(new Event('change', {bubbles: true})); } }); }, fix);
+    await sleep(400); await snap(p, `ut-fixed-mob${L}`); await mark(p, `ut-fixed-mob${L}`, 'cues', {sel: '#ut-cues'});
+  }
+  await ev(p, () => document.getElementById('ut-burn').click());
+  for (let i = 0; i < 600 && (await ev(p, () => document.getElementById('ut-result').hidden && document.getElementById('ut-error').hidden)); i++) await sleep(500);
+  const err2 = await ev(p, () => (document.getElementById('ut-error').hidden ? '' : document.getElementById('ut-error').innerText));
+  if (err2) throw new Error('untertitel: ' + err2);
+  const secs = Math.round((Date.now() - t0) / 1000);
+  await sleep(1500);
+  await ev(p, () => { document.getElementById('ut-result').scrollIntoView({block: 'start'}); window.scrollBy(0, -70); }); await sleep(600);
+  await snap(p, `ut-done-mob${L}`); await mark(p, `ut-done-mob${L}`, 'save', {sel: '#ut-dl-mp4'});
+  const b64 = await ev(p, async () => { const b = await (await fetch(document.getElementById('ut-dl-mp4').href)).blob(); const u = new Uint8Array(await b.arrayBuffer()); let s = ''; for (let i = 0; i < u.length; i += 32768) s += String.fromCharCode(...u.subarray(i, i + 32768)); return btoa(s); });
+  fs.writeFileSync(path.join(REC, `untertitel-ergebnis-${lang}.mp4`), Buffer.from(b64, 'base64'));
+  for (const [k, at] of [['a', '0.9'], ['b', '3.0']]) { execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', at, '-i', path.join(REC, `untertitel-ergebnis-${lang}.mp4`), '-frames:v', '1', '-q:v', '2', path.join(out, `ut-frame-${k}-mob${L}.jpg`)]); rects[`ut-frame-${k}-mob${L}`] = {}; }
+  stamp(`untertitel-${lang}`, {model, heard, final: await cues(), secs, times: await ev(p, () => document.getElementById('ut-times').innerText), note: await ev(p, () => document.querySelector('.ut-note').innerText)});
+  console.log('run', JSON.stringify(rects.runs[`untertitel-${lang}`]));
   await p.close({silent: true});
 }
 

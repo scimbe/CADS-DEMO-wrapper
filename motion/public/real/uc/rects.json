@@ -97,9 +97,9 @@
    "h": 0.03260416666666666
   },
   "text": {
-   "q": "Ihre Frage:\nWie viele Hausärzte gibt es je 100.000 Einwohner in Hannover?",
-   "a": "In der Region Hannover gibt es 65 Hausärzte je 100.000 Einwohner.",
-   "src": "✓ geerdet · Live-Quelle\nv_harzt_HA2023 Hannover 1 Live-Zeile(n)"
+   "q": "Ihre Frage:\nWie viele Haus\u00e4rzte gibt es je 100.000 Einwohner in Hannover?",
+   "a": "In der Region Hannover gibt es 65 Haus\u00e4rzte je 100.000 Einwohner.",
+   "src": "\u2713 geerdet \u00b7 Live-Quelle\nv_harzt_HA2023 Hannover 1 Live-Zeile(n)"
   }
  },
  "cc-start-mob": {
@@ -124,9 +124,9 @@
    "h": 0.0649066943127962
   },
   "text": {
-   "q": "Ihre Frage:\nWie viele Hausärzte gibt es je 100.000 Einwohner in Hannover?",
-   "a": "In der Region Hannover gibt es 65 Hausärzte je 100.000 Einwohner.",
-   "src": "✓ geerdet · Live-Quelle\nv_harzt_HA2023 Hannover 1 Live-Zeile(n)"
+   "q": "Ihre Frage:\nWie viele Haus\u00e4rzte gibt es je 100.000 Einwohner in Hannover?",
+   "a": "In der Region Hannover gibt es 65 Haus\u00e4rzte je 100.000 Einwohner.",
+   "src": "\u2713 geerdet \u00b7 Live-Quelle\nv_harzt_HA2023 Hannover 1 Live-Zeile(n)"
   }
  },
  "cal-start-desk": {
@@ -155,8 +155,8 @@
  },
  "termin": {
   "log": [
-   "Guten Tag, Herr Mustermann. Gerne prüfe ich die Verfügbarkeit für Ihren Wunschtermin. 10:00 Uhr ist am Dienstag, den 3. November, für einen kurzen Haarschnitt frei. Um den Termin zu buchen, benötige ich noch Ihre Telefonnummer.",
-   "Ihr Termin ist bestätigt: Dienstag, den 3. November um 10 Uhr für einen kurzen Haarschnitt. Soll ich noch etwas für Sie tun?",
+   "Guten Tag, Herr Mustermann. Gerne pr\u00fcfe ich die Verf\u00fcgbarkeit f\u00fcr Ihren Wunschtermin. 10:00 Uhr ist am Dienstag, den 3. November, f\u00fcr einen kurzen Haarschnitt frei. Um den Termin zu buchen, ben\u00f6tige ich noch Ihre Telefonnummer.",
+   "Ihr Termin ist best\u00e4tigt: Dienstag, den 3. November um 10 Uhr f\u00fcr einen kurzen Haarschnitt. Soll ich noch etwas f\u00fcr Sie tun?",
    "Ihr Termin am Dienstag, den 3. November um 10 Uhr wurde erfolgreich abgesagt. Kann ich Ihnen sonst noch weiterhelfen?"
   ],
   "cal": {
@@ -324,18 +324,18 @@
   }
  },
  "runs": {
-  "auction-de": "1 · Schreiben\nFoxtrot\n✓ Gewinner\n22 Credits\n2 erledigt · 2.5 ms\nEcho\n38 Credits\n0 erledigt · 5.7 ms\nDelta\n30 Credits\n0 erledigt · 6 ms\n\nFoxtrot gewinnt: am günstigsten (22 statt 30 bei Delta).\n\nKurzfassung\nDie Stadt baut bis 2030 am Hafen 1200 neue Wohnungen. Die Wohnungen sollen auch Menschen mit kleinem Einkommen offenstehen.\n46 → 19 Wörter\n🔏 Ergebnis von Foxtrot signiert, Signatur geprüft\n2 · Prüfen\nAurora\n60 Credits\n0 erledigt · 1.1 ms\nBorealis\n✓ Gewinner\n45 Credits\n2 erledigt · 5.8 ms\nCascade\n55 Credits\n0 erledigt · 5.8 ms\n\nBorealis gewinnt: am günstigsten (45 statt 55 bei Cascade).\n\nPrüfbericht: mit Hinweisen\n✓ Kürzer um 59 %\n! Zahl fehlt in der Kurzfassung: 45\n✓ Sätze kurz genug (längster: 10 Wörter)\n🔏 Ergebnis von Borealis signiert, Signatur geprüft\n\nFertig: 67 von 100 Credits.\n\nRechenzeit der Gewinner 0.101 ms, gesamt 11 ms.",
-  "auction-en": "1 · Write\nDelta\n30 credits\n0 done · 1 ms\nEcho\n38 credits\n0 done · 1.2 ms\nFoxtrot\n✓ Winner\n22 credits\n3 done · 2.3 ms\n\nFoxtrot wins: lowest price (22 instead of 30 from Delta).\n\nShort version\nBy 2030 the city will build 1200 new apartments at the harbour. One third of the apartments will receive social funding.\n54 → 21 words\n🔏 Result signed by Foxtrot, signature verified\n2 · Review\nCascade\n55 credits\n0 done · 1.4 ms\nAurora\n60 credits\n0 done · 1.7 ms\nBorealis\n✓ Winner\n45 credits\n3 done · 1.8 ms\n\nBorealis wins: lowest price (45 instead of 55 from Cascade).\n\nReview: with remarks\n✓ 62% shorter\n! Number missing from the short version: 45\n✓ Sentences short enough (longest: 12 words)\n🔏 Result signed by Borealis, signature verified\n\nDone: 67 of 100 credits.\n\nWinners' compute time 0.116 ms, total 5 ms.",
+  "auction-de": "1 \u00b7 Schreiben\nFoxtrot\n\u2713 Gewinner\n22 Credits\n2 erledigt \u00b7 2.5 ms\nEcho\n38 Credits\n0 erledigt \u00b7 5.7 ms\nDelta\n30 Credits\n0 erledigt \u00b7 6 ms\n\nFoxtrot gewinnt: am g\u00fcnstigsten (22 statt 30 bei Delta).\n\nKurzfassung\nDie Stadt baut bis 2030 am Hafen 1200 neue Wohnungen. Die Wohnungen sollen auch Menschen mit kleinem Einkommen offenstehen.\n46 \u2192 19 W\u00f6rter\n\ud83d\udd0f Ergebnis von Foxtrot signiert, Signatur gepr\u00fcft\n2 \u00b7 Pr\u00fcfen\nAurora\n60 Credits\n0 erledigt \u00b7 1.1 ms\nBorealis\n\u2713 Gewinner\n45 Credits\n2 erledigt \u00b7 5.8 ms\nCascade\n55 Credits\n0 erledigt \u00b7 5.8 ms\n\nBorealis gewinnt: am g\u00fcnstigsten (45 statt 55 bei Cascade).\n\nPr\u00fcfbericht: mit Hinweisen\n\u2713 K\u00fcrzer um 59 %\n! Zahl fehlt in der Kurzfassung: 45\n\u2713 S\u00e4tze kurz genug (l\u00e4ngster: 10 W\u00f6rter)\n\ud83d\udd0f Ergebnis von Borealis signiert, Signatur gepr\u00fcft\n\nFertig: 67 von 100 Credits.\n\nRechenzeit der Gewinner 0.101 ms, gesamt 11 ms.",
+  "auction-en": "1 \u00b7 Write\nDelta\n30 credits\n0 done \u00b7 1 ms\nEcho\n38 credits\n0 done \u00b7 1.2 ms\nFoxtrot\n\u2713 Winner\n22 credits\n3 done \u00b7 2.3 ms\n\nFoxtrot wins: lowest price (22 instead of 30 from Delta).\n\nShort version\nBy 2030 the city will build 1200 new apartments at the harbour. One third of the apartments will receive social funding.\n54 \u2192 21 words\n\ud83d\udd0f Result signed by Foxtrot, signature verified\n2 \u00b7 Review\nCascade\n55 credits\n0 done \u00b7 1.4 ms\nAurora\n60 credits\n0 done \u00b7 1.7 ms\nBorealis\n\u2713 Winner\n45 credits\n3 done \u00b7 1.8 ms\n\nBorealis wins: lowest price (45 instead of 55 from Cascade).\n\nReview: with remarks\n\u2713 62% shorter\n! Number missing from the short version: 45\n\u2713 Sentences short enough (longest: 12 words)\n\ud83d\udd0f Result signed by Borealis, signature verified\n\nDone: 67 of 100 credits.\n\nWinners' compute time 0.116 ms, total 5 ms.",
   "keyforge": {
    "manifest": "travel @ 0.1.1",
-   "msg": "Signature is valid for key 1292c0cc…29ace69b — a publisher key listed by the live registry — within its validity window."
+   "msg": "Signature is valid for key 1292c0cc\u202629ace69b \u2014 a publisher key listed by the live registry \u2014 within its validity window."
   },
   "flappy": {
    "prompt": "Ein Traktor-Spiel auf dem Bauernmarkt",
    "secs": 5,
    "result": {
     "title": "Traktor Sprung",
-    "msg": "✓ Built live by the crew over the tunnel — changed: title, bird, obstacles, bird colour, colours. Keep prompting to refine, or download below."
+    "msg": "\u2713 Built live by the crew over the tunnel \u2014 changed: title, bird, obstacles, bird colour, colours. Keep prompting to refine, or download below."
    }
   },
   "flappy-en": {
@@ -343,8 +343,46 @@
    "secs": 5,
    "result": {
     "title": "Harvest Flight",
-    "msg": "✓ Built live by the crew over the tunnel — changed: title, bird, obstacles, bird colour, colours. Keep prompting to refine, or download below."
+    "msg": "\u2713 Built live by the crew over the tunnel \u2014 changed: title, bird, obstacles, bird colour, colours. Keep prompting to refine, or download below."
    }
+  },
+  "untertitel-de": {
+   "model": "schnell",
+   "heard": [
+    "Am Samstag treffen wir",
+    "uns im Park.",
+    "Bring gute Laune und",
+    "deine Freunde mit."
+   ],
+   "final": [
+    "Am Samstag treffen wir",
+    "uns im Park.",
+    "Bring gute Laune und",
+    "deine Freunde mit."
+   ],
+   "secs": 17,
+   "times": "Vorbereitung 5,7 s \u00b7 Text 7,5 s \u00b7 Video 1,9 s \u00b7 0,3 MB",
+   "note": "Kein Konto, kein Upload: Dein Video bleibt auf deinem Ger\u00e4t. Der erste Start l\u00e4dt einmalig 94 MB (Schnell: 66 MB), nimm daf\u00fcr WLAN. Am Laptop getestet, auf dem Handy bisher nicht."
+  },
+  "untertitel-en": {
+   "model": "schnell",
+   "heard": [
+    "On Saturday,",
+    "we are meeting in",
+    "the park,",
+    "bring good vibes and",
+    "your friends."
+   ],
+   "final": [
+    "On Saturday,",
+    "we are meeting in",
+    "the park,",
+    "bring good vibes and",
+    "your friends."
+   ],
+   "secs": 11,
+   "times": "Setup 0.2 s \u00b7 text 7.5 s \u00b7 video 1.7 s \u00b7 0.3 MB",
+   "note": "No account, no upload: your video stays on your device. The first start downloads 94 MB once (Fast: 66 MB), so use Wi-Fi. Tested on a laptop, not yet on a phone."
   }
  },
  "au-form-desk-en": {
@@ -986,5 +1024,69 @@
    "w": 0.20694444444444443,
    "h": 0.5886284722222223
   }
- }
+ },
+ "ut-pick-mob": {
+  "drop": {
+   "x": 0.041025641025641026,
+   "y": 0.07142328199052132,
+   "w": 0.9179487179487179,
+   "h": 0.1295727191943128
+  },
+  "go": {
+   "x": 0.041025641025641026,
+   "y": 0.4632886552132701,
+   "w": 0.4814503205128205,
+   "h": 0.052132701421800945
+  }
+ },
+ "ut-text-mob": {
+  "cues": {
+   "x": 0.041025641025641026,
+   "y": 0.12798059834123224,
+   "w": 0.9179487179487179,
+   "h": 0.23696682464454977
+  }
+ },
+ "ut-done-mob": {
+  "save": {
+   "x": 0.041025641025641026,
+   "y": 0.8418986966824644,
+   "w": 0.3959134615384615,
+   "h": 0.052132701421800945
+  }
+ },
+ "ut-pick-mob-en": {
+  "drop": {
+   "x": 0.041025641025641026,
+   "y": 0.07075681279620853,
+   "w": 0.9179487179487179,
+   "h": 0.1295727191943128
+  },
+  "go": {
+   "x": 0.041025641025641026,
+   "y": 0.4626221860189573,
+   "w": 0.41646634615384615,
+   "h": 0.052132701421800945
+  }
+ },
+ "ut-text-mob-en": {
+  "cues": {
+   "x": 0.041025641025641026,
+   "y": 0.12731412914691942,
+   "w": 0.9179487179487179,
+   "h": 0.2985781990521327
+  }
+ },
+ "ut-done-mob-en": {
+  "save": {
+   "x": 0.041025641025641026,
+   "y": 0.8424170616113744,
+   "w": 0.2984375,
+   "h": 0.052132701421800945
+  }
+ },
+ "ut-frame-a-mob-en": {},
+ "ut-frame-b-mob-en": {},
+ "ut-frame-a-mob": {},
+ "ut-frame-b-mob": {}
 }

@@ -22,6 +22,7 @@ Storyboard und Selbstprüfung: `motion/STORYBOARD.md`.
 | `absturzsicher-*` | Absturzsichere Abläufe |
 | `route-planen-*` | Route planen (Bremen) |
 | `text-wird-video-*` | Erklärvideo aus deinem Text |
+| `untertitel-*` | Untertitel für kurze Videos |
 
 Die Zuordnung steht als `video` in `demos.json`; die Länge folgt der gemessenen
 Sprechdauer (`motion/src/vo-timing.json`).
@@ -34,6 +35,11 @@ Beim Vertrag ist der aufgezeichnete Bericht in voller Breite gezeigt. Beim
 Foto-Ordner fehlt der Kontaktbogen, er wurde nicht mit aufgezeichnet. Route:
 Bildschirmfotos aus PR #33. Erklärvideo: Einzelbilder eines Produktionsvideos.
 Tutor: Bilder aus der öffentlichen Dokumentation.
+
+`untertitel`: echter Lauf auf der Live-Seite (Modus Schnell, ohne Korrektur). Der
+Eingabe-Clip `motion/recordings/untertitel-clip-*.mp4` ist selbst gebaut: Foto von
+Viviana Ceballos (Pexels), Sprecher Piper. Das Ergebnis stammt aus der Seite und
+liegt als `untertitel-ergebnis-*.mp4` daneben.
 
 Was echt ist: alle Bilder sind Bildschirmaufnahmen der laufenden Demos
 (`motion/scripts/capture-usecases.mjs`, Ablage `motion/public/real/uc/`).

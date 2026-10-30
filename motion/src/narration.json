@@ -372,5 +372,37 @@
    "de": "Probier es aus: Text einfügen und auf Video erstellen klicken.",
    "en": "Try it: paste a text and click Create video."
   }
+ ],
+ "untertitel": [
+  {
+   "id": "p",
+   "min": 4,
+   "de": "Viele schauen Reels ohne Ton. Versteht man deins trotzdem?",
+   "en": "Lots of people watch Reels with the sound off. Will they still get yours?"
+  },
+  {
+   "id": "s1",
+   "min": 4,
+   "de": "Wähl dein Video aus. Es bleibt auf deinem Gerät.",
+   "en": "Pick your video. It stays on your device."
+  },
+  {
+   "id": "s2",
+   "min": 4.5,
+   "de": "Prüf den Text. Stimmt ein Wort nicht, änderst du es einfach.",
+   "en": "Check the text. If a word is wrong, just change it."
+  },
+  {
+   "id": "s3",
+   "min": 5,
+   "de": "Fertig: dein Video mit großen Untertiteln, bereit zum Speichern.",
+   "en": "Done: your video with big captions, ready to save."
+  },
+  {
+   "id": "n",
+   "min": 4.5,
+   "de": "Frei und ohne Konto. Probier es aus: Klick auf Video auswählen.",
+   "en": "Free, with no account. Try it: click Choose a video."
+  }
  ]
 }

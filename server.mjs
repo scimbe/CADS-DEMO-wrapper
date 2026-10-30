@@ -1004,7 +1004,7 @@ function builderVersions() {
 }
 
 
-const AUTH = createAuth(); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
+const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
 // One failing request answers 500; it never takes the gallery (and everybody's runs) down with it.
 http.createServer((req, res) => route(req, res).catch((e) => {
   console.log(JSON.stringify({ event: 'request-error', path: String(req.url).split('?')[0].slice(0, 120), error: String(e && e.message || e).slice(0, 200) }));

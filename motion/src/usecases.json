@@ -1094,5 +1094,155 @@
     }
    }
   ]
+ },
+ "untertitel": {
+  "id": "Untertitel",
+  "url": "demos-34a13a96.bunsenbrenner.org/d/untertitel",
+  "poster": 3,
+  "scenes": [
+   {
+    "kind": "problem",
+    "big": [
+     {
+      "de": "Ton aus.",
+      "en": "Sound off."
+     },
+     {
+      "de": "Versteht man dein Reel?",
+      "en": "Will they get your Reel?",
+      "flame": true
+     }
+    ]
+   },
+   {
+    "kind": "step",
+    "n": 1,
+    "title": {
+     "de": "Video wählen",
+     "en": "Pick your video"
+    },
+    "sub": {
+     "de": "bleibt auf deinem Gerät",
+     "en": "stays on your device"
+    },
+    "shots": [
+     {
+      "name": "ut-pick",
+      "r": {
+       "x": 0.041025641025641026,
+       "y": 0.07142328199052132,
+       "w": 0.9179487179487179,
+       "h": 0.4439980746445497
+      },
+      "marks": [
+       {
+        "key": "drop",
+        "at": 0.3
+       },
+       {
+        "key": "go",
+        "at": 0.55,
+        "color": "ok"
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Echter Lauf",
+     "en": "Real run"
+    }
+   },
+   {
+    "kind": "step",
+    "n": 2,
+    "title": {
+     "de": "Text prüfen",
+     "en": "Check the text"
+    },
+    "sub": {
+     "de": "Falsches Wort? Einfach ändern.",
+     "en": "Wrong word? Just change it."
+    },
+    "shots": [
+     {
+      "name": "ut-text",
+      "focus": "cues",
+      "marks": [
+       {
+        "key": "cues",
+        "at": 0.3,
+        "color": "ok"
+       }
+      ]
+     }
+    ],
+    "chip": {
+     "de": "Echter Lauf",
+     "en": "Real run"
+    }
+   },
+   {
+    "kind": "step",
+    "n": 3,
+    "title": {
+     "de": "Fertiges Video",
+     "en": "Finished video"
+    },
+    "sub": {
+     "de": "Untertitel eingebrannt",
+     "en": "Captions burned in"
+    },
+    "shots": [
+     {
+      "name": "ut-frame-a",
+      "size": {
+       "w": 720,
+       "h": 1280
+      },
+      "r": {
+       "x": 0,
+       "y": 0.55,
+       "w": 1,
+       "h": 0.3
+      },
+      "scale": 1.1
+     },
+     {
+      "name": "ut-frame-b",
+      "size": {
+       "w": 720,
+       "h": 1280
+      },
+      "r": {
+       "x": 0,
+       "y": 0.55,
+       "w": 1,
+       "h": 0.3
+      },
+      "scale": 1.1,
+      "at": 0.5
+     }
+    ],
+    "chip": {
+     "de": "Echter Lauf",
+     "en": "Real run"
+    }
+   },
+   {
+    "kind": "close",
+    "title": {
+     "de": "Frei und ohne Konto",
+     "en": "Free, no account"
+    },
+    "sub": {
+     "de": "Dein Video bleibt auf deinem Gerät",
+     "en": "Your video stays on your device"
+    },
+    "cta": {
+     "de": "Video auswählen",
+     "en": "Choose a video"
+    }
+   }
+  ]
  }
 }
