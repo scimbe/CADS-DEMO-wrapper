@@ -9,7 +9,7 @@
 // Secrets (LLM key, Pexels key) load from wrapper/.env — never demos.json / shared artifacts.
 
 import http from 'node:http';
-import { readFileSync, writeFileSync, appendFileSync, existsSync, rmSync, mkdirSync, createReadStream, copyFileSync, symlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, rmSync, mkdirSync, createReadStream, copyFileSync, symlinkSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -50,6 +50,9 @@ const PORT = Number(process.env.PORT || 8790);
 // that NAT) -- caught deploying standalone (host ct-agent -> published port) where GET / just
 // hung/connection-refused despite the container logging "wrapper on http://127.0.0.1:8790".
 const HOST = process.env.HOST || '0.0.0.0';
+// DEMOS comes from JSON, but `DEMOS['constructor']` is still truthy: only own keys are demos.
+const demoOf = (slug) => (typeof slug === 'string' && Object.hasOwn(DEMOS, slug) ? DEMOS[slug] : null);
+const staticDir = (d) => (isAbsolute(d.staticOut) ? d.staticOut : join(__dir, d.staticOut));
 const sha256File = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
 
 // LLM creds: process env (docker -e / env_file), a local .env overrides (see lib/env.mjs)
@@ -261,7 +264,7 @@ async function planConfig(slug, text) {
 }
 function handlePlan(req, res, url) {
   const slug = url.searchParams.get('demo');
-  if (!DEMOS[slug]) { res.writeHead(404).end('unknown'); return; }
+  if (!demoOf(slug)) { res.writeHead(404).end('unknown'); return; }
   let body = ''; req.on('data', (c) => { body += c; if (body.length > 4000) req.destroy(); });
   req.on('end', async () => {
     let text = ''; try { text = JSON.parse(body).text || ''; } catch {}
@@ -451,8 +454,9 @@ function handleStart(req, res, url, post = null) {
   const slug = post ? post.demo : url.searchParams.get('demo');
   let lang = (post ? post.lang : url.searchParams.get('lang')) === 'en' ? 'en' : 'de';
   let cfg = post ? post.cfg : {}; if (!post) try { const c = url.searchParams.get('cfg'); if (c) cfg = JSON.parse(Buffer.from(c, 'base64').toString('utf8')); } catch {}
+  if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) cfg = {};
   if (cfg.language === 'en' || cfg.language === 'de') lang = cfg.language;
-  const d = DEMOS[slug];
+  const d = demoOf(slug);
   if (!d) { res.writeHead(404).end('unknown'); return; }
   const extra = post ? post.extra : null;
   res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
@@ -460,7 +464,9 @@ function handleStart(req, res, url, post = null) {
   const emit = (t, text, extra) => res.write(`event: ${t}\ndata: ${JSON.stringify({ text, ...(extra || {}) })}\n\n`);
   const stage = (id, label) => res.write(`event: stage\ndata: ${JSON.stringify({ id, label })}\n\n`);
   let child = null; let aborted = false;
-  const reg = (c) => { child = c; if (aborted && c && !c.killed) try { c.kill('SIGKILL'); } catch {} };
+  // 'error' without a listener would end the whole process (e.g. a bundle's interpreter is missing); each
+  // invoke's 'close' handler reports the failed run.
+  const reg = (c) => { child = c; if (c) c.on('error', () => {}); if (aborted && c && !c.killed) try { c.kill('SIGKILL'); } catch {} };
   // POST: 'close' on the request fires once its body is consumed, so watch the response (the connection) instead.
   (post ? res : req).on('close', () => { aborted = true; if (child && !child.killed) { try { child.kill('SIGKILL'); } catch {} } });
   let rec = null;
@@ -483,14 +489,16 @@ function handleStart(req, res, url, post = null) {
 
 const MIME = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml', '.html': 'text/html; charset=utf-8', '.pdf': 'application/pdf', '.json': 'application/json', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.mp4': 'video/mp4', '.webm': 'video/webm', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8' };
 function serveFile(res, path) {
-  if (!existsSync(path)) { res.writeHead(404).end('nf'); return; }
+  // A directory exists too, and reading one raises EISDIR on the stream.
+  let isFile = false; try { isFile = statSync(path).isFile(); } catch {}
+  if (!isFile) { res.writeHead(404).end('nf'); return; }
   res.writeHead(200, { 'Content-Type': MIME[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
-  createReadStream(path).pipe(res);
+  createReadStream(path).on('error', () => res.destroy()).pipe(res);
 }
 // Resolve a demo's output dir from the live activation OR from disk (so report/PDF/media links keep
 // working across server restarts — the "nf" bug). staticOut demos serve a fixed pre-rendered dir.
 function resolveOut(slug, runId) {
-  const d = DEMOS[slug]; if (!d) return null;
+  const d = demoOf(slug); if (!d) return null;
   if (d.staticOut) return staticDir(d);   // repo-relative -> portable to any host (same fix class as #10)
   if (!runId || !RUN_ID_RE.test(runId) || !/^[a-z0-9_-]+$/.test(slug)) return null;
   const wd = runDir(RUNS, slug, runId);
@@ -979,7 +987,13 @@ function builderVersions() {
 
 
 const AUTH = createAuth(); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
-http.createServer(async (req, res) => {
+// One failing request answers 500; it never takes the gallery (and everybody's runs) down with it.
+http.createServer((req, res) => route(req, res).catch((e) => {
+  console.log(JSON.stringify({ event: 'request-error', path: String(req.url).split('?')[0].slice(0, 120), error: String(e && e.message || e).slice(0, 200) }));
+  if (res.headersSent) res.destroy(); else res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }).end('server error');
+})).listen(PORT, HOST, () => console.log(`wrapper on http://${HOST}:${PORT}`));
+
+async function route(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
   if (await AUTH.guard(req, res, url)) return;
@@ -996,7 +1010,7 @@ http.createServer(async (req, res) => {
   if (dm) { const base = resolveOut(dm[1], dm[2]); if (!base) { res.writeHead(404).end('nf'); return; } serveFile(res, join(base, dm[3].replace(/\.\./g, ''))); return; }
   if (p.startsWith('/assets/thumbs/')) { serveFile(res, join(__dir, 'thumbs', p.slice('/assets/thumbs/'.length).replace(/\.\./g, ''))); return; }
   const pd = p.match(/^\/d\/([a-z0-9_-]+)\/?$/);
-  if (pd) { const slug = pd[1], d = DEMOS[slug]; if (!d) { res.writeHead(404).end('unknown demo'); return; }
+  if (pd) { const slug = pd[1], d = demoOf(slug); if (!d) { res.writeHead(404).end('unknown demo'); return; }
     if (MERGED[slug]) { res.writeHead(302, { Location: `/d/${MERGED[slug]}${url.search}` }).end(); return; }
     if (d.type === 'external' && d.live && d.externalUrl) { res.writeHead(302, { Location: d.externalUrl }).end(); return; }
     const lang = normLang(url.searchParams.get('lang'));
@@ -1004,4 +1018,4 @@ http.createServer(async (req, res) => {
     const html = d.live && PAGES[d.type] ? PAGES[d.type](slug) : soonPage(slug, lang);
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(html); return; }
   res.writeHead(404).end('not found');
-}).listen(PORT, HOST, () => console.log(`wrapper on http://${HOST}:${PORT}`));
+}
