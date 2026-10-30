@@ -1,0 +1,79 @@
+{
+  "publisher_pubkey": "6266be1f792ba324589462bfd24d4b10e36d98685a499ae0e0faf1c84b435152",
+  "template_id": "d7229d93526ed5b4a9097b2d00f3b9effb3499d8329379416835c1900fc161a6",
+  "name": "untertitel-im-browser",
+  "version": "1.0.0",
+  "body": "Erzeuge Untertitel für ein kurzes Video, vollständig im Browser des Nutzers; das Video verlässt das Gerät nicht.\nSprache: {{language}}. Erkennung: {{model}}. Look: {{look}}. Position: {{position}}.\nSprache erkennen mit {{component:whisper-runtime}} und Modell {{component:whisper-model-genau}} oder {{component:whisper-model-schnell}}; einbrennen mit {{component:ffmpeg-core-js}}, {{component:ffmpeg-core-wasm}} und Schrift {{component:untertitel-schrift}}.",
+  "parameters": [
+    {
+      "name": "language",
+      "type": "enum",
+      "options": [
+        "de",
+        "en",
+        "auto"
+      ]
+    },
+    {
+      "name": "model",
+      "type": "enum",
+      "options": [
+        "genau",
+        "schnell"
+      ]
+    },
+    {
+      "name": "look",
+      "type": "enum",
+      "options": [
+        "pop",
+        "neon",
+        "klar"
+      ]
+    },
+    {
+      "name": "position",
+      "type": "enum",
+      "options": [
+        "unten",
+        "mitte",
+        "oben"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "name": "whisper-runtime",
+      "sha256": "e6aaa9c243013518393410d48a8930c9b98b17719baafb4dfd307a6ff9c45866",
+      "usage": "@transcribe/shout 1.0.7, whisper.cpp als WebAssembly (MIT). Läuft im Browser des Nutzers in einem Worker. Die Prüfsumme bindet genau diese Datei; sie sagt nichts darüber, ob ihr Inhalt harmlos ist."
+    },
+    {
+      "name": "whisper-model-schnell",
+      "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+      "usage": "Whisper tiny, quantisiert q5_1, aus ggerganov/whisper.cpp (MIT). Reine Modelldaten, geladen von whisper-runtime."
+    },
+    {
+      "name": "whisper-model-genau",
+      "sha256": "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898",
+      "usage": "Whisper base, quantisiert q5_1, aus ggerganov/whisper.cpp (MIT). Reine Modelldaten, geladen von whisper-runtime."
+    },
+    {
+      "name": "ffmpeg-core-js",
+      "sha256": "67a48f11645f85439f3fde4f2119042c16b374b910206b7a7a24f342e28dcae3",
+      "usage": "@ffmpeg/core 0.12.10, Lader (GPL-2.0-or-later, enthält FFmpeg, x264, libass)."
+    },
+    {
+      "name": "ffmpeg-core-wasm",
+      "sha256": "9f57947a5bd530d8f00c5b3f2cb2a3492faa7e5d823315342d6a8656d0a6b7b7",
+      "usage": "@ffmpeg/core 0.12.10, WebAssembly (GPL-2.0-or-later). Liest das Video und brennt die Untertitel ein, im Browser des Nutzers."
+    },
+    {
+      "name": "untertitel-schrift",
+      "sha256": "94a215f88fbde9099cb3bd1431b8142aba26af36f8771effec56a94bc3aad1fd",
+      "usage": "Poppins ExtraBold (SIL OFL 1.1), Schrift der eingebrannten Untertitel."
+    }
+  ],
+  "issued_at": 1793377733,
+  "expires_at": 1824913733,
+  "signature": "97f817331b1e9ab29fe0f4413666a7fa70a7105e5944a2ed4e397ebc4cc93ec1125a45438e12dfecf143f1ecd6cfa208a8d652e0b85e013f4e36e55cb258900d"
+}

@@ -731,5 +731,24 @@
     "tech": "Dein Text wird vom Sprachmodell zu einem Skript aus 4–8 Szenen; jede Aussage muss aus deinem Text stammen und wird im Code geprüft. Die Stimme „Thomas“ spricht jede Szene, ImageMagick setzt die Folien, ffmpeg schneidet Video (H.264/AAC) mit Untertiteln.",
     "tech_en": "Your text becomes a script of 4–8 scenes; every statement must come from your text and is checked in code. The voice “Thomas” narrates each scene, ImageMagick sets the slides, ffmpeg assembles the video (H.264/AAC) with subtitles.",
     "manifestDir": "manifests/erklaervideo"
+    },
+  "untertitel": {
+    "type": "browser-wasm",
+    "name": "untertitel",
+    "version": "1.0.0",
+    "title": "Untertitel für Reels und TikTok",
+    "tagline": "Video rein, Text prüfen, Video mit Untertiteln raus. Alles läuft in deinem Browser.",
+    "blurb": "Automatische Untertitel gibt es sonst oft nur im Abo oder mit Limit. Hier sind sie frei, ohne Konto und ohne Upload: Dein Video bleibt auf deinem Gerät.",
+    "live": true,
+    "order": 0,
+    "hasManifest": false,
+    "estSeconds": 60,
+    "category": "Video",
+    "category_en": "Video",
+    "title_en": "Captions for Reels and TikTok",
+    "tagline_en": "Video in, check the text, video with captions out. Everything runs in your browser.",
+    "blurb_en": "Automatic captions often come with a subscription or a limit. Here they are free, with no account and no upload: your video stays on your device.",
+    "tech": "Spracherkennung (whisper.cpp) und Einbrennen (FFmpeg) laufen als WebAssembly im Browser. Vor dem Start prüft der Browser die signierte Marktplatz-Vorlage und vergleicht jede Programmdatei mit ihrer signierten Prüfsumme.",
+    "tech_en": "Speech recognition (whisper.cpp) and burn-in (FFmpeg) run as WebAssembly in the browser. Before starting, the browser checks the signed marketplace template and compares every program file with its signed digest."
   }
 }

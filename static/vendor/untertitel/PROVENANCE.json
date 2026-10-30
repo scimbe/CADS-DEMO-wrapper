@@ -1,0 +1,95 @@
+{
+  "what": "Runtime of the /d/untertitel demo. Everything is served from this origin; nothing is loaded from a CDN in the visitor's browser.",
+  "sources": {
+    "shout.wasm.js": {
+      "package": "@transcribe/shout@1.0.7",
+      "license": "MIT",
+      "project": "https://github.com/transcribejs/transcribe.js (whisper.cpp wasm build, wasm embedded in the file)",
+      "note": "whisper.cpp is MIT"
+    },
+    "ffmpeg-core.js + ffmpeg-core.wasm": {
+      "package": "@ffmpeg/core@0.12.10",
+      "license": "GPL-2.0-or-later",
+      "source_code": "https://github.com/ffmpegwasm/ffmpeg.wasm/tree/v0.12.10",
+      "note": "contains FFmpeg, x264 and libass; GPL because of x264"
+    },
+    "ffmpeg/*.js": {
+      "package": "@ffmpeg/ffmpeg@0.12.15",
+      "license": "MIT"
+    },
+    "Poppins-ExtraBold.ttf": {
+      "package": "@expo-google-fonts/poppins@0.4.1",
+      "license": "OFL-1.1"
+    },
+    "ggml-tiny-q5_1.bin + ggml-base-q5_1.bin": {
+      "package": "huggingface.co/ggerganov/whisper.cpp @ 5359861c739e955e79d9a303bcbc70fb988958b1",
+      "license": "MIT",
+      "note": "OpenAI Whisper tiny and base weights (MIT), converted and quantised by whisper.cpp"
+    }
+  },
+  "files": {
+    "ggml-tiny-q5_1.bin": {
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-tiny-q5_1.bin",
+      "sha256": "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
+      "bytes": 32152673
+    },
+    "ffmpeg-core.wasm": {
+      "url": "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.wasm",
+      "sha256": "9f57947a5bd530d8f00c5b3f2cb2a3492faa7e5d823315342d6a8656d0a6b7b7",
+      "bytes": 32232419
+    },
+    "LICENSE.poppins-ofl.txt": {
+      "sha256": "6be04893d770899a015649c7aa3b582f871b272f8747a92b78b17c3e5c8b2573",
+      "bytes": 4385
+    },
+    "LICENSE.shout.txt": {
+      "sha256": "42715490d199060fa62131168181a70c2c80f4273320d582420a2bcb2b653088",
+      "bytes": 1062
+    },
+    "Poppins-ExtraBold.ttf": {
+      "sha256": "94a215f88fbde9099cb3bd1431b8142aba26af36f8771effec56a94bc3aad1fd",
+      "bytes": 152764
+    },
+    "ffmpeg-core.js": {
+      "sha256": "67a48f11645f85439f3fde4f2119042c16b374b910206b7a7a24f342e28dcae3",
+      "bytes": 111804
+    },
+    "ffmpeg/classes.js": {
+      "sha256": "7a829c898bdbc3a8806652a5502d9101178ce4e988a2c50b3abc1306ce4fc919",
+      "bytes": 9747
+    },
+    "ffmpeg/const.js": {
+      "sha256": "9e3bc9dd84781c81daf459e2c46eeec815edac35089832681d9a9a0f383060d0",
+      "bytes": 1016
+    },
+    "ffmpeg/errors.js": {
+      "sha256": "619310d7ef5fe5fefa0a31927db862b7c291713cfef4d71753fa8aafd18f4db6",
+      "bytes": 332
+    },
+    "ffmpeg/index.js": {
+      "sha256": "cad19572420f7ead17272082d9582ebaed7f2856e19875542f83daf8d25d3b5d",
+      "bytes": 58
+    },
+    "ffmpeg/types.js": {
+      "sha256": "72f80e6fd44fcd18b55c9a0deb3bc70b9bb37480cf969045ca4521f5a11300f5",
+      "bytes": 295
+    },
+    "ffmpeg/utils.js": {
+      "sha256": "8c2e0e16445f8d3a0acbb812f2c60541a92c88ed0bf9ffe96c52e7fb6c8b1d72",
+      "bytes": 138
+    },
+    "ffmpeg/worker.js": {
+      "sha256": "feff0ac937ea225e997e1fae997a74f8b8d572423a526da59eb56624b1f3cde7",
+      "bytes": 5085
+    },
+    "shout.wasm.js": {
+      "sha256": "e6aaa9c243013518393410d48a8930c9b98b17719baafb4dfd307a6ff9c45866",
+      "bytes": 1547886
+    },
+    "ggml-base-q5_1.bin": {
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-base-q5_1.bin",
+      "sha256": "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898",
+      "bytes": 59707625
+    }
+  }
+}

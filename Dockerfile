@@ -44,6 +44,14 @@ RUN set -e; mkdir -p /opt/venvs /tmp/nl /tmp/tp \
  && python3 -m venv /opt/venvs/temporal-poc && /opt/venvs/temporal-poc/bin/pip install -q --no-cache-dir -r /tmp/tp/poc/requirements.txt \
  && rm -rf /tmp/nl /tmp/tp /tmp/nl.tgz /tmp/tp.tgz
 COPY . /app
+# Big, not in git: speech models and ffmpeg core for /d/untertitel. They run in the visitor's browser, not
+# here, so this does not touch the "no local Whisper on this host" policy above. See bin/vendor-untertitel.mjs.
+ADD --checksum=sha256:422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898 \
+    https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-base-q5_1.bin /app/static/vendor/untertitel/ggml-base-q5_1.bin
+ADD --checksum=sha256:818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7 \
+    https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-tiny-q5_1.bin /app/static/vendor/untertitel/ggml-tiny-q5_1.bin
+ADD --checksum=sha256:9f57947a5bd530d8f00c5b3f2cb2a3492faa7e5d823315342d6a8656d0a6b7b7 \
+    https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm/ffmpeg-core.wasm /app/static/vendor/untertitel/ffmpeg-core.wasm
 # Remotion source of the videos is not needed at runtime (.dockerignore is not applied to a piped tar context)
 RUN rm -rf /app/motion
 ENV PORT=8790
