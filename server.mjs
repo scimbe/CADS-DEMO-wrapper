@@ -1,7 +1,7 @@
 // CADS marketplace demo wrapper — multi-demo, application-oriented, bunsenbrenner.org style.
 //
 // Index (/) lists the portfolio; /d/<slug> is one demo's tool workspace. Every demo:
-//   - installs via the real marketplace path (installActivate = the sim->real seam), Variante 1;
+//   - installs via the real marketplace path (installActivate, signature check in lib/manifest-trust.mjs), Variante 1;
 //   - is invoked per TYPE (photo-tool: run the installed tool on a real photo folder;
 //     report-html: run the bundle entrypoint, render the produced HTML report);
 //   - renders results in the bunsenbrenner.org design system (shared shell + per-type view).
@@ -20,10 +20,11 @@ import { indexPage } from './lib/index-page.mjs';
 import { loadEnv } from './lib/env.mjs';
 import { createAuth } from './lib/auth.mjs';
 import { LOCAL_RUN_CSS, hasLocalRun, installScript, localRunBlock, localRunConfig } from './lib/local-run.mjs';
+import { DEFAULT_REGISTRY_URL, REFUSAL, loadVerifiedManifest, readTrustRoot } from './lib/manifest-trust.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
-import { WASM_DIR } from './lib/prompt-wasm.mjs';
+import { WASM_DIR, wasm, nowSec } from './lib/prompt-wasm.mjs';
 import { md2html } from './lib/md2html.mjs';
 import { serveMedia } from './lib/static-media.mjs';
 import { motionTrust, motionScript, MOTION_CSS } from './lib/motion.mjs';
@@ -46,6 +47,8 @@ const RUNS = join(WORK, 'runs'); // one directory per visitor run (lib/runs.mjs)
 // reads it from here, re-verifies it and renders it itself (lib/templates.mjs).
 const TEMPLATES = createTemplateStore(process.env.TEMPLATES_DIR || join(__dir, 'templates'));
 const LOCAL_RUN = localRunConfig();
+const REGISTRY_URL = process.env.REGISTRY_URL || DEFAULT_REGISTRY_URL;
+const MANIFEST_TRUST_ROOT = join(__dir, 'manifests', 'publishers.json'); // deliberately no env override: the trust root ships with the code
 const PORT = Number(process.env.PORT || 8790);
 // Default 0.0.0.0, not 127.0.0.1: a container bound to its own loopback is unreachable
 // through Docker's port-publish NAT (the compose file's co-located ct-agent sidecar never hit
@@ -70,29 +73,33 @@ const STAMP = {
   'photo5.jpg': ['2025:06:02 14:20:00', 48.1351, 11.5820], 'photo6.jpg': ['2025:11:30 08:05:00', 48.1351, 11.5820],
 };
 
-// ---- install seam (shared, sim->real) ----------------------------------------------------------
-function installActivate(slug, emit, stage, runId = newRunId()) {
+// ---- install seam (shared): real signature check, see lib/manifest-trust.mjs ----------------------------------------------------------
+async function installActivate(slug, emit, stage, runId = newRunId()) {
   const d = DEMOS[slug];
   // manifestDir may be repo-relative (bundled in the image at manifests/<slug>, so it works on any
   // host) or an absolute path (legacy/local dev). Resolve relative paths against the wrapper dir —
   // this is what makes the bundle demos portable to the hosting machine (they used to point at a
   // local scratchpad path that only existed on the author's laptop -> "Abbruch bei der Installation").
   const md = isAbsolute(d.manifestDir) ? d.manifestDir : join(__dir, d.manifestDir);
-  const manifest = JSON.parse(readFileSync(join(md, 'manifest.json'), 'utf8'));
+  const localRaw = readFileSync(join(md, 'manifest.json'), 'utf8');
   const bundlePath = join(md, 'bundle.tar.gz');
   stage('install', 'Installieren');
-  emit('step', `Manifest beziehen — ${manifest.name} v${manifest.version}`);
-  emit('sim', 'simuliert · Registry ist live (registry.bunsenbrenner.org), aber dieses Manifest ist noch nicht publiziert (blockiert von #37/#38) — lokal geladen');
-  emit('step', 'Signatur (ed25519) prüfen');
-  emit('sim', 'simuliert · braucht den Trust-Root der Live-Registry');
+  emit('step', 'Manifest beziehen und Signatur (ed25519) prüfen');
+  const checked = await loadVerifiedManifest(localRaw, { api: wasm(), trusted: readTrustRoot(MANIFEST_TRUST_ROOT), now: nowSec(), name: slug, registryUrl: REGISTRY_URL });
+  if (!checked.ok) { emit('fail', `Installation abgelehnt · ${REFUSAL[checked.code]}`); throw new Error(checked.code); }
+  const { manifest, publisher, source } = checked;
+  const from = { registry: `aus der Registry bezogen (${new URL(REGISTRY_URL).host})`, unpublished: 'lokale signierte Kopie, in der Registry noch nicht veröffentlicht', offline: 'lokale signierte Kopie, Registry gerade nicht erreichbar' }[source];
+  emit(source === 'registry' ? 'real' : 'warn', `Manifest ${manifest.name} v${manifest.version} · ${from}`);
+  emit('real', `echt geprüft · ed25519-Signatur gültig · ${publisher.label} (${manifest.publisher_pubkey.slice(0, 8)}…)`);
   emit('step', 'Bundle-Integrität (sha256) prüfen');
-  const got = sha256File(bundlePath);
-  if (got !== manifest.bundle.sha256) { emit('fail', 'sha256-Mismatch'); throw new Error('sha256'); }
-  emit('real', `echt geprüft · sha256 ${got.slice(0, 12)}… == Manifest`);
+  const bundle = readFileSync(bundlePath); // one read: what is hashed is what gets unpacked
+  const got = createHash('sha256').update(bundle).digest('hex');
+  if (got !== manifest.bundle.sha256) { emit('fail', 'Installation abgelehnt · sha256 passt nicht zum signierten Manifest'); throw new Error('sha256'); }
+  emit('real', `echt geprüft · sha256 ${got.slice(0, 12)}… == signiertes Manifest`);
   emit('step', 'Bundle entpacken & aktivieren');
   gcRuns(RUNS);
   const workDir = createRunDir(RUNS, slug, runId).dir;
-  if (spawnSync('tar', ['xzf', bundlePath, '-C', workDir]).status !== 0) { emit('fail', 'entpacken fehlgeschlagen'); throw new Error('unpack'); }
+  if (spawnSync('tar', ['xzf', '-', '-C', workDir], { input: bundle }).status !== 0) { emit('fail', 'entpacken fehlgeschlagen'); throw new Error('unpack'); }
   emit('real', 'echt · installiert');
   return { workDir, runId, manifest, outputDir: null };
 }
@@ -440,7 +447,7 @@ async function invokeRoute(slug, rec, emit, stage, done, reg, lang, cfg = {}) {
 
 // `post` is set by handlePostStart: { demo, lang, cfg, extra, rendered } -- all server-derived. The GET
 // path (EventSource) keeps taking its options from the query string and can never set `extra`.
-function handleStart(req, res, url, post = null) {
+async function handleStart(req, res, url, post = null) {
   const slug = post ? post.demo : url.searchParams.get('demo');
   let lang = (post ? post.lang : url.searchParams.get('lang')) === 'en' ? 'en' : 'de';
   let cfg = post ? post.cfg : {}; if (!post) try { const c = url.searchParams.get('cfg'); if (c) cfg = JSON.parse(Buffer.from(c, 'base64').toString('utf8')); } catch {}
@@ -462,7 +469,7 @@ function handleStart(req, res, url, post = null) {
   let rec = null;
   try {
     if (d.hasManifest === false || d.type === 'image' || d.type === 'route') { stage('install', 'Bereit'); rec = {}; }
-    else rec = installActivate(slug, emit, stage);
+    else rec = await installActivate(slug, emit, stage);
   } catch (e) { emit('fail', 'Abbruch bei der Installation'); stage('error', 'Fehlgeschlagen'); res.end(); return; }
   if (aborted) { res.end(); return; }
   if (post) emit('ok', makeT(lang)('pb.run.checked', { tid: shortDigest(post.rendered.template_id, 8), td: shortDigest(post.rendered.template_digest, 12), vd: shortDigest(post.rendered.values_digest, 12) }));
@@ -874,13 +881,13 @@ function handleUploadCompare(req, res) {
   const reply = (code, obj) => { try { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj)); } catch {} };
   let body = ''; let tooBig = false;
   req.on('data', (c) => { body += c; if (body.length > 24 * 1024 * 1024) { tooBig = true; req.destroy(); } });
-  req.on('end', () => {
+  req.on('end', async () => {
     if (tooBig) return reply(413, { error: 'Dateien zu groß (max. ~16 MB je PDF).' });
     let a, b; try { const j = JSON.parse(body); a = j.a; b = j.b; } catch { return reply(400, { error: 'Ungültige Anfrage.' }); }
     const decode = (s) => { const m = String(s || '').match(/^data:[^;]*;base64,(.*)$/s); try { return Buffer.from(m ? m[1] : String(s || ''), 'base64'); } catch { return Buffer.alloc(0); } };
     const bufA = decode(a), bufB = decode(b);
     if (bufA.slice(0, 5).toString() !== '%PDF-' || bufB.slice(0, 5).toString() !== '%PDF-') return reply(400, { error: 'Bitte zwei gültige PDF-Dateien hochladen.' });
-    let rec; try { rec = installActivate('contractcheck', () => {}, () => {}); } catch { return reply(500, { error: 'Werkzeug konnte nicht vorbereitet werden.' }); }
+    let rec; try { rec = await installActivate('contractcheck', () => {}, () => {}); } catch { return reply(500, { error: 'Werkzeug konnte nicht vorbereitet werden.' }); }
     const wd = rec.workDir;
     const up = join(WORK, '_uploads', String(process.pid) + '-' + reqSeq++);
     try { mkdirSync(up, { recursive: true }); } catch {}
@@ -961,7 +968,7 @@ function handlePostStart(req, res, url) {
     if (!r.ok) { console.log(JSON.stringify({ event: 'prompt-run-refused', demo: slug, code: r.code })); return refuse(r.status, r.code, r.message, r.errors ? { errors: r.errors } : {}); }
     if (RUN_MODE_TYPE[r.run.mode] !== DEMOS[slug].type) return refuse(409, 'not-runnable', makeT(lang)('pb.srv.not-runnable'));
     console.log(logLine(slug, r.rendered));
-    handleStart(req, res, url, { demo: slug, lang, cfg: cfgFromValues(r.run, body.values), extra: { mode: r.run.mode, promptText: r.rendered.text }, rendered: r.rendered });
+    handleStart(req, res, url, { demo: slug, lang, cfg: cfgFromValues(r.run, body.values), extra: { mode: r.run.mode, promptText: r.rendered.text }, rendered: r.rendered }).catch(() => res.end());
   });
 }
 
@@ -1002,7 +1009,7 @@ async function route(req, res) {
   if (p === '/cads-run.sh' && LOCAL_RUN.version) { res.writeHead(200, { 'Content-Type': 'text/x-shellscript; charset=utf-8', 'Cache-Control': 'no-cache' }).end(installScript(LOCAL_RUN)); return; }
   if (p === '/api/status') { handleStatus(res); return; }
   if (p === '/api/upload-compare' && req.method === 'POST') { handleUploadCompare(req, res); return; }
-  if (p === '/api/start') { if (req.method === 'POST') handlePostStart(req, res, url); else handleStart(req, res, url); return; }
+  if (p === '/api/start') { if (req.method === 'POST') handlePostStart(req, res, url); else handleStart(req, res, url).catch(() => res.end()); return; }
   const tm = p.match(/^\/api\/template\/([a-z0-9-]+)$/);
   if (tm && req.method === 'GET') { handleTemplate(res, tm[1]); return; }
   if (p.startsWith('/pb/') && req.method === 'GET') { servePb(res, url); return; }

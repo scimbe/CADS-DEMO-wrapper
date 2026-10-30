@@ -1,8 +1,8 @@
 {
-  "publisher_pubkey": "6a854c2f9572d4e16001f3c7015e01e774f02a6a22c263bef59810236cc75a6d",
-  "manifest_id": "e01d0c18ffa1654b2ea07da06a9d4addd2bb571fd015c9657244971dcb23fa57",
+  "publisher_pubkey": "1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b",
+  "manifest_id": "984f5bcea70bc896828e844d3b3f2c88a8f36d42163ba8668c6b4c738aa314d5",
   "name": "diagram",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "installer_kind": "binary",
   "bundle": {
     "url": "bundle.tar.gz",
@@ -13,7 +13,7 @@
     {
       "name": "LITELLM_BASE_URL",
       "required": true,
-      "description": "Base URL of the litellm-proxy (OpenAI-chat-completions-compatible) endpoint the LLM writes Mermaid DSL against, e.g. https://llm-34a13a96.bunsenbrenner.org/v1"
+      "description": "Base URL of the litellm-proxy (OpenAI-chat-completions-compatible) endpoint the LLM writes Mermaid DSL against, e.g. https-//llm-34a13a96.bunsenbrenner.org/v1"
     },
     {
       "name": "LITELLM_API_KEY",
@@ -35,7 +35,39 @@
     "script": "verify.sh",
     "timeout_secs": 30
   },
-  "issued_at": 1787953238,
-  "expires_at": 1819489238,
-  "signature": "f75412cbe4a126a61fedfe870e58ce34b7ae15a0340064250934e166ea5b8da2ad0ce066a80052f4d9150213c913bb99b0aa0b08774f03e001fe681fda44e900"
+  "issued_at": 1788034613,
+  "expires_at": 1819570613,
+  "demo_prompt": {
+    "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+    "parameters": [
+      {
+        "name": "engine",
+        "type": "enum",
+        "options": [
+          "mermaid",
+          "graphviz"
+        ]
+      },
+      {
+        "name": "direction",
+        "type": "enum",
+        "options": [
+          "top_down",
+          "left_right"
+        ]
+      },
+      {
+        "name": "max_attempts",
+        "type": "int",
+        "min": 1,
+        "max": 5
+      }
+    ],
+    "examples": [
+      "als Graphviz",
+      "von links nach rechts",
+      "mehr Korrekturversuche"
+    ]
+  },
+  "signature": "729ca72ef4f72870ebe12c73d34ef230e2d6a5760400ae3e9077d8d70d6e5d68856ded80ceb95e30f8a05eece24d5bf3217533a5a2f4ca9fee42ba934ee8f103"
 }

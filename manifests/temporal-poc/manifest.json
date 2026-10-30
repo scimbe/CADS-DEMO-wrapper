@@ -1,8 +1,8 @@
 {
-  "publisher_pubkey": "8e39643ed119772d4ae2efe75c583561edd2f93fd40a2d902954231556f4503a",
-  "manifest_id": "a654c3ade979c4a09c76bde51e0fe5c1e16df2d27f73f9e4362037cafc105e8b",
+  "publisher_pubkey": "1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b",
+  "manifest_id": "1e31e4e741705ad63885826838f2cde4da502e5248a0ab31ba371a722fc2c308",
   "name": "temporal-poc",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "installer_kind": "binary",
   "bundle": {
     "url": "bundle.tar.gz",
@@ -20,7 +20,22 @@
     "script": "verify.sh",
     "timeout_secs": 30
   },
-  "issued_at": 1787953122,
-  "expires_at": 1819489122,
-  "signature": "d08940fd6c023d6da6cf7828f45cb2b2cee3ade503a882f7cb2a8519852c9cf9fa94c1a620c8db4d6d098f8ca52a37295b0b1e45ec70f36f484da62257f41305"
+  "issued_at": 1788034613,
+  "expires_at": 1819570613,
+  "demo_prompt": {
+    "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+    "parameters": [
+      {
+        "name": "render_hold_seconds",
+        "type": "int",
+        "min": 1,
+        "max": 15
+      }
+    ],
+    "examples": [
+      "langsamer, mehr Haltezeit",
+      "schneller durchlaufen"
+    ]
+  },
+  "signature": "cccacfb1ba833ca775c5750e5ecbee2de27f7019b38862a990fe46a4fc0dd378a363e4fba72f738475f9dbce2964a24d05b4890987dda93dc59add5a23aa550c"
 }
