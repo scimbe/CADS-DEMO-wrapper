@@ -1,0 +1,50 @@
+{
+  "so-einfach": [
+    {"id": "problem", "min": 3.5,
+     "de": "Samstag will deine Segelgruppe raus. Aber hält das Wetter?",
+     "en": "On Saturday, your sailing group wants to head out. But will the weather hold?"},
+    {"id": "step1", "min": 5,
+     "de": "Schritt eins: Im Marktplatz die Vorlage Wetter-Briefing wählen.",
+     "en": "Step one: in the marketplace, pick the weather briefing template."},
+    {"id": "step2", "min": 5,
+     "de": "Schritt zwei: Ort eintragen, dazu ein Satz in deinen eigenen Worten.",
+     "en": "Step two: enter the place, plus one sentence in your own words."},
+    {"id": "step3", "min": 6,
+     "de": "Schritt drei: Du bekommst ein fertiges Briefing mit echten Wetterdaten. Fünf trockene Tage, gut zum Segeln.",
+     "en": "Step three: you get a finished briefing with real weather data. Five dry days, good for sailing."},
+    {"id": "trust", "min": 5,
+     "de": "Kein Programmieren, kein Prompt. Und dein Browser prüft vorher, dass die Vorlage unverändert ist.",
+     "en": "No coding, no prompts. And your browser checks first that the template is unchanged."},
+    {"id": "next", "min": 6,
+     "de": "Ob Wetter, Vertrag oder Diagramm: immer dieselben drei Schritte. Such dir unten eine Vorlage aus und klick auf Ausprobieren.",
+     "en": "Weather, contracts or charts: always the same three steps. Pick a template below and click Try it."}
+  ],
+  "termin-per-anruf": [
+    {"id": "problem", "min": 4,
+     "de": "Neuer Haarschnitt? Ruf einfach Thomas an, die digitale Empfangskraft.",
+     "en": "Need a haircut? Just call Thomas, the salon's digital receptionist."},
+    {"id": "book", "min": 5,
+     "de": "Sag, was du möchtest. Thomas findet eine freie Zeit und bestätigt den Termin.",
+     "en": "Say what you want. Thomas finds a free slot and confirms the appointment."},
+    {"id": "cancel", "min": 3.5,
+     "de": "Absagen geht genauso: Ein Satz genügt.",
+     "en": "Cancelling works the same way: one sentence is enough."},
+    {"id": "next", "min": 4,
+     "de": "Probier es aus: Anruf starten und ganz normal sprechen.",
+     "en": "Try it: start the call and just talk normally."}
+  ],
+  "frag-deine-region": [
+    {"id": "problem", "min": 3.5,
+     "de": "Du willst wissen, wie gut deine Region versorgt ist?",
+     "en": "Want to know how well your region is served?"},
+    {"id": "ask", "min": 3.5,
+     "de": "Ruf an, oder tipp die Frage einfach ein.",
+     "en": "Call, or simply type your question."},
+    {"id": "answer", "min": 7,
+     "de": "Die Antwort kommt gesprochen, mit echten Zahlen aus dem Deutschlandatlas: In der Region Hannover sind es 65 Hausärzte je 100.000 Einwohner.",
+     "en": "The answer is spoken, with real figures from the Deutschlandatlas: the Hannover region has 65 family doctors per 100,000 residents."},
+    {"id": "next", "min": 4,
+     "de": "Frag nach deiner Region: in der Galerie unter Sprachassistent für Regionaldaten.",
+     "en": "Ask about your region: in the gallery, under voice assistant for regional data."}
+  ]
+}
