@@ -1,8 +1,8 @@
 {
-  "publisher_pubkey": "eef0a6bef8771dd38e67302dcefb786f7b480ddd5d14249adc55efb0341250eb",
-  "manifest_id": "87b41f6ad4dc15e8f3092558baae699263d6d5da5e7667c299842996e373d61c",
+  "publisher_pubkey": "1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b",
+  "manifest_id": "56cba853f4aaa1eb9dcd2914ddcc05d04d02fe5d9c18b9e68bd6d275990f6c1e",
   "name": "travel",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "installer_kind": "compose",
   "bundle": {
     "url": "bundle.tar.gz",
@@ -13,7 +13,7 @@
     {
       "name": "LITELLM_BASE_URL",
       "required": true,
-      "description": "LiteLLM-compatible base URL (e.g. https://your-litellm-proxy/v1) used for the chat-formatting step - the anti-hallucination check needs a real model call, this demo has no offline fallback for it"
+      "description": "LiteLLM-compatible base URL (e.g. https-//your-litellm-proxy/v1) used for the chat-formatting step - the anti-hallucination check needs a real model call, this demo has no offline fallback for it"
     },
     {
       "name": "LITELLM_API_KEY",
@@ -30,7 +30,28 @@
     "script": "verify.sh",
     "timeout_secs": 120
   },
-  "issued_at": 1787953176,
-  "expires_at": 1819489176,
-  "signature": "2da898a49ea4ed9a99556cbfc5648e4f4cb794f6a87027b25bc49e97d6b3824bb4e4b6e095dc7cd8a0720ff46dc8cb4da1c3968b767ad5016ae0ee8838c2d305"
+  "issued_at": 1788034613,
+  "expires_at": 1819570613,
+  "demo_prompt": {
+    "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+    "parameters": [
+      {
+        "name": "preference",
+        "type": "enum",
+        "options": [
+          "fastest",
+          "avoid_highways",
+          "avoid_tolls",
+          "shortest_distance",
+          "fastest_alternative"
+        ]
+      }
+    ],
+    "examples": [
+      "Autobahnen meiden",
+      "kürzeste Strecke",
+      "mautfrei"
+    ]
+  },
+  "signature": "f1f5cc0c176e86b82e8d9c5a2588651b5074fe4acca299233133f46b7f950df775f0fb9dff0228f5e99331fc21d18b2de48215e79ddbec6a8c5da4267a8aa702"
 }

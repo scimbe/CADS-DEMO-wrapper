@@ -46,6 +46,15 @@ test('gallery, demo pages and status stay public (200) and carry the login banne
   assert.equal((await fetch(base + '/auth/me')).status, 200);
 });
 
+test('pages that run only in the browser carry no login banner, others keep it', async () => {
+  for (const p of ['/d/untertitel', '/d/untertitel/', '/d/untertitel?lang=en']) {
+    const r = await fetch(base + p);
+    assert.equal(r.status, 200, p);
+    assert.ok(!(await r.text()).includes('bb-auth'), p);
+  }
+  assert.match(await (await fetch(base + '/d/newsletter')).text(), /id="bb-auth"/);
+});
+
 test('no identity -> 401 JSON with login URL on every run endpoint', async () => {
   for (const [m, p] of RUNS) {
     const r = await fetch(base + p, { method: m });

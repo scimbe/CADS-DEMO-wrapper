@@ -42,12 +42,12 @@ for (const slug of SLUGS) {
     assert.match(out.template_digest, /^[0-9a-f]{64}$/);
     assert.match(out.values_digest, /^[0-9a-f]{64}$/);
     assert.equal(out.template_id, tpl(slug).template_id);
-    assert.match(out.text, /<customer-input name="[a-z_]+">/);
+    if (tpl(slug).parameters.some((p) => p.type === 'text')) assert.match(out.text, /<customer-input name="[a-z_]+">/);
     assert.ok(!out.text.includes('{{'), 'no unreplaced placeholder');
   });
 
   test(`${slug}: the component digest is the real bundle digest of a manifest whose signature verifies`, () => {
-    for (const c of tpl(slug).components) {
+    for (const c of tpl(slug).components.filter((x) => x.manifest_id)) { // files without a manifest: test/untertitel.test.mjs
       const mSlug = c.name.replace(/-bundle$/, '');
       const manifestText = read(`manifests/${mSlug}/manifest.json`);
       const m = JSON.parse(manifestText);

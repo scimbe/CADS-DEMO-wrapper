@@ -1,7 +1,7 @@
 // CADS marketplace demo wrapper — multi-demo, application-oriented, bunsenbrenner.org style.
 //
 // Index (/) lists the portfolio; /d/<slug> is one demo's tool workspace. Every demo:
-//   - installs via the real marketplace path (installActivate = the sim->real seam), Variante 1;
+//   - installs via the real marketplace path (installActivate, signature check in lib/manifest-trust.mjs), Variante 1;
 //   - is invoked per TYPE (photo-tool: run the installed tool on a real photo folder;
 //     report-html: run the bundle entrypoint, render the produced HTML report);
 //   - renders results in the bunsenbrenner.org design system (shared shell + per-type view).
@@ -20,12 +20,15 @@ import { indexPage } from './lib/index-page.mjs';
 import { loadEnv } from './lib/env.mjs';
 import { createAuth } from './lib/auth.mjs';
 import { createInstallations, installationsPage, isInstallationId, publicRecord, recordFor } from './lib/installations.mjs';
+import { LOCAL_RUN_CSS, hasLocalRun, installScript, localRunBlock, localRunConfig } from './lib/local-run.mjs';
+import { DEFAULT_REGISTRY_URL, REFUSAL, loadVerifiedManifest, readTrustRoot } from './lib/manifest-trust.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
-import { WASM_DIR } from './lib/prompt-wasm.mjs';
+import { WASM_DIR, wasm, nowSec } from './lib/prompt-wasm.mjs';
 import { md2html } from './lib/md2html.mjs';
 import { serveMedia } from './lib/static-media.mjs';
+import { UT_CSS, UT_DIR, UT_PAGE_HEADERS, untertitelBody } from './lib/untertitel-page.mjs';
 import { motionTrust, motionScript, MOTION_CSS } from './lib/motion.mjs';
 import { findChrome, withoutPdf } from './lib/pdf.mjs';
 import { patchParser, patchGuard, germanizeReport, reportConfigPatch, readRunOutcome } from './lib/newsletter.mjs';
@@ -45,6 +48,9 @@ const RUNS = join(WORK, 'runs'); // one directory per visitor run (lib/runs.mjs)
 // Signed prompt templates ("Eigene Angaben"). The wrapper never takes a template from a request: it
 // reads it from here, re-verifies it and renders it itself (lib/templates.mjs).
 const TEMPLATES = createTemplateStore(process.env.TEMPLATES_DIR || join(__dir, 'templates'));
+const LOCAL_RUN = localRunConfig();
+const REGISTRY_URL = process.env.REGISTRY_URL || DEFAULT_REGISTRY_URL;
+const MANIFEST_TRUST_ROOT = join(__dir, 'manifests', 'publishers.json'); // deliberately no env override: the trust root ships with the code
 const PORT = Number(process.env.PORT || 8790);
 // Default 0.0.0.0, not 127.0.0.1: a container bound to its own loopback is unreachable
 // through Docker's port-publish NAT (the compose file's co-located ct-agent sidecar never hit
@@ -69,29 +75,33 @@ const STAMP = {
   'photo5.jpg': ['2025:06:02 14:20:00', 48.1351, 11.5820], 'photo6.jpg': ['2025:11:30 08:05:00', 48.1351, 11.5820],
 };
 
-// ---- install seam (shared, sim->real) ----------------------------------------------------------
-function installActivate(slug, emit, stage, runId = newRunId()) {
+// ---- install seam (shared): real signature check, see lib/manifest-trust.mjs ----------------------------------------------------------
+async function installActivate(slug, emit, stage, runId = newRunId()) {
   const d = DEMOS[slug];
   // manifestDir may be repo-relative (bundled in the image at manifests/<slug>, so it works on any
   // host) or an absolute path (legacy/local dev). Resolve relative paths against the wrapper dir —
   // this is what makes the bundle demos portable to the hosting machine (they used to point at a
   // local scratchpad path that only existed on the author's laptop -> "Abbruch bei der Installation").
   const md = isAbsolute(d.manifestDir) ? d.manifestDir : join(__dir, d.manifestDir);
-  const manifest = JSON.parse(readFileSync(join(md, 'manifest.json'), 'utf8'));
+  const localRaw = readFileSync(join(md, 'manifest.json'), 'utf8');
   const bundlePath = join(md, 'bundle.tar.gz');
   stage('install', 'Installieren');
-  emit('step', `Manifest beziehen — ${manifest.name} v${manifest.version}`);
-  emit('sim', 'simuliert · Registry ist live (registry.bunsenbrenner.org), aber dieses Manifest ist noch nicht publiziert (blockiert von #37/#38) — lokal geladen');
-  emit('step', 'Signatur (ed25519) prüfen');
-  emit('sim', 'simuliert · braucht den Trust-Root der Live-Registry');
+  emit('step', 'Manifest beziehen und Signatur (ed25519) prüfen');
+  const checked = await loadVerifiedManifest(localRaw, { api: wasm(), trusted: readTrustRoot(MANIFEST_TRUST_ROOT), now: nowSec(), name: slug, registryUrl: REGISTRY_URL });
+  if (!checked.ok) { emit('fail', `Installation abgelehnt · ${REFUSAL[checked.code]}`); throw new Error(checked.code); }
+  const { manifest, publisher, source } = checked;
+  const from = { registry: `aus der Registry bezogen (${new URL(REGISTRY_URL).host})`, unpublished: 'lokale signierte Kopie, in der Registry noch nicht veröffentlicht', offline: 'lokale signierte Kopie, Registry gerade nicht erreichbar' }[source];
+  emit(source === 'registry' ? 'real' : 'warn', `Manifest ${manifest.name} v${manifest.version} · ${from}`);
+  emit('real', `echt geprüft · ed25519-Signatur gültig · ${publisher.label} (${manifest.publisher_pubkey.slice(0, 8)}…)`);
   emit('step', 'Bundle-Integrität (sha256) prüfen');
-  const got = sha256File(bundlePath);
-  if (got !== manifest.bundle.sha256) { emit('fail', 'sha256-Mismatch'); throw new Error('sha256'); }
-  emit('real', `echt geprüft · sha256 ${got.slice(0, 12)}… == Manifest`);
+  const bundle = readFileSync(bundlePath); // one read: what is hashed is what gets unpacked
+  const got = createHash('sha256').update(bundle).digest('hex');
+  if (got !== manifest.bundle.sha256) { emit('fail', 'Installation abgelehnt · sha256 passt nicht zum signierten Manifest'); throw new Error('sha256'); }
+  emit('real', `echt geprüft · sha256 ${got.slice(0, 12)}… == signiertes Manifest`);
   emit('step', 'Bundle entpacken & aktivieren');
   gcRuns(RUNS);
   const workDir = createRunDir(RUNS, slug, runId).dir;
-  if (spawnSync('tar', ['xzf', bundlePath, '-C', workDir]).status !== 0) { emit('fail', 'entpacken fehlgeschlagen'); throw new Error('unpack'); }
+  if (spawnSync('tar', ['xzf', '-', '-C', workDir], { input: bundle }).status !== 0) { emit('fail', 'entpacken fehlgeschlagen'); throw new Error('unpack'); }
   emit('real', 'echt · installiert');
   return { workDir, runId, manifest, outputDir: null };
 }
@@ -439,7 +449,7 @@ async function invokeRoute(slug, rec, emit, stage, done, reg, lang, cfg = {}) {
 
 // `post` is set by handlePostStart: { demo, lang, cfg, extra, rendered } -- all server-derived. The GET
 // path (EventSource) keeps taking its options from the query string and can never set `extra`.
-function handleStart(req, res, url, post = null) {
+async function handleStart(req, res, url, post = null) {
   const slug = post ? post.demo : url.searchParams.get('demo');
   let lang = (post ? post.lang : url.searchParams.get('lang')) === 'en' ? 'en' : 'de';
   let cfg = post ? post.cfg : {}; if (!post) try { const c = url.searchParams.get('cfg'); if (c) cfg = JSON.parse(Buffer.from(c, 'base64').toString('utf8')); } catch {}
@@ -461,7 +471,7 @@ function handleStart(req, res, url, post = null) {
   let rec = null;
   try {
     if (d.hasManifest === false || d.type === 'image' || d.type === 'route') { stage('install', 'Bereit'); rec = {}; }
-    else rec = installActivate(slug, emit, stage);
+    else rec = await installActivate(slug, emit, stage);
   } catch (e) { emit('fail', 'Abbruch bei der Installation'); stage('error', 'Fehlgeschlagen'); res.end(); return; }
   if (aborted) { res.end(); return; }
   if (post) emit('ok', makeT(lang)('pb.run.checked', { tid: shortDigest(post.rendered.template_id, 8), td: shortDigest(post.rendered.template_digest, 12), vd: shortDigest(post.rendered.values_digest, 12) }));
@@ -653,14 +663,16 @@ function toolShell(slug, inner, lang) {
   const home = lang === 'en' ? '/?lang=en' : '/';
   const timeout = Math.max(90, Math.round((d.estSeconds || 20) * 2.5));
   const builder = d.live && inner.builder !== false && TEMPLATES.has(slug) ? builderBlock(slug, lang, builderVersions(), INSTALLATIONS.enabled) : '';
-  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (inner.mini ? MINI_CSS : '') + (inner.motion ? MOTION_CSS : '') + (inner.css || '') })}
-${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang)}
+  const localRun = d.live && hasLocalRun(slug, LOCAL_RUN) ? localRunBlock(slug, lang, LOCAL_RUN) : '';
+  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (localRun ? LOCAL_RUN_CSS : '') + (inner.mini ? MINI_CSS : '') + (inner.motion ? MOTION_CSS : '') + (inner.css || '') })}
+${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang, inner.chip)}
 <main class="wrap" id="main" tabindex="-1" data-slug="${slug}" data-est="${d.estSeconds || 20}" data-timeout="${timeout}" data-lang="${lang}">
   <noscript><div class="noscript-note" role="note">${tt('noscript.demo')}</div></noscript>
   <div class="toolbar"><div><h1>${di(d, 'title', lang)}</h1><p>${di(d, inner.mini ? 'blurb' : 'tagline', lang)}</p></div><div class="controls">${inner.controls}</div></div>
   ${inner.mini ? '' : `<button class="m-toggle" type="button" aria-expanded="false">${t('mehr anzeigen ▾','show more ▾')}</button>`}
   ${builder}
   ${inner.body}
+  ${localRun}
 </main>${foot(lang)}<script>window.__S=${jsonForScript(clientStrings(lang))};</script><script>${CLIENT}</script>${inner.motion ? motionScript() : ''}</body></html>`;
 }
 
@@ -802,6 +814,15 @@ function routePage(slug, lang) {
   return toolShell(slug, { controls: '', body, mini: true, builder: false, css: ROUTE_CSS }, lang);
 }
 
+// ---- untertitel: runs entirely in the visitor's browser; the server only hands out static files --
+function untertitelPage(slug, lang) {
+  const t = tr(lang);
+  const v = builderVersions();
+  try { v.js = shortHash(readFileSync(PB_STATIC['untertitel.js'])); } catch {}
+  return toolShell(slug, { controls: '', body: untertitelBody(lang, v), mini: true, builder: false, css: UT_CSS,
+    chip: { text: t('Läuft in deinem Browser', 'Runs in your browser'), title: t('Das Video verlässt dein Gerät nicht. Vom Server kommen nur die Programmdateien.', 'The video does not leave your device. Only the program files come from the server.') } }, lang);
+}
+
 // ---- landing: a static, public collection page linking out to N sibling demos ("tracks") --
 // No invoke pipeline, no run button -- unlike 'external' (which has no /d/:slug page at all,
 // see the PAGES map below) this type needs a real detail page, just a static one. Each track
@@ -871,13 +892,13 @@ function handleUploadCompare(req, res) {
   const reply = (code, obj) => { try { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj)); } catch {} };
   let body = ''; let tooBig = false;
   req.on('data', (c) => { body += c; if (body.length > 24 * 1024 * 1024) { tooBig = true; req.destroy(); } });
-  req.on('end', () => {
+  req.on('end', async () => {
     if (tooBig) return reply(413, { error: 'Dateien zu groß (max. ~16 MB je PDF).' });
     let a, b; try { const j = JSON.parse(body); a = j.a; b = j.b; } catch { return reply(400, { error: 'Ungültige Anfrage.' }); }
     const decode = (s) => { const m = String(s || '').match(/^data:[^;]*;base64,(.*)$/s); try { return Buffer.from(m ? m[1] : String(s || ''), 'base64'); } catch { return Buffer.alloc(0); } };
     const bufA = decode(a), bufB = decode(b);
     if (bufA.slice(0, 5).toString() !== '%PDF-' || bufB.slice(0, 5).toString() !== '%PDF-') return reply(400, { error: 'Bitte zwei gültige PDF-Dateien hochladen.' });
-    let rec; try { rec = installActivate('contractcheck', () => {}, () => {}); } catch { return reply(500, { error: 'Werkzeug konnte nicht vorbereitet werden.' }); }
+    let rec; try { rec = await installActivate('contractcheck', () => {}, () => {}); } catch { return reply(500, { error: 'Werkzeug konnte nicht vorbereitet werden.' }); }
     const wd = rec.workDir;
     const up = join(WORK, '_uploads', String(process.pid) + '-' + reqSeq++);
     try { mkdirSync(up, { recursive: true }); } catch {}
@@ -1008,13 +1029,13 @@ function handlePostStart(req, res, url) {
     if (!r.ok) { console.log(JSON.stringify({ event: 'prompt-run-refused', demo: slug, code: r.code })); return refuse(r.status, r.code, r.message, r.errors ? { errors: r.errors } : {}); }
     if (RUN_MODE_TYPE[r.run.mode] !== DEMOS[slug].type) return refuse(409, 'not-runnable', makeT(lang)('pb.srv.not-runnable'));
     console.log(logLine(slug, r.rendered));
-    handleStart(req, res, url, { demo: slug, lang, cfg: cfgFromValues(r.run, body.values), extra: { mode: r.run.mode, promptText: r.rendered.text }, rendered: r.rendered });
+    handleStart(req, res, url, { demo: slug, lang, cfg: cfgFromValues(r.run, body.values), extra: { mode: r.run.mode, promptText: r.rendered.text }, rendered: r.rendered }).catch(() => res.end());
   });
 }
 
 // Browser assets of the builder: the page module, the shared core and the vendored wasm. A ?v= content
 // hash in the URL makes them immutable-cacheable; without it they revalidate on every load.
-const PB_STATIC = { 'prompt-builder.js': join(__dir, 'static', 'prompt-builder.js'), 'prompt-core.mjs': join(__dir, 'lib', 'prompt-core.mjs') };
+const PB_STATIC = { 'prompt-builder.js': join(__dir, 'static', 'prompt-builder.js'), 'prompt-core.mjs': join(__dir, 'lib', 'prompt-core.mjs'), 'untertitel.js': join(__dir, 'static', 'untertitel.js'), 'untertitel-core.mjs': join(__dir, 'lib', 'untertitel-core.mjs') };
 const PB_MIME = { '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm' };
 function servePb(res, url) {
   const name = url.pathname.slice('/pb/'.length);
@@ -1035,7 +1056,7 @@ function builderVersions() {
 
 
 const INSTALLATIONS = createInstallations();
-const AUTH = createAuth(); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
+const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
 // One failing request answers 500; it never takes the gallery (and everybody's runs) down with it.
 http.createServer((req, res) => route(req, res).catch((e) => {
   console.log(JSON.stringify({ event: 'request-error', path: String(req.url).split('?')[0].slice(0, 120), error: String(e && e.message || e).slice(0, 200) }));
@@ -1046,17 +1067,20 @@ async function route(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
   if (await AUTH.guard(req, res, url)) return;
-  if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage(DEMOS, normLang(url.searchParams.get('lang')))); return; }
+  if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage(DEMOS, normLang(url.searchParams.get('lang')), { sandboxLive: !!LOCAL_RUN.version, savedLive: process.env.INSTALLATIONS_LIVE === '1' })); return; }
   if (p === '/installationen') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(installationsPage(url.searchParams.get('lang'), INSTALLATIONS.enabled)); return; }
   if (p === '/api/installations' || p.startsWith('/api/installations/')) { await handleInstallations(req, res, url); return; }
+  if (p === '/cads-run.sh' && LOCAL_RUN.version) { res.writeHead(200, { 'Content-Type': 'text/x-shellscript; charset=utf-8', 'Cache-Control': 'no-cache' }).end(installScript(LOCAL_RUN)); return; }
   if (p === '/api/status') { handleStatus(res); return; }
   if (p === '/api/upload-compare' && req.method === 'POST') { handleUploadCompare(req, res); return; }
-  if (p === '/api/start') { if (req.method === 'POST') handlePostStart(req, res, url); else handleStart(req, res, url); return; }
+  if (p === '/api/start') { if (req.method === 'POST') handlePostStart(req, res, url); else handleStart(req, res, url).catch(() => res.end()); return; }
   const tm = p.match(/^\/api\/template\/([a-z0-9-]+)$/);
   if (tm && req.method === 'GET') { handleTemplate(res, tm[1]); return; }
   if (p.startsWith('/pb/') && req.method === 'GET') { servePb(res, url); return; }
   if (p === '/api/plan' && req.method === 'POST') { handlePlan(req, res, url); return; }
   if (p.startsWith('/static/motion/') && (req.method === 'GET' || req.method === 'HEAD')) { serveMedia(req, res, join(__dir, 'static', 'motion'), p.slice('/static/motion/'.length)); return; }
+  if (p.startsWith('/static/vendor/untertitel/') && (req.method === 'GET' || req.method === 'HEAD')) { serveMedia(req, res, UT_DIR, p.slice('/static/vendor/untertitel/'.length), UT_PAGE_HEADERS); return; }
+  if (p === '/static/untertitel-whisper.worker.js' && req.method === 'GET') { res.writeHead(200, { 'Content-Type': PB_MIME['.js'], 'Cache-Control': 'no-cache', ...UT_PAGE_HEADERS }); createReadStream(join(__dir, 'static', 'untertitel-whisper.worker.js')).pipe(res); return; }
   const dm = p.match(/^\/d\/([a-z0-9_-]+)\/out\/(?:(r[0-9a-f]{10})\/)?(.+)$/);
   if (dm) { const base = resolveOut(dm[1], dm[2]); if (!base) { res.writeHead(404).end('nf'); return; } serveFile(res, join(base, dm[3].replace(/\.\./g, ''))); return; }
   if (p.startsWith('/assets/thumbs/')) { serveFile(res, join(__dir, 'thumbs', p.slice('/assets/thumbs/'.length).replace(/\.\./g, ''))); return; }
@@ -1065,8 +1089,8 @@ async function route(req, res) {
     if (MERGED[slug]) { res.writeHead(302, { Location: `/d/${MERGED[slug]}${url.search}` }).end(); return; }
     if (d.type === 'external' && d.live && d.externalUrl) { res.writeHead(302, { Location: d.externalUrl }).end(); return; }
     const lang = normLang(url.searchParams.get('lang'));
-    const PAGES = { 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), textvideo: (s) => textVideoPage(s, lang), route: (s) => routePage(s, lang), landing: (s) => landingPage(s, lang) };
+    const PAGES = { 'browser-wasm': (s) => untertitelPage(s, lang), 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), textvideo: (s) => textVideoPage(s, lang), route: (s) => routePage(s, lang), landing: (s) => landingPage(s, lang) };
     const html = d.live && PAGES[d.type] ? PAGES[d.type](slug) : soonPage(slug, lang);
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(html); return; }
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', ...(d.type === 'browser-wasm' ? UT_PAGE_HEADERS : {}) }).end(html); return; }
   res.writeHead(404).end('not found');
 }

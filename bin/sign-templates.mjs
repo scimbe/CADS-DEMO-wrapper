@@ -14,7 +14,8 @@
 // A source component carries `from_manifest: "<slug>"` instead of digests. The script then takes
 // sha256 and manifest_id from manifests/<slug>/manifest.json, refuses unless that manifest's
 // signature verifies and bundle.tar.gz really hashes to bundle.sha256, and fills the usage-note
-// placeholders {name} {version} {sha256_short} {provenance_note}. Digests are therefore never typed.
+// placeholders {name} {version} {sha256_short} {provenance_note}. `from_vendor: "<dir>/<file>"` takes
+// the sha256 from static/vendor/<dir>/PROVENANCE.json after re-hashing the file. Digests are therefore never typed.
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, statSync, chmodSync, openSync, writeSync, closeSync } from 'node:fs';
 import { createHash, randomBytes } from 'node:crypto';
 import { homedir } from 'node:os';
@@ -50,6 +51,14 @@ function initKey(path) {
 }
 
 function resolveComponent(c, w) {
+  if (c.from_vendor) {
+    const [dir, ...rest] = c.from_vendor.split('/');
+    const file = rest.join('/');
+    const prov = JSON.parse(readFileSync(join(ROOT, 'static', 'vendor', dir, 'PROVENANCE.json'), 'utf8'));
+    const meta = prov.files[file] || die(`${c.from_vendor}: not in PROVENANCE.json`);
+    if (sha256(readFileSync(join(ROOT, 'static', 'vendor', dir, file))) !== meta.sha256) die(`${c.from_vendor} differs from PROVENANCE.json`);
+    return { name: c.name, sha256: meta.sha256, usage: c.usage };
+  }
   if (!c.from_manifest) return c;
   const slug = c.from_manifest;
   const dir = join(ROOT, 'manifests', slug);

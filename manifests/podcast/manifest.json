@@ -1,8 +1,8 @@
 {
-  "publisher_pubkey": "48a56a4442269b71bcc09a4bb556c6035cf1cb9170c68e2663974418197764b9",
-  "manifest_id": "b6b9305cdb5123e497892675e6588dfb4daef61d830d41c8d70b63fdb0c160dd",
+  "publisher_pubkey": "1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b",
+  "manifest_id": "6ddec0eaaaa5f26d9605c9ac3fd9667cf8d6c2a1d8bc2dfcb7d71d1f5635a361",
   "name": "podcast",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "installer_kind": "binary",
   "bundle": {
     "url": "bundle.tar.gz",
@@ -45,7 +45,48 @@
     "script": "verify.sh",
     "timeout_secs": 60
   },
-  "issued_at": 1787954024,
-  "expires_at": 1819490024,
-  "signature": "109e7a1c89b86f29f08d6459e6c22acaca0e72a1754c8e8e1fc1af18d9cbea45a622c20fae259c6e311c8db5220a7e72834d646abc2918f36bd2a4bb7c624409"
+  "issued_at": 1788034613,
+  "expires_at": 1819570613,
+  "demo_prompt": {
+    "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+    "parameters": [
+      {
+        "name": "language",
+        "type": "enum",
+        "options": [
+          "de",
+          "en"
+        ]
+      },
+      {
+        "name": "chapters",
+        "type": "enum",
+        "options": [
+          "on",
+          "off"
+        ]
+      },
+      {
+        "name": "announcements",
+        "type": "enum",
+        "options": [
+          "on",
+          "off"
+        ]
+      },
+      {
+        "name": "voice",
+        "type": "enum",
+        "options": [
+          "standard"
+        ]
+      }
+    ],
+    "examples": [
+      "auf Englisch",
+      "ohne Kapitel",
+      "mit Ansagen"
+    ]
+  },
+  "signature": "25ed1c32c512ed5ac740dd10b1c5b12a3375cae3b6797d3360b835ab32a0d45856d1dea2c70c051979667bf340943e59c776bc5720a1513ae17a4b2f1f903b0f"
 }

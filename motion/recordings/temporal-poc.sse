@@ -1,0 +1,264 @@
+event: stage
+data: {"id":"install","label":"Installieren"}
+
+event: step
+data: {"text":"Manifest beziehen — temporal-poc v0.1.0"}
+
+event: sim
+data: {"text":"simuliert · Registry ist live (registry.bunsenbrenner.org), aber dieses Manifest ist noch nicht publiziert (blockiert von #37/#38) — lokal geladen"}
+
+event: step
+data: {"text":"Signatur (ed25519) prüfen"}
+
+event: sim
+data: {"text":"simuliert · braucht den Trust-Root der Live-Registry"}
+
+event: step
+data: {"text":"Bundle-Integrität (sha256) prüfen"}
+
+event: real
+data: {"text":"echt geprüft · sha256 ae0a27c31179… == Manifest"}
+
+event: step
+data: {"text":"Bundle entpacken & aktivieren"}
+
+event: real
+data: {"text":"echt · installiert"}
+
+event: stage
+data: {"id":"process","label":"Ablauf ausführen (Worker killen & Recovery)"}
+
+event: step
+data: {"text":"Temporal-Server starten, Workflow starten, Worker hart beenden, zweiten Worker übernehmen lassen"}
+
+event: run
+data: {"text":"--- step 1: start local Temporal dev server (Server+sqlite, no external deps) ---"}
+
+event: run
+data: {"text":"server pid=85"}
+
+event: run
+data: {"text":"waiting for 127.0.0.1:39233 to accept connections..."}
+
+event: run
+data: {"text":"server is up after 4s"}
+
+event: run
+data: {"text":"--- step 2: create per-tenant namespace 'demo-poc' (real proof of the namespace-per-tenant mechanism) ---"}
+
+event: run
+data: {"text":"Namespace demo-poc successfully registered."}
+
+event: run
+data: {"text":"--- step 3: start worker A ---"}
+
+event: run
+data: {"text":"worker A pid=265"}
+
+event: run
+data: {"text":"--- step 4: start the workflow ---"}
+
+event: run
+data: {"text":"workflow id: render-1793110622"}
+
+event: run
+data: {"text":"started workflow_id=render-1793110622 run_id=01a17db8-c2b8-751c-88e6-fc4f1fe37ca0"}
+
+event: run
+data: {"text":"--- step 5: wait for worker A to signal it has actually started attempt 1 ---"}
+
+event: run
+data: {"text":"ready.flag present after 1s: 265"}
+
+event: run
+data: {"text":"--- step 6: SIGKILL worker A mid-activity (the injected failure) ---"}
+
+event: run
+data: {"text":"killing pid=265"}
+
+event: run
+data: {"text":"scripts/run_demo.sh: line 110:   265 Killed                  python poc/worker.py > \"$RUN_DIR/worker_a.log\" 2>&1"}
+
+event: run
+data: {"text":"confirmed: worker A (265) is dead"}
+
+event: run
+data: {"text":"--- step 7: sleep past heartbeat_timeout (5s) so Temporal Server detects the dead worker ---"}
+
+event: run
+data: {"text":"--- step 8: capture INTERIM evidence (worker A dead, worker B not started yet) ---"}
+
+event: run
+data: {"text":"wrote evidence/mid-recovery-describe.json"}
+
+event: run
+data: {"text":"pendingActivities (should show attempt 2, heartbeat timeout, lastWorkerIdentity=265@*):"}
+
+event: run
+data: {"text":"["}
+
+event: run
+data: {"text":"  {"}
+
+event: run
+data: {"text":"    \"activityId\": \"1\","}
+
+event: run
+data: {"text":"    \"activityType\": {"}
+
+event: run
+data: {"text":"      \"name\": \"render_markdown_to_pdf\""}
+
+event: run
+data: {"text":"    },"}
+
+event: run
+data: {"text":"    \"state\": \"PENDING_ACTIVITY_STATE_SCHEDULED\","}
+
+event: run
+data: {"text":"    \"heartbeatDetails\": ["}
+
+event: run
+data: {"text":"      \"attempt=1 pid=265\""}
+
+event: run
+data: {"text":"    ],"}
+
+event: run
+data: {"text":"    \"lastHeartbeatTime\": \"2026-10-27T14:17:03.010776867Z\","}
+
+event: run
+data: {"text":"    \"attempt\": 2,"}
+
+event: run
+data: {"text":"    \"maximumAttempts\": 3,"}
+
+event: run
+data: {"text":"    \"scheduledTime\": \"2026-10-27T14:17:09.987362025Z\","}
+
+event: run
+data: {"text":"    \"lastFailure\": {"}
+
+event: run
+data: {"text":"      \"message\": \"activity Heartbeat timeout\","}
+
+event: run
+data: {"text":"      \"source\": \"Server\","}
+
+event: run
+data: {"text":"      \"timeoutFailureInfo\": {"}
+
+event: run
+data: {"text":"        \"timeoutType\": \"TIMEOUT_TYPE_HEARTBEAT\""}
+
+event: run
+data: {"text":"      }"}
+
+event: run
+data: {"text":"    },"}
+
+event: run
+data: {"text":"    \"lastWorkerIdentity\": \"265@28dc1ddb141b\","}
+
+event: run
+data: {"text":"    \"priority\": {},"}
+
+event: run
+data: {"text":"    \"activityOptions\": {"}
+
+event: run
+data: {"text":"      \"taskQueue\": {"}
+
+event: run
+data: {"text":"        \"name\": \"render-pdf-poc\","}
+
+event: run
+data: {"text":"        \"normalName\": \"render-pdf-poc\""}
+
+event: run
+data: {"text":"      },"}
+
+event: run
+data: {"text":"      \"scheduleToCloseTimeout\": \"0s\","}
+
+event: run
+data: {"text":"      \"scheduleToStartTimeout\": \"0s\","}
+
+event: run
+data: {"text":"      \"startToCloseTimeout\": \"60s\","}
+
+event: run
+data: {"text":"      \"heartbeatTimeout\": \"5s\","}
+
+event: run
+data: {"text":"      \"retryPolicy\": {"}
+
+event: run
+data: {"text":"        \"initialInterval\": \"1s\","}
+
+event: run
+data: {"text":"        \"backoffCoefficient\": 1,"}
+
+event: run
+data: {"text":"        \"maximumInterval\": \"100s\","}
+
+event: run
+data: {"text":"        \"maximumAttempts\": 3"}
+
+event: run
+data: {"text":"      },"}
+
+event: run
+data: {"text":"      \"priority\": {}"}
+
+event: run
+data: {"text":"    }"}
+
+event: run
+data: {"text":"  }"}
+
+event: run
+data: {"text":"]"}
+
+event: run
+data: {"text":"--- step 9: start worker B (fresh process) ---"}
+
+event: run
+data: {"text":"worker B pid=513 (worker A was 265)"}
+
+event: run
+data: {"text":"--- step 10: wait for the workflow to complete on worker B ---"}
+
+event: run
+data: {"text":"result: attempt=2 pid=513 sha256=adfe93db3333fefca5fc179914f584c60a1f938e4ff8cad578333eb0ec42fee9 bytes=2458"}
+
+event: run
+data: {"text":"--- step 11: capture FINAL evidence ---"}
+
+event: run
+data: {"text":"wrote evidence/event-history-detailed.txt and evidence/event-history.json"}
+
+event: run
+data: {"text":"--- step 12: run the automated acceptance check ---"}
+
+event: run
+data: {"text":"PASS: attempt 2 recovered on pid 513 after heartbeat timeout from pid 265; 2458-byte PDF written; workflow completed."}
+
+event: run
+data: {"text":"--- step 13: cleanup (handled by trap on exit) ---"}
+
+event: run
+data: {"text":"--- cleanup ---"}
+
+event: real
+data: {"text":"echt · 5 Ereignisse — Ausfall und Neustart durch einen zweiten Worker im Verlauf belegt"}
+
+event: result
+data: {"render":"timeline","steps":[{"label":"Workflow gestartet","id":"1","extra":"","recover":false},{"label":"Aufgabe eingeplant","id":"5","extra":"","recover":false},{"label":"Aufgabe gestartet","id":"6","extra":"Versuch 2 (nach Heartbeat-Timeout — neuer Worker übernimmt)","recover":true},{"label":"Aufgabe abgeschlossen","id":"7","extra":"","recover":false},{"label":"Workflow abgeschlossen ✓","id":"11","extra":"","recover":false}]}
+
+event: stage
+data: {"id":"done","label":"Fertig"}
+
+event: done
+data: {"text":""}
+

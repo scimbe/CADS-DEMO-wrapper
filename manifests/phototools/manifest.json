@@ -1,8 +1,8 @@
 {
-  "publisher_pubkey": "04d9f5ee8b4d6681072e165609bdb475deb4e672ebc6d63587a9e123b2b833d5",
-  "manifest_id": "85782450f84caddbe5622699669cd98b6fc14f6a2054c29d826af41461013c1d",
+  "publisher_pubkey": "2535b618dc4984119e6b1b966f53a8ee9b9583f6a082b70eed895c1045e88a90",
+  "manifest_id": "4e758ded1d4f2071f35624e9aa417efb37196f275ceaba2681eb5484356594fd",
   "name": "phototools",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "installer_kind": "binary",
   "bundle": {
     "url": "bundle.tar.gz",
@@ -14,7 +14,39 @@
     "script": "verify.sh",
     "timeout_secs": 60
   },
-  "issued_at": 1788005945,
-  "expires_at": 1819541945,
-  "signature": "8d56b1e1c2d5e04a884b193e3624cf4605e39bbd07d3622889d186c5027762b61941fd17563e7074480c76fc711abe6de9c836d95bb288d267385465b9bf8002"
+  "issued_at": 1793383098,
+  "expires_at": 1824919098,
+  "demo_prompt": {
+    "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
+    "parameters": [
+      {
+        "name": "sort_by",
+        "type": "enum",
+        "options": [
+          "date_then_city",
+          "city_then_date"
+        ]
+      },
+      {
+        "name": "watermark",
+        "type": "enum",
+        "options": [
+          "bunsenbrenner",
+          "hamburg_demo",
+          "none"
+        ]
+      },
+      {
+        "name": "contact_columns",
+        "type": "int",
+        "min": 2,
+        "max": 6
+      }
+    ],
+    "examples": [
+      "nach Ort statt Datum sortieren",
+      "ohne Wasserzeichen, 4 Spalten"
+    ]
+  },
+  "signature": "6b820a015e0b38a34e4e0492e3cd7aff91ecd884233c5de17cb6a513ce319e5467923f33e2b75dd4870f24171ce2fa21dc595d45db1672dc8597cbdb6981070e"
 }

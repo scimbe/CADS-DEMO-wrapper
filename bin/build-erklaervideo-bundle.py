@@ -33,3 +33,4 @@ m["bundle"]["sha256"] = sha
 m["source"] = {"repo": "scimbe/CADS-DEMO-podcast", "path": "explainer-video", "commit": commit}
 mp.write_text(json.dumps(m, ensure_ascii=False, indent=2) + "\n")
 print(sha, commit[:7], len(files), "files")
+print("Signatur ist jetzt ungueltig: node bin/sign-manifests.mjs --only erklaervideo --version <neu>")

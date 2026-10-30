@@ -47,11 +47,11 @@
     {
       "name": "diagram-bundle",
       "sha256": "9336ceb971a23ba8d0d3c6b654308c95f8fa30c5280914dbe4158def653bc4bd",
-      "manifest_id": "e01d0c18ffa1654b2ea07da06a9d4addd2bb571fd015c9657244971dcb23fa57",
-      "usage": "diagram 0.1.0 (Bundle bundle.tar.gz, Prüfsumme 9336ceb971a2…). In dieser Demo-Umgebung entpackt der Wrapper das Bundle, vergleicht seine sha256 mit dem Manifest, installiert mit npm ci den Renderer (mermaid-cli) und ruft node bin/diagram.js generate --description … --engine … --out diagram.png auf. Ein Sprachmodell schreibt den Diagramm-Quelltext, der Renderer zeichnet ihn tatsächlich und gibt bei Syntaxfehlern die Fehlermeldung zurück (bis zu 3 Versuche). Die Prüfsumme bindet genau dieses Bundle; sie sagt nichts darüber, woher es ursprünglich stammt, und nicht, dass sein Inhalt harmlos ist. Dasselbe Bundle steht mit dieser Prüfsumme auch im Manifest des Marktplatz-Herausgebers (diagram-dp-signed.json, Schlüssel 1292c0cc…)."
+      "manifest_id": "984f5bcea70bc896828e844d3b3f2c88a8f36d42163ba8668c6b4c738aa314d5",
+      "usage": "diagram 0.1.1 (Bundle bundle.tar.gz, Prüfsumme 9336ceb971a2…). In dieser Demo-Umgebung entpackt der Wrapper das Bundle, vergleicht seine sha256 mit dem Manifest, installiert mit npm ci den Renderer (mermaid-cli) und ruft node bin/diagram.js generate --description … --engine … --out diagram.png auf. Ein Sprachmodell schreibt den Diagramm-Quelltext, der Renderer zeichnet ihn tatsächlich und gibt bei Syntaxfehlern die Fehlermeldung zurück (bis zu 3 Versuche). Die Prüfsumme bindet genau dieses Bundle; sie sagt nichts darüber, woher es ursprünglich stammt, und nicht, dass sein Inhalt harmlos ist. Dasselbe Bundle steht mit dieser Prüfsumme auch im Manifest des Marktplatz-Herausgebers (diagram-dp-signed.json, Schlüssel 1292c0cc…)."
     }
   ],
   "issued_at": 1793093418,
   "expires_at": 1824629418,
-  "signature": "f9788b65f3e7c0f5d96d6d394fbabcf003cb39ec6542d7e4cf7de3ad6446e6bdf927f0cecd3f607091cb64b945e9e6c253b474a60a5ab316ace262175bdcd90a"
+  "signature": "1eacf5a0d4f395f37605723c51f358649ae76de9ae48cc254985bb99bf68f9aaca793ed838bfae5e9a53e327633846c7e93873c50c88208c9741ec240dbfb20a"
 }

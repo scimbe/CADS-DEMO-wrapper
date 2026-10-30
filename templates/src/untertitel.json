@@ -1,0 +1,77 @@
+{
+  "template_id": "d7229d93526ed5b4a9097b2d00f3b9effb3499d8329379416835c1900fc161a6",
+  "name": "untertitel-im-browser",
+  "version": "1.0.0",
+  "issued_at": 1793377733,
+  "expires_at": 1824913733,
+  "body": "Erzeuge Untertitel für ein kurzes Video, vollständig im Browser des Nutzers; das Video verlässt das Gerät nicht.\nSprache: {{language}}. Erkennung: {{model}}. Look: {{look}}. Position: {{position}}.\nSprache erkennen mit {{component:whisper-runtime}} und Modell {{component:whisper-model-genau}} oder {{component:whisper-model-schnell}}; einbrennen mit {{component:ffmpeg-core-js}}, {{component:ffmpeg-core-wasm}} und Schrift {{component:untertitel-schrift}}.",
+  "parameters": [
+    {
+      "name": "language",
+      "type": "enum",
+      "options": [
+        "de",
+        "en",
+        "auto"
+      ]
+    },
+    {
+      "name": "model",
+      "type": "enum",
+      "options": [
+        "genau",
+        "schnell"
+      ]
+    },
+    {
+      "name": "look",
+      "type": "enum",
+      "options": [
+        "pop",
+        "neon",
+        "klar"
+      ]
+    },
+    {
+      "name": "position",
+      "type": "enum",
+      "options": [
+        "unten",
+        "mitte",
+        "oben"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "name": "whisper-runtime",
+      "from_vendor": "untertitel/shout.wasm.js",
+      "usage": "@transcribe/shout 1.0.7, whisper.cpp als WebAssembly (MIT). Läuft im Browser des Nutzers in einem Worker. Die Prüfsumme bindet genau diese Datei; sie sagt nichts darüber, ob ihr Inhalt harmlos ist."
+    },
+    {
+      "name": "whisper-model-schnell",
+      "from_vendor": "untertitel/ggml-tiny-q5_1.bin",
+      "usage": "Whisper tiny, quantisiert q5_1, aus ggerganov/whisper.cpp (MIT). Reine Modelldaten, geladen von whisper-runtime."
+    },
+    {
+      "name": "whisper-model-genau",
+      "from_vendor": "untertitel/ggml-base-q5_1.bin",
+      "usage": "Whisper base, quantisiert q5_1, aus ggerganov/whisper.cpp (MIT). Reine Modelldaten, geladen von whisper-runtime."
+    },
+    {
+      "name": "ffmpeg-core-js",
+      "from_vendor": "untertitel/ffmpeg-core.js",
+      "usage": "@ffmpeg/core 0.12.10, Lader (GPL-2.0-or-later, enthält FFmpeg, x264, libass)."
+    },
+    {
+      "name": "ffmpeg-core-wasm",
+      "from_vendor": "untertitel/ffmpeg-core.wasm",
+      "usage": "@ffmpeg/core 0.12.10, WebAssembly (GPL-2.0-or-later). Liest das Video und brennt die Untertitel ein, im Browser des Nutzers."
+    },
+    {
+      "name": "untertitel-schrift",
+      "from_vendor": "untertitel/Poppins-ExtraBold.ttf",
+      "usage": "Poppins ExtraBold (SIL OFL 1.1), Schrift der eingebrannten Untertitel."
+    }
+  ]
+}

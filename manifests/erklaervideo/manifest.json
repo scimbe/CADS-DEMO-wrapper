@@ -1,6 +1,8 @@
 {
+  "publisher_pubkey": "2535b618dc4984119e6b1b966f53a8ee9b9583f6a082b70eed895c1045e88a90",
+  "manifest_id": "db901db2d00667ae52640cfc01f2a76471fad0b146384f12393672dc6fc297fc",
   "name": "erklaervideo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "installer_kind": "binary",
   "bundle": {
     "url": "bundle.tar.gz",
@@ -43,8 +45,9 @@
     "script": "verify.sh",
     "timeout_secs": 120
   },
-  "signature": null,
-  "unsigned_reason": "Der Publisher-Schluessel dieses Marketplace-Manifests (publisher_pubkey der Bestandsmanifeste) liegt nicht vor; dieses Manifest ist wie die uebrigen lokal gebuendelten Demos nur per sha256 gebunden (die Galerie zeigt die Signaturpruefung als simuliert). Signatur, manifest_id, issued_at/expires_at setzt der Publisher beim Veroeffentlichen.",
+  "issued_at": 1793383098,
+  "expires_at": 1824919098,
+  "signature": "b7633905d6e7257f970debee5b3c45bb9439d6758333e99b510babf4fd1d577988ee85f68b8b0fad67216dcf3d21d1813859c661db3b5d275a2c715ab3501603",
   "source": {
     "repo": "scimbe/CADS-DEMO-podcast",
     "path": "explainer-video",

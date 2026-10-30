@@ -2,16 +2,44 @@
 
 ## Anwendungsfall-Videos (in der Galerie eingebunden)
 
-Drei Videos zeigen, was man mit dem Marktplatz im Alltag macht, nicht wie er
+Die Videos zeigen, was man mit dem Marktplatz im Alltag macht, nicht wie er
 gebaut ist. Mit Sprecher (Deutsch: Piper `de_DE-thorsten-high`, „Thomas“;
 Englisch: Piper `en_US-joe-medium`), Untertiteln und je 16:9 und 9:16.
 Storyboard und Selbstprüfung: `motion/STORYBOARD.md`.
 
-| Datei (DE)                  | Inhalt                                                    | Länge DE |
-|-----------------------------|-----------------------------------------------------------|----------|
-| `so-einfach-*.mp4`          | Hauptvideo: Wetter-Briefing für die Segelgruppe in 3 Schritten | 36 s |
-| `termin-per-anruf-*.mp4`    | Friseurtermin per Anruf buchen und wieder absagen         | 19 s     |
-| `frag-deine-region-*.mp4`   | Regionaldaten per Sprache fragen (Deutschlandatlas)       | 23 s     |
+| Datei (DE) | Karte in der Galerie |
+|------------|----------------------|
+| `so-einfach-*` | Wetter-Briefing erstellen (auch Hauptvideo) |
+| `termin-per-anruf-*` | keine Karte, Video unter den Karten |
+| `frag-deine-region-*` | Sprachassistent für Regionaldaten |
+| `flappy-spiel-*` | Flappy-Spiel bauen |
+| `wer-macht-den-auftrag-*` | Live-Auktion |
+| `vorlage-pruefen-*` | Echtheit von Vorlagen prüfen |
+| `programmieren-lernen-*` | Programmieren lernen im Browser |
+| `fotos-ordnen-*` | Foto-Ordner ordnen |
+| `vertrag-vergleichen-*` | Verträge vergleichen |
+| `diagramm-aus-text-*` | Diagramm aus Text |
+| `absturzsicher-*` | Absturzsichere Abläufe |
+| `route-planen-*` | Route planen (Bremen) |
+| `text-wird-video-*` | Erklärvideo aus deinem Text |
+| `untertitel-*` | Untertitel für kurze Videos |
+
+Die Zuordnung steht als `video` in `demos.json`; die Länge folgt der gemessenen
+Sprechdauer (`motion/src/vo-timing.json`).
+
+Herkunft der Ergebnisse, die ein Konto brauchen (Lauf vom 27.10.2026, im Video
+als „Aufgezeichneter echter Lauf“ gekennzeichnet): `motion/recordings/` enthält
+die Aufzeichnungen. Beim Aufnehmen lädt `capture-usecases.mjs` die echte Seite,
+schickt nichts an `/api/` und spielt die Aufzeichnung in den Seitencode ein.
+Beim Vertrag ist der aufgezeichnete Bericht in voller Breite gezeigt. Beim
+Foto-Ordner fehlt der Kontaktbogen, er wurde nicht mit aufgezeichnet. Route:
+Bildschirmfotos aus PR #33. Erklärvideo: Einzelbilder eines Produktionsvideos.
+Tutor: Bilder aus der öffentlichen Dokumentation.
+
+`untertitel`: echter Lauf auf der Live-Seite (Modus Schnell, ohne Korrektur). Der
+Eingabe-Clip `motion/recordings/untertitel-clip-*.mp4` ist selbst gebaut: Foto von
+Viviana Ceballos (Pexels), Sprecher Piper. Das Ergebnis stammt aus der Seite und
+liegt als `untertitel-ergebnis-*.mp4` daneben.
 
 Was echt ist: alle Bilder sind Bildschirmaufnahmen der laufenden Demos
 (`motion/scripts/capture-usecases.mjs`, Ablage `motion/public/real/uc/`).
@@ -26,10 +54,11 @@ Neu erzeugen:
 
 ```bash
 cd motion
-node scripts/capture-usecases.mjs          # Aufnahmen (bucht und storniert einen Termin)
+node scripts/capture-usecases.mjs          # Aufnahmen ohne Termin
+node scripts/capture-usecases.mjs termin   # bucht und storniert wirklich einen Termin
 for f in public/real/uc/*.png; do sips -s format jpeg -s formatOptions 82 "$f" --out "${f%.png}.jpg"; done
 PIPER_DE=… PIPER_EN=… <piper-venv>/bin/python scripts/voice.py   # Sprecher, Zeitachse, Untertitel
-node scripts/render.mjs so-einfach,termin-per-anruf,frag-deine-region
+node scripts/render.mjs so-einfach,termin-per-anruf   # Namensfilter, Komma-getrennt
 ```
 
 Die Sprachausgabe läuft lokal (`pip install piper-tts`), nicht auf einem
