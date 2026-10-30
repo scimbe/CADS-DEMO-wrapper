@@ -17,6 +17,8 @@ services:
       - LITELLM_BASE_URL=${LITELLM_BASE_URL:?shared litellm proxy base}
       - LITELLM_API_KEY=${LITELLM_API_KEY:?shared litellm proxy key}
       - LITELLM_DEFAULT_MODEL=${LITELLM_DEFAULT_MODEL:-local-qwen36-35b-a3b-coding}
+      # "Installationen speichern": aus, solange kein Token gesetzt ist (siehe lib/installations.mjs).
+      - INSTALLATIONS_DELEGATE_TOKEN=${INSTALLATIONS_DELEGATE_TOKEN:-}
       - CT_MANIFEST_TRUST_ALLOWLIST=${CT_MANIFEST_TRUST_ALLOWLIST:-1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b}
       # erklaervideo: voice "Thomas" through the ct-agent channel (audio_generation) -- same mechanism as the
       # call-center app: a READ-ONLY mount with ct-agent + relay.env, no published ports. Without it the demo
