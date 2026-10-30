@@ -34,6 +34,19 @@ const body = document.getElementById('pb-body');
 const live = document.getElementById('pb-live');
 const say = (msg) => { live.textContent = ''; setTimeout(() => { live.textContent = msg; }, 30); };
 
+// ?installation=<id>: reopen saved values. Only values for this template's parameters are used; the
+// form then validates them like anything typed.
+async function savedValues() {
+  const id = new URLSearchParams(location.search).get('installation');
+  if (!id || !root.dataset.save) return null;
+  try {
+    const r = await fetch('/api/installations/' + encodeURIComponent(id), { cache: 'no-store' });
+    if (!r.ok) throw new Error(String(r.status));
+    const rec = await r.json();
+    return rec.slug === root.dataset.slug ? rec : null;
+  } catch (e) { say(t('inst.err')); return null; }
+}
+
 async function boot() {
   let data, core, api = null;
   try {
@@ -57,7 +70,8 @@ async function boot() {
   statusEl.textContent = '';
   if (!verdict.ok) { body.replaceChildren(blocked(verdict, core)); return; }
   const template = verdict.template;
-  body.replaceChildren(trustPanel(verdict, core), form(template, data, core, api));
+  const saved = await savedValues();
+  body.replaceChildren(trustPanel(verdict, core), form(template, data, core, api, saved));
   say(t('pb.trust.ok'));
 }
 
@@ -103,13 +117,14 @@ function trustPanel(verdict, core) {
 
 // ---- form ------------------------------------------------------------------------------------
 
-function form(template, data, core, api) {
+function form(template, data, core, api, saved) {
   const ui = data.meta.params || {};
   const lbl = (n) => (ui[n] && ui[n].label && (ui[n].label[lang] || ui[n].label.de)) || n;
   const helpOf = (n) => ui[n] && ui[n].help && (ui[n].help[lang] || ui[n].help.de);
   const optLabel = (n, v) => (ui[n] && ui[n].options && ui[n].options[v] && (ui[n].options[v][lang] || ui[n].options[v].de)) || v;
   const isRequired = (n) => !!(ui[n] && ui[n].required);
   const defaults = core.defaultValues(template, Object.fromEntries(Object.entries(ui).filter(([, v]) => 'default' in v).map(([k, v]) => [k, v.default])));
+  if (saved) for (const p of template.parameters) if (saved.values && p.name in saved.values) defaults[p.name] = saved.values[p.name];
   const ctx = { t, label: lbl, required: isRequired };
   const touched = new Set();
   const readers = {}; // name -> () => value
@@ -273,11 +288,26 @@ function form(template, data, core, api) {
       const why = data.meta.why_no_run && (data.meta.why_no_run[lang] || data.meta.why_no_run.de);
       tail = h('p', { class: 'pb-cantrun', text: why || t('pb.start.unavailable') });
     }
-    previewBox.replaceChildren(heading, h('p', { class: 'pb-legend', text: t('pb.prev.legend') }), pre, proof, actions, tail);
+    previewBox.replaceChildren(heading, h('p', { class: 'pb-legend', text: t('pb.prev.legend') }), pre, proof, actions, tail, root.dataset.save ? saveBox() : null);
     previewBox.hidden = false;
     previewBox.classList.remove('is-stale');
     heading.focus();
     say(t('pb.prev.title'));
+  }
+
+  function saveBox() {
+    const input = h('input', { class: 'pb-control', id: 'pb-save-name', type: 'text', maxlength: 120, autocomplete: 'off', value: saved ? saved.name : template.name });
+    const msg = h('p', { class: 'pb-help', role: 'status' });
+    const btn = h('button', { type: 'button', class: 'btn btn-ghost', text: t('inst.save'), onclick: async () => {
+      btn.disabled = true;
+      try {
+        const r = await fetch('/api/installations', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ demo: root.dataset.slug, lang, name: input.value, values: state.preview.values }) });
+        const j = await r.json().catch(() => ({}));
+        msg.textContent = r.ok ? t('inst.saved') : (j.message || t('inst.err'));
+      } catch (e) { msg.textContent = t('inst.err'); }
+      btn.disabled = false;
+    } });
+    return h('div', { class: 'pb-field' }, h('label', { for: 'pb-save-name', text: t('inst.name') }), input, h('div', { class: 'pb-actions' }, btn), msg);
   }
 
   async function copy(text) {

@@ -47,7 +47,7 @@ test('clientStrings ships the js.*, status.* and search.* keys in the requested 
   assert.deepEqual(Object.keys(en).sort(), Object.keys(de).sort());
   assert.equal(en['js.run.retry'], 'Try again');
   assert.equal(de['js.run.retry'], 'Erneut versuchen');
-  assert.ok(Object.keys(en).every((k) => /^(js|status|search|pb)\./.test(k)));
+  assert.ok(Object.keys(en).every((k) => /^(js|status|search|pb|inst)\./.test(k)));
 });
 
 test('every demo has a German and an English card text (title, blurb, tech, category)', () => {

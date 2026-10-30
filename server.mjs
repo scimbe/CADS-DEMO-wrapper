@@ -19,6 +19,7 @@ import { tr, di, makeT, normLang, clientStrings } from './lib/i18n.mjs';
 import { indexPage } from './lib/index-page.mjs';
 import { loadEnv } from './lib/env.mjs';
 import { createAuth } from './lib/auth.mjs';
+import { createInstallations, installationsPage, isInstallationId, publicRecord, recordFor } from './lib/installations.mjs';
 import { LOCAL_RUN_CSS, hasLocalRun, installScript, localRunBlock, localRunConfig } from './lib/local-run.mjs';
 import { DEFAULT_REGISTRY_URL, REFUSAL, loadVerifiedManifest, readTrustRoot } from './lib/manifest-trust.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
@@ -661,7 +662,7 @@ function toolShell(slug, inner, lang) {
   lang = normLang(lang);
   const home = lang === 'en' ? '/?lang=en' : '/';
   const timeout = Math.max(90, Math.round((d.estSeconds || 20) * 2.5));
-  const builder = d.live && inner.builder !== false && TEMPLATES.has(slug) ? builderBlock(slug, lang, builderVersions()) : '';
+  const builder = d.live && inner.builder !== false && TEMPLATES.has(slug) ? builderBlock(slug, lang, builderVersions(), INSTALLATIONS.enabled) : '';
   const localRun = d.live && hasLocalRun(slug, LOCAL_RUN) ? localRunBlock(slug, lang, LOCAL_RUN) : '';
   return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (localRun ? LOCAL_RUN_CSS : '') + (inner.mini ? MINI_CSS : '') + (inner.motion ? MOTION_CSS : '') + (inner.css || '') })}
 ${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang, inner.chip)}
@@ -946,6 +947,56 @@ function handleTemplate(res, slug) {
   jsonReply(res, 200, { slug, raw: entry.raw, publishers: entry.publishers, meta: { title, intro, params, why_no_run, canRun }, server: { ok: entry.status.ok, code: entry.status.ok ? null : entry.status.code } });
 }
 
+// /api/installations (see lib/installations.mjs). The login check already happened in AUTH.guard.
+const slugOfTemplate = (id) => Object.keys(DEMOS).find((slug) => { const e = TEMPLATES.has(slug) && TEMPLATES.get(slug); return e && e.template && e.template.template_id === id; }) || null;
+const readJsonBody = (req) => new Promise((resolve) => {
+  const chunks = []; let size = 0;
+  req.on('data', (c) => { size += c.length; if (size <= MAX_BODY_BYTES) chunks.push(c); });
+  req.on('end', () => { if (size > MAX_BODY_BYTES) return resolve(null); try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); } catch { resolve(null); } });
+});
+
+async function handleInstallations(req, res, url) {
+  const lang = normLang(url.searchParams.get('lang'));
+  const t = makeT(lang);
+  const session = AUTH.sessionCookie(req);
+  const fail = (status, error, message) => jsonReply(res, status, { error, message });
+  const upstream = (r) => {
+    if (r.status === 401) return fail(401, 'relogin', t('inst.relogin'));
+    if (r.status === 422) return fail(422, 'refused', /at most/.test(r.text) ? t('inst.limit') : t('inst.secret'));
+    if (r.status === 404) return fail(404, 'not-found', t('inst.err'));
+    return fail(502, 'upstream', t('inst.err'));
+  };
+  if (!INSTALLATIONS.enabled) return fail(503, 'not-configured', t('inst.off'));
+  const id = url.pathname.slice('/api/installations/'.length);
+  if (id && !isInstallationId(id)) return fail(404, 'not-found', t('inst.err'));
+  try {
+    if (!id && req.method === 'GET') {
+      const r = await INSTALLATIONS.list(session);
+      if (r.status !== 200) return upstream(r);
+      return jsonReply(res, 200, { items: r.json.items.map((x) => publicRecord(x, slugOfTemplate)), total: r.json.total });
+    }
+    if (!id && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      if (!body || typeof body !== 'object' || !Object.hasOwn(DEMOS, String(body.demo)) || !body.values || typeof body.values !== 'object' || Array.isArray(body.values)) return fail(400, 'bad-request', t('pb.srv.bad-request'));
+      const entry = TEMPLATES.get(body.demo);
+      const prepared = prepareRun(entry, body.values, { lang });
+      if (!prepared.ok) return fail(prepared.status, prepared.code, prepared.message);
+      const r = await INSTALLATIONS.create(session, recordFor({ template: entry.template, rendered: prepared.rendered, values: body.values, name: body.name, lang }));
+      return r.status === 201 ? jsonReply(res, 201, publicRecord(r.json, slugOfTemplate)) : upstream(r);
+    }
+    if (id && req.method === 'GET') {
+      const r = await INSTALLATIONS.get(session, id);
+      return r.status === 200 ? jsonReply(res, 200, publicRecord(r.json, slugOfTemplate)) : upstream(r);
+    }
+    if (id && req.method === 'DELETE') {
+      const r = await INSTALLATIONS.remove(session, id);
+      if (r.status === 204) { res.writeHead(204).end(); return; }
+      return upstream(r);
+    }
+    return fail(405, 'method', t('pb.srv.bad-request'));
+  } catch { return fail(503, 'unavailable', t('inst.err')); }
+}
+
 // POST /api/start  { demo, values, lang?, expect?: { template_digest?, values_digest? } }
 // The client sends VALUES ONLY. The template comes from disk, is re-verified (signature, trusted
 // publisher, expiry) and rendered here with the same wasm; the browser's preview is never trusted.
@@ -1004,6 +1055,7 @@ function builderVersions() {
 }
 
 
+const INSTALLATIONS = createInstallations();
 const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
 // One failing request answers 500; it never takes the gallery (and everybody's runs) down with it.
 http.createServer((req, res) => route(req, res).catch((e) => {
@@ -1015,7 +1067,9 @@ async function route(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
   if (await AUTH.guard(req, res, url)) return;
-  if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage(DEMOS, normLang(url.searchParams.get('lang')), { sandboxLive: !!LOCAL_RUN.version })); return; }
+  if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage(DEMOS, normLang(url.searchParams.get('lang')), { sandboxLive: !!LOCAL_RUN.version, savedLive: process.env.INSTALLATIONS_LIVE === '1' })); return; }
+  if (p === '/installationen') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(installationsPage(url.searchParams.get('lang'), INSTALLATIONS.enabled)); return; }
+  if (p === '/api/installations' || p.startsWith('/api/installations/')) { await handleInstallations(req, res, url); return; }
   if (p === '/cads-run.sh' && LOCAL_RUN.version) { res.writeHead(200, { 'Content-Type': 'text/x-shellscript; charset=utf-8', 'Cache-Control': 'no-cache' }).end(installScript(LOCAL_RUN)); return; }
   if (p === '/api/status') { handleStatus(res); return; }
   if (p === '/api/upload-compare' && req.method === 'POST') { handleUploadCompare(req, res); return; }

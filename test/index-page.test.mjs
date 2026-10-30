@@ -118,3 +118,9 @@ test('status widget: an unreachable upstream hides the bar instead of showing a 
   assert.ok(h.includes("if(!j||!j.ok){ show(''); return; }"));
   assert.ok(!h.includes("status.down.title") || !/show\(note\(f\('status\.down/.test(h));
 });
+
+test('saved installations are only shown as active once verified', () => {
+  const trust = (o) => indexPage(DEMOS, "de", o).split('Installationen speichern')[0].split('<li>').pop();
+  assert.match(trust({}), /In Vorbereitung/);
+  assert.match(trust({ savedLive: true }), /Aktiv in der Demo/);
+});
