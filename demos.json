@@ -382,7 +382,7 @@
     "outputRel": ".",
     "reportMd": "report.md",
     "story": "Zwei Versionen desselben Vertrags. Klausel 4 (Zahlungsziel) ändert sich von 30 auf 45 Tage — 15 Tage länger aufs Geld warten. Sonst nichts. Der Diff zeigt genau diese Zeile.",
-    "estSeconds": 10,
+    "estSeconds": 75,
     "live": true,
     "demo_prompt": {
       "system": "Du übersetzt einen Nutzerwunsch in eine JSON-Konfiguration für diese Demo. Ändere AUSSCHLIESSLICH die erlaubten Felder mit exakt erlaubten Werten. Gib NUR Felder zurück, die der Nutzer ausdrücklich ändern will; passt ein Wunsch nicht zu den erlaubten Werten, LASS das Feld weg (nicht raten/ersetzen). Antworte NUR mit striktem JSON.",
@@ -432,7 +432,7 @@
     "name": "diagram",
     "version": "0.1.0",
     "title": "Diagramm aus Text",
-    "tagline": "Beschreibe ein Diagramm in einem Satz — ein LLM schreibt Mermaid-Code, ein echter Renderer prüft ihn und erzeugt ein PNG; bei Syntaxfehlern korrigiert das LLM anhand der echten Fehlermeldung.",
+    "tagline": "Beschreibe ein Diagramm in einem Satz — ein LLM schreibt Graphviz-Code, das Werkzeug dot prüft ihn und erzeugt ein SVG; bei Syntaxfehlern korrigiert das LLM anhand der echten Fehlermeldung.",
     "blurb": "Beschreibe in einem Satz, was du zeigen willst, und bekomme ein fertiges Diagramm als Bild.",
     "engine": "graphviz",
     "description": "Ein Besucher öffnet die Demo, der Marktplatz installiert das Werkzeug, es läuft in einer geschützten Umgebung und das Ergebnis wird gezeigt.",
@@ -464,13 +464,13 @@
       ]
     },
     "title_en": "Diagram from text",
-    "tagline_en": "Describe a diagram in one sentence — an LLM writes Mermaid code, a real renderer checks it and produces a PNG; on syntax errors the LLM corrects using the real error message.",
+    "tagline_en": "Describe a diagram in one sentence — an LLM writes Graphviz code, the dot tool checks it and produces an SVG; on syntax errors the LLM corrects using the real error message.",
     "order": 4,
     "category": "Grafik",
     "category_en": "Graphics",
     "blurb_en": "Describe in one sentence what you want to show and get a finished diagram as an image.",
-    "tech": "Ein Sprachmodell schreibt Mermaid-Code, ein echter Renderer prüft ihn und erzeugt das PNG. Bei Syntaxfehlern korrigiert das Modell anhand der echten Fehlermeldung (bis zu 3 Versuche).",
-    "tech_en": "A language model writes Mermaid code, a real renderer checks it and produces the PNG. On syntax errors the model corrects itself using the real error message (up to 3 attempts).",
+    "tech": "Ein Sprachmodell schreibt Graphviz-Code, das Werkzeug dot prüft ihn und erzeugt das SVG. Bei Syntaxfehlern korrigiert das Modell anhand der echten Fehlermeldung (bis zu 3 Versuche).",
+    "tech_en": "A language model writes Graphviz code, the dot tool checks it and produces the SVG. On syntax errors the model corrects itself using the real error message (up to 3 attempts).",
     "hasManifest": false
   },
   "temporal-poc": {
