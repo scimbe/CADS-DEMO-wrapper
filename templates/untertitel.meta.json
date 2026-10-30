@@ -1,0 +1,97 @@
+{
+  "title": {
+    "de": "Untertitel für dein Video",
+    "en": "Captions for your video"
+  },
+  "intro": {
+    "de": "Einstellungen und Bausteine stammen aus der signierten Vorlage.",
+    "en": "Settings and components come from the signed template."
+  },
+  "why_no_run": {
+    "de": "Diese Vorlage läuft nur im Browser, nicht auf dem Server.",
+    "en": "This template runs only in the browser, not on the server."
+  },
+  "params": {
+    "language": {
+      "label": {
+        "de": "Sprache",
+        "en": "Language"
+      },
+      "default": "de",
+      "options": {
+        "de": {
+          "de": "Deutsch",
+          "en": "German"
+        },
+        "en": {
+          "de": "Englisch",
+          "en": "English"
+        },
+        "auto": {
+          "de": "Automatisch",
+          "en": "Automatic"
+        }
+      }
+    },
+    "model": {
+      "label": {
+        "de": "Erkennung",
+        "en": "Recognition"
+      },
+      "default": "genau",
+      "options": {
+        "genau": {
+          "de": "Genau",
+          "en": "Accurate"
+        },
+        "schnell": {
+          "de": "Schnell (fürs Handy)",
+          "en": "Fast (for phones)"
+        }
+      }
+    },
+    "look": {
+      "label": {
+        "de": "Look",
+        "en": "Look"
+      },
+      "default": "pop",
+      "options": {
+        "pop": {
+          "de": "Pop (Gelb)",
+          "en": "Pop (yellow)"
+        },
+        "neon": {
+          "de": "Neon",
+          "en": "Neon"
+        },
+        "klar": {
+          "de": "Klar (Balken)",
+          "en": "Clean (box)"
+        }
+      }
+    },
+    "position": {
+      "label": {
+        "de": "Position",
+        "en": "Position"
+      },
+      "default": "unten",
+      "options": {
+        "unten": {
+          "de": "Unten",
+          "en": "Bottom"
+        },
+        "mitte": {
+          "de": "Mitte",
+          "en": "Middle"
+        },
+        "oben": {
+          "de": "Oben",
+          "en": "Top"
+        }
+      }
+    }
+  },
+  "run": {}
+}

@@ -27,6 +27,7 @@ import { shortDigest } from './lib/prompt-core.mjs';
 import { WASM_DIR, wasm, nowSec } from './lib/prompt-wasm.mjs';
 import { md2html } from './lib/md2html.mjs';
 import { serveMedia } from './lib/static-media.mjs';
+import { UT_CSS, UT_DIR, UT_PAGE_HEADERS, untertitelBody } from './lib/untertitel-page.mjs';
 import { motionTrust, motionScript, MOTION_CSS } from './lib/motion.mjs';
 import { findChrome, withoutPdf } from './lib/pdf.mjs';
 import { patchParser, patchGuard, germanizeReport, reportConfigPatch, readRunOutcome } from './lib/newsletter.mjs';
@@ -663,7 +664,7 @@ function toolShell(slug, inner, lang) {
   const builder = d.live && inner.builder !== false && TEMPLATES.has(slug) ? builderBlock(slug, lang, builderVersions()) : '';
   const localRun = d.live && hasLocalRun(slug, LOCAL_RUN) ? localRunBlock(slug, lang, LOCAL_RUN) : '';
   return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (localRun ? LOCAL_RUN_CSS : '') + (inner.mini ? MINI_CSS : '') + (inner.motion ? MOTION_CSS : '') + (inner.css || '') })}
-${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang)}
+${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang, inner.chip)}
 <main class="wrap" id="main" tabindex="-1" data-slug="${slug}" data-est="${d.estSeconds || 20}" data-timeout="${timeout}" data-lang="${lang}">
   <noscript><div class="noscript-note" role="note">${tt('noscript.demo')}</div></noscript>
   <div class="toolbar"><div><h1>${di(d, 'title', lang)}</h1><p>${di(d, inner.mini ? 'blurb' : 'tagline', lang)}</p></div><div class="controls">${inner.controls}</div></div>
@@ -810,6 +811,15 @@ function routePage(slug, lang) {
     <div class="rt-legend"><span><i style="background:var(--teal-ink)"></i>${t('Start','From')}</span><span><i style="background:var(--terra)"></i>${t('Ziel','To')}</span><span>${t('Linie: echte Routengeometrie (OSRM), Daten © OpenStreetMap-Mitwirkende','Line: real route geometry (OSRM), data © OpenStreetMap contributors')}</span></div>
     <details class="rt-more"><summary>${t('Einzelne Prüfungen','Individual checks')}</summary><ul class="rt-checks"></ul><p class="rt-prov"></p></details></section>`, lang)}`;
   return toolShell(slug, { controls: '', body, mini: true, builder: false, css: ROUTE_CSS }, lang);
+}
+
+// ---- untertitel: runs entirely in the visitor's browser; the server only hands out static files --
+function untertitelPage(slug, lang) {
+  const t = tr(lang);
+  const v = builderVersions();
+  try { v.js = shortHash(readFileSync(PB_STATIC['untertitel.js'])); } catch {}
+  return toolShell(slug, { controls: '', body: untertitelBody(lang, v), mini: true, builder: false, css: UT_CSS,
+    chip: { text: t('Läuft in deinem Browser', 'Runs in your browser'), title: t('Das Video verlässt dein Gerät nicht. Vom Server kommen nur die Programmdateien.', 'The video does not leave your device. Only the program files come from the server.') } }, lang);
 }
 
 // ---- landing: a static, public collection page linking out to N sibling demos ("tracks") --
@@ -974,7 +984,7 @@ function handlePostStart(req, res, url) {
 
 // Browser assets of the builder: the page module, the shared core and the vendored wasm. A ?v= content
 // hash in the URL makes them immutable-cacheable; without it they revalidate on every load.
-const PB_STATIC = { 'prompt-builder.js': join(__dir, 'static', 'prompt-builder.js'), 'prompt-core.mjs': join(__dir, 'lib', 'prompt-core.mjs') };
+const PB_STATIC = { 'prompt-builder.js': join(__dir, 'static', 'prompt-builder.js'), 'prompt-core.mjs': join(__dir, 'lib', 'prompt-core.mjs'), 'untertitel.js': join(__dir, 'static', 'untertitel.js'), 'untertitel-core.mjs': join(__dir, 'lib', 'untertitel-core.mjs') };
 const PB_MIME = { '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm' };
 function servePb(res, url) {
   const name = url.pathname.slice('/pb/'.length);
@@ -1015,6 +1025,8 @@ async function route(req, res) {
   if (p.startsWith('/pb/') && req.method === 'GET') { servePb(res, url); return; }
   if (p === '/api/plan' && req.method === 'POST') { handlePlan(req, res, url); return; }
   if (p.startsWith('/static/motion/') && (req.method === 'GET' || req.method === 'HEAD')) { serveMedia(req, res, join(__dir, 'static', 'motion'), p.slice('/static/motion/'.length)); return; }
+  if (p.startsWith('/static/vendor/untertitel/') && (req.method === 'GET' || req.method === 'HEAD')) { serveMedia(req, res, UT_DIR, p.slice('/static/vendor/untertitel/'.length), UT_PAGE_HEADERS); return; }
+  if (p === '/static/untertitel-whisper.worker.js' && req.method === 'GET') { res.writeHead(200, { 'Content-Type': PB_MIME['.js'], 'Cache-Control': 'no-cache', ...UT_PAGE_HEADERS }); createReadStream(join(__dir, 'static', 'untertitel-whisper.worker.js')).pipe(res); return; }
   const dm = p.match(/^\/d\/([a-z0-9_-]+)\/out\/(?:(r[0-9a-f]{10})\/)?(.+)$/);
   if (dm) { const base = resolveOut(dm[1], dm[2]); if (!base) { res.writeHead(404).end('nf'); return; } serveFile(res, join(base, dm[3].replace(/\.\./g, ''))); return; }
   if (p.startsWith('/assets/thumbs/')) { serveFile(res, join(__dir, 'thumbs', p.slice('/assets/thumbs/'.length).replace(/\.\./g, ''))); return; }
@@ -1023,8 +1035,8 @@ async function route(req, res) {
     if (MERGED[slug]) { res.writeHead(302, { Location: `/d/${MERGED[slug]}${url.search}` }).end(); return; }
     if (d.type === 'external' && d.live && d.externalUrl) { res.writeHead(302, { Location: d.externalUrl }).end(); return; }
     const lang = normLang(url.searchParams.get('lang'));
-    const PAGES = { 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), textvideo: (s) => textVideoPage(s, lang), route: (s) => routePage(s, lang), landing: (s) => landingPage(s, lang) };
+    const PAGES = { 'browser-wasm': (s) => untertitelPage(s, lang), 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), textvideo: (s) => textVideoPage(s, lang), route: (s) => routePage(s, lang), landing: (s) => landingPage(s, lang) };
     const html = d.live && PAGES[d.type] ? PAGES[d.type](slug) : soonPage(slug, lang);
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(html); return; }
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', ...(d.type === 'browser-wasm' ? UT_PAGE_HEADERS : {}) }).end(html); return; }
   res.writeHead(404).end('not found');
 }
