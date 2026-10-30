@@ -19,6 +19,7 @@ import { tr, di, makeT, normLang, clientStrings } from './lib/i18n.mjs';
 import { indexPage } from './lib/index-page.mjs';
 import { loadEnv } from './lib/env.mjs';
 import { createAuth } from './lib/auth.mjs';
+import { LOCAL_RUN_CSS, hasLocalRun, installScript, localRunBlock, localRunConfig } from './lib/local-run.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
@@ -44,6 +45,7 @@ const RUNS = join(WORK, 'runs'); // one directory per visitor run (lib/runs.mjs)
 // Signed prompt templates ("Eigene Angaben"). The wrapper never takes a template from a request: it
 // reads it from here, re-verifies it and renders it itself (lib/templates.mjs).
 const TEMPLATES = createTemplateStore(process.env.TEMPLATES_DIR || join(__dir, 'templates'));
+const LOCAL_RUN = localRunConfig();
 const PORT = Number(process.env.PORT || 8790);
 // Default 0.0.0.0, not 127.0.0.1: a container bound to its own loopback is unreachable
 // through Docker's port-publish NAT (the compose file's co-located ct-agent sidecar never hit
@@ -652,7 +654,8 @@ function toolShell(slug, inner, lang) {
   const home = lang === 'en' ? '/?lang=en' : '/';
   const timeout = Math.max(90, Math.round((d.estSeconds || 20) * 2.5));
   const builder = d.live && inner.builder !== false && TEMPLATES.has(slug) ? builderBlock(slug, lang, builderVersions()) : '';
-  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (inner.mini ? MINI_CSS : '') + (inner.motion ? MOTION_CSS : '') + (inner.css || '') })}
+  const localRun = d.live && hasLocalRun(slug, LOCAL_RUN) ? localRunBlock(slug, lang, LOCAL_RUN) : '';
+  return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (localRun ? LOCAL_RUN_CSS : '') + (inner.mini ? MINI_CSS : '') + (inner.motion ? MOTION_CSS : '') + (inner.css || '') })}
 ${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang)}
 <main class="wrap" id="main" tabindex="-1" data-slug="${slug}" data-est="${d.estSeconds || 20}" data-timeout="${timeout}" data-lang="${lang}">
   <noscript><div class="noscript-note" role="note">${tt('noscript.demo')}</div></noscript>
@@ -660,6 +663,7 @@ ${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}<
   ${inner.mini ? '' : `<button class="m-toggle" type="button" aria-expanded="false">${t('mehr anzeigen ▾','show more ▾')}</button>`}
   ${builder}
   ${inner.body}
+  ${localRun}
 </main>${foot(lang)}<script>window.__S=${jsonForScript(clientStrings(lang))};</script><script>${CLIENT}</script>${inner.motion ? motionScript() : ''}</body></html>`;
 }
 
@@ -994,7 +998,8 @@ async function route(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
   if (await AUTH.guard(req, res, url)) return;
-  if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage(DEMOS, normLang(url.searchParams.get('lang')))); return; }
+  if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage(DEMOS, normLang(url.searchParams.get('lang')), { sandboxLive: !!LOCAL_RUN.version })); return; }
+  if (p === '/cads-run.sh' && LOCAL_RUN.version) { res.writeHead(200, { 'Content-Type': 'text/x-shellscript; charset=utf-8', 'Cache-Control': 'no-cache' }).end(installScript(LOCAL_RUN)); return; }
   if (p === '/api/status') { handleStatus(res); return; }
   if (p === '/api/upload-compare' && req.method === 'POST') { handleUploadCompare(req, res); return; }
   if (p === '/api/start') { if (req.method === 'POST') handlePostStart(req, res, url); else handleStart(req, res, url); return; }
