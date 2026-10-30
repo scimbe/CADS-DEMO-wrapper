@@ -28,6 +28,27 @@ Re-sign templates with `node bin/sign-templates.mjs` (key outside the repo, see 
 script; `--init-key` creates a demo key, `--verify` needs none). Trusted publishers:
 `templates/publishers.json`. CI: `.github/workflows/ci.yml`.
 
+
+## Signierte Herkunft der Bundles
+
+Vor jeder Installation prüft `installActivate` (server.mjs, Logik in `lib/manifest-trust.mjs`) mit dem
+vendorten wasm die ed25519-Signatur des Manifests gegen `manifests/publishers.json`. Der Schlüssel im
+Manifest entscheidet nichts: nur diese Datei legt fest, wem die Galerie vertraut. Ein ungültiges,
+unsigniertes, abgelaufenes, fremd signiertes oder fremdes Manifest bricht die Installation ab.
+
+Das lokale Manifest ist die Festlegung, seine `manifest_id` wählt den Registry-Eintrag
+(`REGISTRY_URL`, Standard `https://registry.bunsenbrenner.org`). Weicht die Antwort der Registry ab,
+wird abgelehnt. Ist die Registry nicht erreichbar oder kennt das Manifest noch nicht, gilt die lokale
+signierte Kopie, und das Protokoll sagt das.
+
+Ein neu gebautes Bundle macht die Signatur ungültig, `test/manifest-trust.test.mjs` schlägt dann fehl:
+
+```bash
+node bin/sign-manifests.mjs --only <slug> --version <neu>   # Schlüssel liegt außerhalb des Repos
+node bin/sign-manifests.mjs --verify
+REGISTRY_WRITE_TOKEN=... node bin/publish-manifests.mjs <slug>   # Veröffentlichen, Betreiberschritt
+```
+
 ## Login-Pflicht (bunsenbrenner-Konto)
 
 Ansehen (Galerie, `/d/<slug>`, Status, Vorlagen-Metadaten) ist frei. Alles unter `/api/` ausser

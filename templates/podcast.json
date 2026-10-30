@@ -40,11 +40,11 @@
     {
       "name": "podcast-bundle",
       "sha256": "a624ed5fa9f59700225bb730432725cfac25bb1a57898c6671ba7ef16b269cc6",
-      "manifest_id": "b6b9305cdb5123e497892675e6588dfb4daef61d830d41c8d70b63fdb0c160dd",
-      "usage": "podcast 0.1.0 (Bundle bundle.tar.gz, Einstieg run.sh, Prüfsumme a624ed5fa9f5…). Das Werkzeug mischt Roh-Spuren mit ffmpeg, transkribiert mit whisper.cpp und lässt ein Sprachmodell Kapitelmarken setzen, die gegen die echten Zeitstempel geprüft werden. In dieser Demo-Umgebung wird kein Lauf gestartet, sondern das vorbereitete Ergebnis eines echten Laufs gezeigt; diese Vorlage wird dem Werkzeug deshalb nicht übergeben und dient hier zur Vorschau. Die Prüfsumme bindet genau dieses Bundle; sie sagt nichts darüber, woher es ursprünglich stammt, und nicht, dass sein Inhalt harmlos ist. Dasselbe Bundle steht mit dieser Prüfsumme auch im Manifest des Marktplatz-Herausgebers (podcast-dp-signed.json, Schlüssel 1292c0cc…)."
+      "manifest_id": "6ddec0eaaaa5f26d9605c9ac3fd9667cf8d6c2a1d8bc2dfcb7d71d1f5635a361",
+      "usage": "podcast 0.1.1 (Bundle bundle.tar.gz, Einstieg run.sh, Prüfsumme a624ed5fa9f5…). Das Werkzeug mischt Roh-Spuren mit ffmpeg, transkribiert mit whisper.cpp und lässt ein Sprachmodell Kapitelmarken setzen, die gegen die echten Zeitstempel geprüft werden. In dieser Demo-Umgebung wird kein Lauf gestartet, sondern das vorbereitete Ergebnis eines echten Laufs gezeigt; diese Vorlage wird dem Werkzeug deshalb nicht übergeben und dient hier zur Vorschau. Die Prüfsumme bindet genau dieses Bundle; sie sagt nichts darüber, woher es ursprünglich stammt, und nicht, dass sein Inhalt harmlos ist. Dasselbe Bundle steht mit dieser Prüfsumme auch im Manifest des Marktplatz-Herausgebers (podcast-dp-signed.json, Schlüssel 1292c0cc…)."
     }
   ],
   "issued_at": 1793093418,
   "expires_at": 1824629418,
-  "signature": "3ece40369029bdf95a44199d0a0a67b7cd39bb4d3d8b1bd1b7d5a420ee1f3a1ddc3b682fbd0f6e46ac2337e5afd37f79b3519785b223a5cc734dc971632b700a"
+  "signature": "e31e02efb405bb7af8d7b18df0c39f19ad2e9d8377c4b1f8dc52c69b24ebbb16fce135f1ec8aff1f86a1a36ea60e9f203a433b9aaf49e120aeedae9b83a2d807"
 }
