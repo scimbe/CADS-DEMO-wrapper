@@ -43,3 +43,24 @@ test('generateDiagram stops at once when dot itself is missing (no wasted LLM ca
   const r = await generateDiagram({ description: 'x', llm: async () => { calls++; return GOOD; }, render: async () => ({ ok: false, error: 'dot nicht verfügbar', fatal: true }) });
   assert.equal(r.ok, false); assert.equal(calls, 1);
 });
+
+test('words in labels are not attributes: a diagram about URLs, images or targets renders', { skip: !HAVE_DOT }, async () => {
+  for (const code of [
+    'digraph { a [label="Browser lädt eine URL"]; b [label="Image"]; a -> b [label="Target = Tooltip"] }',
+    'digraph { "image" -> "URL" }',
+  ]) assert.equal((await renderDot(code)).ok, true, code);
+});
+
+test('file-reading and link attributes stay refused in every spelling', { skip: !HAVE_DOT }, async () => {
+  for (const code of [
+    'digraph { a ["image"="/etc/passwd"] }', 'digraph { a [ image = "/etc/passwd" ] }', 'digraph { graph [imagepath="/etc"]; a }',
+    'digraph { a -> b [edgeURL="javascript:alert(1)"] }', 'digraph { a [labelhref="x"] }',
+    'digraph { a [label=<<TABLE><TR><TD><IMG SRC="/etc/passwd"/></TD></TR></TABLE>>] }',
+  ]) assert.equal((await renderDot(code)).ok, false, code);
+});
+
+test('labels follow the page language', async () => {
+  let sys = '';
+  await generateDiagram({ description: 'x', lang: 'en', llm: async (s) => { sys = s; return GOOD; }, render: async () => ({ ok: true, svg: '<svg/>' }) });
+  assert.match(sys, /English/); assert.doesNotMatch(sys, /deutsche/);
+});
