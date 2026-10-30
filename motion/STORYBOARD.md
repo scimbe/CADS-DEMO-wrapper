@@ -168,6 +168,18 @@ Formular live; Ergebnis sind Bilder aus einem echten Produktionsvideo (Nordwind 
 | 3 | Kurz warten: Du bekommst ein Video mit Folien und gesprochener Erklärung. |
 | 4 | Probier es aus: Text einfügen und auf Video erstellen klicken. |
 
+### Untertitel (`untertitel`)
+
+Live, ohne Konto. Echter Lauf im Browser mit eigenem Clip, das Ergebnis ist das Video aus der Seite.
+
+| # | Sprechtext DE |
+|---|---------------|
+| 1 | Viele schauen Reels ohne Ton. Versteht man deins trotzdem? |
+| 2 | Wähl dein Video aus. Es bleibt auf deinem Gerät. |
+| 3 | Prüf den Text. Stimmt ein Wort nicht, änderst du es einfach. |
+| 4 | Fertig: dein Video mit großen Untertiteln, bereit zum Speichern. |
+| 5 | Frei und ohne Konto. Probier es aus: Klick auf Video auswählen. |
+
 ## Lesbarkeit
 
 Alle Aufnahmen zeigen einen Ausschnitt in fester Vergrößerung (`src/crop.ts`): 16-px-Text ergibt

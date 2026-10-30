@@ -110,7 +110,7 @@ test('every demo card with a video points at an existing clip; closed cards load
   const de = await (await fetch(base + '/')).text();
   const clips = visible.map(([, d]) => d.video).filter(Boolean);
   assert.equal(new Set(clips).size, clips.length);
-  assert.equal(clips.length, 12, 'all live cards have a clip');
+  assert.equal(clips.length, visible.length, 'all live cards have a clip');
   for (const c of clips) {
     assert.ok(existsSync(`${ROOT}${c}-16x9.mp4`), c);
     if (c !== 'so-einfach') assert.ok(!new RegExp(`poster="/static/motion/${c}-`).test(de), `${c}: no poster request before opening`);
