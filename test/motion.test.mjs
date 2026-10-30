@@ -60,11 +60,11 @@ test('safeMediaPath / parseRange units', () => {
   assert.equal(parseRange('bytes=-0', 100), 'unsatisfiable');
 });
 
-test('embeds: hero so-einfach (no autoplay, preload none), row termin-per-anruf + frag-deine-region with live links, EN files for lang=en, herkunft collapsed on newsletter', async () => {
+test('embeds: hero so-einfach (no autoplay, preload none), row termin-per-anruf with live link, card clips, EN files for lang=en, herkunft collapsed on newsletter', async () => {
   const de = await (await fetch(base + '/')).text();
   assert.match(de, /so-einfach-16x9\.mp4/); assert.match(de, /so-einfach-9x16\.mp4/);
   assert.match(de, /termin-per-anruf-16x9\.mp4/); assert.match(de, /frag-deine-region-16x9\.mp4/);
-  assert.ok(!/die-idee-16x9|nordwind-16x9|sicher-16x9/.test(de), 'old technology videos are no longer embedded');
+  assert.ok(!/(die-idee|nordwind|[^a-z]sicher)-(16x9|9x16)/.test(de), 'old technology videos are no longer embedded');
   assert.match(de, /href="https:\/\/assistent-cal-f29c55da\.bunsenbrenner\.org\/" target="_blank" rel="noopener noreferrer"/);
   assert.match(de, /captions\/so-einfach\.de\.vtt/);
   assert.ok(!/autoplay/i.test(de)); assert.match(de, /preload="none"/);
@@ -98,5 +98,56 @@ test('use-case videos: every cut, poster and caption exists; captions follow the
     }
   }
   assert.ok(timing['so-einfach'].de.total / 30 < 40, 'main video under 40 s');
-  for (const s of ['termin-per-anruf', 'frag-deine-region']) for (const l of ['de', 'en']) assert.ok(timing[s][l].total / 30 <= 25, `${s}.${l} at most 25 s`);
+  for (const s of Object.keys(narr).filter((x) => x !== 'so-einfach')) for (const l of ['de', 'en']) assert.ok(timing[s][l].total / 30 <= 25, `${s}.${l} at most 25 s`);
+  // the cancellation stays on screen long enough to read
+  for (const l of ['de', 'en']) assert.ok(timing['termin-per-anruf'][l].scenes[2].len / 30 >= 6, `cancel scene ${l}`);
+});
+
+test('every demo card with a video points at an existing clip; closed cards load nothing; each clip belongs to one card', async () => {
+  const { readFileSync, existsSync } = await import('node:fs');
+  const demos = JSON.parse(readFileSync(new URL('../demos.json', import.meta.url), 'utf8'));
+  const visible = Object.entries(demos).filter(([, d]) => !d.hidden && d.live);
+  const de = await (await fetch(base + '/')).text();
+  const clips = visible.map(([, d]) => d.video).filter(Boolean);
+  assert.equal(new Set(clips).size, clips.length);
+  assert.equal(clips.length, 12, 'all live cards have a clip');
+  for (const c of clips) {
+    assert.ok(existsSync(`${ROOT}${c}-16x9.mp4`), c);
+    if (c !== 'so-einfach') assert.ok(!new RegExp(`poster="/static/motion/${c}-`).test(de), `${c}: no poster request before opening`);
+    assert.match(de, new RegExp(`data-wide="/static/motion/${c}-16x9\\.mp4"`));
+  }
+  assert.match(de, /class="cardvid"/);
+  assert.match(de, /v\.pause\(\)/, 'closing a card stops its video');
+});
+
+test('use-case scenes: problem first, one closing click, readable crops, plain language', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { BOX, MIN_SCALE, SIZES, cropFor } = await import('../motion/src/crop.ts');
+  const M = new URL('../motion/', import.meta.url).pathname;
+  const spec = JSON.parse(readFileSync(M + 'src/usecases.json', 'utf8'));
+  const narr = JSON.parse(readFileSync(M + 'src/narration.json', 'utf8'));
+  const rects = JSON.parse(readFileSync(M + 'public/real/uc/rects.json', 'utf8'));
+  const TECH = /signatur|prompt|sandbox|server|modell|algorithm|workflow|worker|heartbeat|manifest|tunnel|pipeline|\bLLM\b|\bAPI\b|OSRM|hash/i;
+  for (const [slug, s] of Object.entries(spec)) {
+    assert.equal(s.scenes.length, narr[slug].length, slug);
+    assert.equal(s.scenes[0].kind, 'problem', slug); assert.match(narr[slug][0].de, /\?/, `${slug}: opens with a question`);
+    assert.equal(s.scenes.at(-1).kind, 'close', slug);
+    assert.equal(s.scenes.filter((x) => x.kind === 'close').length, 1, slug);
+    for (const line of narr[slug]) for (const l of ['de', 'en']) assert.ok(!TECH.test(line[l]), `${slug}: ${line[l]}`);
+    for (const sc of s.scenes.filter((x) => x.kind === 'step')) for (const shot of sc.shots) {
+      if (shot.whole) continue;
+      for (const fmt of ['H', 'V']) for (const en of ['', '-en']) {
+        const k = shot.cut ?? 'mob';
+        const base = shot.name && (rects[`${shot.name}-${k}${en}`] ? `${shot.name}-${k}${en}` : `${shot.name}-${k}`);
+        const f0 = shot.r ?? rects[base]?.[shot.focus];
+        assert.ok(f0, `${slug}: ${base}/${shot.focus}`);
+        const f = shot.clip ? { ...f0, ...shot.clip } : f0;
+        const size = shot.size ?? SIZES[k];
+        const want = (fmt === 'V' ? shot.scaleV : undefined) ?? shot.scale ?? MIN_SCALE[fmt];
+        const c = cropFor(f, size, BOX[fmt], want);
+        assert.ok(c.scale >= want - 1e-9, `${slug}: ${base} scale ${c.scale}`);
+        assert.ok(f.x + 1e-6 >= c.x && f.x + f.w <= c.x + c.w + 0.02, `${slug}/${fmt}: focus of ${base} wider than the crop`);
+      }
+    }
+  }
 });

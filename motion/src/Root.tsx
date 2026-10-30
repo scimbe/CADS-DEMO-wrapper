@@ -6,7 +6,7 @@ import {Idee, IDEE_LEN} from './Idee';
 import {Herkunft, HERKUNFT_LEN} from './Herkunft';
 import {Sicher, SICHER_LEN} from './Sicher';
 import {Nordwind, NORDWIND_LEN} from './Nordwind';
-import {RegionVideo, SoEinfachVideo, TerminVideo, Slug, ucLength} from './UseCases';
+import {RegionVideo, SPEC, SoEinfachVideo, TerminVideo, Slug, ucLength, useCaseVideo} from './UseCases';
 
 export type Props = {lang: Lang};
 const wrap = (C: React.FC): React.FC<Props> => ({lang}) => (
@@ -24,6 +24,7 @@ const ucVids: {id: string; slug: Slug; C: React.FC<Props>}[] = [
   {id: 'SoEinfach', slug: 'so-einfach', C: wrap(SoEinfachVideo)},
   {id: 'TerminPerAnruf', slug: 'termin-per-anruf', C: wrap(TerminVideo)},
   {id: 'FragDeineRegion', slug: 'frag-deine-region', C: wrap(RegionVideo)},
+  ...Object.entries(SPEC).map(([slug, s]) => ({id: s.id, slug, C: wrap(useCaseVideo(slug))})),
 ];
 const fmts = [
   {k: '16x9', w: 1920, h: 1080},

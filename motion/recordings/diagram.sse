@@ -1,0 +1,24 @@
+event: stage
+data: {"id":"install","label":"Bereit"}
+
+event: stage
+data: {"id":"process","label":"Diagramm erzeugen"}
+
+event: step
+data: {"text":"Das Sprachmodell schreibt Graphviz-DOT, dot prüft und zeichnet es"}
+
+event: run
+data: {"text":"Versuch 1"}
+
+event: real
+data: {"text":"echt · Diagramm gezeichnet (erster Versuch)"}
+
+event: result
+data: {"render":"diagram","svg":"<svg width=\"538pt\" height=\"48pt\"\n viewBox=\"0.00 0.00 537.87 47.83\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n<g id=\"graph0\" class=\"graph\" transform=\"scale(1 1) rotate(0) translate(4 43.83)\">\n<title>G</title>\n<polygon fill=\"white\" stroke=\"transparent\" points=\"-4,4 -4,-43.83 533.87,-43.83 533.87,4 -4,4\"/>\n<!-- Besucher -->\n<g id=\"node1\" class=\"node\">\n<title>Besucher</title>\n<ellipse fill=\"none\" stroke=\"black\" cx=\"53.95\" cy=\"-21.83\" rx=\"53.89\" ry=\"18\"/>\n<text text-anchor=\"middle\" x=\"53.95\" y=\"-18.13\" font-family=\"Times,serif\" font-size=\"14.00\">Besucher</text>\n</g>\n<!-- Server -->\n<g id=\"node2\" class=\"node\">\n<title>Server</title>\n<ellipse fill=\"none\" stroke=\"black\" cx=\"244.14\" cy=\"-21.83\" rx=\"42.49\" ry=\"18\"/>\n<text text-anchor=\"middle\" x=\"244.14\" y=\"-18.13\" font-family=\"Times,serif\" font-size=\"14.00\">Server</text>\n</g>\n<!-- Besucher&#45;&gt;Server -->\n<g id=\"edge1\" class=\"edge\">\n<title>Besucher&#45;&gt;Server</title>\n<path fill=\"none\" stroke=\"black\" d=\"M108.12,-21.83C134.31,-21.83 165.77,-21.83 191.72,-21.83\"/>\n<polygon fill=\"black\" stroke=\"black\" points=\"191.74,-25.33 201.74,-21.83 191.74,-18.33 191.74,-25.33\"/>\n<text text-anchor=\"middle\" x=\"154.89\" y=\"-25.63\" font-family=\"Times,serif\" font-size=\"14.00\">Frage</text>\n</g>\n<!-- Server&#45;&gt;Besucher -->\n<g id=\"edge4\" class=\"edge\">\n<title>Server&#45;&gt;Besucher</title>\n<path fill=\"none\" stroke=\"black\" d=\"M212.21,-9.92C203.22,-7.01 193.28,-4.3 183.89,-2.83 158.42,1.15 151.45,0.53 125.89,-2.83 118.59,-3.79 110.97,-5.29 103.55,-7.03\"/>\n<polygon fill=\"black\" stroke=\"black\" points=\"102.46,-3.69 93.61,-9.52 104.16,-10.48 102.46,-3.69\"/>\n<text text-anchor=\"middle\" x=\"154.89\" y=\"-6.63\" font-family=\"Times,serif\" font-size=\"14.00\">Antwort</text>\n</g>\n<!-- Sprachmodell -->\n<g id=\"node3\" class=\"node\">\n<title>Sprachmodell</title>\n<ellipse fill=\"none\" stroke=\"black\" cx=\"455.13\" cy=\"-21.83\" rx=\"74.99\" ry=\"18\"/>\n<text text-anchor=\"middle\" x=\"455.13\" y=\"-18.13\" font-family=\"Times,serif\" font-size=\"14.00\">Sprachmodell</text>\n</g>\n<!-- Server&#45;&gt;Sprachmodell -->\n<g id=\"edge2\" class=\"edge\">\n<title>Server&#45;&gt;Sprachmodell</title>\n<path fill=\"none\" stroke=\"black\" d=\"M286.43,-21.83C310.37,-21.83 341.4,-21.83 370.25,-21.83\"/>\n<polygon fill=\"black\" stroke=\"black\" points=\"370.35,-25.33 380.35,-21.83 370.35,-18.33 370.35,-25.33\"/>\n<text text-anchor=\"middle\" x=\"333.38\" y=\"-25.63\" font-family=\"Times,serif\" font-size=\"14.00\">Anfrage</text>\n</g>\n<!-- Sprachmodell&#45;&gt;Server -->\n<g id=\"edge3\" class=\"edge\">\n<title>Sprachmodell&#45;&gt;Server</title>\n<path fill=\"none\" stroke=\"black\" d=\"M404.45,-8.52C375.25,-2.44 337.65,2.37 304.38,-2.83 298.37,-3.77 292.13,-5.22 286.05,-6.91\"/>\n<polygon fill=\"black\" stroke=\"black\" points=\"284.62,-3.68 276.06,-9.92 286.64,-10.39 284.62,-3.68\"/>\n<text text-anchor=\"middle\" x=\"333.38\" y=\"-6.63\" font-family=\"Times,serif\" font-size=\"14.00\">Antwort</text>\n</g>\n</g>\n</svg>\n","dot":"digraph G {\n  rankdir=LR;\n  \"Besucher\" -> \"Server\" [label=\"Frage\"];\n  \"Server\" -> \"Sprachmodell\" [label=\"Anfrage\"];\n  \"Sprachmodell\" -> \"Server\" [label=\"Antwort\"];\n  \"Server\" -> \"Besucher\" [label=\"Antwort\"];\n}","desc":"Ein Besucher stellt eine Frage, der Server fragt das Sprachmodell, die Antwort kommt zurück"}
+
+event: stage
+data: {"id":"done","label":"Fertig"}
+
+event: done
+data: {"text":""}
+

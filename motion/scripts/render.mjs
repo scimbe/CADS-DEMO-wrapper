@@ -19,6 +19,10 @@ const vids = [
   {id: 'TerminPerAnruf', slug: 'termin-per-anruf', poster: 260, audio: true},
   {id: 'FragDeineRegion', slug: 'frag-deine-region', poster: 330, audio: true},
 ];
+// Weitere Anwendungsfaelle aus src/usecases.json; Poster aus der Mitte der Szene "poster" (gemessene Zeitachse)
+const spec = JSON.parse(fs.readFileSync(path.join(root, 'src/usecases.json'), 'utf8'));
+const timing = JSON.parse(fs.readFileSync(path.join(root, 'src/vo-timing.json'), 'utf8'));
+for (const [slug, s] of Object.entries(spec)) { const t = timing[slug].de.scenes[s.poster]; vids.push({id: s.id, slug, poster: t.from + Math.round(t.len * 0.7), audio: true}); }
 const serveUrl = await bundle({entryPoint: path.join(root, 'src/index.ts')});
 for (const v of vids) for (const fmt of ['16x9', '9x16']) for (const lang of ['de', 'en']) {
   const name = `${v.slug}-${fmt}${lang === 'en' ? '.en' : ''}`;
@@ -26,6 +30,6 @@ for (const v of vids) for (const fmt of ['16x9', '9x16']) for (const lang of ['d
   const inputProps = {lang};
   const composition = await selectComposition({serveUrl, id: `${v.id}-${fmt}`, inputProps});
   await renderMedia({composition, serveUrl, inputProps, codec: 'h264', crf: 28, pixelFormat: 'yuv420p', muted: !v.audio, audioCodec: 'aac', audioBitrate: '128k', imageFormat: 'jpeg', jpegQuality: 85, outputLocation: path.join(out, `${name}.mp4`), logLevel: 'error'});
-  await renderStill({composition, serveUrl, inputProps, frame: v.poster, imageFormat: 'jpeg', jpegQuality: 78, output: path.join(out, `${name}.jpg`), logLevel: 'error'});
+  await renderStill({composition, serveUrl, inputProps, frame: Math.min(v.poster, composition.durationInFrames - 1), imageFormat: 'jpeg', jpegQuality: 78, output: path.join(out, `${name}.jpg`), logLevel: 'error'});
   console.log('rendered', name, (fs.statSync(path.join(out, `${name}.mp4`)).size / 1e6).toFixed(2) + ' MB');
 }
