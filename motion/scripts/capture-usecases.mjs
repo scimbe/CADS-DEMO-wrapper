@@ -8,7 +8,10 @@
 // - Terminassistent: per Textfeld einen Termin buchen und ihn im selben Lauf wieder absagen.
 //   Telefonnummer aus dem fiktiven Bereich der Bundesnetzagentur (040 66969 xxx), Name fiktiv.
 //
-// Aufruf: node scripts/capture-usecases.mjs [gallery|newsletter|callcenter|termin ...]
+// - Auktion, Keyforge, Flappy: echte Laeufe ohne Login. Tutor: oeffentliche Seite plus Dokumentations-Screenshots.
+// - phototools, temporal-poc, diagram, contractcheck: Login-pflichtig, daher echte Seite + Aufzeichnung (recordings/).
+//
+// Aufruf: node scripts/capture-usecases.mjs [gallery|newsletter|callcenter|termin|auction|keyforge|flappy|tutor|phototools|temporal-poc|diagram|contractcheck|erklaervideo ...]
 import {openBrowser, ensureBrowser} from '@remotion/renderer';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -21,7 +24,7 @@ const GALLERY = 'https://demos-34a13a96.bunsenbrenner.org';
 const CALL = 'https://callcenter-34a13a96.bunsenbrenner.org/';
 const CAL = 'https://assistent-cal-f29c55da.bunsenbrenner.org/';
 const only = process.argv.slice(2);
-const want = (k) => !only.length || only.includes(k);
+const want = (k) => (only.length ? only.includes(k) : k !== 'termin'); // Termin bucht wirklich: nur ausdruecklich
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const DESK = {w: 1440, h: 900};
 const MOB = {w: 390, h: 844};
@@ -199,6 +202,150 @@ if (want('termin')) {
   await snap(p2, 'cal-start-mob');
   await mark(p2, 'cal-start-mob', 'call', {sel: '#call-btn'});
   await p2.close({silent: true});
+}
+
+// ---------- Weitere Anwendungsfaelle: echte Laeufe ohne Login ----------
+const stamp = (name, data) => { (rects.runs ??= {})[name] = data; };
+const bothCuts = async (p, shots) => { for (const [k0, vp] of [['desk', DESK], ['mob', MOB]]) { await p.setViewport({width: vp.w, height: vp.h, deviceScaleFactor: 2}); await sleep(900); await shots(k0); } };
+
+if (want('auction')) for (const [L, lang] of [['', 'de'], ['-en', 'en']]) {
+  const p = await open('https://auction-demo.bunsenbrenner.org/', DESK);
+  await ev(p, (l) => document.querySelector(`button[data-l=${l}]`).click(), lang);
+  await sleep(800);
+  await bothCuts(p, async (k0) => { await ev(p, () => { document.getElementById('form').scrollIntoView({block: 'start'}); window.scrollBy(0, -24); }); await sleep(400); await snap(p, `au-form-${k0}${L}`); await mark(p, `au-form-${k0}${L}`, 'go', {sel: '#go'}); await mark(p, `au-form-${k0}${L}`, 'form', {sel: '#form'}); });
+  await p.setViewport({width: DESK.w, height: DESK.h, deviceScaleFactor: 2});
+  await ev(p, () => document.getElementById('go').click());
+  for (let i = 0; i < 60; i++) { await sleep(1000); if (await ev(p, () => document.querySelectorAll('section.step .sig').length >= 2)) break; }
+  await sleep(2500);
+  await bothCuts(p, async (k0) => {
+    const k = `${k0}${L}`;
+    await ev(p, () => { document.getElementById('h-writer').scrollIntoView({block: 'start'}); window.scrollBy(0, -16); }); await sleep(500);
+    await snap(p, `au-bids-${k}`); await mark(p, `au-bids-${k}`, 'bids', {sel: '#out .bids'}); await mark(p, `au-bids-${k}`, 'why', {sel: '#out .why'});
+    await ev(p, () => { document.querySelector('#out .exec').scrollIntoView({block: 'start'}); window.scrollBy(0, -16); }); await sleep(500);
+    await snap(p, `au-short-${k}`); await mark(p, `au-short-${k}`, 'exec', {sel: '#out .exec'});
+  });
+  stamp(`auction-${lang}`, await ev(p, () => document.getElementById('out').innerText.slice(0, 900)));
+  await p.close({silent: true});
+}
+
+if (want('keyforge')) {
+  const p = await open('https://keyforge-34a13a96.bunsenbrenner.org', DESK);
+  await ev(p, () => { document.getElementById('fetch-registry').scrollIntoView({block: 'center'}); });
+  await sleep(500);
+  await bothCuts(p, async (k0) => { await ev(p, () => { document.getElementById('fetch-registry').scrollIntoView({block: 'center'}); }); await sleep(400); await snap(p, `kf-fetch-${k0}`); await mark(p, `kf-fetch-${k0}`, 'fetch', {sel: '#fetch-registry'}); });
+  await ev(p, () => document.getElementById('fetch-registry').click());
+  for (let i = 0; i < 30 && !(await ev(p, () => document.getElementById('verify-input').value.length > 50)); i++) await sleep(500);
+  await sleep(800);
+  await ev(p, () => document.getElementById('verify-manifest').click());
+  for (let i = 0; i < 30 && !(await ev(p, () => document.body.innerText.includes('Signature verifies'))); i++) await sleep(500);
+  await sleep(500);
+  await bothCuts(p, async (k0) => {
+    await scrollToText(p, 'Signature verifies', 300);
+    await snap(p, `kf-ok-${k0}`);
+    await mark(p, `kf-ok-${k0}`, 'ok', {t: 'Signature verifies'});
+    await mark(p, `kf-ok-${k0}`, 'btn', {sel: '#verify-manifest'});
+  });
+  stamp('keyforge', await ev(p, () => ({manifest: document.getElementById('manifest-picker').selectedOptions[0]?.text, msg: [...document.querySelectorAll('body *')].filter((e) => e.children.length === 0 && (e.textContent || '').includes('Signature verifies')).map((e) => e.textContent)[0]})));
+  await p.close({silent: true});
+}
+
+if (want('flappy')) {
+  // Eigene Einstellungen im Studio (laeuft im Browser). Der Crew-Lauf aenderte im Test nur Regler, nicht das Aussehen.
+  const p = await open('https://flappy-demo.bunsenbrenner.org/', DESK);
+  await ev(p, () => {
+    [...document.querySelectorAll('button')].find((b) => b.innerText.trim() === '🚀').click();
+    const th = document.getElementById('theme'); th.value = 'night'; th.dispatchEvent(new Event('change', {bubbles: true}));
+    const t = document.getElementById('title'); t.value = 'Rocket Night'; t.dispatchEvent(new Event('input', {bubbles: true}));
+    const pr = document.getElementById('preset'); pr.value = 'easy'; pr.dispatchEvent(new Event('change', {bubbles: true}));
+  });
+  await sleep(1200);
+  await bothCuts(p, async (k0) => { await ev(p, () => { document.getElementById('title').scrollIntoView({block: 'start'}); window.scrollBy(0, -60); }); await sleep(400); await snap(p, `fl-opts-${k0}`); await mark(p, `fl-opts-${k0}`, 'opts', {sel: '#title'}); await mark(p, `fl-opts-${k0}`, 'theme', {sel: '#theme'}); });
+  const c = async (k0) => {
+    await ev(p, () => document.getElementById('playBtn').click());
+    await ev(p, () => { document.querySelector('canvas, iframe#preview, iframe')?.scrollIntoView({block: 'center'}); }); await sleep(500);
+    const tap = () => ev(p, () => { const c = document.querySelector('canvas'); if (!c) return; const b = c.getBoundingClientRect(); for (const n of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click', 'touchstart']) c.dispatchEvent(new MouseEvent(n, {bubbles: true, clientX: b.left + 20, clientY: b.top + 20})); document.dispatchEvent(new KeyboardEvent('keydown', {code: 'Space', key: ' ', bubbles: true})); });
+    for (let i = 0; i < 10; i++) { await tap(); await sleep(330); }
+    await snap(p, `fl-game-${k0}`); await mark(p, `fl-game-${k0}`, 'game', {sel: 'canvas'});
+  };
+  await bothCuts(p, c);
+  await p.close({silent: true});
+}
+
+const LANGS2 = [['', '?lang=de'], ['-en', '?lang=en']]; // Sprache fest setzen: die Galerie merkt sich die zuletzt gewaehlte
+if (want('tutor')) for (const [L, q] of LANGS2) for (const [k0, vp] of [['desk', DESK], ['mob', MOB]]) {
+  const k = k0 + L; const p = await open(GALLERY + '/d/cads-tutor' + q, vp);
+  await scrollToText(p, 'Firmware (STM32)', 120);
+  await snap(p, `tu-tracks-${k}`);
+  await mark(p, `tu-tracks-${k}`, 'track', {t: 'Firmware (STM32)', up: 1});
+  await p.close({silent: true});
+}
+
+// ---------- Login-pflichtige Demos: echte Seite, Ergebnis aus aufgezeichnetem echtem Lauf ----------
+// Die Seite kommt live aus der Galerie; es geht keine Anfrage an /api/start oder /api/upload-compare.
+// Stattdessen spielt der Browser die Aufzeichnung aus motion/recordings/ ein, und der echte Seitencode
+// stellt sie dar. Im Video steht dazu sichtbar "Aufgezeichneter echter Lauf".
+const REC = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'recordings');
+const rec = (f, enc = 'utf8') => fs.readFileSync(path.join(REC, f), enc);
+async function replayInstall(p, sse) {
+  await ev(p, (sse) => {
+    const events = sse.trim().split(/\n\n+/).map((b) => ({type: /event: (.*)/.exec(b)?.[1], data: /data: (.*)/.exec(b)?.[1]}));
+    window.EventSource = class { constructor() { this.h = {}; setTimeout(() => events.forEach((e, i) => setTimeout(() => (this.h[e.type] || []).forEach((f) => f({data: e.data})), i * 12)), 50); } addEventListener(t, f) { (this.h[t] ??= []).push(f); } close() {} };
+  }, sse);
+}
+const runAndWait = async (p, sel) => { await ev(p, () => document.querySelector('button.run').click()); for (let i = 0; i < 40 && !(await ev(p, (s) => { const e = document.querySelector(s); return e && !e.hidden && e.getBoundingClientRect().height > 10; }, sel)); i++) await sleep(250); await sleep(900); };
+
+for (const [name, slug, sse, res] of [['ph', 'phototools', 'phototools.sse', '.res-tree'], ['te', 'temporal-poc', 'temporal-poc.sse', '.res-timeline'], ['dg', 'diagram', 'diagram.sse', '.res-diagram']]) if (want(slug)) for (const [L, q] of LANGS2) {
+  const p = await open(GALLERY + '/d/' + slug + q, DESK);
+  await bothCuts(p, async (k0) => {
+    const k = k0 + L;
+    if (slug === 'diagram') await ev(p, () => { const d = document.getElementById('desc'); d.value = 'Ein Besucher stellt eine Frage, der Server fragt das Sprachmodell, die Antwort kommt zurück'; d.dispatchEvent(new Event('input', {bubbles: true})); });
+    await ev(p, () => { document.querySelector('button.run').scrollIntoView({block: 'center'}); }); await sleep(400);
+    await snap(p, `${name}-start-${k}`); await mark(p, `${name}-start-${k}`, 'run', {sel: 'button.run'});
+    if (slug === 'diagram') await mark(p, `${name}-start-${k}`, 'desc', {sel: '#desc'});
+  });
+  await p.setViewport({width: DESK.w, height: DESK.h, deviceScaleFactor: 2}); await sleep(500);
+  await replayInstall(p, rec(sse));
+  await runAndWait(p, res);
+  await ev(p, () => { const s = document.querySelector('.res-sheet'); if (s) s.hidden = true; }); // Kontaktbogen ist nicht mit aufgezeichnet
+  await bothCuts(p, async (k0) => {
+    const k = k0 + L;
+    await ev(p, (s) => { document.querySelector(s).scrollIntoView({block: 'center'}); }, res); await sleep(500);
+    await snap(p, `${name}-result-${k}`); await mark(p, `${name}-result-${k}`, 'res', {sel: res});
+    if (slug === 'diagram') await mark(p, `${name}-result-${k}`, 'img', {sel: '.res-diagram .resimg'});
+  });
+  await p.close({silent: true});
+}
+
+if (want('contractcheck')) for (const [L, q] of LANGS) {
+  const p = await open(GALLERY + '/d/contractcheck' + q, DESK);
+  await ev(p, (a, b, res) => {
+    const file = (b64, n) => new File([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], n, {type: 'application/pdf'});
+    const set = (id, f) => { const dt = new DataTransfer(); dt.items.add(f); document.getElementById(id).files = dt.files; };
+    set('pdfa', file(a, 'Mietvertrag-alt.pdf')); set('pdfb', file(b, 'Mietvertrag-neu.pdf'));
+    const real = window.fetch; window.fetch = (u, o) => String(u).includes('/api/upload-compare') ? Promise.resolve(new Response(res, {headers: {'content-type': 'application/json'}})) : real(u, o);
+  }, rec('mietvertrag-alt.pdf', 'base64'), rec('mietvertrag-neu.pdf', 'base64'), rec('contractcheck-mietvertrag.json'));
+  await bothCuts(p, async (k0) => { const k = k0 + L; await ev(p, () => { document.getElementById('upbtn').scrollIntoView({block: 'center'}); }); await sleep(400); await snap(p, `cc-form-${k}`); await mark(p, `cc-form-${k}`, 'a', {sel: '#pdfa'}); await mark(p, `cc-form-${k}`, 'b', {sel: '#pdfb'}); await mark(p, `cc-form-${k}`, 'go', {sel: '#upbtn'}); });
+  await p.setViewport({width: DESK.w, height: DESK.h, deviceScaleFactor: 2}); await sleep(500);
+  await ev(p, () => document.getElementById('upbtn').click());
+  for (let i = 0; i < 40 && (await ev(p, () => document.querySelector('.res-upreport').hidden)); i++) await sleep(250);
+  await sleep(1500);
+  // Der Bericht aus der Aufzeichnung in voller Breite (auf der Seite steht er in einem kleinen Rahmen)
+  await ev(p, () => { const h = document.querySelector('.upframe').srcdoc; document.open(); document.write(h); document.close(); });
+  await sleep(600);
+  await bothCuts(p, async (k0) => {
+    const k = k0 + L;
+    await scrollToText(p, 'Tool-computed diff', 40);
+    await snap(p, `cc-result-${k}`);
+    await mark(p, `cc-result-${k}`, 'diff', {t: 'Die Miete betraegt 950', up: 1});
+  });
+  await p.close({silent: true});
+}
+
+if (want('erklaervideo')) for (const [L, q] of LANGS2) for (const [k0, vp] of [['desk', DESK], ['mob', MOB]]) {
+  const k = k0 + L; const p = await open(GALLERY + '/d/erklaervideo' + q, vp);
+  await ev(p, () => { document.getElementById('tvtext').scrollIntoView({block: 'center'}); }); await sleep(400);
+  await snap(p, `ev-form-${k}`); await mark(p, `ev-form-${k}`, 'text', {sel: '#tvtext'}); await mark(p, `ev-form-${k}`, 'run', {sel: 'button.run'});
+  await p.close({silent: true});
 }
 fs.writeFileSync(rectsFile, JSON.stringify(rects, null, 1));
 await browser.close({silent: true});

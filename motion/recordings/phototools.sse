@@ -1,0 +1,63 @@
+event: stage
+data: {"id":"install","label":"Installieren"}
+
+event: step
+data: {"text":"Manifest beziehen — phototools v0.1.2"}
+
+event: sim
+data: {"text":"simuliert · Registry ist live (registry.bunsenbrenner.org), aber dieses Manifest ist noch nicht publiziert (blockiert von #37/#38) — lokal geladen"}
+
+event: step
+data: {"text":"Signatur (ed25519) prüfen"}
+
+event: sim
+data: {"text":"simuliert · braucht den Trust-Root der Live-Registry"}
+
+event: step
+data: {"text":"Bundle-Integrität (sha256) prüfen"}
+
+event: real
+data: {"text":"echt geprüft · sha256 0a4bfa5c1bd7… == Manifest"}
+
+event: step
+data: {"text":"Bundle entpacken & aktivieren"}
+
+event: real
+data: {"text":"echt · installiert"}
+
+event: stage
+data: {"id":"process","label":"Fotos verarbeiten"}
+
+event: sim
+data: {"text":"6 Beispiel-Fotos mit repräsentativen Metadaten versehen (echte Kamerafotos bringen das selbst mit)"}
+
+event: step
+data: {"text":"Werkzeug ausführen — phototools organize fotos/ → sortiert/"}
+
+event: ok
+data: {"text":"exiftool liest EXIF · Gazetteer GPS→Stadt · Dateien verschieben · ImageMagick Wasserzeichen+Kontaktbogen — keine KI"}
+
+event: run
+data: {"text":"organized 6 photo(s) into /app/work/runs/phototools-r80c34a41f9/sortiert (copy)"}
+
+event: run
+data: {"text":"watermarked 6 photo(s): \"bunsenbrenner.org · demo\""}
+
+event: run
+data: {"text":"contact sheet: /app/work/runs/phototools-r80c34a41f9/sortiert/contact-sheet.jpg"}
+
+event: run
+data: {"text":"gallery: /app/work/runs/phototools-r80c34a41f9/sortiert/gallery.html"}
+
+event: real
+data: {"text":"echt · Ordner sortiert, Kontaktbogen erzeugt"}
+
+event: result
+data: {"render":"photo-tool","count":6,"folders":[{"path":"2025/2025-01-15_berlin","count":2},{"path":"2025/2025-01-15_hamburg","count":1},{"path":"2025/2025-06-02_hamburg","count":1},{"path":"2025/2025-06-02_munich","count":1},{"path":"2025/2025-11-30_munich","count":1}],"contact":"/d/phototools/out/r80c34a41f9/contact-sheet.jpg","gallery":"/d/phototools/out/r80c34a41f9/gallery.html"}
+
+event: stage
+data: {"id":"done","label":"Fertig"}
+
+event: done
+data: {"text":""}
+
