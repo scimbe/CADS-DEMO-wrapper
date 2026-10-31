@@ -115,6 +115,27 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | `DUELL_WEB_FILE` | `apps/duell-web/dist/index.html` | Spieldatei fuer `/duell` |
 | `DUELL_ASSETLINKS_SHA256` / `DUELL_ANDROID_PACKAGE` | Release-Fingerabdruck / `org.bunsenbrenner.cads` | Inhalt der assetlinks.json |
 
+### KI-Aktionen und Kontingent (My Daily Idea)
+Code: `lib/duell-ai.mjs`, Tests: `test/duell-ai.test.mjs`. Gleiches Modell und gleiche Grenzen wie `/api/duell/config` (ein Aufruf zugleich, Tagesgrenze, Limit je gehashter IP).
+- `POST /api/duell/ai` `{kind: wish|line|meme|lyrics, input, device, lang}` -> `{kind, options, meter}`; `POST /api/duell/ai/status` und `/interest` `{device}` -> `{meter}`.
+- `wish` ist das Hauptmerkmal: Ein freier Wunsch aendert genau eine Kreation, aber nur die Felder ihres Typs (`WISH` in `lib/duell-ai.mjs`): Karte und Foto Text, Stil, Farbpaar aus der Palette, Sticker aus den Sets; Beat Titel, Tempo, Raster, Effekt; Spiel Physik in festen Grenzen, Welt, Figur, Titel. Alles andere verwirft der Server.
+- `POST /api/duell/ai/weather` `{place, date}` -> `{place, date, hi, lo, rain, code, source}`: echte Werte von Open-Meteo fuer heute bis in 7 Tagen, ohne Modell und ohne Kontingent (`lib/duell-weather.mjs`). Bei Fehlern gibt es keine Zahlen. Grenzen: `DUELL_WEATHER_IP_PER_HOUR` (30), `DUELL_WEATHER_DAILY_MAX` (1000).
+- Antworten: `429 quota` (Kontingent verbraucht), `429 busy|daily-limit|rate-limited`, `422 blocked`, `503 llm-unavailable|ai-off`. Die Seite faellt dann sofort auf lokale Vorschlaege zurueck. Nur erfolgreiche Aktionen zaehlen.
+- Grenzen ehrlich: Ohne Konto zaehlt ein HMAC einer zufaelligen Geraete-ID. Wer die App-Daten loescht, hat ein neues Kontingent; das ist gewollt und nur ueber IP-Limit und Tagesgrenze gedeckelt. Mit Anmeldung (Cookie, nur gleiche Herkunft) zaehlt das Konto; die App-Huellen senden kein Cookie.
+- Gespeichert werden nur HMACs und Zaehler, keine IP, keine E-Mail, keine Eingaben. Fotos bleiben auf dem Geraet; es geht nur getippter Text an den Server.
+- Abo: Es gibt keinen Zahlungsweg. `DUELL_AI_ABO_ALLOWLIST` schaltet Konten zum Testen frei.
+
+| ENV | Default | Bedeutung |
+|-----|---------|-----------|
+| `DUELL_AI_ENABLED` | 1 | `0` schaltet die KI-Aktionen ab, die Seite bleibt lokal |
+| `DUELL_AI_FREE` | 3 | kostenlose Aktionen je Person |
+| `DUELL_AI_SALT` | leer | Schluessel der HMACs. Ohne ihn wird nichts gespeichert und das Kontingent gilt nur bis zum Neustart |
+| `DUELL_AI_STATE_FILE` | leer (Compose: `/var/lib/duell-ai/state.json`) | Zaehlerdatei auf dem Volume `duell-ai` |
+| `DUELL_AI_ABO_ALLOWLIST` | leer | E-Mails mit Abo-Flag (kommagetrennt), nur zum Testen |
+| `DUELL_AI_ABO_PER_DAY` | 30 | Aktionen je Abo-Konto und UTC-Tag |
+| `DUELL_AI_KEYS_MAX` | 100000 | groesste Zaehlerdatei; die aeltesten Eintraege fallen zuerst heraus |
+| `DUELL_AI_CACHE_TTL_S` / `DUELL_AI_CACHE_MAX` | 86400 / 300 | Antwort-Cache |
+
 ## Notes
 - Secrets (`.env`, `.pexels-key`, `.registry-token`) are NOT in this repo — provide out-of-band.
 - `work/` is the runtime install dir (demo bundles install on first "Start"); not committed.

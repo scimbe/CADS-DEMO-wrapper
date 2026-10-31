@@ -53,7 +53,7 @@ h1{margin:0;font:900 25px/1 var(--disp);letter-spacing:.3px;text-transform:upper
 .press.wait{background:transparent;color:#111;border-style:dashed;box-shadow:none;font-size:22px}
 #tools{position:relative;display:grid;grid-template-columns:repeat(4,1fr);padding:0 10px 8px;flex:none}
 #tools button{min-height:48px;border:0;background:transparent;color:var(--on);font:800 13px/1.1 var(--ui);padding:2px}
-#stagewrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px 12px;background:var(--a)}
+#stagewrap{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px 12px;background:var(--a)}
 #stage{max-width:100%;max-height:100%;aspect-ratio:4/5;border:3px solid var(--ink);box-shadow:4px 5px 0 var(--ink);touch-action:none;background:#fff}
 #gamestage{height:100%;aspect-ratio:288/512;max-width:100%;border:3px solid var(--ink);box-shadow:4px 5px 0 var(--ink);overflow:hidden;position:relative}
 #demo{display:block}
@@ -128,6 +128,23 @@ input[type=color]{width:64px;height:44px;border:3px solid var(--ink);border-radi
 #toast.show{opacity:1;transform:translate(-50%,0)}
 @media (min-width:600px){.scr,#game{left:50%;right:auto;width:440px;margin-left:-220px}}
 @media (prefers-reduced-motion:reduce){#home::before,#hint,.enter #hero span,.enter .burst,#leaf.enter,#doneimg{animation:none}.panel,#leaf{transition:none}}
+/* stickers: selection chrome above the canvas, never part of the picture */
+#skui{position:absolute;pointer-events:none;touch-action:none}
+#skui [hidden]{display:none}
+.skring{position:absolute;border:3px dashed var(--ink);border-radius:50%;box-shadow:0 0 0 2px #fff}
+.skx,.skgrip{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;padding:0;display:grid;place-items:center;border:3px solid var(--ink);border-radius:50%;font:900 19px/1 var(--ui);pointer-events:auto;touch-action:none}
+.skx{background:#ff2d2d;color:#fff}
+.skgrip{background:#fff;color:#111}
+.skundo{position:absolute;left:6px;top:6px;width:44px;height:44px;padding:0;border:3px solid var(--ink);border-radius:50%;background:#fff;color:#111;font:900 22px/1 var(--ui);pointer-events:auto}
+.skbin{position:absolute;left:50%;bottom:8px;width:72px;height:72px;margin-left:-36px;display:grid;place-items:center;font-size:32px;line-height:1;background:#fff;border:3px dashed var(--ink);border-radius:50%;transition:transform 90ms ease-out}
+.skbin.over{background:#ff2d2d;transform:scale(1.2)}
+/* AI actions */
+.aibox{margin-top:10px;padding-top:8px;border-top:2px dashed var(--ink)}
+.airow{display:flex;gap:8px;align-items:center}
+.aicount{margin:0;font-size:13px;font-weight:800;flex:1}
+.aiopt{display:block;width:100%;text-align:left;white-space:normal;height:auto;min-height:44px;padding:8px 10px;margin-bottom:6px}
+.lyrics{white-space:pre-line;font-weight:800;margin:8px 0}
+a.btn{display:grid;place-items:center;text-decoration:none;margin-top:8px}
 
 </style>
 </head>
@@ -168,6 +185,7 @@ input[type=color]{width:64px;height:44px;border:3px solid var(--ink);border-radi
     <div id="donewrap"><img id="doneimg" alt=""></div>
     <div class="foot col">
       <button id="share" class="press"></button>
+      <button id="playit" class="btn" hidden></button>
       <div class="row"><button id="save" class="btn"></button><button id="keep" class="btn"></button><button id="dhome" class="btn"></button></div>
     </div>
   </section>
@@ -192,7 +210,7 @@ input[type=color]{width:64px;height:44px;border:3px solid var(--ink);border-radi
   </section>
   <div id="toast" role="status"></div>
 </div>
-<script>window.DuellIdeas={"ideas":[{"id":"spiel-lava","kind":"game","min":40,"de":{"t":"Bau dein|Lava-Level","s":"Feuer, Drache, kein Mitleid."},"en":{"t":"Build your|lava level","s":"Fire, dragon, zero mercy."},"game":{"seed":6061,"theme":"lava","emoji":"🐉","params":{"gravity":2100,"jump":480,"gap":125,"speed":165}}},{"id":"spiel-mond","kind":"game","min":40,"de":{"t":"Flieg zum|Mond","s":"Fast keine Schwerkraft. Fast."},"en":{"t":"Fly to|the moon","s":"Almost no gravity. Almost."},"game":{"seed":7001,"theme":"night","emoji":"🚀","params":{"gravity":1000,"jump":320,"gap":150,"speed":130}}},{"id":"spiel-pizza","kind":"game","min":40,"de":{"t":"Pizza|muss fliegen","s":"Niemand fragt warum."},"en":{"t":"Pizza|must fly","s":"Nobody asks why."},"game":{"seed":7002,"theme":"sunset","emoji":"🍕","params":{"gravity":1600,"jump":420,"gap":155,"speed":125}}},{"id":"spiel-tiefsee","kind":"game","min":40,"de":{"t":"Tauch ab,|Hai","s":"Unten ist es schön. Und eng."},"en":{"t":"Dive down,|shark","s":"Nice down there. And tight."},"game":{"seed":7003,"theme":"ocean","emoji":"🦈","params":{"gravity":1200,"jump":370,"gap":130,"speed":135}}},{"id":"spiel-neon","kind":"game","min":40,"de":{"t":"Neon|Panik","s":"Schnell. Bunt. Unfair."},"en":{"t":"Neon|panic","s":"Fast. Loud. Unfair."},"game":{"seed":7004,"theme":"neon","emoji":"👽","params":{"gravity":2100,"jump":470,"gap":118,"speed":205}}},{"id":"spiel-geist","kind":"game","min":40,"de":{"t":"Geister-|schicht","s":"Spukt schön durch die Nacht."},"en":{"t":"Ghost|shift","s":"Haunt your way through the night."},"game":{"seed":7005,"theme":"night","emoji":"👻","params":{"gravity":1500,"jump":410,"gap":145,"speed":120}}},{"id":"spiel-einhorn","kind":"game","min":40,"de":{"t":"Einhorn|auf Zucker","s":"Süß. Aber gefährlich."},"en":{"t":"Unicorn|on sugar","s":"Sweet. But dangerous."},"game":{"seed":7006,"theme":"candy","emoji":"🦄","params":{"gravity":1350,"jump":395,"gap":160,"speed":150}}},{"id":"spiel-retro","kind":"game","min":40,"de":{"t":"Opas|Gameboy","s":"Acht Bit. Volle Härte."},"en":{"t":"Grandpa's|Game Boy","s":"Eight bits. Full pain."},"game":{"seed":7007,"theme":"retro","emoji":"👾","params":{"gravity":1900,"jump":440,"gap":128,"speed":150}}},{"id":"foto-boss","kind":"photo","min":30,"de":{"t":"Werd zum|Endgegner","s":"Foto rein. Boss raus.","top":"ENDGEGNER","bottom":"LEVEL 99"},"en":{"t":"Become|the final boss","s":"Photo in. Boss out.","top":"FINAL BOSS","bottom":"LEVEL 99"},"photo":{"mode":"poster"}},{"id":"foto-sticker","kind":"photo","min":25,"de":{"t":"Du als|Sticker","s":"Fürs Handy, für die Gruppe, für immer.","top":"LIMITIERT","bottom":"NUR HEUTE"},"en":{"t":"You as|a sticker","s":"For the group chat. Forever.","top":"LIMITED","bottom":"TODAY ONLY"},"photo":{"mode":"sticker"}},{"id":"foto-montag","kind":"photo","min":25,"de":{"t":"Dein Gesicht|am Montag","s":"Jeder kennt es.","top":"ICH SO","bottom":"MONTAG 7 UHR"},"en":{"t":"Your face|on Monday","s":"Everyone knows it.","top":"ME","bottom":"MONDAY 7 AM"},"photo":{"mode":"meme"}},{"id":"foto-kaputt","kind":"photo","min":20,"de":{"t":"Mach dein|Foto kaputt","s":"Aber richtig schön kaputt.","top":"SIGNAL","bottom":"VERLOREN"},"en":{"t":"Break|your photo","s":"But break it beautifully.","top":"SIGNAL","bottom":"LOST"},"photo":{"mode":"glitch"}},{"id":"foto-tour","kind":"photo","min":30,"de":{"t":"Deine|Welttournee","s":"Plakat fertig. Band fehlt noch.","top":"WELTTOURNEE","bottom":"AUSVERKAUFT"},"en":{"t":"Your|world tour","s":"Poster done. Band still missing.","top":"WORLD TOUR","bottom":"SOLD OUT"},"photo":{"mode":"poster"}},{"id":"foto-haustier","kind":"photo","min":25,"de":{"t":"Dein Tier|hat was zu sagen","s":"Hund, Katze, Stofftier. Egal.","top":"ICH HAB","bottom":"ALLES GESEHEN"},"en":{"t":"Your pet|has opinions","s":"Dog, cat, teddy. Whatever.","top":"I HAVE","bottom":"SEEN EVERYTHING"},"photo":{"mode":"meme"}},{"id":"foto-alien","kind":"photo","min":20,"de":{"t":"Beweisfoto:|Alien","s":"Unscharf ist hier ein Vorteil.","top":"STRENG GEHEIM","bottom":"BEWEIS NR. 7"},"en":{"t":"Proof:|alien","s":"Blurry is a feature here.","top":"TOP SECRET","bottom":"EVIDENCE NO. 7"},"photo":{"mode":"glitch"}},{"id":"foto-essen","kind":"photo","min":25,"de":{"t":"Mensa-|Sticker","s":"Dein Essen verdient Ruhm.","top":"LECKER","bottom":"ANGEBLICH"},"en":{"t":"Lunch|sticker","s":"Your food deserves fame.","top":"TASTY","bottom":"ALLEGEDLY"},"photo":{"mode":"sticker"}},{"id":"beat-pausenhof","kind":"sound","min":45,"de":{"t":"Bau einen|Beat","s":"Tippen, bis es knallt."},"en":{"t":"Build|a beat","s":"Tap until it slaps."},"sound":{"mode":"beat","bpm":100,"k":"x---x---x--x-x--","s":"----x-------x---","h":"x-x-x-x-x-x-x-x-","b":"------x---x-----"}},{"id":"beat-disco","kind":"sound","min":45,"de":{"t":"Disco im|Treppenhaus","s":"Vier auf den Boden. Ab."},"en":{"t":"Stairwell|disco","s":"Four on the floor. Go."},"sound":{"mode":"beat","bpm":124,"k":"x---x---x---x---","s":"----x-------x---","h":"--x---x---x---x-","b":"x--x--x---x--x--"}},{"id":"beat-boss","kind":"sound","min":45,"de":{"t":"Musik für|den Endkampf","s":"Klingt teuer. War umsonst."},"en":{"t":"Boss fight|music","s":"Sounds expensive. Was free."},"sound":{"mode":"beat","bpm":150,"k":"x-x---x-x-x---x-","s":"----x--x----x---","h":"xxxxxxxxxxxxxxxx","b":"x---x---x-x-x-x-"}},{"id":"stimme-monster","kind":"sound","min":30,"de":{"t":"Stimme:|Monster","s":"Sag was. Bereu es."},"en":{"t":"Voice:|monster","s":"Say something. Regret it."},"sound":{"mode":"voice","fx":"monster"}},{"id":"stimme-maus","kind":"sound","min":30,"de":{"t":"Stimme:|Hamster","s":"Schnell, hoch, peinlich."},"en":{"t":"Voice:|hamster","s":"Fast, high, embarrassing."},"sound":{"mode":"voice","fx":"chip"}},{"id":"stimme-robo","kind":"sound","min":30,"de":{"t":"Stimme:|Roboter","s":"Beep. Du bist jetzt Technik."},"en":{"t":"Voice:|robot","s":"Beep. You are hardware now."},"sound":{"mode":"voice","fx":"robot"}},{"id":"quiz-chaos","kind":"card","min":30,"style":"zettel","de":{"t":"Welches|Chaos bist du?","s":"Nimm den Treffer. Schreib ihn um.","lines":["Heimliche Chefin vom Chaos: Du tust ordentlich. Aber du steuerst alles.","Wandelnde Überraschung: Niemand weiß, was als Nächstes passiert. Du auch nicht.","Profi- Verschwinder: Eben warst du noch da. Respekt."]},"en":{"t":"What kind of|chaos are you?","s":"Take the hit. Rewrite it.","lines":["Secret boss of chaos: You look tidy. But you run everything.","Walking surprise: Nobody knows what's next. Neither do you.","Professional vanisher: You were just here. Respect."]}},{"id":"quiz-snack","kind":"card","min":30,"style":"zettel","de":{"t":"Welcher|Snack bist du?","s":"Nimm den Treffer. Schreib ihn um.","lines":["Scharfe Chips: Laut, knackig, keiner kann aufhören.","Warmer Keks: Alle fühlen sich besser, wenn du da bist.","Saure Gurke: Nicht für alle. Aber wer dich mag, liebt dich."]},"en":{"t":"Which snack|are you?","s":"Take the hit. Rewrite it.","lines":["Spicy chips: Loud, crunchy, nobody can stop.","Warm cookie: Everyone feels better when you're around.","Sour pickle: Not for everyone. But your people love you."]}},{"id":"quiz-superkraft","kind":"card","min":30,"style":"zettel","de":{"t":"Deine|nutzlose Superkraft","s":"Nimm den Treffer. Schreib ihn um.","lines":["Immer grüne Ampel: Nur wenn du schon zu spät bist.","Socken finden: Immer genau eine.","Akku erraten: Auf ein Prozent genau. Bringt nichts."]},"en":{"t":"Your useless|superpower","s":"Take the hit. Rewrite it.","lines":["Always green lights: Only when you're already late.","Finding socks: Always exactly one.","Guessing battery: Accurate to one percent. Useless."]}},{"id":"quiz-gruppe","kind":"card","min":30,"style":"zettel","de":{"t":"Deine Rolle|im Gruppenchat","s":"Nimm den Treffer. Schreib ihn um.","lines":["Der Kalender: Ohne dich fällt alles aus.","Sticker- Fabrik: Du antwortest nie mit Worten.","Stilles Phantom: Liest alles. Sagt nichts. Taucht trotzdem auf."]},"en":{"t":"Your role|in the group chat","s":"Take the hit. Rewrite it.","lines":["The calendar: Without you, everything gets cancelled.","Sticker factory: You never reply with words.","Silent phantom: Reads all. Says nothing. Shows up anyway."]}},{"id":"quiz-film","kind":"card","min":30,"style":"zettel","de":{"t":"Welche|Filmrolle bist du?","s":"Nimm den Treffer. Schreib ihn um.","lines":["Coole Hauptrolle: Dreht sich nie zur Explosion um.","Schlaue Erfinderin: Rettet alle. Keiner sagt danke.","Lustiger Sidekick: Bester Teil vom Film."]},"en":{"t":"Which movie|role are you?","s":"Take the hit. Rewrite it.","lines":["Cool lead: Never looks back at the explosion.","Clever inventor: Saves everyone. Nobody says thanks.","Funny sidekick: Best part of the movie."]}},{"id":"quiz-wetter","kind":"card","min":30,"style":"zettel","de":{"t":"Welches|Wetter bist du?","s":"Nimm den Treffer. Schreib ihn um.","lines":["Gewitter mit Blitz: Kurz, laut, alle reden danach drüber.","Warmer Spätsommer: Alle wollen bei dir sein.","Aprilwetter: Vier Jahreszeiten vor der Pause."]},"en":{"t":"What weather|are you?","s":"Take the hit. Rewrite it.","lines":["Thunder and lightning: Short, loud, everyone talks about it.","Warm late summer: Everyone wants to be near you.","April weather: Four seasons before lunch."]}},{"id":"mut-tierstory","kind":"card","min":45,"style":"stempel","de":{"t":"Erzähl es|als Tier","s":"Dein Tag. Nur Tiergeräusche.","lines":["Erzähl deinen Tag nur mit Tiergeräuschen. Die anderen raten."]},"en":{"t":"Tell it|as an animal","s":"Your day. Animal noises only.","lines":["Tell your day using animal noises only. The others guess."]}},{"id":"mut-werbung","kind":"card","min":45,"style":"stempel","de":{"t":"Verkauf|deinen Stift","s":"Dreißig Sekunden Dauerwerbung.","lines":["Verkauf der Clique den nächstbesten Gegenstand wie im Teleshop."]},"en":{"t":"Sell|your pen","s":"Thirty seconds of pure ad.","lines":["Sell the nearest object to your crew like a TV shopping host."]}},{"id":"mut-zeitlupe","kind":"card","min":45,"style":"stempel","de":{"t":"Alles in|Zeitlupe","s":"Würde? Bleibt zu Hause.","lines":["Eine Runde Zeitlupe: Geh einmal durch den Raum, als wäre es ein Actionfilm."]},"en":{"t":"Everything in|slow motion","s":"Dignity stays home.","lines":["One round of slow motion: cross the room like it's an action movie."]}},{"id":"mut-oper","kind":"card","min":45,"style":"stempel","de":{"t":"Sing die|Einkaufsliste","s":"Als Oper. Mit Gefühl.","lines":["Sing eine Einkaufsliste wie auf der großen Bühne. Dramatisch bitte."]},"en":{"t":"Sing the|shopping list","s":"As opera. With feeling.","lines":["Sing a shopping list like it's the big stage. Dramatic, please."]}},{"id":"mut-nachrichten","kind":"card","min":45,"style":"stempel","de":{"t":"Eilmeldung|aus der Pause","s":"Du bist jetzt die Nachrichten.","lines":["Sprich die Nachrichten: Was gerade um dich herum passiert, als wäre es weltbewegend."]},"en":{"t":"Breaking|news","s":"You are now the news.","lines":["Report what's happening around you as if it were world-changing news."]}},{"id":"mut-kompliment","kind":"card","min":45,"style":"stempel","de":{"t":"Drei|Komplimente","s":"Das Schwerste von allen.","lines":["Sag drei Leuten etwas Nettes, das stimmt. Ohne zu lachen."]},"en":{"t":"Three|compliments","s":"The hardest one of all.","lines":["Tell three people something nice and true. Without laughing."]}},{"id":"karte-spruch","kind":"card","min":20,"de":{"t":"Dein Spruch|als Poster","s":"Groß, laut, an die Wand.","lines":["Heute nicht.","Ich bin nicht faul, ich lade.","Wird schon. Irgendwie.","Hauptsache Snacks."]},"en":{"t":"Your line|as a poster","s":"Big, loud, on the wall.","lines":["Not today.","Not lazy, just loading.","It'll work out. Somehow.","Snacks first."]}},{"id":"karte-danke","kind":"card","min":20,"de":{"t":"Schick wem|ein Danke","s":"Kostet nix. Wirkt krass.","lines":["Du bist der Grund, warum heute okay war.","Danke fürs Dasein.","Ohne dich wär's langweilig.","Bester Mensch, Platz 1."]},"en":{"t":"Send someone|a thank you","s":"Costs nothing. Hits hard.","lines":["You're why today was okay.","Thanks for being around.","It'd be boring without you.","Best human, rank 1."]}},{"id":"karte-ausrede","kind":"card","min":20,"de":{"t":"Die beste|Ausrede","s":"Fürs nächste Zuspätkommen.","lines":["Mein Bus hatte Gefühle.","Ein Eichhörnchen hat mich aufgehalten.","Die Zeit war heute schneller.","Ich war pünktlich. In einer anderen Zeitzone."]},"en":{"t":"The best|excuse","s":"For the next time you're late.","lines":["My bus had feelings.","A squirrel held me up.","Time was faster today.","I was on time. In another time zone."]}},{"id":"karte-horoskop","kind":"card","min":20,"de":{"t":"Dein|Fake-Horoskop","s":"Die Sterne lügen heute.","lines":["Heute triffst du eine Tür. Sie geht auf.","Mars sagt: Iss was.","Ein Fremder wird dir zunicken. Bleib stark.","Dein Glückstag ist gestern."]},"en":{"t":"Your fake|horoscope","s":"The stars are lying today.","lines":["You will meet a door. It opens.","Mars says: eat something.","A stranger will nod. Stay strong.","Your lucky day was yesterday."]}},{"id":"karte-regel","kind":"card","min":20,"de":{"t":"Neue Regel|für alle","s":"Du bist jetzt Bundeskanzler vom Schulhof.","lines":["Ab heute ist Freitag.","Wer gähnt, gibt Snacks aus.","Hausaufgaben nur noch als Lied.","Montag wird abgeschafft."]},"en":{"t":"New rule|for everyone","s":"You now run the schoolyard.","lines":["From now on it's Friday.","Whoever yawns buys snacks.","Homework as songs only.","Monday is cancelled."]}},{"id":"karte-weisheit","kind":"card","min":20,"de":{"t":"Weisheit|von dir","s":"Klingt tief. Ist es nicht.","lines":["Wer nicht losgeht, kommt nicht an. Oder so.","Auch ein Toast war mal Brot.","Der Akku ist immer halb leer.","Sei wie WLAN: überall ein bisschen."]},"en":{"t":"Wisdom|by you","s":"Sounds deep. Isn't.","lines":["Toast was once bread.","The battery is always half empty.","Be like wifi: a bit everywhere.","Nobody leaves, nobody arrives. Or so."]}},{"id":"karte-einladung","kind":"card","min":20,"de":{"t":"Lad deine|Leute ein","s":"Einladung mit Bums.","lines":["Heute. Wir. Kein Plan.","Pflichttermin: Abhängen.","Komm rum. Es gibt Chips.","Bring Laune mit."]},"en":{"t":"Call up|your people","s":"An invite with punch.","lines":["Today. Us. No plan.","Mandatory hangout.","Come over. There are chips.","Bring good vibes."]}},{"id":"karte-lob","kind":"card","min":20,"de":{"t":"Urkunde|für nix","s":"Auszeichnung fürs Durchhalten.","lines":["Goldmedaille im Aufstehen.","Hat heute Wasser getrunken.","Weltmeister im Weitermachen.","Ist überhaupt gekommen."]},"en":{"t":"Award|for nothing","s":"A trophy for showing up.","lines":["Gold medal in getting up.","Drank water today.","World champion of carrying on.","Actually showed up."]}},{"id":"halloween","kind":"card","min":30,"style":"neon","on":"10-31","col":["#120b1f","#ff7a00"],"set":"grusel","de":{"t":"Happy|Halloween","s":"Mach deine Gruselkarte. Heute Nacht zählt.","lines":["Süßes oder Saures? Ich nehm beides.","Ich bin nicht verkleidet. Ich seh morgens so aus.","Heute Nacht darf alles spuken. Auch dein Akku."]},"en":{"t":"Happy|Halloween","s":"Make your spooky card. Tonight counts.","lines":["Trick or treat? I'll take both.","This is no costume. I look like this every morning.","Tonight everything haunts. Even your battery."]}}]};window.DailyTexts={"de":{"brand":"My Daily Idea","go":"Mach's zu deinem","more":"Noch eine","past":"Letzte Tage","wall":"Meine Wand","hostMore":"Mehr","own":"Selber bauen","style":"Mein Stil","send":"Idee schicken","by":"von {n}","someone":"Jemand","sec":"{n} Sek","invite":"Geschickt bekommen. Mach deins draus.","remixOf":"Mach weiter, wo {n} aufgehört hat.","game":"Spiel","photo":"Foto","sound":"Sound","card":"Karte","tabText":"Text","tabColor":"Farbe","tabStyle":"Stil","tabSticker":"Sticker","tabPhoto":"Foto","tabBeat":"Beat","tabVoice":"Stimme","tabRules":"Regeln","tabFigure":"Figur","tabWorld":"Welt","tabIdea":"Aufgabe","needOwn":"Erst was ändern","done":"Fertig","play":"Spielen","dice":"Würfeln","pick":"Foto wählen","noPhoto":"Bot-Gesicht nehmen","photoNote":"Dein Foto bleibt auf diesem Handy.","noPick":"Keine Auswahl da? Nimm das Bot-Gesicht.","top":"Oben","bottom":"Unten","line":"Dein Text","titleL":"Name","bpm":"Tempo","rec":"Aufnehmen","recing":"Läuft …","dummy":"Quatschstimme","noMic":"Kein Mikro hier. Nimm die Quatschstimme.","listen":"Anhören","stop":"Stopp","custom":"Eigene","fx_chip":"Hamster","fx_monster":"Monster","fx_robot":"Roboter","fx_echo":"Echo","st_druck":"Druck","st_zettel":"Zettel","st_stempel":"Stempel","st_neon":"Neon","st_poster":"Poster","st_sticker":"Sticker","st_meme":"Meme","st_glitch":"Glitch","gravity":"Schwere","jump":"Sprung","gap":"Lücke","speed":"Tempo","describe":"Beschreib dein Spiel","describeGo":"Bauen","netNote":"Mit Netz geht dein Satz kurz an uns raus. Ohne Netz denkt dein Handy selbst.","share":"Teilen","save":"Speichern","edit":"Weiter ändern","home":"Zum Kalender","shot":"Bild per Screenshot sichern, der Link ist raus.","shareText":"Hab was gebaut. Mach's besser:","saved":"Gespeichert.","copied":"Link kopiert. Ab in den Chat!","shareFail":"Teilen ging nicht. Link:","nick":"Spitzname","nickNote":"Steht nur auf deinen Bildern und in Links, die du schickst.","emoji":"Dein Emoji","set":"Sticker-Set","set_tiere":"Tiere","set_essen":"Essen","set_weltall":"Weltall","set_chaos":"Chaos","set_grusel":"Grusel","colors":"Deine Farben","wallEmpty":"Noch leer. Bau was.","gone":"Weg damit","close":"Zu","wallFull":"Die Wand merkt sich hier nichts.","ownH":"Was sollen deine Leute bauen?","ideaT":"Deine Tagesidee","ideaS":"Ein Satz dazu","filter":"Das lassen wir lieber weg.","trail":"Spur","you":"Du","anon":"Jemand","a_text":"Text","a_farbe":"Farbe","a_stil":"Stil","a_sticker":"Sticker","a_foto":"Foto","a_beat":"Beat","a_stimme":"Stimme","a_regeln":"Regeln","a_figur":"Figur","a_welt":"Welt","a_idee":"Idee","hint":"Tippen. Fliegen. Angeben.","remix":"Umbauen","challenge":"Herausfordern 🔥","again":"Nochmal","image":"Als Bild","record":"NEUER REKORD!","bestN":"Dein Rekord: {n}","pts":"Punkte","banner":"{name} hat {n} Punkte - schlag das!","rival":"Dein Gegner","win":"{name} geschlagen. Frech.","tie":"Gleichstand mit {name}. Nochmal!","lose":"{name} liegt {d} vorn.","chText":"{n} Punkte in „{t}“. Schaffst du mehr?","sndT":"Sound","w_day":"Tag","w_night":"Nacht","w_sunset":"Abend","w_retro":"Retro","w_candy":"Zucker","w_neon":"Neon","w_ocean":"Meer","w_lava":"Lava"},"en":{"brand":"My Daily Idea","go":"Make it yours","more":"Another one","past":"Past days","wall":"My wall","hostMore":"More","own":"Build your own","style":"My style","send":"Send idea","by":"by {n}","someone":"Someone","sec":"{n} sec","invite":"Sent to you. Make it yours.","remixOf":"Pick up where {n} stopped.","game":"Game","photo":"Photo","sound":"Sound","card":"Card","tabText":"Text","tabColor":"Colour","tabStyle":"Style","tabSticker":"Stickers","tabPhoto":"Photo","tabBeat":"Beat","tabVoice":"Voice","tabRules":"Rules","tabFigure":"Hero","tabWorld":"World","tabIdea":"Dare","needOwn":"Change something first","done":"Done","play":"Play","dice":"Roll","pick":"Pick a photo","noPhoto":"Use the bot face","photoNote":"Your photo stays on this phone.","noPick":"No picker here? Use the bot face.","top":"Top","bottom":"Bottom","line":"Your text","titleL":"Name","bpm":"Tempo","rec":"Record","recing":"Recording …","dummy":"Silly voice","noMic":"No mic here. Use the silly voice.","listen":"Listen","stop":"Stop","custom":"Custom","fx_chip":"Hamster","fx_monster":"Monster","fx_robot":"Robot","fx_echo":"Echo","st_druck":"Print","st_zettel":"Note","st_stempel":"Stamp","st_neon":"Neon","st_poster":"Poster","st_sticker":"Sticker","st_meme":"Meme","st_glitch":"Glitch","gravity":"Weight","jump":"Jump","gap":"Gap","speed":"Speed","describe":"Describe your game","describeGo":"Build","netNote":"Online, your sentence briefly goes out to us. Offline, your phone figures it out.","share":"Share","save":"Save","edit":"Keep changing","home":"To the calendar","shot":"Screenshot the picture, the link is out.","shareText":"Made something. Do better:","saved":"Saved.","copied":"Link copied. Drop it in the chat!","shareFail":"Sharing failed. Link:","nick":"Nickname","nickNote":"Only on your pictures and in links you send.","emoji":"Your emoji","set":"Sticker set","set_tiere":"Animals","set_essen":"Food","set_weltall":"Space","set_chaos":"Chaos","set_grusel":"Spooky","colors":"Your colours","wallEmpty":"Empty so far. Make something.","gone":"Remove","close":"Close","wallFull":"The wall can't remember anything here.","ownH":"What should your people build?","ideaT":"Your daily idea","ideaS":"One line about it","filter":"Let's skip that one.","trail":"Trail","you":"You","anon":"Someone","a_text":"text","a_farbe":"colour","a_stil":"style","a_sticker":"stickers","a_foto":"photo","a_beat":"beat","a_stimme":"voice","a_regeln":"rules","a_figur":"hero","a_welt":"world","a_idee":"idea","hint":"Tap. Fly. Flex.","remix":"Remix","challenge":"Challenge 🔥","again":"Again","image":"As picture","record":"NEW RECORD!","bestN":"Your best: {n}","pts":"points","banner":"{name} has {n} - beat it!","rival":"Your rival","win":"Beat {name}. Nice.","tie":"Tied with {name}. Again!","lose":"{name} leads by {d}.","chText":"{n} points in “{t}”. Can you beat it?","sndT":"Sound","w_day":"Day","w_night":"Night","w_sunset":"Sunset","w_retro":"Retro","w_candy":"Candy","w_neon":"Neon","w_ocean":"Ocean","w_lava":"Lava"}};</script>
+<script>window.DuellIdeas={"ideas":[{"id":"spiel-lava","kind":"game","min":40,"de":{"t":"Bau dein|Lava-Level","s":"Feuer, Drache, kein Mitleid."},"en":{"t":"Build your|lava level","s":"Fire, dragon, zero mercy."},"game":{"seed":6061,"theme":"lava","emoji":"🐉","params":{"gravity":2100,"jump":480,"gap":125,"speed":165}}},{"id":"spiel-mond","kind":"game","min":40,"de":{"t":"Flieg zum|Mond","s":"Fast keine Schwerkraft. Fast."},"en":{"t":"Fly to|the moon","s":"Almost no gravity. Almost."},"game":{"seed":7001,"theme":"night","emoji":"🚀","params":{"gravity":1000,"jump":320,"gap":150,"speed":130}}},{"id":"spiel-pizza","kind":"game","min":40,"de":{"t":"Pizza|muss fliegen","s":"Niemand fragt warum."},"en":{"t":"Pizza|must fly","s":"Nobody asks why."},"game":{"seed":7002,"theme":"sunset","emoji":"🍕","params":{"gravity":1600,"jump":420,"gap":155,"speed":125}}},{"id":"spiel-tiefsee","kind":"game","min":40,"de":{"t":"Tauch ab,|Hai","s":"Unten ist es schön. Und eng."},"en":{"t":"Dive down,|shark","s":"Nice down there. And tight."},"game":{"seed":7003,"theme":"ocean","emoji":"🦈","params":{"gravity":1200,"jump":370,"gap":130,"speed":135}}},{"id":"spiel-neon","kind":"game","min":40,"de":{"t":"Neon|Panik","s":"Schnell. Bunt. Unfair."},"en":{"t":"Neon|panic","s":"Fast. Loud. Unfair."},"game":{"seed":7004,"theme":"neon","emoji":"👽","params":{"gravity":2100,"jump":470,"gap":118,"speed":205}}},{"id":"spiel-geist","kind":"game","min":40,"de":{"t":"Geister-|schicht","s":"Spukt schön durch die Nacht."},"en":{"t":"Ghost|shift","s":"Haunt your way through the night."},"game":{"seed":7005,"theme":"night","emoji":"👻","params":{"gravity":1500,"jump":410,"gap":145,"speed":120}}},{"id":"spiel-einhorn","kind":"game","min":40,"de":{"t":"Einhorn|auf Zucker","s":"Süß. Aber gefährlich."},"en":{"t":"Unicorn|on sugar","s":"Sweet. But dangerous."},"game":{"seed":7006,"theme":"candy","emoji":"🦄","params":{"gravity":1350,"jump":395,"gap":160,"speed":150}}},{"id":"spiel-retro","kind":"game","min":40,"de":{"t":"Opas|Gameboy","s":"Acht Bit. Volle Härte."},"en":{"t":"Grandpa's|Game Boy","s":"Eight bits. Full pain."},"game":{"seed":7007,"theme":"retro","emoji":"👾","params":{"gravity":1900,"jump":440,"gap":128,"speed":150}}},{"id":"foto-boss","kind":"photo","min":30,"de":{"t":"Werd zum|Endgegner","s":"Foto rein. Boss raus.","top":"ENDGEGNER","bottom":"LEVEL 99"},"en":{"t":"Become|the final boss","s":"Photo in. Boss out.","top":"FINAL BOSS","bottom":"LEVEL 99"},"photo":{"mode":"poster"}},{"id":"foto-sticker","kind":"photo","min":25,"de":{"t":"Du als|Sticker","s":"Fürs Handy, für die Gruppe, für immer.","top":"LIMITIERT","bottom":"NUR HEUTE"},"en":{"t":"You as|a sticker","s":"For the group chat. Forever.","top":"LIMITED","bottom":"TODAY ONLY"},"photo":{"mode":"sticker"}},{"id":"foto-montag","kind":"photo","min":25,"de":{"t":"Dein Gesicht|am Montag","s":"Jeder kennt es.","top":"ICH SO","bottom":"MONTAG 7 UHR"},"en":{"t":"Your face|on Monday","s":"Everyone knows it.","top":"ME","bottom":"MONDAY 7 AM"},"photo":{"mode":"meme"}},{"id":"foto-kaputt","kind":"photo","min":20,"de":{"t":"Mach dein|Foto kaputt","s":"Aber richtig schön kaputt.","top":"SIGNAL","bottom":"VERLOREN"},"en":{"t":"Break|your photo","s":"But break it beautifully.","top":"SIGNAL","bottom":"LOST"},"photo":{"mode":"glitch"}},{"id":"foto-tour","kind":"photo","min":30,"de":{"t":"Deine|Welttournee","s":"Plakat fertig. Band fehlt noch.","top":"WELTTOURNEE","bottom":"AUSVERKAUFT"},"en":{"t":"Your|world tour","s":"Poster done. Band still missing.","top":"WORLD TOUR","bottom":"SOLD OUT"},"photo":{"mode":"poster"}},{"id":"foto-haustier","kind":"photo","min":25,"de":{"t":"Dein Tier|hat was zu sagen","s":"Hund, Katze, Stofftier. Egal.","top":"ICH HAB","bottom":"ALLES GESEHEN"},"en":{"t":"Your pet|has opinions","s":"Dog, cat, teddy. Whatever.","top":"I HAVE","bottom":"SEEN EVERYTHING"},"photo":{"mode":"meme"}},{"id":"foto-alien","kind":"photo","min":20,"de":{"t":"Beweisfoto:|Alien","s":"Unscharf ist hier ein Vorteil.","top":"STRENG GEHEIM","bottom":"BEWEIS NR. 7"},"en":{"t":"Proof:|alien","s":"Blurry is a feature here.","top":"TOP SECRET","bottom":"EVIDENCE NO. 7"},"photo":{"mode":"glitch"}},{"id":"foto-essen","kind":"photo","min":25,"de":{"t":"Mensa-|Sticker","s":"Dein Essen verdient Ruhm.","top":"LECKER","bottom":"ANGEBLICH"},"en":{"t":"Lunch|sticker","s":"Your food deserves fame.","top":"TASTY","bottom":"ALLEGEDLY"},"photo":{"mode":"sticker"}},{"id":"beat-pausenhof","kind":"sound","min":45,"de":{"t":"Bau einen|Beat","s":"Tippen, bis es knallt."},"en":{"t":"Build|a beat","s":"Tap until it slaps."},"sound":{"mode":"beat","bpm":100,"k":"x---x---x--x-x--","s":"----x-------x---","h":"x-x-x-x-x-x-x-x-","b":"------x---x-----"}},{"id":"beat-disco","kind":"sound","min":45,"de":{"t":"Disco im|Treppenhaus","s":"Vier auf den Boden. Ab."},"en":{"t":"Stairwell|disco","s":"Four on the floor. Go."},"sound":{"mode":"beat","bpm":124,"k":"x---x---x---x---","s":"----x-------x---","h":"--x---x---x---x-","b":"x--x--x---x--x--"}},{"id":"beat-boss","kind":"sound","min":45,"de":{"t":"Musik für|den Endkampf","s":"Klingt teuer. War umsonst."},"en":{"t":"Boss fight|music","s":"Sounds expensive. Was free."},"sound":{"mode":"beat","bpm":150,"k":"x-x---x-x-x---x-","s":"----x--x----x---","h":"xxxxxxxxxxxxxxxx","b":"x---x---x-x-x-x-"}},{"id":"stimme-monster","kind":"sound","min":30,"de":{"t":"Stimme:|Monster","s":"Sag was. Bereu es."},"en":{"t":"Voice:|monster","s":"Say something. Regret it."},"sound":{"mode":"voice","fx":"monster"}},{"id":"stimme-maus","kind":"sound","min":30,"de":{"t":"Stimme:|Hamster","s":"Schnell, hoch, peinlich."},"en":{"t":"Voice:|hamster","s":"Fast, high, embarrassing."},"sound":{"mode":"voice","fx":"chip"}},{"id":"stimme-robo","kind":"sound","min":30,"de":{"t":"Stimme:|Roboter","s":"Beep. Du bist jetzt Technik."},"en":{"t":"Voice:|robot","s":"Beep. You are hardware now."},"sound":{"mode":"voice","fx":"robot"}},{"id":"quiz-chaos","kind":"card","min":30,"style":"zettel","de":{"t":"Welches|Chaos bist du?","s":"Nimm den Treffer. Schreib ihn um.","lines":["Heimliche Chefin vom Chaos: Du tust ordentlich. Aber du steuerst alles.","Wandelnde Überraschung: Niemand weiß, was als Nächstes passiert. Du auch nicht.","Profi- Verschwinder: Eben warst du noch da. Respekt."]},"en":{"t":"What kind of|chaos are you?","s":"Take the hit. Rewrite it.","lines":["Secret boss of chaos: You look tidy. But you run everything.","Walking surprise: Nobody knows what's next. Neither do you.","Professional vanisher: You were just here. Respect."]}},{"id":"quiz-snack","kind":"card","min":30,"style":"zettel","de":{"t":"Welcher|Snack bist du?","s":"Nimm den Treffer. Schreib ihn um.","lines":["Scharfe Chips: Laut, knackig, keiner kann aufhören.","Warmer Keks: Alle fühlen sich besser, wenn du da bist.","Saure Gurke: Nicht für alle. Aber wer dich mag, liebt dich."]},"en":{"t":"Which snack|are you?","s":"Take the hit. Rewrite it.","lines":["Spicy chips: Loud, crunchy, nobody can stop.","Warm cookie: Everyone feels better when you're around.","Sour pickle: Not for everyone. But your people love you."]}},{"id":"quiz-superkraft","kind":"card","min":30,"style":"zettel","de":{"t":"Deine|nutzlose Superkraft","s":"Nimm den Treffer. Schreib ihn um.","lines":["Immer grüne Ampel: Nur wenn du schon zu spät bist.","Socken finden: Immer genau eine.","Akku erraten: Auf ein Prozent genau. Bringt nichts."]},"en":{"t":"Your useless|superpower","s":"Take the hit. Rewrite it.","lines":["Always green lights: Only when you're already late.","Finding socks: Always exactly one.","Guessing battery: Accurate to one percent. Useless."]}},{"id":"quiz-gruppe","kind":"card","min":30,"style":"zettel","de":{"t":"Deine Rolle|im Gruppenchat","s":"Nimm den Treffer. Schreib ihn um.","lines":["Der Kalender: Ohne dich fällt alles aus.","Sticker- Fabrik: Du antwortest nie mit Worten.","Stilles Phantom: Liest alles. Sagt nichts. Taucht trotzdem auf."]},"en":{"t":"Your role|in the group chat","s":"Take the hit. Rewrite it.","lines":["The calendar: Without you, everything gets cancelled.","Sticker factory: You never reply with words.","Silent phantom: Reads all. Says nothing. Shows up anyway."]}},{"id":"quiz-film","kind":"card","min":30,"style":"zettel","de":{"t":"Welche|Filmrolle bist du?","s":"Nimm den Treffer. Schreib ihn um.","lines":["Coole Hauptrolle: Dreht sich nie zur Explosion um.","Schlaue Erfinderin: Rettet alle. Keiner sagt danke.","Lustiger Sidekick: Bester Teil vom Film."]},"en":{"t":"Which movie|role are you?","s":"Take the hit. Rewrite it.","lines":["Cool lead: Never looks back at the explosion.","Clever inventor: Saves everyone. Nobody says thanks.","Funny sidekick: Best part of the movie."]}},{"id":"quiz-wetter","kind":"card","min":30,"style":"zettel","de":{"t":"Welches|Wetter bist du?","s":"Nimm den Treffer. Schreib ihn um.","lines":["Gewitter mit Blitz: Kurz, laut, alle reden danach drüber.","Warmer Spätsommer: Alle wollen bei dir sein.","Aprilwetter: Vier Jahreszeiten vor der Pause."]},"en":{"t":"What weather|are you?","s":"Take the hit. Rewrite it.","lines":["Thunder and lightning: Short, loud, everyone talks about it.","Warm late summer: Everyone wants to be near you.","April weather: Four seasons before lunch."]}},{"id":"mut-tierstory","kind":"card","min":45,"style":"stempel","de":{"t":"Erzähl es|als Tier","s":"Dein Tag. Nur Tiergeräusche.","lines":["Erzähl deinen Tag nur mit Tiergeräuschen. Die anderen raten."]},"en":{"t":"Tell it|as an animal","s":"Your day. Animal noises only.","lines":["Tell your day using animal noises only. The others guess."]}},{"id":"mut-werbung","kind":"card","min":45,"style":"stempel","de":{"t":"Verkauf|deinen Stift","s":"Dreißig Sekunden Dauerwerbung.","lines":["Verkauf der Clique den nächstbesten Gegenstand wie im Teleshop."]},"en":{"t":"Sell|your pen","s":"Thirty seconds of pure ad.","lines":["Sell the nearest object to your crew like a TV shopping host."]}},{"id":"mut-zeitlupe","kind":"card","min":45,"style":"stempel","de":{"t":"Alles in|Zeitlupe","s":"Würde? Bleibt zu Hause.","lines":["Eine Runde Zeitlupe: Geh einmal durch den Raum, als wäre es ein Actionfilm."]},"en":{"t":"Everything in|slow motion","s":"Dignity stays home.","lines":["One round of slow motion: cross the room like it's an action movie."]}},{"id":"mut-oper","kind":"card","min":45,"style":"stempel","de":{"t":"Sing die|Einkaufsliste","s":"Als Oper. Mit Gefühl.","lines":["Sing eine Einkaufsliste wie auf der großen Bühne. Dramatisch bitte."]},"en":{"t":"Sing the|shopping list","s":"As opera. With feeling.","lines":["Sing a shopping list like it's the big stage. Dramatic, please."]}},{"id":"mut-nachrichten","kind":"card","min":45,"style":"stempel","de":{"t":"Eilmeldung|aus der Pause","s":"Du bist jetzt die Nachrichten.","lines":["Sprich die Nachrichten: Was gerade um dich herum passiert, als wäre es weltbewegend."]},"en":{"t":"Breaking|news","s":"You are now the news.","lines":["Report what's happening around you as if it were world-changing news."]}},{"id":"mut-kompliment","kind":"card","min":45,"style":"stempel","de":{"t":"Drei|Komplimente","s":"Das Schwerste von allen.","lines":["Sag drei Leuten etwas Nettes, das stimmt. Ohne zu lachen."]},"en":{"t":"Three|compliments","s":"The hardest one of all.","lines":["Tell three people something nice and true. Without laughing."]}},{"id":"karte-spruch","kind":"card","min":20,"de":{"t":"Dein Spruch|als Poster","s":"Groß, laut, an die Wand.","lines":["Heute nicht.","Ich bin nicht faul, ich lade.","Wird schon. Irgendwie.","Hauptsache Snacks."]},"en":{"t":"Your line|as a poster","s":"Big, loud, on the wall.","lines":["Not today.","Not lazy, just loading.","It'll work out. Somehow.","Snacks first."]}},{"id":"karte-danke","kind":"card","min":20,"de":{"t":"Schick wem|ein Danke","s":"Kostet nix. Wirkt krass.","lines":["Du bist der Grund, warum heute okay war.","Danke fürs Dasein.","Ohne dich wär's langweilig.","Bester Mensch, Platz 1."]},"en":{"t":"Send someone|a thank you","s":"Costs nothing. Hits hard.","lines":["You're why today was okay.","Thanks for being around.","It'd be boring without you.","Best human, rank 1."]}},{"id":"karte-ausrede","kind":"card","min":20,"de":{"t":"Die beste|Ausrede","s":"Fürs nächste Zuspätkommen.","lines":["Mein Bus hatte Gefühle.","Ein Eichhörnchen hat mich aufgehalten.","Die Zeit war heute schneller.","Ich war pünktlich. In einer anderen Zeitzone."]},"en":{"t":"The best|excuse","s":"For the next time you're late.","lines":["My bus had feelings.","A squirrel held me up.","Time was faster today.","I was on time. In another time zone."]}},{"id":"karte-horoskop","kind":"card","min":20,"de":{"t":"Dein|Fake-Horoskop","s":"Die Sterne lügen heute.","lines":["Heute triffst du eine Tür. Sie geht auf.","Mars sagt: Iss was.","Ein Fremder wird dir zunicken. Bleib stark.","Dein Glückstag ist gestern."]},"en":{"t":"Your fake|horoscope","s":"The stars are lying today.","lines":["You will meet a door. It opens.","Mars says: eat something.","A stranger will nod. Stay strong.","Your lucky day was yesterday."]}},{"id":"karte-regel","kind":"card","min":20,"de":{"t":"Neue Regel|für alle","s":"Du bist jetzt Bundeskanzler vom Schulhof.","lines":["Ab heute ist Freitag.","Wer gähnt, gibt Snacks aus.","Hausaufgaben nur noch als Lied.","Montag wird abgeschafft."]},"en":{"t":"New rule|for everyone","s":"You now run the schoolyard.","lines":["From now on it's Friday.","Whoever yawns buys snacks.","Homework as songs only.","Monday is cancelled."]}},{"id":"karte-weisheit","kind":"card","min":20,"de":{"t":"Weisheit|von dir","s":"Klingt tief. Ist es nicht.","lines":["Wer nicht losgeht, kommt nicht an. Oder so.","Auch ein Toast war mal Brot.","Der Akku ist immer halb leer.","Sei wie WLAN: überall ein bisschen."]},"en":{"t":"Wisdom|by you","s":"Sounds deep. Isn't.","lines":["Toast was once bread.","The battery is always half empty.","Be like wifi: a bit everywhere.","Nobody leaves, nobody arrives. Or so."]}},{"id":"karte-einladung","kind":"card","min":20,"de":{"t":"Lad deine|Leute ein","s":"Einladung mit Bums.","lines":["Heute. Wir. Kein Plan.","Pflichttermin: Abhängen.","Komm rum. Es gibt Chips.","Bring Laune mit."]},"en":{"t":"Call up|your people","s":"An invite with punch.","lines":["Today. Us. No plan.","Mandatory hangout.","Come over. There are chips.","Bring good vibes."]}},{"id":"karte-lob","kind":"card","min":20,"de":{"t":"Urkunde|für nix","s":"Auszeichnung fürs Durchhalten.","lines":["Goldmedaille im Aufstehen.","Hat heute Wasser getrunken.","Weltmeister im Weitermachen.","Ist überhaupt gekommen."]},"en":{"t":"Award|for nothing","s":"A trophy for showing up.","lines":["Gold medal in getting up.","Drank water today.","World champion of carrying on.","Actually showed up."]}},{"id":"halloween","kind":"card","min":30,"style":"neon","on":"10-31","col":["#120b1f","#ff7a00"],"set":"grusel","de":{"t":"Happy|Halloween","s":"Mach deine Gruselkarte. Heute Nacht zählt.","lines":["Süßes oder Saures? Ich nehm beides.","Ich bin nicht verkleidet. Ich seh morgens so aus.","Heute Nacht darf alles spuken. Auch dein Akku."]},"en":{"t":"Happy|Halloween","s":"Make your spooky card. Tonight counts.","lines":["Trick or treat? I'll take both.","This is no costume. I look like this every morning.","Tonight everything haunts. Even your battery."]}}]};window.DailyTexts={"de":{"wxTitle":"Wetterbericht auf die Karte","wxPlace":"Ort","wxToday":"Heute","wxTomorrow":"Morgen","wxAfter":"Übermorgen","wxGo":"Wetter holen","wxOff":"Wetter weg","wxNote":"Der Ort geht an unseren Server. Zahlen kommen von Open-Meteo, nie von der KI. Kostet keinen Versuch.","wxFail":"Gerade keine Wetterdaten. Ohne echte Zahlen kein Wetterbericht.","wxNoPlace":"Diesen Ort finden wir nicht.","tabWish":"✨ Wunsch","wishL":"Was soll anders werden?","wishTips":"Mach es gruseliger|Lustiger|Für meine Klasse|Viel schwerer","wishGo":"Wunsch anwenden","wishDid":"Geändert","wishSame":"Dieser Wunsch hat nichts geändert. Kostet keinen Versuch.","playIt":"Mach's spielbar","playNote":"Dein Foto bleibt auf dem Handy: Beim Teilen gehen nur Spieldaten mit, Freunde sehen statt des Fotos deinen Sticker oder dein Emoji.","aiLine":"Spruch in deinem Stil","aiMeme":"Meme-Texte","aiLyrics":"Hook zum Beat","aiDesc":"Was ist auf dem Foto? In Worten","aiTopic":"Worum geht es?","aiThinking":"Denkt nach","aiCount":"Noch {n} von {m} KI-Versuchen gratis","aiCountAbo":"Abo zum Testen: heute noch {n} KI-Versuche","aiCountNew":"3 KI-Versuche gratis","aiNote":"Bei KI geht dein Text an unseren Server. Fotos bleiben auf dem Handy.","aiLocal":"Gerade ohne KI: Vorschläge aus der App, kostet keinen Versuch.","aiTitle":"KI-Versuche","aiSoon":"Abo kommt bald","aiUsed":"Du hast deine {m} KI-Versuche genutzt.","aiNoBuy":"Es gibt noch nichts zu kaufen. Alles andere bleibt frei, auch die Vorschläge ohne KI.","aiWant":"Ich hätte Interesse","aiNoted":"Notiert, danke","aiWantNote":"Wir merken uns nur anonym, dass jemand Interesse hat. Keine Mail, kein Name.","aiNet":"Gerade kein Netz.","aiLogin":"Mit Konto anmelden","skFull":"Mehr Sticker passen nicht drauf.","skHint":"Sticker antippen: X löscht, Griff dreht und skaliert. Oder in den Mülleimer ziehen.","skDelete":"Sticker löschen","skGrip":"Drehen und skalieren","skUndo":"Rückgängig","skBin":"Mülleimer","brand":"My Daily Idea","go":"Mach's zu deinem","more":"Noch eine","past":"Letzte Tage","wall":"Meine Wand","hostMore":"Mehr","own":"Selber bauen","style":"Mein Stil","send":"Idee schicken","by":"von {n}","someone":"Jemand","sec":"{n} Sek","invite":"Geschickt bekommen. Mach deins draus.","remixOf":"Mach weiter, wo {n} aufgehört hat.","game":"Spiel","photo":"Foto","sound":"Sound","card":"Karte","tabText":"Text","tabColor":"Farbe","tabStyle":"Stil","tabSticker":"Sticker","tabPhoto":"Foto","tabBeat":"Beat","tabVoice":"Stimme","tabRules":"Regeln","tabFigure":"Figur","tabWorld":"Welt","tabIdea":"Aufgabe","needOwn":"Erst was ändern","done":"Fertig","play":"Spielen","dice":"Würfeln","pick":"Foto wählen","noPhoto":"Bot-Gesicht nehmen","photoNote":"Dein Foto bleibt auf diesem Handy.","noPick":"Keine Auswahl da? Nimm das Bot-Gesicht.","top":"Oben","bottom":"Unten","line":"Dein Text","titleL":"Name","bpm":"Tempo","rec":"Aufnehmen","recing":"Läuft …","dummy":"Quatschstimme","noMic":"Kein Mikro hier. Nimm die Quatschstimme.","listen":"Anhören","stop":"Stopp","custom":"Eigene","fx_chip":"Hamster","fx_monster":"Monster","fx_robot":"Roboter","fx_echo":"Echo","st_druck":"Druck","st_zettel":"Zettel","st_stempel":"Stempel","st_neon":"Neon","st_poster":"Poster","st_sticker":"Sticker","st_meme":"Meme","st_glitch":"Glitch","gravity":"Schwere","jump":"Sprung","gap":"Lücke","speed":"Tempo","describe":"Beschreib dein Spiel","describeGo":"Bauen","netNote":"Mit Netz geht dein Satz kurz an uns raus. Ohne Netz denkt dein Handy selbst.","share":"Teilen","save":"Speichern","edit":"Weiter ändern","home":"Zum Kalender","shot":"Bild per Screenshot sichern, der Link ist raus.","shareText":"Hab was gebaut. Mach's besser:","saved":"Gespeichert.","copied":"Link kopiert. Ab in den Chat!","shareFail":"Teilen ging nicht. Link:","nick":"Spitzname","nickNote":"Steht nur auf deinen Bildern und in Links, die du schickst.","emoji":"Dein Emoji","set":"Sticker-Set","set_tiere":"Tiere","set_essen":"Essen","set_weltall":"Weltall","set_chaos":"Chaos","set_grusel":"Grusel","colors":"Deine Farben","wallEmpty":"Noch leer. Bau was.","gone":"Weg damit","close":"Zu","wallFull":"Die Wand merkt sich hier nichts.","ownH":"Was sollen deine Leute bauen?","ideaT":"Deine Tagesidee","ideaS":"Ein Satz dazu","filter":"Das lassen wir lieber weg.","trail":"Spur","you":"Du","anon":"Jemand","a_text":"Text","a_farbe":"Farbe","a_stil":"Stil","a_sticker":"Sticker","a_foto":"Foto","a_beat":"Beat","a_stimme":"Stimme","a_regeln":"Regeln","a_figur":"Figur","a_welt":"Welt","a_idee":"Idee","hint":"Tippen. Fliegen. Angeben.","remix":"Umbauen","challenge":"Herausfordern 🔥","again":"Nochmal","image":"Als Bild","record":"NEUER REKORD!","bestN":"Dein Rekord: {n}","pts":"Punkte","banner":"{name} hat {n} Punkte - schlag das!","rival":"Dein Gegner","win":"{name} geschlagen. Frech.","tie":"Gleichstand mit {name}. Nochmal!","lose":"{name} liegt {d} vorn.","chText":"{n} Punkte in „{t}“. Schaffst du mehr?","sndT":"Sound","w_day":"Tag","w_night":"Nacht","w_sunset":"Abend","w_retro":"Retro","w_candy":"Zucker","w_neon":"Neon","w_ocean":"Meer","w_lava":"Lava"},"en":{"wxTitle":"Weather report on the card","wxPlace":"Place","wxToday":"Today","wxTomorrow":"Tomorrow","wxAfter":"Day after","wxGo":"Get weather","wxOff":"Remove weather","wxNote":"The place goes to our server. Figures come from Open-Meteo, never from the AI. Costs no try.","wxFail":"No weather data right now. No real figures, no report.","wxNoPlace":"We can't find that place.","tabWish":"✨ Wish","wishL":"What should change?","wishTips":"Make it spookier|Funnier|For my class|Much harder","wishGo":"Apply wish","wishDid":"Changed","wishSame":"That wish changed nothing. Costs no try.","playIt":"Make it playable","playNote":"Your photo stays on your phone: sharing only sends game data, friends see your sticker or emoji instead of the photo.","aiLine":"Line in your style","aiMeme":"Meme texts","aiLyrics":"Hook for the beat","aiDesc":"What's in the photo? In words","aiTopic":"What's it about?","aiThinking":"Thinking","aiCount":"{n} of {m} free AI tries left","aiCountAbo":"Test subscription: {n} AI tries left today","aiCountNew":"3 free AI tries","aiNote":"With AI, your text goes to our server. Photos stay on your phone.","aiLocal":"No AI right now: suggestions from the app, costs no try.","aiTitle":"AI tries","aiSoon":"Subscription coming soon","aiUsed":"You've used your {m} AI tries.","aiNoBuy":"There's nothing to buy yet. Everything else stays free, including suggestions without AI.","aiWant":"I'd be interested","aiNoted":"Noted, thanks","aiWantNote":"We only keep an anonymous note that someone is interested. No mail, no name.","aiNet":"No connection right now.","aiLogin":"Sign in with an account","skFull":"No room for more stickers.","skHint":"Tap a sticker: X deletes, the grip turns and scales. Or drag it into the bin.","skDelete":"Delete sticker","skGrip":"Turn and scale","skUndo":"Undo","skBin":"Bin","brand":"My Daily Idea","go":"Make it yours","more":"Another one","past":"Past days","wall":"My wall","hostMore":"More","own":"Build your own","style":"My style","send":"Send idea","by":"by {n}","someone":"Someone","sec":"{n} sec","invite":"Sent to you. Make it yours.","remixOf":"Pick up where {n} stopped.","game":"Game","photo":"Photo","sound":"Sound","card":"Card","tabText":"Text","tabColor":"Colour","tabStyle":"Style","tabSticker":"Stickers","tabPhoto":"Photo","tabBeat":"Beat","tabVoice":"Voice","tabRules":"Rules","tabFigure":"Hero","tabWorld":"World","tabIdea":"Dare","needOwn":"Change something first","done":"Done","play":"Play","dice":"Roll","pick":"Pick a photo","noPhoto":"Use the bot face","photoNote":"Your photo stays on this phone.","noPick":"No picker here? Use the bot face.","top":"Top","bottom":"Bottom","line":"Your text","titleL":"Name","bpm":"Tempo","rec":"Record","recing":"Recording …","dummy":"Silly voice","noMic":"No mic here. Use the silly voice.","listen":"Listen","stop":"Stop","custom":"Custom","fx_chip":"Hamster","fx_monster":"Monster","fx_robot":"Robot","fx_echo":"Echo","st_druck":"Print","st_zettel":"Note","st_stempel":"Stamp","st_neon":"Neon","st_poster":"Poster","st_sticker":"Sticker","st_meme":"Meme","st_glitch":"Glitch","gravity":"Weight","jump":"Jump","gap":"Gap","speed":"Speed","describe":"Describe your game","describeGo":"Build","netNote":"Online, your sentence briefly goes out to us. Offline, your phone figures it out.","share":"Share","save":"Save","edit":"Keep changing","home":"To the calendar","shot":"Screenshot the picture, the link is out.","shareText":"Made something. Do better:","saved":"Saved.","copied":"Link copied. Drop it in the chat!","shareFail":"Sharing failed. Link:","nick":"Nickname","nickNote":"Only on your pictures and in links you send.","emoji":"Your emoji","set":"Sticker set","set_tiere":"Animals","set_essen":"Food","set_weltall":"Space","set_chaos":"Chaos","set_grusel":"Spooky","colors":"Your colours","wallEmpty":"Empty so far. Make something.","gone":"Remove","close":"Close","wallFull":"The wall can't remember anything here.","ownH":"What should your people build?","ideaT":"Your daily idea","ideaS":"One line about it","filter":"Let's skip that one.","trail":"Trail","you":"You","anon":"Someone","a_text":"text","a_farbe":"colour","a_stil":"style","a_sticker":"stickers","a_foto":"photo","a_beat":"beat","a_stimme":"voice","a_regeln":"rules","a_figur":"hero","a_welt":"world","a_idee":"idea","hint":"Tap. Fly. Flex.","remix":"Remix","challenge":"Challenge 🔥","again":"Again","image":"As picture","record":"NEW RECORD!","bestN":"Your best: {n}","pts":"points","banner":"{name} has {n} - beat it!","rival":"Your rival","win":"Beat {name}. Nice.","tie":"Tied with {name}. Again!","lose":"{name} leads by {d}.","chText":"{n} points in “{t}”. Can you beat it?","sndT":"Sound","w_day":"Day","w_night":"Night","w_sunset":"Sunset","w_retro":"Retro","w_candy":"Candy","w_neon":"Neon","w_ocean":"Ocean","w_lava":"Lava"}};</script>
 <script>/* Duell core: pure logic (no DOM). Runs in Node (tests) and is inlined into dist/index.html. */
 (function (root) {
   "use strict";
@@ -298,6 +316,14 @@ input[type=color]{width:64px;height:44px;border:3px solid var(--ink);border-radi
     return cpSlice(String(s == null ? "" : s).replace(/[\u0000-\u001f\u007f<>]/g, " ").replace(/\s+/g, " ").trim(), MAX_PROMPT);
   }
 
+  // Optional look of a game made from a card: two colours and one line, nothing that could carry a picture.
+  function sanitizeSkin(o) {
+    if (!o || typeof o !== "object" || !Array.isArray(o.c) || o.c.length !== 2 || !o.c.every(function (x) { return typeof x === "string" && /^#[0-9a-f]{6}$/i.test(x); })) return null;
+    var skin = { c: [o.c[0], o.c[1]] }, l = cpSlice(stripText(o.l), 60).trim();
+    if (l && isClean(l)) skin.l = l;
+    return skin;
+  }
+
   // ---------- state (the shared contract) ----------
   function sanitizeState(o) {
     if (!o || typeof o !== "object" || Array.isArray(o)) return null;
@@ -310,6 +336,8 @@ input[type=color]{width:64px;height:44px;border:3px solid var(--ink);border-radi
       title: sanitizeTitle(o.title),
       emoji: sanitizeEmoji(o.emoji)
     };
+    var skin = sanitizeSkin(o.skin);
+    if (skin) st.skin = skin;
     if (o.score !== undefined && o.score !== null) {
       var sc = clampNum(o.score, 0, MAX_SCORE, NaN);
       if (!isNaN(sc)) st.score = Math.floor(sc);
@@ -660,8 +688,15 @@ input[type=color]{width:64px;height:44px;border:3px solid var(--ink);border-radi
   function sanitizeStickers(a) {
     return (Array.isArray(a) ? a : []).slice(0, MAX_STICKERS).map(function (s) {
       var f = function (v, a, b, d) { return Math.round(C.clampNum(v, a, b, d) * 1000) / 1000; };
-      return s && typeof s === "object" ? { e: C.sanitizeEmoji(s.e), x: f(s.x, 0, 1, 0.5), y: f(s.y, 0, 1, 0.5), r: f(s.r, -1, 1, 0), z: f(s.z, 0.5, 2.5, 1) } : null;
+      return s && typeof s === "object" ? { e: C.sanitizeEmoji(s.e), x: f(s.x, 0, 1, 0.5), y: f(s.y, 0, 1, 0.5), r: f(s.r, -3.14, 3.14, 0), z: f(s.z, 0.5, 2.5, 1) } : null;
     }).filter(Boolean);
+  }
+  // Weather strip: figures from the weather service only; no wish and no model can set it. The card always names the source.
+  function sanitizeWeather(o) {
+    if (!o || typeof o !== "object" || !/^\d{4}-\d{2}-\d{2}$/.test(o.d)) return null;
+    var p = txt(o.p, 32), hi = C.clampNum(o.hi, -60, 60, NaN), lo = C.clampNum(o.lo, -60, 60, NaN);
+    if (!p || isNaN(hi) || isNaN(lo)) return null;
+    return { p: p, d: o.d, hi: Math.round(hi), lo: Math.round(lo), rn: Math.round(C.clampNum(o.rn, 0, 100, 0)), c: Math.round(C.clampNum(o.c, 0, 99, 0)) };
   }
   function sanitizeTrail(a) {
     return (Array.isArray(a) ? a : []).map(function (e) {
@@ -678,6 +713,7 @@ input[type=color]{width:64px;height:44px;border:3px solid var(--ink);border-radi
     if (t) d.t = t; if (s) d.s = s; if (n) d.n = n;    // t/s: an own idea of the day, n: who made it
     if (o.k === "card") {
       d.x = txt(o.x, MAX_TEXT); d.st = STYLES.card.indexOf(o.st) >= 0 ? o.st : "druck"; d.sk = sanitizeStickers(o.sk);
+      var w = sanitizeWeather(o.w); if (w) d.w = w;
     } else if (o.k === "photo") {
       d.x = txt(o.x, 28); d.y = txt(o.y, 28); d.st = STYLES.photo.indexOf(o.st) >= 0 ? o.st : "poster"; d.sk = sanitizeStickers(o.sk);
     } else if (o.k === "sound") {
@@ -705,7 +741,7 @@ input[type=color]{width:64px;height:44px;border:3px solid var(--ink);border-radi
   function changedAreas(a, b) {
     var w = [];
     function ne(x, y) { return JSON.stringify(x) !== JSON.stringify(y); }
-    if (a.x !== b.x || a.y !== b.y) w.push("text");
+    if (a.x !== b.x || a.y !== b.y || ne(a.w, b.w)) w.push("text");
     if (ne(a.col, b.col)) w.push("farbe");
     if (a.st !== b.st) w.push("stil");
     if (ne(a.sk, b.sk)) w.push("sticker");
@@ -1013,6 +1049,309 @@ input[type=color]{width:64px;height:44px;border:3px solid var(--ink);border-radi
   window.Kit = Kit;
 })();
 </script>
+<script>/* My Daily Idea: stickers on the preview. Tap selects (visible X and grip), drag moves, drop on the bin deletes,
+   two fingers or the grip scale and turn, undo reverts the last step. The chrome is DOM above the canvas, so it never ends up in the picture. */
+(function (root) {
+  "use strict";
+  var MIN_Z = 0.5, MAX_Z = 2.5, MAX_R = 3.14, HISTORY = 20, ASPECT = 1.25;   // canvas is 4:5
+
+  // ---------- pure rules (unit-tested) ----------
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+  // Topmost sticker under p (0..1 canvas units). minR: smallest hit radius, a finger must always find a small sticker.
+  function hit(list, p, minR) {
+    for (var i = list.length - 1; i >= 0; i--) {
+      if (Math.hypot(list[i].x - p.x, (list[i].y - p.y) * ASPECT) < Math.max(0.1 * list[i].z, minR || 0)) return i;
+    }
+    return -1;
+  }
+  function inBox(p, b) { return !!b && p.x >= b.left && p.x <= b.right && p.y >= b.top && p.y <= b.bottom; }
+  function wrapAngle(a) { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; }
+  // Sticker s0 follows the change from line a0-b0 to line a1-b1 (two fingers, or centre and grip).
+  function transform(s0, a0, b0, a1, b1) {
+    var d0 = Math.hypot(b0.x - a0.x, b0.y - a0.y) || 1, d1 = Math.hypot(b1.x - a1.x, b1.y - a1.y);
+    var turn = Math.atan2(b1.y - a1.y, b1.x - a1.x) - Math.atan2(b0.y - a0.y, b0.x - a0.x);
+    return { z: Math.round(clamp(s0.z * d1 / d0, MIN_Z, MAX_Z) * 1000) / 1000, r: Math.round(clamp(wrapAngle(s0.r + turn), -MAX_R, MAX_R) * 1000) / 1000 };
+  }
+  function snapshot(list) { return JSON.stringify(list || []); }
+  function remember(hist, before) { if (!hist.length || hist[hist.length - 1] !== before) hist.push(before); while (hist.length > HISTORY) hist.shift(); return hist; }
+  function restore(hist, list) { if (!hist.length) return false; var was = JSON.parse(hist.pop()); list.length = 0; was.forEach(function (s) { list.push(s); }); return true; }
+  var api = { hit: hit, inBox: inBox, transform: transform, snapshot: snapshot, remember: remember, restore: restore, MIN_Z: MIN_Z, MAX_Z: MAX_Z, MAX_R: MAX_R };
+
+  // ---------- page part ----------
+  // o: { cv, wrap, state: () => editor or null, changed(), onChange(), t(key), sfx(name) }
+  api.attach = function (o) {
+    var cv = o.cv, ui = document.createElement("div"), ring = document.createElement("div"), mk = function (cls, text) {
+      var b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = text; ui.appendChild(b); return b;
+    };
+    var bin = document.createElement("div"), x, grip, back;
+    ui.id = "skui"; ring.className = "skring"; bin.className = "skbin"; bin.textContent = "🗑"; bin.hidden = true;
+    ui.appendChild(ring); ui.appendChild(bin);
+    x = mk("skx", "✕"); grip = mk("skgrip", "⤡"); back = mk("skundo", "↶");
+    o.wrap.appendChild(ui);
+
+    var fingers = {}, drag = null, pinch = null, turn = null;
+    var ed = o.state;
+    var list = function () { var e = ed(); return e && e.doc.sk ? e.doc.sk : null; };
+    var hist = function () { var e = ed(); if (!e.skHist) e.skHist = []; return e.skHist; };
+    function pos(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; }
+    function centre(s) { var r = cv.getBoundingClientRect(); return { x: r.left + s.x * r.width, y: r.top + s.y * r.height }; }
+    function fingerList() { return Object.keys(fingers).map(function (k) { return fingers[k]; }); }
+    function done() { o.changed(); o.onChange(); }
+
+    function sync() {
+      var l = list(), e = ed(); ui.hidden = !l;
+      if (!l) return;
+      var r = cv.getBoundingClientRect(), w = o.wrap.getBoundingClientRect();
+      ui.style.left = r.left - w.left + "px"; ui.style.top = r.top - w.top + "px"; ui.style.width = r.width + "px"; ui.style.height = r.height + "px";
+      var s = l[e.sel], on = !!s && !!r.width;
+      ring.hidden = x.hidden = grip.hidden = !on;
+      back.hidden = !hist().length;
+      if (!on) return;
+      var rad = 0.1 * s.z * r.width + 3, cx = s.x * r.width, cy = s.y * r.height, q = Math.SQRT1_2 * rad;
+      ring.style.width = ring.style.height = rad * 2 + "px"; ring.style.left = cx - rad + "px"; ring.style.top = cy - rad + "px";
+      var place = function (b, px, py) { b.style.left = clamp(px, 0, r.width) + "px"; b.style.top = clamp(py, 0, r.height) + "px"; };
+      place(x, cx + q, cy - q); place(grip, cx + q, cy + q);
+    }
+    function select(i) { var e = ed(); if (e) { e.sel = i; sync(); o.onChange(); } }
+    function remove(i, before) {
+      var l = list(); if (!l || !l[i]) return;
+      remember(hist(), before || snapshot(l)); l.splice(i, 1); ed().sel = -1; o.sfx("thud"); done();
+    }
+
+    cv.addEventListener("pointerdown", function (e) {
+      var l = list(); if (!l) return;
+      fingers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+      var two = fingerList();
+      if (two.length === 2 && l[ed().sel]) {       // second finger: stop moving, start scaling and turning
+        drag = null; bin.hidden = true;
+        pinch = { i: ed().sel, s: { z: l[ed().sel].z, r: l[ed().sel].r }, a: two[0], b: two[1], before: snapshot(l) };
+        pinch.a = { x: two[0].x, y: two[0].y }; pinch.b = { x: two[1].x, y: two[1].y };
+        return;
+      }
+      if (two.length > 1) return;
+      var p = pos(e), i = hit(l, p, 26 / Math.max(1, cv.getBoundingClientRect().width));
+      if (i < 0) { select(-1); return; }
+      drag = { i: i, sx: e.clientX, sy: e.clientY, moved: false, over: false, before: snapshot(l) };
+      select(i); o.sfx("tap");
+    });
+    cv.addEventListener("pointermove", function (e) {
+      if (!fingers[e.pointerId]) return;
+      fingers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      var l = list(); if (!l) return;
+      if (pinch) {
+        var two = fingerList(), s = l[pinch.i]; if (two.length < 2 || !s) return;
+        var n = transform(pinch.s, pinch.a, pinch.b, two[0], two[1]); s.z = n.z; s.r = n.r; pinch.moved = true; o.changed(); return;
+      }
+      if (!drag || !l[drag.i]) return;
+      if (!drag.moved && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 6) return;   // a tap with a slightly shaky finger is still a tap
+      drag.moved = true; bin.hidden = false;
+      var p = pos(e), t = l[drag.i]; t.x = clamp(p.x, 0, 1); t.y = clamp(p.y, 0, 1);
+      var r = bin.getBoundingClientRect(), near = { left: r.left - 14, right: r.right + 14, top: r.top - 14, bottom: r.bottom + 14 };
+      drag.over = inBox({ x: e.clientX, y: e.clientY }, near); bin.classList.toggle("over", drag.over);
+      o.changed();
+    });
+    function up(e) {
+      var cancelled = e.type === "pointercancel";
+      delete fingers[e.pointerId];
+      if (pinch) { if (fingerList().length < 2) { if (pinch.moved) { remember(hist(), pinch.before); done(); } pinch = null; } return; }
+      if (!drag) return;
+      var g = drag; drag = null; bin.hidden = true; bin.classList.remove("over");
+      var l = list(); if (!l) return;
+      if (g.moved && cancelled) { restore([g.before], l); done(); return; }
+      if (g.over) { remove(g.i, g.before); return; }
+      if (g.moved) { remember(hist(), g.before); done(); }
+    }
+    cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+
+    x.addEventListener("click", function () { remove(ed().sel); });
+    back.addEventListener("click", function () { var l = list(); if (l && restore(hist(), l)) { ed().sel = -1; o.sfx("pop"); done(); } });
+    grip.addEventListener("pointerdown", function (e) {
+      var l = list(), s = l && l[ed().sel]; if (!s) return;
+      e.stopPropagation(); e.preventDefault();
+      try { grip.setPointerCapture(e.pointerId); } catch (err) {}
+      var c = centre(s);
+      turn = { s: { z: s.z, r: s.r }, c: c, from: { x: e.clientX, y: e.clientY }, before: snapshot(l), moved: false };
+    });
+    grip.addEventListener("pointermove", function (e) {
+      var l = list(), s = l && l[ed().sel]; if (!turn || !s) return;
+      var n = transform(turn.s, turn.c, turn.from, turn.c, { x: e.clientX, y: e.clientY }); s.z = n.z; s.r = n.r; turn.moved = true; o.changed();
+    });
+    function gripUp() { if (!turn) return; var g = turn; turn = null; if (g.moved) { remember(hist(), g.before); done(); } }
+    grip.addEventListener("pointerup", gripUp); grip.addEventListener("pointercancel", gripUp);
+    window.addEventListener("resize", sync);
+
+    function labels() { x.setAttribute("aria-label", o.t("skDelete")); grip.setAttribute("aria-label", o.t("skGrip")); back.setAttribute("aria-label", o.t("skUndo")); bin.setAttribute("aria-label", o.t("skBin")); }
+    labels();
+    return {
+      sync: sync, select: select, remove: remove, labels: labels,
+      // A step from the panel: everything that changes the list goes through here, so undo always knows about it.
+      step: function (fn) { var l = list(); if (!l) return; remember(hist(), snapshot(l)); fn(l); done(); }
+    };
+  };
+
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.Stickers = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+</script>
+<script>/* My Daily Idea: the AI actions in the page. The server counts and decides; this file shows the count, asks, and falls back
+   to local suggestions at once whenever the answer is anything but a result. Only typed text leaves the device, never a photo. */
+(function (root) {
+  "use strict";
+  var TIMEOUT = 25000;
+  var HOOKS = {
+    de: [["Beat läuft, ich bleib dran", "Heute fängt was Neues an", "Hände hoch, wer das kann", "Mein Tag, mein Plan"], ["Kick und Snare, ich bin da", "Alles klar, alles wahr", "Einmal hin und wieder her", "Noch ein Takt, ich will mehr"]],
+    en: [["Beat is on, I'm feeling right", "Got my plan for day and night", "Hands up if you know the line", "This one here is mine"], ["Kick and snare, I'm on my way", "Nothing stops me here today", "One more round and one more try", "Watch this little rhythm fly"]]
+  };
+  // Suggestions from the app's own ideas. pick(n) -> random index. No network, no count.
+  function local(kind, ideas, lang, pick, topic) {
+    var pool = ideas.filter(function (i) { return i.kind === (kind === "line" ? "card" : kind === "meme" ? "photo" : "none"); });
+    var three = function (a) { var o = a.slice(), out = []; while (o.length && out.length < 3) out.push(o.splice(pick(o.length), 1)[0]); return out; };
+    if (kind === "line") {
+      var lines = []; pool.forEach(function (i) { lines = lines.concat((i[lang] || i.de).lines || []); });
+      return three(lines.filter(function (l) { return Array.from(l).length <= 90; }));
+    }
+    if (kind === "meme") return three(pool.map(function (i) { var L = i[lang] || i.de; return { top: L.top, bottom: L.bottom }; }).filter(function (o) { return o.top && o.bottom; }));
+    var set = HOOKS[lang] || HOOKS.de;
+    return [{ title: Array.from(topic || "Mein Beat").slice(0, 28).join(""), lines: set[pick(set.length)] }];
+  }
+  // What the server's answer means for the page.
+  function verdict(status, json) {
+    if (status === 200 && json && Array.isArray(json.options) && json.options.length) return "result";
+    if (status === 429 && json && json.error === "quota") return "quota";
+    if (status === 422) return "blocked";
+    return "local";
+  }
+  var api = { local: local, verdict: verdict, HOOKS: HOOKS };
+
+  if (typeof window === "undefined") { if (typeof module !== "undefined" && module.exports) module.exports = api; return; }
+
+  var Kit = window.Kit, C = window.DuellCore, D = window.Daily, t = Kit.t, meter = Kit.store.aiMeter || null, busy = false;
+  function device() {
+    var s = Kit.store;
+    if (typeof s.aiDev !== "string" || !/^[a-f0-9]{32}$/.test(s.aiDev)) {
+      var b = new Uint8Array(16); crypto.getRandomValues(b);
+      s.aiDev = Array.from(b).map(function (x) { return (x + 256).toString(16).slice(1); }).join(""); Kit.save();
+    }
+    return s.aiDev;
+  }
+  function base() { return (window.DUELL_API || C.DEFAULT_API).replace(/\/config$/, "/ai"); }
+  // iOS loads the page from a file and blocks its network; there the shell makes this one call. Everywhere else: plain fetch.
+  async function post(path, body) {
+    var H = window.DuellHost, text = JSON.stringify(body);
+    if (H && typeof H.ai === "function") { var r = await H.ai(path, text); return { status: r.status, json: JSON.parse(r.body) }; }
+    var ctl = new AbortController(), tm = setTimeout(function () { ctl.abort(); }, TIMEOUT);
+    try {
+      var res = await fetch(base() + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: text, signal: ctl.signal, credentials: "same-origin", referrerPolicy: "no-referrer" });
+      return { status: res.status, json: await res.json() };
+    } finally { clearTimeout(tm); }
+  }
+  // Nothing leaves the device before the first tap on an AI button, so the count shown until then is the last one this device saw.
+  function keep(json) { if (json && json.meter) { meter = json.meter; Kit.store.aiMeter = meter; Kit.save(); } }
+  function randomPick(n) { return Math.floor(Math.random() * n); }
+  // -> { how: result|local|quota|blocked, options }
+  async function run(kind, input, fallback) {
+    var lang = Kit.lang, how = "local", options = null;
+    try {
+      if (navigator.onLine === false) throw new Error("offline");
+      var r = await post("", { kind: kind, input: input, device: device(), lang: lang });
+      keep(r.json);
+      how = verdict(r.status, r.json);
+      if (how === "result") options = r.json.options;
+    } catch (e) { how = "local"; }
+    if (how === "blocked") return { how: how, options: [] };
+    return { how: how, options: options || (fallback ? fallback() : local(kind, D.IDEAS, lang, randomPick, input.topic)) };
+  }
+  function line() {
+    if (!meter) return t("aiCountNew");
+    if (meter.abo) return t("aiCountAbo", { n: meter.remaining });
+    return t("aiCount", { n: meter.remaining, m: meter.free });
+  }
+
+  // One AI action in a panel. o: { kind, label, el, input(), show(option) -> label, apply(option), wall(), hint? }
+  function block(p, o) {
+    var el = o.el, box = el("div", "aibox"), count = el("p", "aicount", line()), res = el("div", "chips");
+    var go = el("button", "chip", "✨ " + o.label, async function () {
+      if (busy) return;
+      var input = o.input(); if (!input) { Kit.toast(t("filter")); return; }
+      busy = true; go.disabled = true; go.textContent = "… " + t("aiThinking"); res.textContent = ""; src.hidden = true;
+      var r = await run(o.kind, input, o.fallback);
+      busy = false; go.disabled = false; go.textContent = "✨ " + o.label; count.textContent = line();
+      if (r.how === "blocked") { Kit.toast(t("filter")); return; }
+      if (r.how === "quota") o.wall();
+      src.textContent = t("aiLocal"); src.hidden = r.how === "result";
+      if (o.auto) { if (r.how !== "quota") o.auto(r.options[0], r.how === "result", res); }
+      else r.options.forEach(function (opt) {
+        res.appendChild(el("button", "chip aiopt", o.show(opt), function () { Kit.sfx.pop(); o.apply(opt); }));
+      });
+      Kit.sfx.pop();
+    }), src = el("p", "note", null);
+    src.hidden = true;
+    var row = el("div", "airow"); row.appendChild(go); row.appendChild(count);
+    box.appendChild(el("p", "note", t("aiNote"))); box.appendChild(row); box.appendChild(src); box.appendChild(res);
+    p.appendChild(box);
+  }
+  // The honest wall: no price, no countdown, nothing to buy yet.
+  function wall(b, el) {
+    b.appendChild(el("div", "empty", t("aiSoon")));
+    b.appendChild(el("p", "note", t("aiUsed", { m: meter ? meter.free : 3 })));
+    b.appendChild(el("p", "note", t("aiNoBuy")));
+    var ok = el("button", "btn", meter && meter.interest ? t("aiNoted") : t("aiWant"), async function () {
+      ok.disabled = true;
+      try { var r = await post("/interest", { device: device() }); keep(r.json); ok.textContent = t("aiNoted"); } catch (e) { ok.disabled = false; Kit.toast(t("aiNet")); }
+    });
+    ok.disabled = !!(meter && meter.interest); b.appendChild(ok);
+    b.appendChild(el("p", "note", t("aiWantNote")));
+    if (meter && meter.canLogin && !window.DuellHost) {
+      var a = el("a", "btn", t("aiLogin")); a.href = "/auth/login?return=" + encodeURIComponent("/duell"); b.appendChild(a);
+    }
+  }
+  window.Ai = { block: block, wall: wall, count: line, post: post };
+})(typeof globalThis !== "undefined" ? globalThis : this);
+</script>
+<script>/* My Daily Idea: the free wish. The server returns validated changes; this file applies them to a creation, says what
+   changed and keeps the state before, so every wish can be undone. Without a server it uses plain local rules. */
+(function (root) {
+  "use strict";
+  var C = root.DuellCore || (typeof require === "function" ? require("./core.js") : null);
+  var D = root.Daily || (typeof require === "function" ? require("./daily.js") : null);
+
+  // What goes to the server about the creation: its type and its texts, nothing else.
+  function request(doc, wish, idea) {
+    var now = doc.k === "game" ? { title: doc.g.title } : { x: doc.x, y: doc.y, st: doc.st, bpm: doc.bpm };
+    return { type: doc.k, wish: wish, idea: idea || doc.t || "", now: now };
+  }
+  // doc + changes -> a new sanitized doc; only keys of its type can have any effect.
+  function apply(doc, ch, pairs, rand) {
+    var d = JSON.parse(JSON.stringify(doc));
+    if (typeof ch.palette === "number" && pairs[ch.palette]) d.col = pairs[ch.palette].slice();
+    if (d.k === "game") {
+      ["gravity", "jump", "gap", "speed"].forEach(function (k) { if (ch[k] !== undefined) d.g.params[k] = ch[k]; });
+      if (ch.theme) d.g.theme = ch.theme; if (ch.emoji) d.g.emoji = ch.emoji; if (ch.title) d.g.title = ch.title;
+    } else {
+      ["x", "y", "st", "bpm", "fx"].forEach(function (k) { if (ch[k] !== undefined && d[k] !== undefined) d[k] = ch[k]; });
+      if (d.p) ["k", "s", "h", "b"].forEach(function (k) { if (ch[k]) d.p[k] = ch[k]; });
+      if (d.sk && ch.stickers) ch.stickers.forEach(function (e) {
+        if (d.sk.length < D.MAX_STICKERS) d.sk.push({ e: e, x: 0.15 + rand() * 0.7, y: 0.15 + rand() * 0.65, r: (rand() - 0.5) * 0.7, z: 0.8 + rand() * 0.7 });
+      });
+    }
+    return D.sanitizeDoc(d);
+  }
+  // No server, no model: still a visible answer from fixed rules. Costs nothing.
+  function local(doc, wish, lang, pick) {
+    if (doc.k === "game") {
+      var s = C.localConfig(wish, lang), P = s.params || {};
+      return { gravity: P.gravity, jump: P.jump, gap: P.gap, speed: P.speed, theme: s.theme, emoji: s.emoji };
+    }
+    if (doc.k === "sound") { var slow = /langsam|ruhig|slow|chill/i.test(wish); return { bpm: Math.max(70, Math.min(170, doc.bpm + (slow ? -20 : 20))) }; }
+    var list = D.STYLES[doc.k], st = list[(list.indexOf(doc.st) + 1) % list.length];
+    return { st: st, palette: pick(8) };
+  }
+  var api = { request: request, apply: apply, local: local };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.Wish = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+</script>
 <script>/* Draws a creation to a canvas. Same code for the live preview and the final picture. */
 (function () {
   "use strict";
@@ -1080,6 +1419,15 @@ input[type=color]{width:64px;height:44px;border:3px solid var(--ink);border-radi
       c.font = r * 1.25 + "px " + EMO; c.textAlign = "center"; c.textBaseline = "middle"; c.fillStyle = "#000"; c.fillText(s.e, 0, r * 0.06);
       c.restore();
     });
+  }
+  // Real figures from the weather service, always with the source. WMO code -> a small picture.
+  function sky(code) { return code <= 1 ? "☀️" : code <= 3 ? "⛅" : code <= 48 ? "🌫" : code <= 67 ? "🌧" : code <= 77 ? "❄️" : code <= 82 ? "🌦" : code <= 86 ? "❄️" : "⛈"; }
+  function weather(c, W, H, w) {
+    if (!w) return;
+    var y = H * 0.8, h = H * 0.105, day = w.d.slice(8, 10) + "." + w.d.slice(5, 7) + ".";
+    c.fillStyle = "#111"; c.fillRect(0, y, W, h); c.fillStyle = "#fff"; c.textBaseline = "middle"; c.textAlign = "left";
+    c.font = "900 " + W * 0.05 + "px system-ui,sans-serif," + EMO; c.fillText(sky(w.c) + " " + w.hi + "° / " + w.lo + "°  💧" + w.rn + " %", W * 0.04, y + h * 0.33);
+    c.font = "700 " + W * 0.032 + "px system-ui,sans-serif"; c.fillText(w.p + ", " + day + " · Open-Meteo", W * 0.04, y + h * 0.75);
   }
   function credit(c, W, H, doc, me, col) {
     var who = [me.emoji, me.nick].filter(Boolean).join(" ");
@@ -1188,6 +1536,7 @@ input[type=color]{width:64px;height:44px;border:3px solid var(--ink);border-radi
     if (doc.k === "card") drawCard(c, W, H, doc);
     else if (doc.k === "photo") drawPhoto(c, W, H, doc, opt.photo);
     else if (doc.k === "sound") drawSound(c, W, H, doc, opt.peaks);
+    weather(c, W, H, doc.w);
     stickers(c, W, H, doc.sk);
     credit(c, W, H, doc, me, doc.k === "card" && doc.st === "neon" ? "#fff" : (doc.k === "photo" && doc.st !== "sticker" ? "#fff" : ink(doc.k === "card" && doc.st === "zettel" ? doc.col[1] : doc.col[0])));
   }
@@ -1208,10 +1557,59 @@ input[type=color]{width:64px;height:44px;border:3px solid var(--ink);border-radi
   window.Render = { draw: draw, lum: lum, block: block, ink: ink, botFace: botFace, dots: dots, rays: rays, FONT: FONT };
 })();
 </script>
+<script>/* My Daily Idea: "Mach's spielbar". A card or photo becomes the Duell game. What travels in a link is plain game data:
+   colours, emoji, title, one line. The picture and the photo are only ever drawn on this device. */
+(function (root) {
+  "use strict";
+  var C = root.DuellCore || (typeof require === "function" ? require("./core.js") : null);
+  var PACE = { neon: { gravity: 2000, speed: 190, gap: 125 }, glitch: { gravity: 2100, speed: 200, gap: 120 }, stempel: { gravity: 1700, speed: 140, gap: 150 }, zettel: { gravity: 1500, speed: 120, gap: 165 }, poster: { gravity: 1800, speed: 150, gap: 145 }, meme: { gravity: 1900, speed: 170, gap: 135 } };
+  function shortTitle(s, fallback) {
+    var out = "";
+    String(s || "").split(/\s+/).some(function (w) { if (Array.from((out + " " + w).trim()).length > 26) return true; out = (out + " " + w).trim(); return false; });
+    return C.sanitizeTitle(out, fallback);
+  }
+  // doc: a card or photo creation, me: my style -> a game state whose every field is safe to put in a link.
+  function fromDoc(doc, me) {
+    var line = doc.k === "photo" ? [doc.x, doc.y].filter(Boolean).join(" ") : doc.x, pace = PACE[doc.st] || {};
+    return C.sanitizeState({
+      v: 1, seed: C.hash32("spiel:" + line + doc.col.join("")), theme: "day",
+      params: { gravity: pace.gravity, jump: 430, gap: pace.gap, speed: pace.speed },
+      title: shortTitle(line, "Mein Spiel"), emoji: doc.sk && doc.sk.length ? doc.sk[0].e : me.emoji,
+      skin: { c: doc.col, l: line }
+    });
+  }
+  function rgb(h) { return [1, 3, 5].map(function (i) { return parseInt(h.slice(i, i + 2), 16); }); }
+  function mix(a, b, k) { var x = rgb(a), y = rgb(b); return "#" + x.map(function (v, i) { return (Math.round(v + (y[i] - v) * k) + 256).toString(16).slice(1); }).join(""); }
+  function far(a, b) { var x = rgb(a), y = rgb(b); return Math.abs(x[0] - y[0]) + Math.abs(x[1] - y[1]) + Math.abs(x[2] - y[2]) > 120; }
+  // Colours of the game's theme table from the two colours of the card; obstacles always stand out from the sky.
+  function skinTheme(skin) {
+    var a = skin.c[0], b = skin.c[1], dark = rgb(a).reduce(function (s, v) { return s + v; }, 0) < 300, pipe = far(a, b) ? b : (dark ? "#ffffff" : "#111111");
+    return { skyTop: a, skyBottom: mix(a, "#ffffff", 0.45), pipe: pipe, pipeEdge: mix(pipe, "#000000", 0.4), ground: mix(pipe, "#000000", 0.55), groundEdge: mix(pipe, "#000000", 0.3), accent: mix(pipe, "#ffffff", 0.5) };
+  }
+  // Pre-rendered once, so a frame only blits small canvases.
+  function backdrop(render, doc, me) {
+    var src = document.createElement("canvas"), out = document.createElement("canvas"), W = 432, H = 684; src.width = 540; src.height = 675; out.width = W; out.height = H;
+    render(src, Object.assign({}, doc, { x: " ", y: " ", sk: [] }), me);
+    var k = Math.max(W / src.width, H / src.height), w = W / k, h = H / k;
+    out.getContext("2d").drawImage(src, (src.width - w) / 2, (src.height - h) / 2, w, h, 0, 0, W, H);
+    return out;
+  }
+  function figure(photo) {
+    var c = document.createElement("canvas"), n = 96, x = c.getContext("2d"), side = Math.min(photo.width, photo.height); c.width = c.height = n;
+    x.beginPath(); x.arc(n / 2, n / 2, n / 2 - 3, 0, 6.3); x.closePath(); x.save(); x.clip();
+    x.drawImage(photo, (photo.width - side) / 2, (photo.height - side) / 2, side, side, 0, 0, n, n); x.restore();
+    x.lineWidth = 5; x.strokeStyle = "#111"; x.beginPath(); x.arc(n / 2, n / 2, n / 2 - 3, 0, 6.3); x.stroke();
+    return c;
+  }
+  var api = { fromDoc: fromDoc, skinTheme: skinTheme, backdrop: backdrop, figure: figure, shortTitle: shortTitle };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.Playable = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+</script>
 <script>/* Game screen: the Duell flyer as one idea among others. Also runs as a live, self-playing preview in the editor. */
 (function () {
 "use strict";
-var C = window.DuellCore, E = window.DuellEngine, D = window.Daily, Kit = window.Kit, t = Kit.t;
+var C = window.DuellCore, E = window.DuellEngine, D = window.Daily, Kit = window.Kit, P = window.Playable, t = Kit.t;
 var $ = function (id) { return document.getElementById(id); };
 var TH = {
   day:   { skyTop: "#4ec0ca", skyBottom: "#b6e6e0", pipe: "#5cbf3a", pipeEdge: "#2f7d1b", ground: "#ded895", groundEdge: "#c5b96a", accent: "#f7d51d" },
@@ -1223,6 +1621,8 @@ var TH = {
   ocean: { skyTop: "#04476b", skyBottom: "#1aa6b7", pipe: "#ff7f6b", pipeEdge: "#b74a3a", ground: "#0b2f4a", groundEdge: "#1d5f86", accent: "#aef0ff", bubbles: 1 },
   lava:  { skyTop: "#2b0a0a", skyBottom: "#7a1d0b", pipe: "#3a3a3a", pipeEdge: "#1b1b1b", ground: "#1b0f0f", groundEdge: "#ff5a1f", accent: "#ffb347", glow: 1 }
 };
+var skinTh = null;   // a game made from a card has that card's colours instead of a named world
+function look() { return cur.skin ? skinTh || (skinTh = P.skinTheme(cur.skin)) : TH[cur.theme]; }
 function fmt(k, o) { return t(k, o); }
 function tone(a, b, c, d, e, f) { Kit.tone(a, b, c, d, e, f); }
 var SFX = {
@@ -1258,13 +1658,14 @@ function fit() {
 }
 window.addEventListener("resize", function () { if (mode !== "off") fit(); });
 function draw() {
-  var th = TH[cur.theme], p = sim, s = scale * cv.dpr, W = E.W, H = E.H, G = E.GROUND;
+  var th = look(), p = sim, s = scale * cv.dpr, W = E.W, H = E.H, G = E.GROUND;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, cv.width, cv.height);
   var sx = shake ? (Math.random() - 0.5) * shake : 0, sy = shake ? (Math.random() - 0.5) * shake : 0;
   ctx.setTransform(s, 0, 0, s, sx * s, sy * s);
   var g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, th.skyTop); g.addColorStop(1, th.skyBottom);
   ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, H + 40);
+  if (opts.bg) { ctx.globalAlpha = 0.45; ctx.drawImage(opts.bg, 0, 0, W, H - G); ctx.globalAlpha = 1; }
   // backdrop: stars / bubbles / soft clouds (visual only)
   var i, x, y;
   if (th.stars) { ctx.fillStyle = "rgba(255,255,255,.8)"; for (i = 0; i < 28; i++) { x = (i * 97 + 13) % W; y = (i * 53 + 7) % (H - G - 80); ctx.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(clock * 1.5 + i)); ctx.fillRect(x, y, 2, 2); } ctx.globalAlpha = 1; }
@@ -1295,7 +1696,8 @@ function draw() {
   var by2 = p.state === "ready" ? p.bird.y + Math.sin(clock * 4) * 6 : p.bird.y;
   ctx.save(); ctx.translate(E.BX, by2); ctx.rotate(p.state === "over" ? 1.4 : p.bird.rot);
   ctx.font = Math.round(E.GROUND * 0.62) + "px " + EMO; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(cur.emoji, 0, 2); ctx.restore();
+  if (opts.figure) ctx.drawImage(opts.figure, -18, -18, 36, 36); else ctx.fillText(cur.emoji, 0, 2);
+  ctx.restore();
   // particles
   for (i = 0; i < parts.length; i++) { var q = parts[i]; ctx.globalAlpha = Math.max(0, q.life / q.max); ctx.fillStyle = q.c; ctx.fillRect(q.x, q.y, q.s, q.s); }
   ctx.globalAlpha = 1;
@@ -1340,7 +1742,7 @@ function handle(ev) {
 }
 function onDead() {
   document.body.setAttribute("data-state", "over"); SFX.dead(); doShake(18); flash = 1;
-  burst(86, sim.bird.y, 46, [TH[cur.theme].accent, "#fff", "#ff3d71", "#ffd93d"], 320, 700);
+  burst(86, sim.bird.y, 46, [look().accent, "#fff", "#ff3d71", "#ffd93d"], 320, 700);
   isRecord = sim.score > prevBest && sim.score > 0;
   if (isRecord) { best()[C.configKey(cur)] = sim.score; Kit.save(); }
   $("hint").hidden = true; $("banner").hidden = true;
@@ -1354,7 +1756,7 @@ function showResult() {
     var nm = rival.name || t("rival");
     line = sc > rival.score ? t("win", { name: nm }) : sc === rival.score ? t("tie", { name: nm }) : t("lose", { name: nm, d: rival.score - sc });
   } else line = t("bestN", { n: Math.max(prevBest, sc) });
-  $("res-line").textContent = line; $("res-score").textContent = String(sc);
+  $("res-line").textContent = !rival && cur.skin && cur.skin.l ? cur.skin.l : line; $("res-score").textContent = String(sc);
   // Own changes make sharing the main action; a game nobody touched asks for a remix first.
   $("image").hidden = !opts.own; $("challenge").classList.toggle("hot", !!opts.own); $("toremix").classList.toggle("hot", !opts.own);
   $("gamebtns").insertBefore(opts.own ? $("challenge") : $("toremix"), $("gamebtns").firstChild);
@@ -1389,7 +1791,7 @@ function doFlap() {
   if (mode !== "play" || sim.state === "over") return;
   var ev = sim.flap();
   if (ev.indexOf("start") >= 0) { document.body.setAttribute("data-state", "run"); $("hint").hidden = true; $("dock").hidden = true; $("banner").hidden = true; }
-  if (ev.indexOf("flap") >= 0) { SFX.flap(); burst(76, sim.bird.y + 8, 5, ["#fff", TH[cur.theme].accent], 90, 200); }
+  if (ev.indexOf("flap") >= 0) { SFX.flap(); burst(76, sim.bird.y + 8, 5, ["#fff", look().accent], 90, 200); }
 }
 $("game").addEventListener("pointerdown", function (e) { if (e.target.closest("button,input,.panel")) return; e.preventDefault(); doFlap(); });
 window.addEventListener("keydown", function (e) {
@@ -1419,8 +1821,8 @@ async function fromSentence(prompt, lang) {
 window.Game = {
   THEMES: Object.keys(TH), themeColor: function (n) { return TH[n].skyTop; }, fromSentence: fromSentence,
   play: function (st, riv, o) {
-    opts = o || {}; rival = riv || null; cur = st; mode = "play";
-    attach($("cv")); $("game").style.background = TH[cur.theme].skyTop; $("title").textContent = cur.title; $("hint").textContent = t("hint"); $("remixbtn").textContent = "✨ " + t("remix");
+    opts = o || {}; rival = riv || null; cur = st; skinTh = null; mode = "play";
+    attach($("cv")); $("game").style.background = look().skyTop; $("title").textContent = cur.title; $("hint").textContent = t("hint"); $("remixbtn").textContent = "✨ " + t("remix");
     $("challenge").textContent = t("challenge"); $("again").textContent = t("again"); $("image").textContent = t("image"); $("toremix").textContent = t("remix");
     newRun(); run();
   },
@@ -1442,7 +1844,7 @@ window.DuellDebug = {
 <script>/* Calendar, remix editor, my style, wall. All text goes in as text nodes, never as markup. */
 (function () {
 "use strict";
-var C = window.DuellCore, D = window.Daily, S = window.Studio, Kit = window.Kit, G = window.Game, R = window.Render, t = Kit.t;
+var C = window.DuellCore, D = window.Daily, W = window.Wish, P = window.Playable, S = window.Studio, Kit = window.Kit, G = window.Game, R = window.Render, t = Kit.t;
 var $ = function (id) { return document.getElementById(id); };
 function el(tag, cls, text, on) {
   var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text;
@@ -1501,7 +1903,7 @@ function setHome(h, animate) {
 }
 function dayHome() { return { date: today, idea: D.ideaForDay(today) }; }
 function goHome() {
-  stopSound(); G.stop(); ed = null; clearLink(); setInk(me.colors[0], me.colors[1]); show("home");
+  stopSound(); G.stop(); ed = null; played = null; clearLink(); setInk(me.colors[0], me.colors[1]); show("home");
   if (!home) home = dayHome(); setHome(home, true);
 }
 function tear(dir) {
@@ -1533,7 +1935,7 @@ function paint() {
   timer = 0; if (!ed) return;
   ed.doc.col = ed.doc.col; setInk(ed.doc.col[0], ed.doc.col[1]);
   if (ed.doc.k === "game") G.update(ed.doc.g && gameState()); else { R.draw(cv, ed.doc, { me: me, photo: ed.photo, peaks: ed.peaks }); }
-  footer();
+  SK.sync(); footer();
 }
 function changed() {           // every control ends up here: redraw within the next moment
   if (!timer) timer = setTimeout(paint, 16);
@@ -1562,19 +1964,64 @@ function openEditor(doc, opt) {
   $("edstyle").textContent = me.emoji;
   stopSound(); show("editor", true); trailLine();
   var tabs = $("tabs"); tabs.textContent = "";
-  var list = (ed.own ? ["Idea"] : []).concat(TABS[ed.doc.k]);
+  var list = (ed.own ? ["Idea"] : []).concat(["Wish"], TABS[ed.doc.k]);
   list.forEach(function (k) {
     var b = el("button", "", t("tab" + (k === "Sound" ? (ed.doc.m === "beat" ? "Beat" : "Voice") : k === "Idea" ? "Idea" : k)), function () { Kit.sfx.tap(); tab(k); });
     b.setAttribute("role", "tab"); b.dataset.k = k; tabs.appendChild(b);
   });
-  tab(list[0]);
+  tab(list[0] === "Wish" ? list[1] : list[0]);
   if (g) G.demo($("demo"), gameState());
   paint();
 }
 function tab(k) {
   ed.tab = k; Array.from($("tabs").children).forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.k === k)); });
-  var p = $("panel"); p.textContent = ""; p.classList.toggle("tall", k === "Sound" && ed.doc.m === "beat"); PANEL[k](p); p.scrollTop = 0;
+  var p = $("panel"); p.textContent = ""; p.classList.toggle("tall", (k === "Sound" && ed.doc.m === "beat") || (k === "Text" && ed.doc.k !== "game") || k === "Wish"); PANEL[k](p); p.scrollTop = 0;
 }
+function setDoc(d) {        // a whole creation replaced by a wish or its undo; the canvas state follows
+  ed.doc = d; ed.sel = -1; if (d.k === "sound" && d.m === "beat") beatPeaks();
+  if (d.k === "sound" && ed.raw) applyFx();
+  $("edstyle").textContent = me.emoji; trailLine(); changed();
+}
+// Weather card: place and day in, real figures out. No figures without the service.
+function weatherBlock(p) {
+  var box = el("div", "aibox"), place = el("input", "field"), days = el("div", "chips"), when = 0, row = el("div", "chips");
+  place.maxLength = 40; place.autocomplete = "off"; place.setAttribute("aria-label", t("wxPlace")); place.placeholder = t("wxPlace");
+  box.appendChild(el("label", "lbl", t("wxTitle"))); box.appendChild(place);
+  [t("wxToday"), t("wxTomorrow"), t("wxAfter")].forEach(function (l, i) {
+    var b = el("button", "chip" + (i ? "" : " on"), l, function () { when = i; Array.from(days.children).forEach(function (x) { x.classList.remove("on"); }); b.classList.add("on"); });
+    days.appendChild(b);
+  });
+  box.appendChild(days);
+  var go = el("button", "chip", "🌦 " + t("wxGo"), async function () {
+    var v = D.cleanInput(place.value, 40); if (!v) { Kit.toast(t("filter")); return; }
+    go.disabled = true;
+    var day = new Date(Date.now() + when * 86400000).toISOString().slice(0, 10), r = null;
+    try { r = await window.Ai.post("/weather", { place: v, date: day }); } catch (e) { r = null; }
+    go.disabled = false;
+    if (!r || r.status !== 200 || !r.json) { Kit.toast(r && r.status === 404 ? t("wxNoPlace") : r && r.status === 422 ? t("filter") : t("wxFail")); return; }
+    var j = r.json; ed.doc.w = D.sanitizeDoc({ k: "card", w: { p: j.place, d: j.date, hi: j.hi, lo: j.lo, rn: j.rain, c: j.code } }).w; Kit.sfx.pop(); changed(); tab("Text");
+  });
+  row.appendChild(go);
+  if (ed.doc.w) row.appendChild(el("button", "chip", "✕ " + t("wxOff"), function () { delete ed.doc.w; changed(); tab("Text"); }));
+  box.appendChild(row); box.appendChild(el("p", "note", t("wxNote"))); p.appendChild(box);
+}
+function playButton(p) {
+  p.appendChild(el("button", "chip", "🕹 " + t("playIt"), makePlayable));
+  if (ed.doc.k === "photo") p.appendChild(el("p", "note", t("playNote")));
+}
+// The creation becomes the game: same engine, its colours, picture and figure. Back leads to the creation, not home.
+var played = null;
+function makePlayable() {
+  var d = ed.doc, photo = ed.ownPhoto ? ed.photo : null, st = P.fromDoc(d, me);
+  var o = { own: true, bg: P.backdrop(function (c, doc, m) { R.draw(c, doc, { me: m, photo: ed.photo, peaks: ed.peaks }); }, d, me), figure: photo ? P.figure(photo) : null };
+  played = ed; Kit.sfx.thud(); stopSound(); G.stop(); show("game", true); G.play(st, null, o);
+  if (photo) Kit.toast(t("playNote"));
+}
+function backFromPlay() {
+  if (!played) return false;
+  ed = played; played = null; G.stop(); show("editor"); changed(); return true;
+}
+function aiBlock(p, o) { o.el = el; o.wall = openAiWall; window.Ai.block(p, o); }
 function field(p, label, value, max, on, area) {
   p.appendChild(el("label", "lbl", label));
   var f = el(area ? "textarea" : "input", "field"); f.value = value || ""; f.maxLength = max; if (area) f.rows = 2; f.autocomplete = "off"; f.setAttribute("aria-label", label);
@@ -1610,6 +2057,25 @@ function colors(p, get, set) {
   p.appendChild(row);
 }
 var PANEL = {
+  Wish: function (p) {
+    var f = field(p, t("wishL"), "", 100, function () {}, true), box = el("div", "chips");
+    t("wishTips").split("|").forEach(function (x) { box.appendChild(el("button", "chip", x, function () { Kit.sfx.tap(); f.value = x; })); });
+    p.appendChild(box);
+    aiBlock(p, {
+      kind: "wish", label: t("wishGo"), input: function () { var v = D.cleanInput(f.value, 100); return v ? W.request(ed.doc, v, ed.idea ? ideaText(ed.idea).t.replace("|", " ") : "") : null; },
+      fallback: function () { return [{ changes: W.local(ed.doc, D.cleanInput(f.value, 100), Kit.lang, function (n) { return Math.floor(Math.random() * n); }), note: "" }]; },
+      auto: function (o, real, res) {
+        var before = JSON.stringify(ed.doc), next = W.apply(ed.doc, o.changes, PAIRS, Math.random), was = JSON.parse(before), what = D.changedAreas(was, next);
+        if (ed.doc.k === "sound" && next.fx !== was.fx && what.indexOf("stimme") < 0) what.push("stimme");
+        res.textContent = "";
+        if (!what.length) { res.appendChild(el("p", "note", t("wishSame"))); return; }
+        setDoc(next); (ed.wishes = ed.wishes || []).push(before);
+        res.appendChild(el("p", "aicount", (real && o.note ? o.note + " · " : "") + t("wishDid") + ": " + what.map(function (w) { return t("a_" + w); }).join(", ")));
+        var un = el("button", "chip", "↶ " + t("skUndo"), function () { setDoc(JSON.parse(ed.wishes.pop())); Kit.sfx.pop(); res.textContent = ""; });
+        res.appendChild(un);
+      }
+    });
+  },
   Idea: function (p) {
     p.appendChild(el("p", "note", t("ownH")));
     field(p, t("ideaT"), ed.doc.t, 40, function (v) { ed.doc.t = v; });
@@ -1620,8 +2086,19 @@ var PANEL = {
     if (d.k === "card") {
       var f = field(p, t("line"), d.x, 90, function (v) { d.x = v; }, true), L = ed.idea ? ideaText(ed.idea).lines : null;
       if (L) p.appendChild(el("button", "chip", "🎲 " + t("dice"), function () { Kit.sfx.pop(); ed.line = (ed.line + 1) % L.length; d.x = L[ed.line]; f.value = d.x; ed.base.x = d.x; changed(); }));
-    } else if (d.k === "photo") { field(p, t("top"), d.x, 28, function (v) { d.x = v; }); field(p, t("bottom"), d.y, 28, function (v) { d.y = v; }); }
-    else if (d.k === "sound") field(p, t("titleL"), d.x, 28, function (v) { d.x = v; });
+      playButton(p);
+      aiBlock(p, { kind: "line", label: t("aiLine"), input: function () { var x = D.cleanInput(d.x, 90) || t("own"); return { text: x, style: d.st }; }, show: String, apply: function (o) { var v = D.cleanInput(o, 90); if (v) { d.x = v; f.value = v; changed(); } } });
+      weatherBlock(p);
+    } else if (d.k === "photo") {
+      var top = field(p, t("top"), d.x, 28, function (v) { d.x = v; }), low = field(p, t("bottom"), d.y, 28, function (v) { d.y = v; });
+      playButton(p);
+      var what = field(p, t("aiDesc"), "", 100, function () {});
+      aiBlock(p, { kind: "meme", label: t("aiMeme"), input: function () { var v = D.cleanInput(what.value, 100); return v ? { desc: v } : null; }, show: function (o) { return o.top + " / " + o.bottom; }, apply: function (o) { d.x = D.cleanInput(o.top, 28); d.y = D.cleanInput(o.bottom, 28); top.value = d.x; low.value = d.y; changed(); } });
+    } else if (d.k === "sound") {
+      var name = field(p, t("titleL"), d.x, 28, function (v) { d.x = v; }), topic = field(p, t("aiTopic"), "", 60, function () {}), song = el("p", "lyrics"); song.hidden = true;
+      aiBlock(p, { kind: "lyrics", label: t("aiLyrics"), input: function () { var v = D.cleanInput(topic.value, 60); return v ? { topic: v, bpm: d.bpm || 110 } : null; }, show: function (o) { return o.title; }, apply: function (o) { var v = D.cleanInput(o.title, 28); if (v) { d.x = v; name.value = v; } song.textContent = o.lines.join("\n"); song.hidden = false; changed(); } });
+      p.appendChild(song);
+    }
     else field(p, t("titleL"), d.g.title, 28, function (v) { d.g.title = v || "Duell"; });
   },
   Style: function (p) {
@@ -1634,18 +2111,27 @@ var PANEL = {
     var box = el("div", "chips");
     set.forEach(function (e) {
       box.appendChild(el("button", "chip em", e, function () {
-        if (d.sk.length >= D.MAX_STICKERS) return;
+        if (d.sk.length >= D.MAX_STICKERS) { Kit.toast(t("skFull")); return; }
         Kit.sfx.pop(); var r = C.mulberry32(C.hash32(me.nick + d.sk.length + e + d.x));
-        d.sk.push({ e: e, x: 0.15 + r() * 0.7, y: 0.15 + r() * 0.65, r: (r() - 0.5) * 0.7, z: 0.8 + r() * 0.7 }); ed.sel = d.sk.length - 1; changed();
+        SK.step(function (l) { l.push({ e: e, x: 0.15 + r() * 0.7, y: 0.15 + r() * 0.65, r: (r() - 0.5) * 0.7, z: 0.8 + r() * 0.7 }); ed.sel = l.length - 1; });
       }));
     });
     p.appendChild(box);
+    if (!d.sk.length) return;
+    p.appendChild(el("p", "note", t("skHint")));
+    var mine = el("div", "chips");   // also the way to reach a sticker that is hard to tap, and the keyboard's way
+    d.sk.forEach(function (s, i) {
+      var b = el("button", "chip em" + (i === ed.sel ? " on" : ""), s.e, function () { Kit.sfx.tap(); SK.select(i); });
+      b.setAttribute("aria-pressed", String(i === ed.sel)); mine.appendChild(b);
+    });
+    p.appendChild(mine);
     var row = el("div", "chips");
-    [["−", function (s) { s.z = Math.max(0.5, s.z - 0.2); }], ["+", function (s) { s.z = Math.min(2.5, s.z + 0.2); }], ["↻", function (s) { s.r = s.r > 0.8 ? -1 : s.r + 0.25; }], ["✕", null]].forEach(function (x) {
-      row.appendChild(el("button", "chip em", x[0], function () {
-        var s = d.sk[ed.sel]; if (!s) return; Kit.sfx.tap();
-        if (x[1]) x[1](s); else { d.sk.splice(ed.sel, 1); ed.sel = d.sk.length - 1; } changed();
-      }));
+    [["−", function (s) { s.z = Math.max(0.5, s.z - 0.2); }], ["+", function (s) { s.z = Math.min(2.5, s.z + 0.2); }], ["↻", function (s) { s.r = s.r > 2.9 ? -3 : s.r + 0.25; }], ["✕", null]].forEach(function (x) {
+      var b = el("button", "chip em", x[0], function () {
+        if (!d.sk[ed.sel]) return; Kit.sfx.tap();
+        if (x[1]) SK.step(function (l) { x[1](l[ed.sel]); }); else SK.remove(ed.sel);
+      });
+      b.disabled = !d.sk[ed.sel]; row.appendChild(b);
     });
     p.appendChild(row);
   },
@@ -1685,18 +2171,11 @@ var PANEL = {
   }
 };
 
-/* sticker dragging on the preview */
-(function () {
-  var drag = -1;
-  function pos(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; }
-  cv.addEventListener("pointerdown", function (e) {
-    if (!ed || !ed.doc.sk) return; var p = pos(e), l = ed.doc.sk;
-    for (var i = l.length - 1; i >= 0; i--) { if (Math.hypot(l[i].x - p.x, (l[i].y - p.y) * 1.25) < 0.1 * l[i].z) { drag = i; ed.sel = i; try { cv.setPointerCapture(e.pointerId); } catch (x) {} Kit.sfx.tap(); return; } }
-  });
-  cv.addEventListener("pointermove", function (e) { if (drag < 0 || !ed) return; var p = pos(e), s = ed.doc.sk[drag]; s.x = Math.min(1, Math.max(0, p.x)); s.y = Math.min(1, Math.max(0, p.y)); changed(); });
-  function up() { drag = -1; }
-  cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
-})();
+/* stickers on the preview (stickers.js) */
+var SK = window.Stickers.attach({
+  cv: cv, wrap: $("stagewrap"), state: function () { return ed; }, changed: changed, t: t, sfx: function (n) { Kit.sfx[n](); },
+  onChange: function () { if (ed && ed.tab === "Sticker") { var keep = $("panel").scrollTop; tab("Sticker"); $("panel").scrollTop = keep; } }
+});
 
 /* photo: read locally, drawn to a canvas; the file never leaves this function's memory */
 $("file").addEventListener("change", async function () {
@@ -1794,6 +2273,7 @@ async function finish(doc, idea, pictureDoc) {
   wall = D.addToWall(wall, { id: idea || doc.i || "own", ts: Date.now(), th: thumb(c) }); store.wall = wall; Kit.save();
   if (!Kit.persisted) Kit.toast(t("wallFull"));
   var img = $("doneimg"); if (img.src) URL.revokeObjectURL(img.src); img.src = URL.createObjectURL(png);
+  $("playit").hidden = doc.k !== "card" && doc.k !== "photo";
   stopSound(); G.stop(); labels(); show("done", true); Kit.sfx.win();
 }
 $("edmain").addEventListener("click", function () {
@@ -1808,10 +2288,11 @@ $("share").addEventListener("click", async function () {
   var how = await Kit.share({ url: result.url, text: t("shareText"), blob: result.file, name: result.name });
   if (how === "link") Kit.toast(t("shot"));
 });
+$("playit").addEventListener("click", function () { ed = result.keep; ed.sel = -1; makePlayable(); });
 $("save").addEventListener("click", function () { Kit.sfx.tap(); Kit.saveFile(result.file, result.name); });
 $("keep").addEventListener("click", function () { Kit.sfx.tap(); backToEditor(); });
 function backToEditor() {
-  ed = result.keep; show("editor"); if (ed.doc.k === "game") G.demo($("demo"), gameState()); changed();
+  ed = result.keep; ed.sel = -1; show("editor"); if (ed.doc.k === "game") G.demo($("demo"), gameState()); changed();
 }
 $("dhome").addEventListener("click", goHome);
 $("edback").addEventListener("click", function () { Kit.sfx.tap(); goHome(); });
@@ -1825,8 +2306,9 @@ function backFromStyle() {
   if (ed.doc.k === "game") G.demo($("demo"), gameState());
   changed(); return true;
 }
-$("gback").addEventListener("click", function () { Kit.sfx.tap(); goHome(); });
+$("gback").addEventListener("click", function () { Kit.sfx.tap(); if (!backFromPlay()) goHome(); });
 function gameToEditor() {
+  if (backFromPlay()) return;
   var s = G.current(), d = { k: "game", col: me.colors, by: [], g: { seed: s.seed, params: s.params, theme: s.theme, title: s.title, emoji: s.emoji } };
   if (ed && ed.doc.k === "game") { var keep = ed; G.stop(); show("editor"); ed = keep; G.demo($("demo"), gameState()); changed(); return; }
   G.stop(); openEditor(d);
@@ -1856,6 +2338,7 @@ function openStyle() {
   });
 }
 function shelf(title, fill) { stopSound(); G.stop(); $("shtitle").textContent = title; var b = $("shbody"); b.textContent = ""; fill(b); show("shelf", true); }
+function openAiWall() { ed.styling = true; shelf(t("aiTitle"), function (b) { window.Ai.wall(b, el); }); }
 function openPast() {
   shelf(t("past"), function (b) {
     D.lastDays(today, 7).forEach(function (e) {
@@ -1895,8 +2378,8 @@ function labels() {
   document.documentElement.lang = Kit.lang;
   $("brand").textContent = t("brand"); $("lang").textContent = Kit.lang.toUpperCase(); $("me").textContent = me.emoji;
   $("mute").textContent = Kit.muted ? "🔇" : "🔊"; $("more").textContent = t("more"); $("own").textContent = t("own"); $("past").textContent = t("past"); $("wall").textContent = t("wall");
-  $("share").textContent = t("share"); $("save").textContent = t("save"); $("keep").textContent = t("edit"); $("dhome").textContent = t("home");
-  $("save").hidden = !Kit.canSave();
+  $("share").textContent = t("share"); $("save").textContent = t("save"); $("keep").textContent = t("edit"); $("dhome").textContent = t("home"); $("playit").textContent = "🕹 " + t("playIt");
+  $("save").hidden = !Kit.canSave(); SK.labels();
   // Inside the app shells (DuellHost.more) a quiet "more" opens the native extras; in a browser it stays hidden.
   var host = window.DuellHost && typeof window.DuellHost.more === "function";
   $("host").hidden = !host; $("host").setAttribute("aria-label", t("hostMore"));
@@ -1916,7 +2399,7 @@ $("go").addEventListener("click", function () {
   else openEditor(D.docFromIdea(home.idea, me, Kit.lang), { idea: home.idea });
 });
 window.addEventListener("resize", function () { if (screen === "home") fitHero(); });
-window.addEventListener("popstate", function () { if (screen !== "home" && !location.hash && !backFromStyle()) goHome(); });   // with a hash, hashchange decides
+window.addEventListener("popstate", function () { if (screen !== "home" && !location.hash && !backFromPlay() && !backFromStyle()) goHome(); });   // with a hash, hashchange decides
 
 function route() {
   var r = D.parseRoute(location.hash);

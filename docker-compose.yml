@@ -17,6 +17,12 @@ services:
       - LITELLM_BASE_URL=${LITELLM_BASE_URL:?shared litellm proxy base}
       - LITELLM_API_KEY=${LITELLM_API_KEY:?shared litellm proxy key}
       - LITELLM_DEFAULT_MODEL=${LITELLM_DEFAULT_MODEL:-local-qwen36-35b-a3b-coding}
+      # My Daily Idea, KI-Kontingent (siehe lib/duell-ai.mjs). Ohne DUELL_AI_SALT zaehlt es nur bis zum Neustart.
+      - DUELL_AI_SALT=${DUELL_AI_SALT:-}
+      - DUELL_AI_STATE_FILE=${DUELL_AI_STATE_FILE:-/var/lib/duell-ai/state.json}
+      - DUELL_AI_ABO_ALLOWLIST=${DUELL_AI_ABO_ALLOWLIST:-}
+      - DUELL_AI_FREE=${DUELL_AI_FREE:-3}
+      - DUELL_AI_ENABLED=${DUELL_AI_ENABLED:-1}
       # "Installationen speichern": aus, solange kein Token gesetzt ist (siehe lib/installations.mjs).
       - INSTALLATIONS_DELEGATE_TOKEN=${INSTALLATIONS_DELEGATE_TOKEN:-}
       - INSTALLATIONS_LIVE=${INSTALLATIONS_LIVE:-}
@@ -33,6 +39,7 @@ services:
       - CT_AUDIO_CHANNEL_ID=${CT_AUDIO_CHANNEL_ID:-}
     volumes:
       - ${CT_CHANNEL_DIR:-./channel}:/opt/ct-channel:ro
+      - duell-ai:/var/lib/duell-ai
     expose:
       - "8790"          # reachable only via the agent, not published to the host
     restart: unless-stopped
@@ -63,6 +70,7 @@ services:
 
 volumes:
   demos_agent_state:
+  duell-ai:
 
 networks:
   default:
