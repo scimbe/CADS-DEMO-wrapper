@@ -31,8 +31,11 @@ services:
       - CT_AGENT_BIN=/opt/ct-channel/ct-agent
       - CT_RELAY_ENV=/opt/ct-channel/relay.env
       - CT_AUDIO_CHANNEL_ID=${CT_AUDIO_CHANNEL_ID:-}
+      # Kurzlinks: ohne dieses Verzeichnis antwortet POST /api/s mit 503 und die App bleibt beim langen Link.
+      - SHORT_DATA_DIR=/data/shortlinks
     volumes:
       - ${CT_CHANNEL_DIR:-./channel}:/opt/ct-channel:ro
+      - demos-shortlinks:/data/shortlinks
     expose:
       - "8790"          # reachable only via the agent, not published to the host
     restart: unless-stopped
@@ -63,6 +66,7 @@ services:
 
 volumes:
   demos_agent_state:
+  demos-shortlinks:
 
 networks:
   default:
