@@ -1,20 +1,844 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Duell (Platzhalter)</title>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#14102e">
+<meta name="referrer" content="no-referrer">
+<title>Duell</title>
 <style>
-body{margin:0;font:18px system-ui,sans-serif;background:#10151f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;text-align:center}
-small{opacity:.6}
-</style></head><body>
-<h1>Duell</h1>
-<small id="src">PLATZHALTER - nur zum Test. Die echte Datei (apps/duell-web/dist/index.html) kommt mit dem Marketplace-PR.</small>
-<div id="ch">Keine Herausforderung</div>
+:root{--sky:#4ec0ca;--ground:#ded895;--hot:linear-gradient(135deg,#ff3d71,#ff8a3d);--glass:rgba(16,12,38,.9);--ink:#fff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--sky);color:var(--ink);font:600 16px/1.25 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none}
+#app{position:fixed;inset:0;background:var(--sky)}
+#cv{position:absolute;left:50%;bottom:0;transform:translateX(-50%);display:block}
+.top{position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 10px) 14px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;pointer-events:none}
+.top>*{pointer-events:auto}
+#title{font-weight:800;font-size:15px;max-width:60vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 2px 0 rgba(0,0,0,.35);padding-top:8px}
+.mini{display:flex;gap:8px}
+.mini button{width:44px;height:44px;border-radius:14px;border:0;background:rgba(16,12,38,.55);color:#fff;font:700 14px system-ui;cursor:pointer}
+#hud{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top) + 58px);text-align:center;pointer-events:none}
+#score{font-size:68px;font-weight:900;line-height:1;text-shadow:0 4px 0 rgba(0,0,0,.35),0 0 24px rgba(0,0,0,.25);transform-origin:center;display:inline-block}
+#score.pop{animation:pop .22s ease-out}
+@keyframes pop{0%{transform:scale(1.5)}100%{transform:scale(1)}}
+#bestchip{font-size:13px;opacity:.9;text-shadow:0 2px 0 rgba(0,0,0,.35);min-height:16px}
+#banner{position:absolute;left:14px;right:14px;top:calc(env(safe-area-inset-top) + 150px);background:var(--glass);border-radius:16px;padding:12px 14px;text-align:center;font-weight:800;box-shadow:0 8px 30px rgba(0,0,0,.35);pointer-events:none;animation:drop .4s cubic-bezier(.2,1.4,.4,1)}
+@keyframes drop{from{transform:translateY(-30px);opacity:0}}
+#hint{position:absolute;left:0;right:0;top:30%;text-align:center;font-weight:900;font-size:26px;text-shadow:0 3px 0 rgba(0,0,0,.4);pointer-events:none;animation:bob 1s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-8px)}}
+.btn{border:0;border-radius:18px;color:#fff;font:800 17px system-ui,-apple-system,sans-serif;min-height:52px;padding:0 18px;cursor:pointer;background:rgba(255,255,255,.14);transition:transform .08s}
+.btn:active{transform:scale(.96)}
+.btn.hot{background:var(--hot);box-shadow:0 6px 0 #a3153f,0 10px 24px rgba(255,61,113,.45);text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.btn.big{min-height:68px;font-size:22px;width:100%;border-radius:22px;letter-spacing:.2px}
+#dock{position:absolute;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom) + 14px);display:flex;gap:10px}
+#dock .btn{flex:1;background:var(--glass)}
+.panel{position:absolute;left:0;right:0;bottom:0;background:var(--glass);border-radius:28px 28px 0 0;padding:18px 16px calc(env(safe-area-inset-bottom) + 16px);transform:translateY(105%);transition:transform .38s cubic-bezier(.2,1.1,.3,1);box-shadow:0 -10px 40px rgba(0,0,0,.45)}
+.panel.show{transform:none}
+#record{display:none;text-align:center;font-weight:900;font-size:22px;letter-spacing:1px;background:var(--hot);-webkit-background-clip:text;background-clip:text;color:transparent;animation:pulse .6s ease-in-out infinite alternate}
+#record.show{display:block}
+@keyframes pulse{to{transform:scale(1.12)}}
+#res-score{text-align:center;font-size:76px;font-weight:900;line-height:1.05}
+#res-line{text-align:center;opacity:.9;min-height:20px;margin:2px 0 12px}
+.row{display:flex;gap:10px;margin-top:10px}
+.row .btn{flex:1}
+.field{width:100%;height:48px;border-radius:14px;border:2px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font:600 16px system-ui;padding:0 14px;outline:0;user-select:text;-webkit-user-select:text}
+.field:focus{border-color:#ff8a3d}
+#name{margin-bottom:10px;height:42px;font-size:15px}
+#chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.chip{border:0;border-radius:16px;background:rgba(255,255,255,.1);color:#fff;padding:10px 2px 8px;font:700 12px system-ui;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+.chip i{font-style:normal;font-size:26px}
+.chip:active{background:rgba(255,255,255,.25)}
+#note{font-size:12px;opacity:.65;margin:8px 2px 0;font-weight:500}
+#toast{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 100px);transform:translate(-50%,20px);background:#fff;color:#14102e;border-radius:14px;padding:12px 16px;font-weight:800;opacity:0;pointer-events:none;transition:.25s;max-width:86vw;text-align:center;z-index:9}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+[hidden]{display:none!important}
+.sheetrow{display:flex;gap:8px}
+.sheetrow .btn{min-width:84px}
+#sheetclose{position:absolute;right:12px;top:10px;width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.12);border:0;color:#fff;font-size:18px}
+@media (prefers-reduced-motion:reduce){#hint,#record,#banner{animation:none}.panel{transition:none}}
+</style>
+</head>
+<body data-state="ready">
+<div id="app">
+  <canvas id="cv" aria-label="Spielfeld"></canvas>
+  <div class="top">
+    <div id="title"></div>
+    <div class="mini"><button id="lang" aria-label="Sprache">DE</button><button id="mute" aria-label="Ton">&#128266;</button></div>
+  </div>
+  <div id="hud"><div id="score" data-score="0">0</div><div id="bestchip"></div></div>
+  <div id="banner" hidden></div>
+  <div id="hint"></div>
+  <div id="dock">
+    <button class="btn" id="daily"></button>
+    <button class="btn" id="new"></button>
+  </div>
+
+  <div class="panel" id="result" aria-live="polite">
+    <div id="record"></div>
+    <div id="res-score">0</div>
+    <div id="res-line"></div>
+    <input class="field" id="name" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="btn hot big" id="challenge"></button>
+    <div class="row"><button class="btn" id="again"></button><button class="btn" id="menu"></button></div>
+  </div>
+
+  <div class="panel" id="sheet">
+    <button id="sheetclose" aria-label="Schliessen">&#10005;</button>
+    <div id="sheet-h" style="font-weight:900;font-size:20px;margin-bottom:10px"></div>
+    <div class="sheetrow"><input class="field" id="prompt" maxlength="80" autocomplete="off" enterkeyhint="go"><button class="btn hot" id="go"></button></div>
+    <div id="chips"></div>
+    <div id="note"></div>
+  </div>
+  <div id="toast" role="status"></div>
+</div>
 <script>
-function b64(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return decodeURIComponent(escape(atob(s)))}
-function show(){
-  var m=/^#c=([A-Za-z0-9_-]+)/.exec(location.hash),el=document.getElementById('ch');
-  if(!m){el.textContent='Keine Herausforderung';return}
-  try{var j=JSON.parse(b64(m[1]));el.textContent='Herausforderung von '+j.n}catch(e){el.textContent='Herausforderung ungueltig'}
+/* Duell core: pure logic (no DOM). Runs in Node (tests) and is inlined into dist/index.html. */
+(function (root) {
+  "use strict";
+
+  var SHARE_BASE = "https://bunsenbrenner.org/duell";
+  var DEFAULT_API = "https://demos-34a13a96.bunsenbrenner.org/api/duell/config";
+  var MAX_FRAGMENT = 1200;       // hard cap on the encoded payload we are willing to parse
+  var MAX_NAME = 16, MAX_TITLE = 28, MAX_PROMPT = 80, MAX_SCORE = 9999;
+
+  var RANGES = {
+    gravity: [900, 2600, 1800],
+    jump: [280, 620, 430],
+    gap: [90, 200, 140],
+    speed: [90, 260, 130]
+  };
+  var ALIAS = { jump: "flapPower", gap: "pipeGap", speed: "pipeSpeed" };
+  var THEME_NAMES = ["day", "night", "sunset", "retro", "candy", "neon", "ocean", "lava"];
+  var DEFAULT_EMOJI = "🐤";
+
+  // ---------- numbers / sanitizing ----------
+  function clampNum(v, min, max, def) {
+    if (typeof v === "string" && v.trim() !== "") v = Number(v);
+    if (typeof v !== "number" || !isFinite(v)) return def;
+    return Math.min(max, Math.max(min, v));
+  }
+  function sanitizeParams(p) {
+    var out = {};
+    p = p && typeof p === "object" ? p : {};
+    Object.keys(RANGES).forEach(function (k) {
+      var r = RANGES[k], v = p[k];
+      if (v === undefined && ALIAS[k]) v = p[ALIAS[k]];   // API names: flapPower, pipeGap, pipeSpeed
+      out[k] = Math.round(clampNum(v, r[0], r[1], r[2]));
+    });
+    return out;
+  }
+  function sanitizeTheme(t) {
+    return typeof t === "string" && THEME_NAMES.indexOf(t) >= 0 ? t : "day";
+  }
+  function sanitizeSeed(s) {
+    var n = clampNum(s, 0, 4294967295, 1);
+    return Math.floor(n) >>> 0;
+  }
+
+  // ---------- word filter (de/en) ----------
+  // Long stems match as substrings, short/ambiguous words only as whole words.
+  var STEMS = [
+    "fuck", "shit", "bitch", "asshole", "nigger", "nigga", "faggot", "whore", "slut", "rapist", "hitler", "nazi",
+    "scheiss", "arschloch", "fotze", "hurensohn", "wichser", "ficken", "schlampe", "missgeburt", "vergewaltig", "kanake", "behindert", "neger", "mongo", "judensau", "kinderfick", "pornhub"
+  ];
+  var WORDS = ["cunt", "pedo", "dick", "cock", "porn", "rape", "fag", "fick", "nutte", "hure", "spast", "kkk", "isis", "nsdap"];
+  var BANNED_WORDS = WORDS;
+  var LEET = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "@": "a", "$": "s", "!": "i", "+": "t" };
+
+  function foldText(s) {
+    s = String(s == null ? "" : s).toLowerCase();
+    try { s = s.normalize("NFD").replace(/[̀-ͯ]/g, ""); } catch (e) { /* old engine */ }
+    s = s.replace(/ß/g, "ss");
+    return s;
+  }
+  function isClean(input) {
+    var base = foldText(input);
+    var leet = base.replace(/[0134578@$!+]/g, function (c) { return LEET[c] || c; });
+    var variants = [base, leet];
+    for (var i = 0; i < variants.length; i++) {
+      var v = variants[i];
+      var joined = v.replace(/[^a-z]/g, "");            // "f u c k", "f.u.c.k"
+      var squeezed = joined.replace(/(.)\1+/g, "$1");   // "fuuuck"
+      for (var j = 0; j < STEMS.length; j++) {
+        var stem = STEMS[j];
+        if (joined.indexOf(stem) >= 0 || squeezed.indexOf(stem.replace(/(.)\1+/g, "$1")) >= 0) return false;
+      }
+      var tokens = v.split(/[^a-z]+/);
+      for (var t = 0; t < tokens.length; t++) {
+        if (tokens[t] && BANNED_WORDS.indexOf(tokens[t]) >= 0) return false;
+      }
+    }
+    return true;
+  }
+
+  // ---------- text sanitizing ----------
+  function cpSlice(s, max) { return Array.from(s).slice(0, max).join(""); }
+  function stripText(s) {
+    s = String(s == null ? "" : s);
+    // keep letters, digits, space, a few punctuation marks and emoji; drop control, bidi, markup characters
+    s = s.replace(/[^\p{L}\p{N}\p{Extended_Pictographic}‍️ _\-.!?'’:,&+#]/gu, "");
+    return s.replace(/\s+/g, " ").trim();
+  }
+  function sanitizeName(s) {
+    var n = cpSlice(stripText(s), MAX_NAME).trim();
+    return n && isClean(n) ? n : "";
+  }
+  function sanitizeTitle(s, fallback) {
+    var t = cpSlice(stripText(s), MAX_TITLE).trim();
+    return t && isClean(t) ? t : (fallback || "Duell");
+  }
+  var EMOJI_RE = /^\p{Extended_Pictographic}(?:️|\p{Emoji_Modifier}|‍\p{Extended_Pictographic})*/u;
+  function sanitizeEmoji(s) {
+    if (typeof s !== "string") return DEFAULT_EMOJI;
+    var m = s.trim().match(EMOJI_RE);
+    return m && m[0].length <= 12 ? m[0] : DEFAULT_EMOJI;
+  }
+  function sanitizePrompt(s) {
+    return cpSlice(String(s == null ? "" : s).replace(/[\u0000-\u001f\u007f<>]/g, " ").replace(/\s+/g, " ").trim(), MAX_PROMPT);
+  }
+
+  // ---------- state (the shared contract) ----------
+  function sanitizeState(o) {
+    if (!o || typeof o !== "object" || Array.isArray(o)) return null;
+    if (o.v !== 1) return null;
+    var st = {
+      v: 1,
+      seed: sanitizeSeed(o.seed),
+      params: sanitizeParams(o.params),
+      theme: sanitizeTheme(o.theme),
+      title: sanitizeTitle(o.title),
+      emoji: sanitizeEmoji(o.emoji)
+    };
+    if (o.score !== undefined && o.score !== null) {
+      var sc = clampNum(o.score, 0, MAX_SCORE, NaN);
+      if (!isNaN(sc)) st.score = Math.floor(sc);
+    }
+    if (o.name !== undefined && o.name !== null) {
+      var nm = sanitizeName(o.name);
+      if (nm) st.name = nm;
+    }
+    return st;
+  }
+  function toB64url(str) {
+    var bytes = new TextEncoder().encode(str), bin = "";
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function fromB64url(s) {
+    if (!/^[A-Za-z0-9_-]*$/.test(s)) throw new Error("bad charset");
+    s = s.replace(/-/g, "+").replace(/_/g, "/");
+    while (s.length % 4) s += "=";
+    var bin = atob(s), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  }
+  function encodeState(state) {
+    var st = sanitizeState(state);
+    if (!st) throw new Error("invalid state");
+    return toB64url(JSON.stringify(st));
+  }
+  function decodeState(str) {
+    try {
+      if (typeof str !== "string" || str.length === 0 || str.length > MAX_FRAGMENT) return null;
+      return sanitizeState(JSON.parse(fromB64url(str)));
+    } catch (e) { return null; }
+  }
+  function parseHash(hash) {
+    if (typeof hash !== "string") return null;
+    var m = hash.replace(/^#/, "").match(/(?:^|&)c=([^&]*)/);
+    return m ? decodeState(m[1]) : null;
+  }
+  function buildUrl(state, base) {
+    return (base || SHARE_BASE) + "#c=" + encodeState(state);
+  }
+  function configKey(st) {
+    var p = st.params;
+    return [st.seed, p.gravity, p.jump, p.gap, p.speed, st.theme].join(".");
+  }
+
+  // ---------- seeds ----------
+  function hash32(str) {            // FNV-1a
+    var h = 0x811c9dc5;
+    str = String(str);
+    for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return h >>> 0;
+  }
+  function mulberry32(a) {
+    a = a >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function dailyKey(date) {         // UTC date, no server needed
+    var d = date instanceof Date ? date : new Date();
+    return d.toISOString().slice(0, 10);
+  }
+  function dailySeed(date) { return hash32("duell-daily-" + dailyKey(date)); }
+  function dailyConfig(date, lang) {
+    var key = dailyKey(date), seed = dailySeed(date), r = mulberry32(seed);
+    var params = sanitizeParams({
+      gravity: 1700 + Math.floor(r() * 300),
+      jump: 420 + Math.floor(r() * 30),
+      gap: 128 + Math.floor(r() * 24),
+      speed: 125 + Math.floor(r() * 30)
+    });
+    var theme = THEME_NAMES[Math.floor(r() * THEME_NAMES.length)];
+    return { v: 1, seed: seed, params: params, theme: theme, title: lang === "en" ? "Daily round " + key.slice(5) : "Tagesrunde " + key.slice(5), emoji: THEME_EMOJI[theme] };
+  }
+
+  // ---------- presets + offline word logic ----------
+  var THEME_EMOJI = { day: "🐤", night: "🦇", sunset: "🦜", retro: "👾", candy: "🦄", neon: "👽", ocean: "🐟", lava: "🐉" };
+  var PRESETS = [
+    { id: "chill",   emoji: "🐤", de: "Chill",        en: "Chill",       theme: "day",    seed: 101, params: { gravity: 1400, jump: 400, gap: 175, speed: 105 } },
+    { id: "rocket",  emoji: "🚀", de: "Rakete",       en: "Rocket",      theme: "night",  seed: 202, params: { gravity: 1500, jump: 430, gap: 135, speed: 175 } },
+    { id: "night",   emoji: "🦇", de: "Nachtschicht", en: "Night shift", theme: "night",  seed: 303, params: { gravity: 1800, jump: 430, gap: 140, speed: 130 } },
+    { id: "candy",   emoji: "🦄", de: "Zuckerwatte",  en: "Candy",       theme: "candy",  seed: 404, params: { gravity: 1300, jump: 390, gap: 165, speed: 115 } },
+    { id: "retro",   emoji: "👾", de: "Retro",        en: "Retro",       theme: "retro",  seed: 505, params: { gravity: 1900, jump: 440, gap: 128, speed: 145 } },
+    { id: "lava",    emoji: "🐉", de: "Lava",         en: "Lava",        theme: "lava",   seed: 606, params: { gravity: 2300, jump: 500, gap: 105, speed: 190 } },
+    { id: "ocean",   emoji: "🐟", de: "Tiefsee",      en: "Deep sea",    theme: "ocean",  seed: 707, params: { gravity: 1100, jump: 360, gap: 150, speed: 120 } },
+    { id: "neon",    emoji: "👽", de: "Neon-Chaos",   en: "Neon chaos",  theme: "neon",   seed: 808, params: { gravity: 2100, jump: 470, gap: 112, speed: 210 } }
+  ];
+  function presetState(p, lang) {
+    return { v: 1, seed: p.seed, params: sanitizeParams(p.params), theme: p.theme, title: lang === "en" ? p.en : p.de, emoji: p.emoji };
+  }
+
+  // [pattern on folded text, multipliers]
+  var WORD_RULES = [
+    [/schnell|rasant|\bfast|speed|turbo|rush|zoom|hektisch|flitz/, { speed: 1.35 }],
+    [/langsam|\bslow|chill|entspann|gemutlich|relax|ruhig|cozy/, { speed: 0.8, gap: 1.15 }],
+    [/schwer|hart\b|\bhard|insane|krass|irre|wahnsinn|unmoglich|impossible|extrem|brutal|hardcore/, { gap: 0.8, speed: 1.2 }],
+    [/leicht|\beasy|einfach|anfanger|beginner|simpel|noob/, { gap: 1.2, speed: 0.85 }],
+    [/\beng|tight|knapp|narrow/, { gap: 0.82 }],
+    [/\bweit|wide|breit|grosszugig/, { gap: 1.2 }],
+    [/heavy|blei|fett|dick/, { gravity: 1.2, jump: 1.08 }],
+    [/mond|moon|float|schweb|feder|feather|weltall|\bspace/, { gravity: 0.7, jump: 0.85 }]
+  ];
+  var THEME_RULES = [
+    ["night", /nacht|night|dark|dunkel|mitternacht|mond|moon|vampir|fledermaus|\bbat\b/],
+    ["sunset", /sonnenuntergang|sunset|abend|dusk|golden|sommer|summer/],
+    ["retro", /retro|gameboy|8.?bit|pixel|arcade|oldschool/],
+    ["candy", /candy|zuckerl|suss|sweet|bonbon|pink|einhorn|unicorn|zuckerwatte/],
+    ["neon", /neon|cyber|disco|party|rave|club|glitch/],
+    ["ocean", /ozean|ocean|meer|\bsea|wasser|water|tauch|fisch|\bfish|\bhai\b|shark|delfin|dolphin/],
+    ["lava", /lava|feuer|\bfire|\bhell|vulkan|volcano|drache|dragon|heiss|\bhot|brenn/]
+  ];
+  var EMOJI_RULES = [
+    [/rakete|rocket/, "🚀"], [/katze|\bcat/, "🐱"], [/\bhund|\bdog/, "🐶"], [/pizza/, "🍕"],
+    [/geist|ghost/, "👻"], [/drache|dragon/, "🐉"], [/fisch|\bfish/, "🐟"], [/\bhai\b|shark/, "🦈"],
+    [/biene|\bbee/, "🐝"], [/alien|\bufo/, "👽"], [/frosch|\bfrog/, "🐸"], [/einhorn|unicorn/, "🦄"],
+    [/fledermaus|\bbat\b/, "🦇"], [/schwein|\bpig/, "🐷"], [/pinguin|penguin/, "🐧"], [/burger/, "🍔"],
+    [/fussball|soccer|\bball\b/, "⚽"], [/totenkopf|skull/, "💀"], [/vogel|\bbird/, "🐦"]
+  ];
+
+  function localConfig(prompt, lang) {
+    var p = sanitizePrompt(prompt);
+    if (!p) return { rejected: "empty" };
+    if (!isClean(p)) return { rejected: "filter" };
+    var f = foldText(p);
+    var params = { gravity: RANGES.gravity[2], jump: RANGES.jump[2], gap: RANGES.gap[2], speed: RANGES.speed[2] };
+    WORD_RULES.forEach(function (r) {
+      if (r[0].test(f)) Object.keys(r[1]).forEach(function (k) { params[k] *= r[1][k]; });
+    });
+    var theme = "day";
+    for (var i = 0; i < THEME_RULES.length; i++) if (THEME_RULES[i][1].test(f)) { theme = THEME_RULES[i][0]; break; }
+    var emoji = THEME_EMOJI[theme];
+    for (var j = 0; j < EMOJI_RULES.length; j++) if (EMOJI_RULES[j][0].test(f)) { emoji = EMOJI_RULES[j][1]; break; }
+    var words = p.split(" ").slice(0, 4).join(" ");
+    var title = sanitizeTitle(words.charAt(0).toUpperCase() + words.slice(1), lang === "en" ? "My game" : "Mein Spiel");
+    return { v: 1, seed: hash32("p:" + f), params: sanitizeParams(params), theme: theme, title: title, emoji: emoji };
+  }
+
+  // Server answer {params,theme,title,emoji} -> full state; seed comes from the prompt so the same idea = same track.
+  function stateFromApi(resp, prompt) {
+    if (!resp || typeof resp !== "object" || !resp.params || typeof resp.params !== "object") return null;
+    var st = sanitizeState({
+      v: 1, seed: hash32("p:" + foldText(sanitizePrompt(prompt))), params: resp.params,
+      theme: resp.theme, title: resp.title, emoji: resp.emoji
+    });
+    return st;
+  }
+
+  var api = {
+    SHARE_BASE: SHARE_BASE, DEFAULT_API: DEFAULT_API, MAX_FRAGMENT: MAX_FRAGMENT, MAX_NAME: MAX_NAME, MAX_TITLE: MAX_TITLE,
+    MAX_PROMPT: MAX_PROMPT, MAX_SCORE: MAX_SCORE, RANGES: RANGES, THEME_NAMES: THEME_NAMES, PRESETS: PRESETS,
+    clampNum: clampNum, sanitizeParams: sanitizeParams, sanitizeTheme: sanitizeTheme, sanitizeSeed: sanitizeSeed,
+    isClean: isClean, sanitizeName: sanitizeName, sanitizeTitle: sanitizeTitle, sanitizeEmoji: sanitizeEmoji, sanitizePrompt: sanitizePrompt,
+    sanitizeState: sanitizeState, encodeState: encodeState, decodeState: decodeState, parseHash: parseHash, buildUrl: buildUrl,
+    configKey: configKey, hash32: hash32, mulberry32: mulberry32, dailyKey: dailyKey, dailySeed: dailySeed, dailyConfig: dailyConfig,
+    presetState: presetState, localConfig: localConfig, stateFromApi: stateFromApi
+  };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.DuellCore = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+<script>
+/* Duell engine: deterministic flap simulation (no DOM). Same seed + same taps at the same ticks = same run. */
+(function (root) {
+  "use strict";
+  var W = 288, H = 512, GROUND = 56, R = 15, BX = 86, PIPE_W = 52, INTERVAL = 170, TERM = 720, MARGIN = 46;
+  var STEP = 1 / 120;
+
+  // rng: function() -> [0,1), params: sanitized {gravity,jump,gap,speed}
+  function createSim(params, rng) {
+    var sim = { W: W, H: H, GROUND: GROUND, R: R, BX: BX, PIPE_W: PIPE_W, STEP: STEP, params: params,
+      bird: { y: H * 0.42, vy: 0, rot: 0 }, pipes: [], score: 0, state: "ready", ticks: 0 };
+
+    function spawn(x) {
+      var top = MARGIN + rng() * (H - GROUND - params.gap - MARGIN * 2);
+      sim.pipes.push({ x: x, top: top, passed: false });
+    }
+    function collide() {
+      var b = sim.bird;
+      if (b.y + R > H - GROUND) return true;
+      if (b.y - R < 0) { b.y = R; b.vy = 0; }
+      for (var i = 0; i < sim.pipes.length; i++) {
+        var p = sim.pipes[i];
+        if (BX + R > p.x && BX - R < p.x + PIPE_W && (b.y - R < p.top || b.y + R > p.top + params.gap)) return true;
+      }
+      return false;
+    }
+    // returns list of events: "flap", "start"
+    sim.flap = function () {
+      if (sim.state === "over") return [];
+      var ev = [];
+      if (sim.state === "ready") { sim.state = "run"; ev.push("start"); }
+      sim.bird.vy = -params.jump;
+      ev.push("flap");
+      return ev;
+    };
+    // advance by exactly STEP; returns events: "score", "dead"
+    sim.step = function () {
+      var ev = [];
+      if (sim.state !== "run") return ev;
+      var b = sim.bird, dt = STEP;
+      sim.ticks++;
+      b.vy = Math.min(b.vy + params.gravity * dt, TERM);
+      b.y += b.vy * dt;
+      b.rot = Math.max(-0.5, Math.min(1.3, b.vy / 480));
+      for (var i = 0; i < sim.pipes.length; i++) {
+        var p = sim.pipes[i];
+        p.x -= params.speed * dt;
+        if (!p.passed && p.x + PIPE_W < BX) { p.passed = true; sim.score++; ev.push("score"); }
+      }
+      while (sim.pipes.length && sim.pipes[0].x < -PIPE_W) sim.pipes.shift();
+      var last = sim.pipes.length ? sim.pipes[sim.pipes.length - 1].x : -Infinity;
+      if (W - last >= INTERVAL) spawn(W + 20);
+      if (collide()) { sim.state = "over"; ev.push("dead"); }
+      return ev;
+    };
+    spawn(W + 40);
+    return sim;
+  }
+
+  var api = { createSim: createSim, W: W, H: H, GROUND: GROUND, STEP: STEP, PIPE_W: PIPE_W, R: R, BX: BX };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.DuellEngine = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+<script>
+(function () {
+"use strict";
+var C = window.DuellCore, E = window.DuellEngine;
+var $ = function (id) { return document.getElementById(id); };
+
+/* ---------- texts ---------- */
+var T = {
+  de: {
+    hint: "Tippen. Fliegen. Angeben.", daily: "Tagesrunde", fresh: "Neues Spiel", sheetH: "Was willst du spielen?",
+    ph: "z.B. nachts, mega schnell, Raketen", go: "Los", challenge: "Herausfordern 🔥", again: "Nochmal", menu: "Anderes Spiel",
+    record: "NEUER REKORD!", best: "Dein Rekord: {n}", points: "Punkte", namePh: "Dein Name (optional)",
+    banner: "{name} hat {n} Punkte - schlag das!", rival: "Dein Gegner", win: "{name} geschlagen. Frech.", tie: "Gleichstand mit {name}. Nochmal!",
+    lose: "{name} liegt {d} vorn.", copied: "Link kopiert. Ab in den Chat!", shareFail: "Teilen ging nicht. Link unten kopieren:",
+    filter: "Das lassen wir lieber weg. Probier was anderes.", empty: "Schreib erst was rein.", loading: "Moment ...",
+    note: "Mit Netz wird deine Idee an unseren Server geschickt, ohne Netz rechnet dein Handy selbst.",
+    share: "{who}{n} Punkte in „{t}“. Schaffst du mehr?", sound: "Ton", btnRec: "Rekord!", nameIs: "Dein Spitzname"
+  },
+  en: {
+    hint: "Tap. Fly. Flex.", daily: "Daily round", fresh: "New game", sheetH: "What do you want to play?",
+    ph: "e.g. night, super fast, rockets", go: "Go", challenge: "Challenge 🔥", again: "Again", menu: "Other game",
+    record: "NEW RECORD!", best: "Your best: {n}", points: "points", namePh: "Your name (optional)",
+    banner: "{name} has {n} - beat it!", rival: "Your rival", win: "Beat {name}. Nice.", tie: "Tied with {name}. Again!",
+    lose: "{name} leads by {d}.", copied: "Link copied. Drop it in the chat!", shareFail: "Sharing failed. Copy the link below:",
+    filter: "Let's skip that one. Try something else.", empty: "Type something first.", loading: "One sec ...",
+    note: "Online, your idea goes to our server. Offline, your phone figures it out itself.",
+    share: "{who}{n} points in “{t}”. Can you beat it?", sound: "Sound", btnRec: "Record!", nameIs: "Your nickname"
+  }
+};
+function fmt(s, o) { return s.replace(/\{(\w+)\}/g, function (_, k) { return o && o[k] != null ? o[k] : ""; }); }
+
+/* ---------- storage (never required) ---------- */
+var mem = {};
+function load() {
+  try { var j = JSON.parse(localStorage.getItem("duell.v1") || "{}"); if (j && typeof j === "object") return j; } catch (e) {}
+  return mem;
 }
-addEventListener('hashchange',show);show();
-</script></body></html>
+var store = load();
+if (typeof store.best !== "object" || !store.best) store.best = {};
+function save() {
+  mem = store;
+  try {
+    var keys = Object.keys(store.best);
+    if (keys.length > 200) keys.slice(0, keys.length - 200).forEach(function (k) { delete store.best[k]; });
+    localStorage.setItem("duell.v1", JSON.stringify(store));
+  } catch (e) {}
+}
+var lang = store.lang === "en" || store.lang === "de" ? store.lang : ((navigator.language || "de").toLowerCase().indexOf("de") === 0 ? "de" : "en");
+function t(k) { return T[lang][k]; }
+var muted = !!store.muted;
+var myName = C.sanitizeName(store.name || "");
+
+/* ---------- themes ---------- */
+var TH = {
+  day:   { skyTop: "#4ec0ca", skyBottom: "#b6e6e0", pipe: "#5cbf3a", pipeEdge: "#2f7d1b", ground: "#ded895", groundEdge: "#c5b96a", accent: "#f7d51d" },
+  night: { skyTop: "#0b1030", skyBottom: "#26305e", pipe: "#3a6ea5", pipeEdge: "#20406a", ground: "#2b2b3a", groundEdge: "#4a4a63", accent: "#7ad1ff", stars: 1 },
+  sunset:{ skyTop: "#ff9e57", skyBottom: "#ffd9a0", pipe: "#c0653a", pipeEdge: "#7d3b1b", ground: "#caa06a", groundEdge: "#a67c48", accent: "#ffef8f" },
+  retro: { skyTop: "#9bbc0f", skyBottom: "#8bac0f", pipe: "#306230", pipeEdge: "#0f380f", ground: "#306230", groundEdge: "#0f380f", accent: "#e0f8d0" },
+  candy: { skyTop: "#ff8fd0", skyBottom: "#ffd0ec", pipe: "#7a5cff", pipeEdge: "#4a2fb0", ground: "#ffc0e6", groundEdge: "#e59ccf", accent: "#fff2b0" },
+  neon:  { skyTop: "#12002b", skyBottom: "#3a0a6b", pipe: "#00f5d4", pipeEdge: "#00a896", ground: "#1b0036", groundEdge: "#ff2bd6", accent: "#ff2bd6", glow: 1, stars: 1 },
+  ocean: { skyTop: "#04476b", skyBottom: "#1aa6b7", pipe: "#ff7f6b", pipeEdge: "#b74a3a", ground: "#0b2f4a", groundEdge: "#1d5f86", accent: "#aef0ff", bubbles: 1 },
+  lava:  { skyTop: "#2b0a0a", skyBottom: "#7a1d0b", pipe: "#3a3a3a", pipeEdge: "#1b1b1b", ground: "#1b0f0f", groundEdge: "#ff5a1f", accent: "#ffb347", glow: 1 }
+};
+
+/* ---------- audio + haptics ---------- */
+var actx = null;
+function audio() {
+  if (muted) return null;
+  try {
+    if (!actx) { var A = window.AudioContext || window.webkitAudioContext; if (A) actx = new A(); }
+    if (actx && actx.state === "suspended") actx.resume();
+  } catch (e) { actx = null; }
+  return actx;
+}
+function tone(f0, f1, dur, type, vol, delay) {
+  var a = audio(); if (!a) return;
+  try {
+    var o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime + (delay || 0);
+    o.type = type || "sine"; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur);
+    g.gain.setValueAtTime(vol || 0.12, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(a.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+  } catch (e) {}
+}
+function buzz(p) { if (!muted && navigator.vibrate) { try { navigator.vibrate(p); } catch (e) {} } }
+var SFX = {
+  flap: function () { tone(420, 760, 0.09, "square", 0.05); buzz(6); },
+  score: function () { tone(880, 880, 0.08, "triangle", 0.12); tone(1320, 1320, 0.14, "triangle", 0.12, 0.07); buzz(14); },
+  dead: function () { tone(260, 40, 0.45, "sawtooth", 0.16); tone(120, 30, 0.35, "square", 0.1, 0.03); buzz([70, 40, 160]); },
+  record: function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, f, 0.16, "triangle", 0.13, i * 0.09); }); buzz([30, 40, 30, 40, 30, 40, 220]); },
+  tap: function () { tone(600, 700, 0.05, "sine", 0.06); buzz(8); }
+};
+
+/* ---------- app state ---------- */
+var cur, rival = null, sim, rng, prevBest = 0, isRecord = false, recordShown = false, resultTimer = 0;
+var reduce = false;
+try { reduce = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+
+function setBodyState(s) { document.body.setAttribute("data-state", s); }
+function toast(msg) {
+  var el = $("toast"); el.textContent = msg; el.classList.add("show");
+  clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove("show"); }, 2400);
+}
+function bestFor(st) { var b = store.best[C.configKey(st)]; return typeof b === "number" ? b : 0; }
+
+function applyTheme() {
+  var th = TH[cur.theme];
+  document.documentElement.style.setProperty("--sky", th.skyTop);
+  document.documentElement.style.setProperty("--ground", th.ground);
+  var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", th.skyTop);
+}
+function updateBanner() {
+  var b = $("banner");
+  if (rival && typeof rival.score === "number" && rival.name) {
+    b.textContent = fmt(t("banner"), { name: rival.name, n: rival.score }); b.hidden = false;
+  } else if (rival && typeof rival.score === "number") {
+    b.textContent = fmt(t("banner"), { name: t("rival"), n: rival.score }); b.hidden = false;
+  } else b.hidden = true;
+}
+function updateBestChip() { var b = bestFor(cur); $("bestchip").textContent = b ? fmt(t("best"), { n: b }) : ""; }
+
+function newRun() {
+  clearTimeout(resultTimer);
+  rng = C.mulberry32(cur.seed);
+  sim = E.createSim(cur.params, rng);
+  prevBest = bestFor(cur); isRecord = false; recordShown = false;
+  parts.length = 0; shake = 0; flash = 0; trail.length = 0; floaters.length = 0;
+  setScore(0, false);
+  $("result").classList.remove("show");
+  $("hint").hidden = false; $("dock").hidden = false;
+  $("banner").hidden = !(rival && typeof rival.score === "number");
+  setBodyState("ready");
+  updateBestChip();
+}
+function setScore(n, pop) {
+  var s = $("score"); s.textContent = String(n); s.setAttribute("data-score", String(n));
+  if (pop && !reduce) { s.classList.remove("pop"); void s.offsetWidth; s.classList.add("pop"); }
+}
+function useState(st, riv, opts) {
+  cur = st; rival = riv || null;
+  $("title").textContent = cur.title;           // text only, never HTML
+  applyTheme(); updateBanner();
+  if (!opts || opts.hash !== false) {
+    try { var h = "#c=" + C.encodeState(riv ? Object.assign({}, st, { score: riv.score, name: riv.name }) : st); history.replaceState(null, "", h); } catch (e) {}
+  }
+  newRun();
+}
+function rivalOf(st) { return typeof st.score === "number" ? { score: st.score, name: st.name || "" } : (st.name ? { name: st.name } : null); }
+function stripRival(st) { var o = Object.assign({}, st); delete o.score; delete o.name; return o; }
+function fromLink(st) { var r = rivalOf(st); useState(stripRival(st), r && typeof r.score === "number" ? r : null, { hash: false }); }
+
+/* ---------- effects ---------- */
+var parts = [], trail = [], floaters = [], shake = 0, flash = 0, clock = 0;
+function burst(x, y, n, colors, speed, grav) {
+  if (reduce) n = Math.ceil(n / 4);
+  for (var i = 0; i < n && parts.length < 260; i++) {
+    var a = Math.random() * 6.283, v = (0.3 + Math.random()) * speed;
+    parts.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - speed * 0.2, life: 0.6 + Math.random() * 0.7, max: 1.3, c: colors[i % colors.length], s: 2 + Math.random() * 4, g: grav == null ? 600 : grav });
+  }
+}
+var CONF = ["#ff3d71", "#ffd93d", "#4ee1a0", "#4dabff", "#c77dff", "#fff"];
+function doShake(a) { if (!reduce) shake = Math.max(shake, a); }
+
+/* ---------- canvas ---------- */
+var cv = $("cv"), ctx = cv.getContext("2d"), scale = 1;
+var EMO = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+function fit() {
+  var vw = window.innerWidth, vh = window.innerHeight;
+  scale = Math.min(vw / E.W, vh / E.H);
+  var dpr = Math.min(window.devicePixelRatio || 1, 3);
+  cv.style.width = E.W * scale + "px"; cv.style.height = E.H * scale + "px";
+  cv.width = Math.round(E.W * scale * dpr); cv.height = Math.round(E.H * scale * dpr);
+  cv.dpr = dpr;
+}
+window.addEventListener("resize", fit);
+
+function draw() {
+  var th = TH[cur.theme], p = sim, s = scale * cv.dpr, W = E.W, H = E.H, G = E.GROUND;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  var sx = shake ? (Math.random() - 0.5) * shake : 0, sy = shake ? (Math.random() - 0.5) * shake : 0;
+  ctx.setTransform(s, 0, 0, s, sx * s, sy * s);
+  var g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, th.skyTop); g.addColorStop(1, th.skyBottom);
+  ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, H + 40);
+  // backdrop: stars / bubbles / soft clouds (visual only)
+  var i, x, y;
+  if (th.stars) { ctx.fillStyle = "rgba(255,255,255,.8)"; for (i = 0; i < 28; i++) { x = (i * 97 + 13) % W; y = (i * 53 + 7) % (H - G - 80); ctx.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(clock * 1.5 + i)); ctx.fillRect(x, y, 2, 2); } ctx.globalAlpha = 1; }
+  else if (th.bubbles) { ctx.strokeStyle = "rgba(255,255,255,.35)"; for (i = 0; i < 14; i++) { x = (i * 71 + 20) % W; y = H - G - ((clock * (14 + i * 3) + i * 80) % (H - G)); ctx.beginPath(); ctx.arc(x, y, 3 + (i % 4), 0, 7); ctx.stroke(); } }
+  else { ctx.fillStyle = "rgba(255,255,255,.35)"; for (i = 0; i < 4; i++) { x = ((i * 130 - clock * (6 + i * 3)) % (W + 120) + (W + 120)) % (W + 120) - 60; y = 70 + i * 62; ctx.beginPath(); ctx.ellipse(x, y, 34, 11, 0, 0, 7); ctx.ellipse(x + 20, y - 8, 22, 10, 0, 0, 7); ctx.fill(); } }
+  // pipes
+  var P = E.PIPE_W, cap = 14, gap = p.params.gap;
+  for (i = 0; i < p.pipes.length; i++) {
+    var pp = p.pipes[i], by = pp.top + gap;
+    if (th.glow) { ctx.shadowColor = th.pipe; ctx.shadowBlur = 12; }
+    ctx.fillStyle = th.pipe; ctx.strokeStyle = th.pipeEdge; ctx.lineWidth = 2;
+    ctx.fillRect(pp.x, 0, P, pp.top); ctx.strokeRect(pp.x + 1, 0, P - 2, pp.top);
+    ctx.fillRect(pp.x - 5, pp.top - cap, P + 10, cap); ctx.strokeRect(pp.x - 4, pp.top - cap, P + 8, cap);
+    ctx.fillRect(pp.x, by, P, H - G - by); ctx.strokeRect(pp.x + 1, by, P - 2, H - G - by);
+    ctx.fillRect(pp.x - 5, by, P + 10, cap); ctx.strokeRect(pp.x - 4, by + 1, P + 8, cap - 1);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(255,255,255,.22)"; ctx.fillRect(pp.x + 6, 0, 5, pp.top - cap); ctx.fillRect(pp.x + 6, by + cap, 5, H - G - by - cap);
+  }
+  // ground
+  var off = p.state === "run" ? (p.ticks * p.params.speed * E.STEP) % 24 : 0;
+  ctx.fillStyle = th.ground; ctx.fillRect(0, H - G, W, G + 40);
+  ctx.fillStyle = th.groundEdge; ctx.fillRect(0, H - G, W, 4);
+  for (x = -off; x < W; x += 24) ctx.fillRect(x, H - G + 14, 12, 4);
+  // trail
+  for (i = 0; i < trail.length; i++) { var tr = trail[i]; ctx.globalAlpha = tr.a * 0.5; ctx.fillStyle = th.accent; ctx.beginPath(); ctx.arc(tr.x, tr.y, 7 * tr.a, 0, 7); ctx.fill(); }
+  ctx.globalAlpha = 1;
+  // bird
+  var by2 = p.state === "ready" ? p.bird.y + Math.sin(clock * 4) * 6 : p.bird.y;
+  ctx.save(); ctx.translate(E.BX, by2); ctx.rotate(p.state === "over" ? 1.4 : p.bird.rot);
+  ctx.font = Math.round(E.GROUND * 0.62) + "px " + EMO; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(cur.emoji, 0, 2); ctx.restore();
+  // particles
+  for (i = 0; i < parts.length; i++) { var q = parts[i]; ctx.globalAlpha = Math.max(0, q.life / q.max); ctx.fillStyle = q.c; ctx.fillRect(q.x, q.y, q.s, q.s); }
+  ctx.globalAlpha = 1;
+  // floating texts
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (i = 0; i < floaters.length; i++) { var f = floaters[i]; ctx.globalAlpha = Math.min(1, f.life * 1.5); ctx.font = "900 " + f.size + "px system-ui,sans-serif"; ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,.5)"; ctx.strokeText(f.t, f.x, f.y); ctx.fillStyle = f.c; ctx.fillText(f.t, f.x, f.y); }
+  ctx.globalAlpha = 1;
+  if (flash > 0) { ctx.fillStyle = "rgba(255,60,80," + (flash * 0.5) + ")"; ctx.fillRect(-20, -20, W + 40, H + 40); }
+}
+
+/* ---------- loop ---------- */
+var last = 0, acc = 0;
+function handle(ev) {
+  var b = sim.bird;
+  for (var i = 0; i < ev.length; i++) {
+    if (ev[i] === "score") {
+      setScore(sim.score, true); SFX.score();
+      burst(86, b.y, 10, CONF, 150, 300);
+      floaters.push({ x: 86, y: b.y - 28, t: "+1", c: "#fff", size: 20, life: 0.8, vy: -50 });
+      if (prevBest > 0 && sim.score > prevBest && !recordShown) {
+        recordShown = true; floaters.push({ x: E.W / 2, y: 190, t: t("btnRec"), c: "#ffd93d", size: 34, life: 1.4, vy: -20 });
+        burst(E.W / 2, 200, 40, CONF, 260, 260); SFX.record();
+      }
+    } else if (ev[i] === "dead") onDead();
+  }
+}
+function onDead() {
+  setBodyState("over"); SFX.dead(); doShake(18); flash = 1;
+  burst(86, sim.bird.y, 46, [TH[cur.theme].accent, "#fff", "#ff3d71", "#ffd93d"], 320, 700);
+  isRecord = sim.score > prevBest && sim.score > 0;
+  if (isRecord) { store.best[C.configKey(cur)] = sim.score; save(); }
+  $("hint").hidden = true; $("banner").hidden = true;
+  resultTimer = setTimeout(showResult, 650);
+}
+function showResult() {
+  var sc = sim.score, line = "";
+  $("record").textContent = t("record"); $("record").classList.toggle("show", isRecord);
+  if (isRecord) { burst(E.W / 2, 150, 90, CONF, 340, 280); SFX.record(); doShake(8); }
+  if (rival && typeof rival.score === "number") {
+    var nm = rival.name || t("rival");
+    line = sc > rival.score ? fmt(t("win"), { name: nm }) : sc === rival.score ? fmt(t("tie"), { name: nm }) : fmt(t("lose"), { name: nm, d: rival.score - sc });
+  } else line = fmt(t("best"), { n: Math.max(prevBest, sc) });
+  $("res-line").textContent = line;
+  $("name").value = myName;
+  $("result").classList.add("show");
+  var el = $("res-score"), t0 = performance.now(), dur = Math.min(700, 120 + sc * 40);
+  (function tick(now) { var k = Math.min(1, (now - t0) / dur); el.textContent = String(Math.round(sc * k)); if (k < 1) requestAnimationFrame(tick); })(t0);
+}
+function frame(ts) {
+  var dt = Math.min(0.05, (ts - (last || ts)) / 1000); last = ts; clock += dt;
+  if (sim.state === "run") {
+    acc += dt;
+    while (acc >= E.STEP) { acc -= E.STEP; handle(sim.step()); if (sim.state !== "run") break; }
+    if (sim.ticks % 3 === 0 && sim.state === "run") trail.push({ x: 86, y: sim.bird.y, a: 1 });
+  } else acc = 0;
+  for (var i = trail.length - 1; i >= 0; i--) { trail[i].x -= sim.params.speed * dt; trail[i].a -= dt * 2.4; if (trail[i].a <= 0) trail.splice(i, 1); }
+  for (i = parts.length - 1; i >= 0; i--) { var q = parts[i]; q.vy += q.g * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt; if (q.life <= 0) parts.splice(i, 1); }
+  for (i = floaters.length - 1; i >= 0; i--) { floaters[i].y += floaters[i].vy * dt; floaters[i].life -= dt; if (floaters[i].life <= 0) floaters.splice(i, 1); }
+  shake = Math.max(0, shake - dt * 60); flash = Math.max(0, flash - dt * 2.5);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- input ---------- */
+function anyOverlayOpen() { return $("sheet").classList.contains("show"); }
+function doFlap() {
+  if (sim.state === "over" || anyOverlayOpen()) return;
+  var ev = sim.flap();
+  if (ev.indexOf("start") >= 0) { setBodyState("run"); $("hint").hidden = true; $("dock").hidden = true; $("banner").hidden = true; }
+  if (ev.indexOf("flap") >= 0) { SFX.flap(); burst(86 - 10, sim.bird.y + 8, 5, ["#fff", TH[cur.theme].accent], 90, 200); }
+}
+$("app").addEventListener("pointerdown", function (e) {
+  if (e.target.closest("button,input,.panel,#banner")) return;
+  e.preventDefault(); doFlap();
+});
+window.addEventListener("keydown", function (e) {
+  if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) {
+    if (e.key === "Enter" && e.target.id === "prompt") submitPrompt();
+    return;
+  }
+  if (e.code === "Space" || e.key === " " || e.key === "ArrowUp") { e.preventDefault(); doFlap(); }
+});
+
+/* ---------- sheet / new game ---------- */
+function openSheet() { SFX.tap(); $("sheet").classList.add("show"); $("result").classList.remove("show"); }
+function closeSheet() { $("sheet").classList.remove("show"); $("prompt").blur(); if (sim.state === "over") $("result").classList.add("show"); }
+function pick(st) { closeSheet(); useState(st, null); }
+function renderChips() {
+  var box = $("chips"); box.textContent = "";
+  C.PRESETS.forEach(function (p) {
+    var b = document.createElement("button"); b.className = "chip"; b.type = "button";
+    var i = document.createElement("i"); i.textContent = p.emoji;
+    var s = document.createElement("span"); s.textContent = lang === "en" ? p.en : p.de;
+    b.appendChild(i); b.appendChild(s);
+    b.addEventListener("click", function () { SFX.tap(); pick(C.presetState(p, lang)); });
+    box.appendChild(b);
+  });
+}
+var busy = false;
+async function submitPrompt() {
+  if (busy) return;
+  var raw = $("prompt").value, prompt = C.sanitizePrompt(raw);
+  if (!prompt) { toast(t("empty")); return; }
+  if (!C.isClean(prompt)) { toast(t("filter")); return; }
+  busy = true; $("go").textContent = "..."; SFX.tap();
+  var st = null;
+  if (navigator.onLine !== false && typeof fetch === "function") {
+    var ctl = typeof AbortController === "function" ? new AbortController() : null, tm = setTimeout(function () { if (ctl) ctl.abort(); }, 4000);
+    try {
+      var res = await fetch(window.DUELL_API || C.DEFAULT_API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: prompt, lang: lang }), signal: ctl ? ctl.signal : undefined, credentials: "omit", referrerPolicy: "no-referrer" });
+      if (res.ok) st = C.stateFromApi(await res.json(), prompt);
+    } catch (e) { st = null; }
+    clearTimeout(tm);
+  }
+  if (!st) { var lc = C.localConfig(prompt, lang); if (lc.rejected) { busy = false; $("go").textContent = t("go"); toast(t("filter")); return; } st = lc; }
+  busy = false; $("go").textContent = t("go");
+  $("prompt").value = ""; pick(st);
+}
+$("go").addEventListener("click", submitPrompt);
+$("new").addEventListener("click", openSheet);
+$("menu").addEventListener("click", openSheet);
+$("sheetclose").addEventListener("click", closeSheet);
+$("daily").addEventListener("click", function () { SFX.tap(); useState(C.dailyConfig(new Date(), lang), null); });
+$("again").addEventListener("click", function () { SFX.tap(); newRun(); });
+
+/* ---------- share ---------- */
+function copyText(s) {
+  if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(s).then(function () { return true; }, function () { return legacyCopy(s); });
+  return Promise.resolve(legacyCopy(s));
+}
+function legacyCopy(s) {
+  try { var ta = document.createElement("textarea"); ta.value = s; ta.style.cssText = "position:fixed;opacity:0;top:0"; document.body.appendChild(ta); ta.select(); var ok = document.execCommand("copy"); ta.remove(); return ok; } catch (e) { return false; }
+}
+async function challenge() {
+  SFX.tap();
+  var nm = C.sanitizeName($("name").value); myName = nm; store.name = nm; save();
+  var st = Object.assign({}, cur, { score: sim.score });
+  if (nm) st.name = nm;
+  var url = C.buildUrl(st);
+  var text = fmt(t("share"), { who: nm ? nm + ": " : "", n: sim.score, t: cur.title });
+  try {
+    if (window.DuellHost && typeof window.DuellHost.share === "function") { await window.DuellHost.share(url, text); return; }
+  } catch (e) { /* fall through */ }
+  try {
+    if (navigator.share) { await navigator.share({ text: text, url: url }); return; }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  if (await copyText(text + " " + url)) toast(t("copied"));
+  else { toast(t("shareFail")); try { window.prompt(t("shareFail"), url); } catch (e) {} }
+}
+$("challenge").addEventListener("click", challenge);
+$("name").addEventListener("change", function () { myName = C.sanitizeName($("name").value); store.name = myName; save(); });
+
+/* ---------- chrome ---------- */
+function applyLang() {
+  document.documentElement.lang = lang;
+  $("hint").textContent = t("hint"); $("daily").textContent = "📅 " + t("daily"); $("new").textContent = "✨ " + t("fresh");
+  $("sheet-h").textContent = t("sheetH"); $("prompt").placeholder = t("ph"); $("go").textContent = t("go");
+  $("challenge").textContent = t("challenge"); $("again").textContent = t("again"); $("menu").textContent = t("menu");
+  $("name").placeholder = t("namePh"); $("note").textContent = t("note"); $("lang").textContent = lang.toUpperCase();
+  $("mute").setAttribute("aria-label", t("sound")); $("record").textContent = t("record");
+  renderChips(); if (cur) { updateBanner(); updateBestChip(); }
+}
+$("lang").addEventListener("click", function () {
+  lang = lang === "de" ? "en" : "de"; store.lang = lang; save(); applyLang();
+  if (cur && sim.state === "over") showResult();
+});
+function paintMute() { $("mute").textContent = muted ? "🔇" : "🔊"; }
+$("mute").addEventListener("click", function () { muted = !muted; store.muted = muted; save(); paintMute(); if (!muted) SFX.tap(); });
+
+window.addEventListener("hashchange", function () { var st = C.parseHash(location.hash); if (st) { $("sheet").classList.remove("show"); fromLink(st); } });
+document.addEventListener("visibilitychange", function () { last = 0; });
+
+/* test hook (read-only snapshot, used by browser checks) */
+window.DuellDebug = { snap: function () {
+  var nx = null; for (var i = 0; i < sim.pipes.length; i++) if (sim.pipes[i].x + E.PIPE_W >= 86 - 15) { nx = sim.pipes[i]; break; }
+  return { state: sim.state, score: sim.score, y: sim.bird.y, vy: sim.bird.vy, next: nx ? { x: nx.x, top: nx.top, gap: sim.params.gap } : null, cfg: cur, rival: rival };
+} };
+
+/* ---------- go ---------- */
+paintMute(); applyLang(); fit();
+var first = C.parseHash(location.hash);
+if (first) fromLink(first); else useState(C.dailyConfig(new Date(), lang), null);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
