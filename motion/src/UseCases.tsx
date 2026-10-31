@@ -1,7 +1,7 @@
 import React from 'react';
 import {AbsoluteFill, Audio, Img, Sequence, interpolate, staticFile, useCurrentFrame} from 'remotion';
 import {C, F, sec} from './theme';
-import {Appear, Big, Center, Chip, Diamond, IAnchor, ICheck, IPhone, Pop, SceneFade, Stage, Sub, prog, useLayout, useT, LangCtx} from './ui';
+import {Appear, Big, Center, Chip, Diamond, IAnchor, ICheck, ICloud, IGpu, ILaptop, ILock, IPhone, Pop, SceneFade, Stage, Sub, prog, useLayout, useT, LangCtx} from './ui';
 import timing from './vo-timing.json';
 import rectsJson from '../public/real/uc/rects.json';
 import specJson from './usecases.json';
@@ -304,12 +304,101 @@ const Region: React.FC = () => {
   return <Track slug="frag-deine-region" scenes={scenes} />;
 };
 
+// ---------- Schaubild "Firmennetz Nordwind" (Grafik, keine Aufnahme: die Seite braucht eine Anmeldung) ----------
+// Aufbau wie im Dashboard der Demo: die Zentrale in der Mitte, Cloud, Werkstatt und Hafenbuero je ueber einen eigenen Kanal.
+
+type NetPhase = 'sites' | 'roles' | 'secure';
+const NODES: {key: 'cloud' | 'zentrale' | 'werkstatt' | 'hafen'; x: number; y: number; label: LT; role?: LT}[] = [
+  {key: 'cloud', x: 0.4, y: 0.11, label: {de: 'Cloud', en: 'Cloud'}},
+  {key: 'zentrale', x: 0.4, y: 0.37, label: {de: 'Zentrale', en: 'HQ'}, role: {de: 'führt zusammen', en: 'combines both'}},
+  {key: 'werkstatt', x: 0.78, y: 0.65, label: {de: 'Werkstatt', en: 'Workshop'}, role: {de: 'schreibt den Text', en: 'writes the text'}},
+  {key: 'hafen', x: 0.2, y: 0.65, label: {de: 'Hafenbüro', en: 'Harbour office'}, role: {de: 'holt das Wetter', en: 'fetches weather'}},
+];
+const EDGES: [string, string][] = [['cloud', 'zentrale'], ['zentrale', 'werkstatt'], ['zentrale', 'hafen']];
+
+const trim = (a: {x: number; y: number}, b: {x: number; y: number}, r: number) => {
+  const d = Math.hypot(b.x - a.x, b.y - a.y);
+  const u = {x: (b.x - a.x) / d, y: (b.y - a.y) / d};
+  return [{x: a.x + u.x * r, y: a.y + u.y * r}, {x: b.x - u.x * r, y: b.y - u.y * r}];
+};
+
+const NetMap: React.FC<{phase: NetPhase; len: number}> = ({phase, len}) => {
+  const f = useCurrentFrame();
+  const lang = React.useContext(LangCtx) as Lang;
+  const {V} = useLayout();
+  const box = BOX[V ? 'V' : 'H'];
+  const at = (x: number) => Math.round(x * len);
+  const pos = (k: string) => { const n = NODES.find((q) => q.key === k)!; return {x: n.x * box.w, y: n.y * box.h}; };
+  // wann ein Standort erscheint (Reihenfolge wie gesprochen: Cloud, Zentrale, Werkstatt, Hafenbuero)
+  const appearAt: Record<string, number> = phase === 'sites' ? {cloud: at(0.36), zentrale: at(0.5), werkstatt: at(0.64), hafen: at(0.8)} : {cloud: 0, zentrale: 2, werkstatt: 4, hafen: 6};
+  const roleAt: Record<string, number> = {hafen: at(0.3), werkstatt: at(0.5), zentrale: at(0.78)};
+  const edgeAt = phase === 'sites' ? at(0.88) : 8;
+  const secure = phase === 'secure';
+  const flows: [string, string, number][] = phase === 'roles' ? [['hafen', 'zentrale', roleAt.hafen + 10], ['werkstatt', 'zentrale', roleAt.werkstatt + 10]] : [];
+  const D = V ? 150 : 130;
+  return (
+    <div style={{position: 'relative', width: box.w, height: box.h, borderRadius: 22, border: `2px solid ${C.line}`, background: '#0e1a31', boxShadow: '0 30px 80px #000a', overflow: 'hidden'}}>
+      <svg width={box.w} height={box.h} viewBox={`0 0 ${box.w} ${box.h}`} style={{position: 'absolute', inset: 0}}>
+        {EDGES.map(([a, b]) => {
+          const [pa, pb] = trim(pos(a), pos(b), D / 2 + 6);
+          const p = prog(f, edgeAt, 16);
+          return <line key={a + b} x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y} stroke={secure ? C.ok : C.blue} strokeWidth={secure ? 7 : 5} strokeLinecap="round" opacity={p} />;
+        })}
+        {flows.map(([a, b, t0]) => {
+          const pa = pos(a), pb = pos(b);
+          const k = ((f - t0) % 45) / 45;
+          const on = f >= t0 ? 1 : 0;
+          return <circle key={a} r={13} fill={C.flame} cx={pa.x + (pb.x - pa.x) * k} cy={pa.y + (pb.y - pa.y) * k} opacity={on} />;
+        })}
+        {secure && EDGES.map(([a, b]) => {
+          const pa = pos(a), pb = pos(b);
+          const p = prog(f, at(0.35), 14);
+          const k = ((f - at(0.5)) % 60) / 60;
+          return <circle key={'d' + a + b} r={11} fill={C.text} cx={pa.x + (pb.x - pa.x) * k} cy={pa.y + (pb.y - pa.y) * k} opacity={f >= at(0.5) ? p : 0} />;
+        })}
+      </svg>
+      {secure && EDGES.map(([a, b]) => {
+        const pa = pos(a), pb = pos(b);
+        return (
+          <div key={'l' + a + b} style={{position: 'absolute', left: (pa.x + pb.x) / 2, top: (pa.y + pb.y) / 2, transform: 'translate(-50%,-50%)'}}>
+            <Pop at={at(0.3)} bouncy><div style={{width: 96, height: 96, borderRadius: 99, background: '#0e1a31', border: `4px solid ${C.ok}`, display: 'flex', alignItems: 'center', justifyContent: 'center'}}><ILock size={58} color={C.ok} sw={5} /></div></Pop>
+          </div>
+        );
+      })}
+      {NODES.map((n) => {
+        const icon = n.key === 'cloud' ? <ICloud size={D * 0.62} color={C.blue} /> : n.key === 'zentrale' ? <ILaptop size={D * 0.62} color={C.flame} /> : n.key === 'werkstatt' ? <IGpu size={D * 0.62} color={C.blue} /> : <IAnchor size={D * 0.62} color={C.blue} />;
+        const showRole = phase === 'roles' && n.role;
+        const side = n.key === 'cloud' || n.key === 'zentrale';
+        return (
+          <div key={n.key} style={{position: 'absolute', left: n.x * box.w, top: n.y * box.h, width: 0, height: 0}}>
+            <div style={{position: 'absolute', left: -D / 2, top: -D / 2}}>
+              <Pop at={appearAt[n.key]} bouncy>
+                <div style={{width: D, height: D, borderRadius: 999, background: C.panel2, border: `4px solid ${n.key === 'zentrale' ? C.flame : C.blue}`, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{icon}</div>
+              </Pop>
+            </div>
+            <div style={side ? {position: 'absolute', left: D / 2 + 22, top: -26, whiteSpace: 'nowrap'} : {position: 'absolute', left: -190, top: D / 2 + 10, width: 380, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8}}>
+              <Appear at={appearAt[n.key] + 6} dy={10}><div style={{fontSize: V ? 44 : 40, fontWeight: 800, lineHeight: 1.1}}>{n.label[lang]}</div></Appear>
+              {showRole && (
+                <Appear at={roleAt[n.key]} dy={10} style={side ? {marginTop: 8} : undefined}>
+                  <Chip color={n.key === 'zentrale' ? C.flame : C.ok} size={V ? 34 : 30} style={{background: '#0e1a31'}}>{n.role![lang]}</Chip>
+                  {n.key === 'werkstatt' && <div style={{marginTop: 8, display: 'flex', justifyContent: 'center'}}><Chip color={C.blue} size={V ? 30 : 26} style={{background: '#0e1a31'}}>{lang === 'de' ? 'lokale KI' : 'local AI'}</Chip></div>}
+                </Appear>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 // ---------- Weitere Anwendungsfaelle: aus usecases.json ----------
 
 type LT = {de: string; en: string};
 type Scene =
   | {kind: 'problem'; big: (LT & {flame?: boolean})[]; sub?: LT}
   | {kind: 'step'; n?: number; title: LT; sub?: LT; shots: (ShotSpec & {at?: number; marks?: {key: string; at: number; color?: string; r?: R}[]})[]; chip?: LT; url?: string}
+  | {kind: 'net'; phase: NetPhase; n?: number; title: LT; sub?: LT; chip?: LT}
   | {kind: 'close'; title: LT; sub?: LT; cta: LT; small?: LT};
 export type Spec = {id: string; url: string; poster: number; scenes: Scene[]};
 export const SPEC = specJson as unknown as Record<string, Spec>;
@@ -337,6 +426,16 @@ export const useCaseVideo = (slug: string): React.FC => () => {
         <CtaButton>{l(sc.cta)}</CtaButton>
         {sc.small && <Sub size={32}>{l(sc.small)}</Sub>}
       </div>} />
+    );
+    if (sc.kind === 'net') return (
+      <StepLayout key={i} head={<StepHead n={sc.n} title={l(sc.title)} sub={sc.sub && l(sc.sub)} />}>
+        <div style={{position: 'relative'}}>
+          <NetMap phase={sc.phase} len={len} />
+          {sc.chip && <div style={{position: 'absolute', left: 0, right: 0, ...(V ? {bottom: -64} : {bottom: -70}), display: 'flex', justifyContent: 'center'}}>
+            <Appear at={16}><Chip color={C.blue} size={V ? 32 : 34} style={SOLID}>{l(sc.chip)}</Chip></Appear>
+          </div>}
+        </div>
+      </StepLayout>
     );
     const shots = sc.shots.map((s) => ({...s, at: s.at === undefined ? undefined : Math.round(s.at * len), marks: (s.marks ?? []).map((m) => ({...m, at: Math.round(m.at * len), color: COLORS[m.color ?? 'flame']}))}));
     return (

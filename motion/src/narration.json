@@ -404,5 +404,37 @@
    "de": "Frei und ohne Konto. Probier es aus: Klick auf Video auswählen.",
    "en": "Free, with no account. Try it: click Choose a video."
   }
+ ],
+ "firmennetz-nordwind": [
+  {
+   "id": "problem",
+   "min": 2.5,
+   "de": "Mehrere Standorte, eine Aufgabe: Wer macht was?",
+   "en": "Several sites, one job: who does what?"
+  },
+  {
+   "id": "step1",
+   "min": 3,
+   "de": "Vier Standorte, jeder mit eigener Aufgabe.",
+   "en": "Four sites: cloud, headquarters, workshop, harbour office."
+  },
+  {
+   "id": "step2",
+   "min": 5,
+   "de": "Das Hafenbüro holt das Wetter, die Werkstatt schreibt mit lokaler KI, die Zentrale fügt beides zusammen.",
+   "en": "The harbour office fetches the weather, the workshop writes with local AI, headquarters combines both."
+  },
+  {
+   "id": "step3",
+   "min": 3.5,
+   "de": "Alles läuft verschlüsselt, ohne Zugang von außen.",
+   "en": "All of it runs encrypted, with no entrance from outside."
+  },
+  {
+   "id": "next",
+   "min": 3,
+   "de": "Probier es aus: Klick auf Szenario starten.",
+   "en": "Try it: click Start scenario."
+  }
  ]
 }
