@@ -79,10 +79,11 @@ test('de and en pages differ in content, de is the default', () => {
 });
 
 test('not-yet-startable demos live in a separate collapsed "Demnächst" group, disabled, no links', () => {
-  const { live, soon } = partitionDemos(DEMOS);
+  const demos = { ...DEMOS, 'soon-demo': { type: 'external', name: 'soon-demo', title: 'Bald da', blurb: 'Noch nicht startklar.', live: false, category: 'Test' } };
+  const { live, soon } = partitionDemos(demos);
   assert.ok(soon.length >= 1);
-  assert.equal(live.length + soon.length, Object.values(DEMOS).filter((d) => !d.hidden).length);
-  const html = indexPage(DEMOS, 'de');
+  assert.equal(live.length + soon.length, Object.values(demos).filter((d) => !d.hidden).length);
+  const html = indexPage(demos, 'de');
   const section = html.match(/<details class="soonsec"[\s\S]*?<\/details>\s*<\/section>/)[0];
   assert.ok(!/<details class="soonsec"[^>]* open/.test(section), 'collapsed by default');
   const sc = cards(section);
