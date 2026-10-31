@@ -75,9 +75,13 @@ test('/d/<slug> of a live external demo redirects to its externalUrl', async () 
   }
 });
 
-test('slugs with an underscore are routable (sound_generation shows the placeholder, not a 404)', async () => {
-  const r = await fetch(`${base}/d/sound_generation`);
-  assert.equal(r.status, 200);
+test('sound_generation is retired (no backend): no card, no placeholder page, the old link goes to the overview', async () => {
+  assert.ok(!('sound_generation' in DEMOS) && !('explainer' in DEMOS));
+  const r = await fetch(`${base}/d/sound_generation?lang=en`, { redirect: 'manual' });
+  assert.equal(r.status, 302);
+  assert.equal(r.headers.get('location'), '/?lang=en');
+  assert.equal((await fetch(`${base}/d/sound_generation`, { redirect: 'manual' })).headers.get('location'), '/');
+  assert.equal((await fetch(`${base}/d/constructor`, { redirect: 'manual' })).status, 404, 'prototype keys are no demos');
 });
 
 test('demos.json has no absolute paths and no cookbook', () => {
@@ -117,8 +121,8 @@ test('erklaervideo without the bundle fails honestly (no fake success)', async (
 test('URLs that used to crash the server answer normally and leave it running', async () => {
   const alive = async () => assert.equal((await fetch(base + '/')).status, 200);
   const cases = [
-    ['/d/podcast/out/chapters.json', 200], ['/d/podcast/out/missing.mp3', 404], ['/d/explainer/out/renders/final.mp4', 200],
-    ['/assets/thumbs/', 404], ['/assets/thumbs/photo1.jpg', 200], ['/d/podcast/out/renders', 404], ['/d/explainer/out/renders', 404],
+    ['/d/podcast/out/chapters.json', 200], ['/d/podcast/out/missing.mp3', 404], ['/d/explainer/out/renders/final.mp4', 404],
+    ['/assets/thumbs/', 404], ['/assets/thumbs/photo1.jpg', 200], ['/d/podcast/out/renders', 404], ['/d/explainer/out/renders', 404], ['/d/sound_generation/out/x.mp3', 404],
   ];
   for (const [path, status] of cases) {
     const r = await fetch(base + path); await r.arrayBuffer();

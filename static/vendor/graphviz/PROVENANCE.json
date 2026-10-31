@@ -1,0 +1,26 @@
+{
+  "what": "Runtime of the 'draw in the browser' part of /d/diagram. Served from this origin; nothing is loaded from a CDN.",
+  "sources": {
+    "graphviz.js": {
+      "package": "@hpcc-js/wasm-graphviz@1.30.0",
+      "license": "Apache-2.0",
+      "contains": "Graphviz (EPL-1.0) compiled to WebAssembly, embedded",
+      "source_code": "https://github.com/hpcc-systems/hpcc-js-wasm/tree/wasm-graphviz-v1.30.0",
+      "note": "dist/index.js of the npm package, unchanged"
+    }
+  },
+  "files": {
+    "LICENSE.hpcc-js-wasm-graphviz-apache-2.0.txt": {
+      "sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6",
+      "bytes": 11558
+    },
+    "NOTICE.txt": {
+      "sha256": "19026c1a94ec29c9ed630b5b4a37daf459b347b1a7ab1080279ea85b67c00c79",
+      "bytes": 695
+    },
+    "graphviz.js": {
+      "sha256": "77d45a274928484dd1daccd55ab3e41ddda5b4262e29240e205f7188839d9d5d",
+      "bytes": 820107
+    }
+  }
+}

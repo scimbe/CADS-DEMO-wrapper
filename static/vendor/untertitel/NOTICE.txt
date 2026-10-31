@@ -1,0 +1,45 @@
+Third-party components of the /d/untertitel demo
+=================================================
+
+This page is served together with the components below. They run in the visitor's browser.
+The exact files and their SHA-256 digests are in PROVENANCE.json (same folder).
+
+1. ffmpeg-core.js + ffmpeg-core.wasm  --  GPL-2.0-or-later
+   Package: @ffmpeg/core 0.12.10 (npm), built by the ffmpeg.wasm project at tag v0.12.10.
+   Contents: FFmpeg n5.1.4, configured with --enable-gpl and these libraries: x264, x265 3.4, libvpx 1.13.1,
+   lame, libtheora 1.1.1, libvorbis 1.3.3, libopus 1.3.1, zlib 1.2.11, libwebp 1.3.2, freetype 2.10.4,
+   fribidi 1.0.9, libass 0.15.0, zimg 3.0.5, plus HarfBuzz 5.2.0. Built with Emscripten 3.1.40.
+   Because FFmpeg is built with --enable-gpl (x264, x265), the combined work is licensed under the
+   GNU General Public License, version 2 or (at your option) any later version.
+   Licence text: LICENSE.ffmpeg-gpl-2.0.txt
+   Copyright: the FFmpeg developers; x264 project (2003-2022); MulticoreWare, Inc (x265, 2013-2020);
+              the other libraries by their respective authors; ffmpeg.wasm glue code (c) 2019 Jerome Wu (MIT).
+   Corresponding source code (this exact version):
+     ffmpeg.wasm  https://github.com/ffmpegwasm/ffmpeg.wasm/tree/v0.12.10  (commit c3a763857c5e)
+     build recipe https://github.com/ffmpegwasm/ffmpeg.wasm/blob/v0.12.10/Dockerfile  (lists every library and version)
+     FFmpeg       https://github.com/FFmpeg/FFmpeg/tree/n5.1.4  (commit 4729204c17f7)
+     x264         https://github.com/ffmpegwasm/x264/tree/4-cores  (commit 33cac6b77d5b)
+     x265         https://github.com/ffmpegwasm/x265/tree/3.4  (commit 2bb5520e9596)
+     libvpx       https://github.com/ffmpegwasm/libvpx/tree/v1.13.1  (commit 10b9492dcf05)
+     lame         https://github.com/ffmpegwasm/lame/tree/master  (commit 2badea1974ae)
+     libass       https://github.com/libass/libass/tree/0.15.0  (commit d149636f502f)
+   The commits are the ones the named tags and branches pointed to on 2026-10-31. The remaining libraries
+   are named with their versions in the Dockerfile linked above.
+   The file is unchanged from the npm package: its SHA-256 equals the one of @ffmpeg/core@0.12.10.
+
+2. ffmpeg/*.js  --  MIT
+   Package: @ffmpeg/ffmpeg 0.12.15. Copyright (c) 2019 Jerome Wu. Licence text: LICENSE.ffmpeg-wasm-mit.txt
+
+3. shout.wasm.js  --  MIT
+   Package: @transcribe/shout 1.0.7, Copyright (c) 2024 thurti. Licence text: LICENSE.shout.txt
+   Contains whisper.cpp v1.8.2 (commit 4979e04f5dcaccb36057e059bbaed8a2f5288315), MIT,
+   Copyright (c) 2023-2026 The ggml authors. Licence text: LICENSE.whisper-cpp-mit.txt
+   Source: https://github.com/ggerganov/whisper.cpp/tree/v1.8.2
+
+4. ggml-tiny-q5_1.bin, ggml-base-q5_1.bin  --  MIT
+   OpenAI Whisper model weights, converted and quantised by whisper.cpp.
+   Copyright (c) 2022 OpenAI. Licence text: LICENSE.openai-whisper-mit.txt
+   Source: https://huggingface.co/ggerganov/whisper.cpp/tree/5359861c739e955e79d9a303bcbc70fb988958b1
+
+5. Poppins-ExtraBold.ttf  --  SIL Open Font License 1.1
+   Package: @expo-google-fonts/poppins 0.4.1. Licence text: LICENSE.poppins-ofl.txt
