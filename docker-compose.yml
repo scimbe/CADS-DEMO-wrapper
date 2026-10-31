@@ -17,6 +17,22 @@ services:
       - LITELLM_BASE_URL=${LITELLM_BASE_URL:?shared litellm proxy base}
       - LITELLM_API_KEY=${LITELLM_API_KEY:?shared litellm proxy key}
       - LITELLM_DEFAULT_MODEL=${LITELLM_DEFAULT_MODEL:-local-qwen36-35b-a3b-coding}
+      # My Daily Idea, KI-Kontingent (siehe lib/duell-ai.mjs). Ohne DUELL_AI_SALT zaehlt es nur bis zum Neustart.
+      - DUELL_AI_SALT=${DUELL_AI_SALT:-}
+      - DUELL_AI_STATE_FILE=${DUELL_AI_STATE_FILE:-/var/lib/duell-ai/state.json}
+      - DUELL_AI_ABO_ALLOWLIST=${DUELL_AI_ABO_ALLOWLIST:-}
+      - DUELL_AI_FREE=${DUELL_AI_FREE:-3}
+      - DUELL_AI_ENABLED=${DUELL_AI_ENABLED:-1}
+      - DUELL_AI_ABO_PER_DAY=${DUELL_AI_ABO_PER_DAY:-30}
+      - DUELL_AI_KEYS_MAX=${DUELL_AI_KEYS_MAX:-100000}
+      - DUELL_AI_CACHE_TTL_S=${DUELL_AI_CACHE_TTL_S:-86400}
+      - DUELL_AI_CACHE_MAX=${DUELL_AI_CACHE_MAX:-300}
+      # Wetterkarte: Grenzen je gehashter IP und pro UTC-Tag (siehe lib/duell-weather.mjs).
+      - DUELL_WEATHER_IP_PER_HOUR=${DUELL_WEATHER_IP_PER_HOUR:-30}
+      - DUELL_WEATHER_DAILY_MAX=${DUELL_WEATHER_DAILY_MAX:-1000}
+      # Ohne DUELL_IP_HEADER gibt es keine Grenzen je IP (siehe README, Kurzlinks und KI-Aktionen).
+      - DUELL_IP_HEADER=${DUELL_IP_HEADER:-}
+      - DUELL_IP_SALT=${DUELL_IP_SALT:-}
       # "Installationen speichern": aus, solange kein Token gesetzt ist (siehe lib/installations.mjs).
       - INSTALLATIONS_DELEGATE_TOKEN=${INSTALLATIONS_DELEGATE_TOKEN:-}
       - INSTALLATIONS_LIVE=${INSTALLATIONS_LIVE:-}
@@ -31,8 +47,19 @@ services:
       - CT_AGENT_BIN=/opt/ct-channel/ct-agent
       - CT_RELAY_ENV=/opt/ct-channel/relay.env
       - CT_AUDIO_CHANNEL_ID=${CT_AUDIO_CHANNEL_ID:-}
+      # Kurzlinks: ohne dieses Verzeichnis antwortet POST /api/s mit 503 und die App bleibt beim langen Link.
+      - SHORT_DATA_DIR=/data/shortlinks
+      - SHORT_TTL_DAYS=${SHORT_TTL_DAYS:-90}
+      - SHORT_IP_PER_HOUR=${SHORT_IP_PER_HOUR:-20}
+      - SHORT_DAILY_MAX=${SHORT_DAILY_MAX:-2000}
+      - SHORT_MISS_PER_HOUR=${SHORT_MISS_PER_HOUR:-60}
+      - SHORT_MAX_LIVE=${SHORT_MAX_LIVE:-100000}
+      - SHORT_BASE=${SHORT_BASE:-https://bunsenbrenner.org}
+      - SHORT_PUBLIC_BASE=${SHORT_PUBLIC_BASE:-https://demos-34a13a96.bunsenbrenner.org}
     volumes:
       - ${CT_CHANNEL_DIR:-./channel}:/opt/ct-channel:ro
+      - demos-shortlinks:/data/shortlinks
+      - duell-ai:/var/lib/duell-ai
     expose:
       - "8790"          # reachable only via the agent, not published to the host
     restart: unless-stopped
@@ -63,6 +90,8 @@ services:
 
 volumes:
   demos_agent_state:
+  demos-shortlinks:
+  duell-ai:
 
 networks:
   default:

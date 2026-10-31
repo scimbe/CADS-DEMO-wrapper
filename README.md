@@ -115,7 +115,46 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | `DUELL_WEB_FILE` | `apps/duell-web/dist/index.html` | Spieldatei fuer `/duell` |
 | `DUELL_ASSETLINKS_SHA256` / `DUELL_ANDROID_PACKAGE` | Release-Fingerabdruck / `org.bunsenbrenner.cads` | Inhalt der assetlinks.json |
 
+### Kurzlinks (`lib/shortlink.mjs`, Tests: `test/shortlink.test.mjs`)
+- `POST /api/s` `{f, k, n, l}` -> `201 {id, url, token, exp}`; `f` ist das Fragment (`c=...` oder `i=...`, hoechstens 2 KB) und bleibt fuer den Server undurchsichtig. `p=` (enthaelt einen geheimen Schluessel) wird abgelehnt.
+- `GET /s/<id>` kleine Seite mit Open-Graph-Tags, Skript fuehrt nach `/duell#<f>`; abgelaufen oder geloescht `410`, unbekannt `404`, jeweils mit freundlicher Seite. Vorschau enthaelt nie Nutzertext, Bilder fest in `static/share/`.
+- `GET /api/s/<id>` -> `{f, exp}` fuer die App-Huellen; `DELETE /api/s/<id>` mit `Authorization: Bearer <token>`.
+- Daten: `SHORT_DATA_DIR/links.jsonl`, muss ein Volume sein. Ohne die Variable antwortet `POST /api/s` mit `503` und die App bleibt beim langen Link. Sicherung: `docker run --rm -v demos-shortlinks:/d:ro -v "$PWD":/b alpine tar czf /b/shortlinks.tgz -C /d .`
+
+| Variable | Default | Bedeutung |
+|---|---|---|
+| `SHORT_DATA_DIR` | leer (aus) | Verzeichnis im Volume |
+| `SHORT_TTL_DAYS` | 90 | Lebensdauer |
+| `SHORT_IP_PER_HOUR` / `SHORT_DAILY_MAX` | 20 / 2000 | neue Links je gehashter IP und Stunde / pro UTC-Tag |
+| `SHORT_MISS_PER_HOUR` | 60 | unbekannte IDs je gehashter IP und Stunde, danach `429` (braucht `DUELL_IP_HEADER`, sonst ist die IP unbekannt) |
+| `SHORT_MAX_LIVE` | 100000 | Obergrenze gespeicherter Eintraege |
+| `SHORT_BASE` / `SHORT_PUBLIC_BASE` | `https://bunsenbrenner.org` / Galerie-Host | sichtbarer Link / Host fuer Bilder und `og:url` |
+
+### KI-Aktionen und Kontingent (My Daily Idea)
+Code: `lib/duell-ai.mjs`, Tests: `test/duell-ai.test.mjs`. Gleiches Modell und gleiche Grenzen wie `/api/duell/config` (ein Aufruf zugleich, Tagesgrenze, Limit je gehashter IP).
+- `POST /api/duell/ai` `{kind: wish|line|meme|lyrics, input, device, lang}` -> `{kind, options, meter}`; `POST /api/duell/ai/status` und `/interest` `{device}` -> `{meter}`.
+- `wish` ist das Hauptmerkmal: Ein freier Wunsch aendert genau eine Kreation, aber nur die Felder ihres Typs (`WISH` in `lib/duell-ai.mjs`): Karte und Foto Text, Stil, Farbpaar aus der Palette, Sticker aus den Sets; Beat Titel, Tempo, Raster, Effekt; Spiel Physik in festen Grenzen, Welt, Figur, Titel. Alles andere verwirft der Server.
+- `POST /api/duell/ai/weather` `{place, date}` -> `{place, date, hi, lo, rain, code, source}`: echte Werte von Open-Meteo fuer heute bis in 7 Tagen, ohne Modell und ohne Kontingent (`lib/duell-weather.mjs`). Bei Fehlern gibt es keine Zahlen. Grenzen: `DUELL_WEATHER_IP_PER_HOUR` (30), `DUELL_WEATHER_DAILY_MAX` (1000).
+- Antworten: `429 quota` (Kontingent verbraucht), `429 busy|daily-limit|rate-limited`, `422 blocked`, `503 llm-unavailable|ai-off`. Die Seite faellt dann sofort auf lokale Vorschlaege zurueck. Nur erfolgreiche Aktionen zaehlen.
+- Grenzen ehrlich: Ohne Konto zaehlt ein HMAC einer zufaelligen Geraete-ID. Wer die App-Daten loescht, hat ein neues Kontingent; das ist gewollt und nur ueber IP-Limit und Tagesgrenze gedeckelt. Mit Anmeldung (Cookie, nur gleiche Herkunft) zaehlt das Konto; die App-Huellen senden kein Cookie.
+- Gespeichert werden nur HMACs und Zaehler, keine IP, keine E-Mail, keine Eingaben. Fotos bleiben auf dem Geraet; es geht nur getippter Text an den Server.
+- Abo: Es gibt keinen Zahlungsweg. `DUELL_AI_ABO_ALLOWLIST` schaltet Konten zum Testen frei.
+
+| ENV | Default | Bedeutung |
+|-----|---------|-----------|
+| `DUELL_AI_ENABLED` | 1 | `0` schaltet die KI-Aktionen ab, die Seite bleibt lokal |
+| `DUELL_AI_FREE` | 3 | kostenlose Aktionen je Person |
+| `DUELL_AI_SALT` | leer | Schluessel der HMACs. Ohne ihn wird nichts gespeichert und das Kontingent gilt nur bis zum Neustart |
+| `DUELL_AI_STATE_FILE` | leer (Compose: `/var/lib/duell-ai/state.json`) | Zaehlerdatei auf dem Volume `duell-ai` |
+| `DUELL_AI_ABO_ALLOWLIST` | leer | E-Mails mit Abo-Flag (kommagetrennt), nur zum Testen |
+| `DUELL_AI_ABO_PER_DAY` | 30 | Aktionen je Abo-Konto und UTC-Tag |
+| `DUELL_AI_KEYS_MAX` | 100000 | groesste Zaehlerdatei; die aeltesten Eintraege fallen zuerst heraus |
+| `DUELL_AI_CACHE_TTL_S` / `DUELL_AI_CACHE_MAX` | 86400 / 300 | Antwort-Cache |
+| `DUELL_WEATHER_IP_PER_HOUR` / `DUELL_WEATHER_DAILY_MAX` | 30 / 1000 | Wetteranfragen je gehashter IP und Stunde / pro UTC-Tag |
+| `DUELL_IP_HEADER` / `DUELL_IP_SALT` | leer / zufaellig je Prozess | Kopfzeile mit der echten Client-IP, leer heisst keine Grenzen je IP hinter dem Tunnel; Salz der IP-Hashes |
+
 ## Notes
+
 - Secrets (`.env`, `.pexels-key`, `.registry-token`) are NOT in this repo — provide out-of-band.
 - `work/` is the runtime install dir (demo bundles install on first "Start"); not committed.
 - Photos under `pexels/` are Pexels stock (attribution shown in-app + per photo).
