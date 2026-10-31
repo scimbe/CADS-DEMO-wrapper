@@ -6,7 +6,8 @@ import net from 'node:net';
 import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createDuell, isBlocked, toConfig, cleanTitle, cleanEmoji, normalizePrompt, parseModelJson, makeLlm, RANGES, THEMES } from '../lib/duell.mjs';
 
 const GOOD = JSON.stringify({ gravity: 2100, flapPower: 500, pipeGap: 100, pipeSpeed: 200, theme: 'night', emoji: '🚀', title: 'Raketenduell' });
@@ -347,4 +348,12 @@ test('HTTP: with the login gate on, the config API stays public while real runs 
     assert.equal((await fetch(url + '/duell')).status, 200);
     assert.equal((await fetch(url + '/api/start', { method: 'POST' })).status, 401);
   } finally { p.kill(); }
+});
+
+test('GET /duell serves the integrated build: every feature of the merged PRs is in the file the route reads', () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const d = createDuell({ env: {}, root });
+  assert.equal(d.cfg.webFile, join(root, 'apps/duell-web/dist/index.html'));
+  const html = readFileSync(d.cfg.webFile, 'utf8');
+  for (const mark of ['"id":"halloween"', '"id":"duell-ssp"', '"id":"kanal-geheim"', 'id="tostatus"', 'id="playit"', 'id="cogo"', 'root.ShortLink', 'root.Wish', 'window.Ai', 'root.Collab', 'skundo']) assert.ok(html.includes(mark), mark);
 });
