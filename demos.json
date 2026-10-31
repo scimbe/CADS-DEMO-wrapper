@@ -102,18 +102,18 @@
     "type": "external",
     "name": "a2a-demo",
     "version": "0.1.0",
-    "title": "Zwei Geräte sicher verbinden",
-    "tagline": "Zwei Maschinen in getrennten Netzen erreichen sich Ende-zu-Ende-verschlüsselt über das Relay der Plattform — keine Seite öffnet einen Port oder einen Listener.",
-    "blurb": "Zwei Computer in verschiedenen Netzen finden sich verschlüsselt, ohne dass am Router etwas freigegeben werden muss.",
+    "title": "Firmennetz Nordwind: Agenten über vier Standorte",
+    "tagline": "Cloud, Zentrale, Werkstatt und Hafenbüro arbeiten zusammen, verschlüsselt von Ende zu Ende und ohne offenen Port.",
+    "blurb": "Ein Klick startet einen echten Auftrag: Das Hafenbüro holt Live-Wetter, die Werkstatt schreibt mit lokaler KI, die Zentrale führt beides zusammen.",
     "externalUrl": "https://a2a-demo.bunsenbrenner.org/",
-    "live": false,
+    "live": true,
     "order": 20,
     "category": "Vernetzung",
     "category_en": "Networking",
-    "title_en": "Connect two devices securely",
-    "blurb_en": "Two computers in different networks reach each other encrypted, without opening anything on the router.",
-    "tech": "Agent-zu-Agent über das Relay der Plattform: Ende-zu-Ende-verschlüsselte Agent-Fabric-Channel-Calls, auf keiner Seite ein offener Port oder Listener.",
-    "tech_en": "Agent-to-agent through the platform relay: end-to-end encrypted agent-fabric channel calls, no open port or listener on either side."
+    "title_en": "Nordwind company network: agents across four sites",
+    "blurb_en": "One click starts a real job: the harbour office fetches live weather, the workshop writes with local AI, headquarters combines both.",
+    "tech": "Vier echte Rechner in getrennten Netzen, verbunden über Agent-Fabric-Kanäle. Das Relay sieht nur Chiffretext. Der Start erfordert eine Anmeldung.",
+    "tech_en": "Four real machines in separate networks, connected through agent-fabric channels. The relay sees only ciphertext. Starting requires a login."
   },
   "auction-demo": {
     "type": "external",
@@ -743,7 +743,7 @@
     "tech": "Dein Text wird vom Sprachmodell zu einem Skript aus 4–8 Szenen; jede Aussage muss aus deinem Text stammen und wird im Code geprüft. Die Stimme „Thomas“ spricht jede Szene, ImageMagick setzt die Folien, ffmpeg schneidet Video (H.264/AAC) mit Untertiteln.",
     "tech_en": "Your text becomes a script of 4–8 scenes; every statement must come from your text and is checked in code. The voice “Thomas” narrates each scene, ImageMagick sets the slides, ffmpeg assembles the video (H.264/AAC) with subtitles.",
     "manifestDir": "manifests/erklaervideo"
-    },
+  },
   "untertitel": {
     "type": "browser-wasm",
     "name": "untertitel",
