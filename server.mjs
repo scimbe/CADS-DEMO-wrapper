@@ -23,6 +23,7 @@ import { createInstallations, installationsPage, isInstallationId, publicRecord,
 import { LOCAL_RUN_CSS, hasLocalBlock, installScript, localRunBlock, localRunConfig } from './lib/local-run.mjs';
 import { BD_CSS, diagramBrowserBlock } from './lib/diagram-browser.mjs';
 import { DEFAULT_REGISTRY_URL, REFUSAL, loadVerifiedManifest, readTrustRoot } from './lib/manifest-trust.mjs';
+import { createDuell } from './lib/duell.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
@@ -1062,6 +1063,7 @@ function builderVersions() {
 
 
 const INSTALLATIONS = createInstallations();
+const DUELL = createDuell({ llmEnv: ENV, root: __dir }); // public by design (no login), see lib/duell.mjs
 const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
 // One failing request answers 500; it never takes the gallery (and everybody's runs) down with it.
 http.createServer((req, res) => route(req, res).catch((e) => {
@@ -1072,6 +1074,7 @@ http.createServer((req, res) => route(req, res).catch((e) => {
 async function route(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
+  if (await DUELL.route(req, res, url)) return; // Duell: config API, web game, assetlinks (public, own limits)
   if (await AUTH.guard(req, res, url)) return;
   if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage(DEMOS, normLang(url.searchParams.get('lang')), { sandboxLive: !!LOCAL_RUN.version, savedLive: process.env.INSTALLATIONS_LIVE === '1' })); return; }
   if (p === '/installationen') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(installationsPage(url.searchParams.get('lang'), INSTALLATIONS.enabled)); return; }

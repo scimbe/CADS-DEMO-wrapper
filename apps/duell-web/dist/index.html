@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Duell (Platzhalter)</title>
+<style>
+body{margin:0;font:18px system-ui,sans-serif;background:#10151f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;text-align:center}
+small{opacity:.6}
+</style></head><body>
+<h1>Duell</h1>
+<small id="src">PLATZHALTER - nur zum Test. Die echte Datei (apps/duell-web/dist/index.html) kommt mit dem Marketplace-PR.</small>
+<div id="ch">Keine Herausforderung</div>
+<script>
+function b64(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return decodeURIComponent(escape(atob(s)))}
+function show(){
+  var m=/^#c=([A-Za-z0-9_-]+)/.exec(location.hash),el=document.getElementById('ch');
+  if(!m){el.textContent='Keine Herausforderung';return}
+  try{var j=JSON.parse(b64(m[1]));el.textContent='Herausforderung von '+j.n}catch(e){el.textContent='Herausforderung ungueltig'}
+}
+addEventListener('hashchange',show);show();
+</script></body></html>

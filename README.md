@@ -94,6 +94,27 @@ serverseitig ueber ihre oeffentliche Tunnel-URL auf (`bridgeUrl` in `demos.json`
 Prozess (Nominatim-Limit der Bridge). Ausfuehren laeuft ueber `/api/start` und ist damit wie alle Laeufe
 login-pflichtig (`DEMO_AUTH_MODE=gate`). Code: `lib/route.mjs`, Tests: `test/route.test.mjs` (Bridge-Mock).
 
+## Duell (Jugend-App)
+Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffentlich (vor dem Login-Gate, eigene Grenzen).
+- `POST /api/duell/config` `{prompt (<=140 Zeichen), lang}` -> `{params:{gravity,flapPower,pipeGap,pipeSpeed}, theme, title, emoji}`.
+  Bereiche wie im Flappy-Studio (900-2600, 280-620, 90-200, 90-260), Themes `day|night|sunset|retro|candy`.
+  Wortfilter de/en vor und nach dem Modell, Antwort-Cache, Limit je gehashter IP, Tagesgrenze, ein Modellaufruf zugleich;
+  bei Grenze `429`, bei Ausfall `503` (sofort), bei Filtertreffer `422`. Modell: `LITELLM_*` wie die uebrige Galerie, Denken aus.
+- `GET /duell` liefert `apps/duell-web/dist/index.html` (Platzhalter bis zum Marketplace-PR; Pfad per `DUELL_WEB_FILE`).
+- `GET /.well-known/assetlinks.json` fuer `org.bunsenbrenner.cads` (wirkt nur auf dem Host des App-Links, siehe unten).
+
+| ENV | Default | Bedeutung |
+|-----|---------|-----------|
+| `DUELL_IP_PER_HOUR` | 12 | Modellaufrufe je gehashter IP und Stunde |
+| `DUELL_DAILY_MAX` | 400 | Modellaufrufe pro UTC-Tag insgesamt |
+| `DUELL_CACHE_TTL_S` / `DUELL_CACHE_MAX` | 86400 / 500 | Antwort-Cache |
+| `DUELL_LLM_TIMEOUT_MS` | 20000 | Zeitlimit des Modellaufrufs |
+| `DUELL_IP_HEADER` | leer | Header mit der Client-IP (z. B. `x-forwarded-for`). Leer = Socket-Adresse; ist die privat (Proxy/Tunnel), ist das IP-Limit aus, es bleiben Cache, Tagesgrenze und ein Aufruf zugleich |
+| `DUELL_IP_SALT` | zufaellig je Start | Salz fuer den IP-Hash |
+| `DUELL_CORS_ORIGINS` | `https://appassets.androidplatform.net` | erlaubte Herkunft (kommagetrennt); andere Browser-Herkuenfte bekommen `403` |
+| `DUELL_WEB_FILE` | `apps/duell-web/dist/index.html` | Spieldatei fuer `/duell` |
+| `DUELL_ASSETLINKS_SHA256` / `DUELL_ANDROID_PACKAGE` | Release-Fingerabdruck / `org.bunsenbrenner.cads` | Inhalt der assetlinks.json |
+
 ## Notes
 - Secrets (`.env`, `.pexels-key`, `.registry-token`) are NOT in this repo — provide out-of-band.
 - `work/` is the runtime install dir (demo bundles install on first "Start"); not committed.
