@@ -115,7 +115,23 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | `DUELL_WEB_FILE` | `apps/duell-web/dist/index.html` | Spieldatei fuer `/duell` |
 | `DUELL_ASSETLINKS_SHA256` / `DUELL_ANDROID_PACKAGE` | Release-Fingerabdruck / `org.bunsenbrenner.cads` | Inhalt der assetlinks.json |
 
+### Kurzlinks (`lib/shortlink.mjs`, Tests: `test/shortlink.test.mjs`)
+- `POST /api/s` `{f, k, n, l}` -> `201 {id, url, token, exp}`; `f` ist das Fragment (`c=...` oder `i=...`, hoechstens 2 KB) und bleibt fuer den Server undurchsichtig. `p=` (enthaelt einen geheimen Schluessel) wird abgelehnt.
+- `GET /s/<id>` kleine Seite mit Open-Graph-Tags, Skript fuehrt nach `/duell#<f>`; abgelaufen oder geloescht `410`, unbekannt `404`, jeweils mit freundlicher Seite. Vorschau enthaelt nie Nutzertext, Bilder fest in `static/share/`.
+- `GET /api/s/<id>` -> `{f, exp}` fuer die App-Huellen; `DELETE /api/s/<id>` mit `Authorization: Bearer <token>`.
+- Daten: `SHORT_DATA_DIR/links.jsonl`, muss ein Volume sein. Ohne die Variable antwortet `POST /api/s` mit `503` und die App bleibt beim langen Link. Sicherung: `docker run --rm -v demos-shortlinks:/d:ro -v "$PWD":/b alpine tar czf /b/shortlinks.tgz -C /d .`
+
+| Variable | Default | Bedeutung |
+|---|---|---|
+| `SHORT_DATA_DIR` | leer (aus) | Verzeichnis im Volume |
+| `SHORT_TTL_DAYS` | 90 | Lebensdauer |
+| `SHORT_IP_PER_HOUR` / `SHORT_DAILY_MAX` | 20 / 2000 | neue Links je gehashter IP und Stunde / pro UTC-Tag |
+| `SHORT_MISS_PER_HOUR` | 60 | unbekannte IDs je gehashter IP und Stunde, danach `429` (braucht `DUELL_IP_HEADER`, sonst ist die IP unbekannt) |
+| `SHORT_MAX_LIVE` | 100000 | Obergrenze gespeicherter Eintraege |
+| `SHORT_BASE` / `SHORT_PUBLIC_BASE` | `https://bunsenbrenner.org` / Galerie-Host | sichtbarer Link / Host fuer Bilder und `og:url` |
+
 ## Notes
+
 - Secrets (`.env`, `.pexels-key`, `.registry-token`) are NOT in this repo — provide out-of-band.
 - `work/` is the runtime install dir (demo bundles install on first "Start"); not committed.
 - Photos under `pexels/` are Pexels stock (attribution shown in-app + per photo).
