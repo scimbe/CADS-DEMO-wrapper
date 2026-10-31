@@ -321,11 +321,11 @@ test('HTTP: GET /duell serves the game file (fragment is the client\'s business)
   try { assert.equal((await fetch(url + '/duell')).status, 404); } finally { p.kill(); }
 });
 
-test('repo placeholder at apps/duell-web/dist/index.html is served by default and reads the #c= fragment', async () => {
+test('the game file at apps/duell-web/dist/index.html is served by default and reads the #c= fragment', async () => {
   const { p, url } = await boot({ DUELL_WEB_FILE: '' });
   try {
     const r = await fetch(url + '/duell'); assert.equal(r.status, 200);
-    const h = await r.text(); assert.match(h, /PLATZHALTER/); assert.match(h, /#c=/);
+    const h = await r.text(); assert.match(h, /<title>Duell<\/title>/); assert.match(h, /#c=/);
   } finally { p.kill(); }
 });
 
