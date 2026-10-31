@@ -325,7 +325,7 @@ test('the game file at apps/duell-web/dist/index.html is served by default and r
   const { p, url } = await boot({ DUELL_WEB_FILE: '' });
   try {
     const r = await fetch(url + '/duell'); assert.equal(r.status, 200);
-    const h = await r.text(); assert.match(h, /<title>Duell<\/title>/); assert.match(h, /#c=/);
+    const h = await r.text(); assert.match(h, /<title>My Daily Idea<\/title>/); assert.match(h, /#c=/);
   } finally { p.kill(); }
 });
 
