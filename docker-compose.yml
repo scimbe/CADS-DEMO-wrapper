@@ -22,6 +22,8 @@ services:
       - INSTALLATIONS_LIVE=${INSTALLATIONS_LIVE:-}
       # "Sandbox auf deinem Gerät": aus, bis hier ein veröffentlichter Release steht (cads-run-v0.1.0).
       - CADS_RUN_VERSION=${CADS_RUN_VERSION:-}
+      - CADS_ANDROID_APK_URL=${CADS_ANDROID_APK_URL:-}
+      - CADS_ANDROID_APK_SHA256=${CADS_ANDROID_APK_SHA256:-}
       - CT_MANIFEST_TRUST_ALLOWLIST=${CT_MANIFEST_TRUST_ALLOWLIST:-1292c0cc8da75808549be709101acec612a52d5219b188c0adcff6d829ace69b}
       # erklaervideo: voice "Thomas" through the ct-agent channel (audio_generation) -- same mechanism as the
       # call-center app: a READ-ONLY mount with ct-agent + relay.env, no published ports. Without it the demo

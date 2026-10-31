@@ -107,8 +107,8 @@ test('hero states the truth: demo runs on our server; planned features are marke
   const visible = html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/data-search="[^"]*"/g, '');
   assert.ok(!/lokal aktiv|offline|served by customer|auf diesem Rechner/i.test(visible));
   const trust = html.match(/<section class="trust"[\s\S]*?<\/section>/)[0];
-  assert.equal((trust.match(/Aktiv in der Demo/g) || []).length, 2);
-  assert.equal((trust.match(/In Vorbereitung/g) || []).length, 2);
+  assert.equal((trust.match(/Aktiv in der Demo/g) || []).length, 3, 'unchanged, signed and the browser part of the sandbox');
+  assert.equal((trust.match(/In Vorbereitung/g) || []).length, 1, 'saved installations');
   assert.match(trust, /Sandbox/);
 });
 

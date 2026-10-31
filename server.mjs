@@ -20,7 +20,8 @@ import { indexPage } from './lib/index-page.mjs';
 import { loadEnv } from './lib/env.mjs';
 import { createAuth } from './lib/auth.mjs';
 import { createInstallations, installationsPage, isInstallationId, publicRecord, recordFor } from './lib/installations.mjs';
-import { LOCAL_RUN_CSS, hasLocalRun, installScript, localRunBlock, localRunConfig } from './lib/local-run.mjs';
+import { LOCAL_RUN_CSS, hasLocalBlock, installScript, localRunBlock, localRunConfig } from './lib/local-run.mjs';
+import { BD_CSS, diagramBrowserBlock } from './lib/diagram-browser.mjs';
 import { DEFAULT_REGISTRY_URL, REFUSAL, loadVerifiedManifest, readTrustRoot } from './lib/manifest-trust.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
@@ -44,6 +45,8 @@ const DEMOS = JSON.parse(readFileSync(join(__dir, 'demos.json'), 'utf8'));
 const WORK = join(__dir, 'work');
 // retired demos that became one: /d/<old> redirects to the new slug
 const MERGED = { podcast: 'erklaervideo', explainer: 'erklaervideo' };
+// retired without a successor (no backend): /d/<old> goes back to the overview, the card is gone
+const RETIRED = new Set(['sound_generation']);
 const RUNS = join(WORK, 'runs'); // one directory per visitor run (lib/runs.mjs)
 // Signed prompt templates ("Eigene Angaben"). The wrapper never takes a template from a request: it
 // reads it from here, re-verifies it and renders it itself (lib/templates.mjs).
@@ -663,7 +666,7 @@ function toolShell(slug, inner, lang) {
   const home = lang === 'en' ? '/?lang=en' : '/';
   const timeout = Math.max(90, Math.round((d.estSeconds || 20) * 2.5));
   const builder = d.live && inner.builder !== false && TEMPLATES.has(slug) ? builderBlock(slug, lang, builderVersions(), INSTALLATIONS.enabled) : '';
-  const localRun = d.live && hasLocalRun(slug, LOCAL_RUN) ? localRunBlock(slug, lang, LOCAL_RUN) : '';
+  const localRun = d.live && hasLocalBlock(slug, LOCAL_RUN) ? localRunBlock(slug, lang, LOCAL_RUN) : '';
   return `${docOpen({ lang, title: `${di(d, 'title', lang)} · Bunsenbrenner.org`, bodyClass: 'tool', extraCss: (builder ? PB_CSS : '') + (localRun ? LOCAL_RUN_CSS : '') + (inner.mini ? MINI_CSS : '') + (inner.motion ? MOTION_CSS : '') + (inner.css || '') })}
 ${appbar(`<a href="${home}">${t('Marktplatz','Marketplace')}</a> / <b>${d.name}</b>`, lang, inner.chip)}
 <main class="wrap" id="main" tabindex="-1" data-slug="${slug}" data-est="${d.estSeconds || 20}" data-timeout="${timeout}" data-lang="${lang}">
@@ -756,7 +759,9 @@ function imagePage(slug, lang) {
     <textarea id="desc" class="descinput" rows="3" maxlength="600" placeholder="${t('z. B. Ein Besucher öffnet die Demo, der Marktplatz installiert das Werkzeug, das Ergebnis wird gezeigt.','e.g. A visitor opens the demo, the marketplace installs the tool, the result is shown.')}"></textarea>
     <button class="btn btn-primary run" type="button">${t('Diagramm erzeugen ▸','Generate diagram ▸')}</button></div>
   ${miniOut(`<section class="panel res-diagram" hidden><div class="ph"><h2>${t('Diagramm','Diagram')}</h2><a class="chip dlsvg" href="#">${t('SVG herunterladen','Download SVG')}</a></div><div class="sheetwrap"><img class="resimg" alt="${t('Diagramm','Diagram')}"/></div></section>`, lang)}`;
-  return toolShell(slug, { controls: '', body, mini: true, builder: false }, lang);
+  const v = builderVersions();
+  try { v.js = shortHash(readFileSync(PB_STATIC['diagram-browser.js'])); } catch {}
+  return toolShell(slug, { controls: '', body: body + diagramBrowserBlock(lang, v.js), mini: true, builder: false, css: BD_CSS }, lang);
 }
 
 function timelinePage(slug, lang) {
@@ -1035,7 +1040,8 @@ function handlePostStart(req, res, url) {
 
 // Browser assets of the builder: the page module, the shared core and the vendored wasm. A ?v= content
 // hash in the URL makes them immutable-cacheable; without it they revalidate on every load.
-const PB_STATIC = { 'prompt-builder.js': join(__dir, 'static', 'prompt-builder.js'), 'prompt-core.mjs': join(__dir, 'lib', 'prompt-core.mjs'), 'untertitel.js': join(__dir, 'static', 'untertitel.js'), 'untertitel-core.mjs': join(__dir, 'lib', 'untertitel-core.mjs') };
+const PB_STATIC = { 'prompt-builder.js': join(__dir, 'static', 'prompt-builder.js'), 'prompt-core.mjs': join(__dir, 'lib', 'prompt-core.mjs'), 'untertitel.js': join(__dir, 'static', 'untertitel.js'), 'untertitel-core.mjs': join(__dir, 'lib', 'untertitel-core.mjs'), 'diagram-browser.js': join(__dir, 'static', 'diagram-browser.js'), 'diagram-browser-core.mjs': join(__dir, 'lib', 'diagram-browser-core.mjs') };
+const GV_DIR = join(__dir, 'static', 'vendor', 'graphviz');
 const PB_MIME = { '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm' };
 function servePb(res, url) {
   const name = url.pathname.slice('/pb/'.length);
@@ -1079,14 +1085,17 @@ async function route(req, res) {
   if (p.startsWith('/pb/') && req.method === 'GET') { servePb(res, url); return; }
   if (p === '/api/plan' && req.method === 'POST') { handlePlan(req, res, url); return; }
   if (p.startsWith('/static/motion/') && (req.method === 'GET' || req.method === 'HEAD')) { serveMedia(req, res, join(__dir, 'static', 'motion'), p.slice('/static/motion/'.length)); return; }
+  if (p.startsWith('/static/vendor/graphviz/') && (req.method === 'GET' || req.method === 'HEAD')) { serveMedia(req, res, GV_DIR, p.slice('/static/vendor/graphviz/'.length)); return; }
   if (p.startsWith('/static/vendor/untertitel/') && (req.method === 'GET' || req.method === 'HEAD')) { serveMedia(req, res, UT_DIR, p.slice('/static/vendor/untertitel/'.length), UT_PAGE_HEADERS); return; }
   if (p === '/static/untertitel-whisper.worker.js' && req.method === 'GET') { res.writeHead(200, { 'Content-Type': PB_MIME['.js'], 'Cache-Control': 'no-cache', ...UT_PAGE_HEADERS }); createReadStream(join(__dir, 'static', 'untertitel-whisper.worker.js')).pipe(res); return; }
   const dm = p.match(/^\/d\/([a-z0-9_-]+)\/out\/(?:(r[0-9a-f]{10})\/)?(.+)$/);
   if (dm) { const base = resolveOut(dm[1], dm[2]); if (!base) { res.writeHead(404).end('nf'); return; } serveFile(res, join(base, dm[3].replace(/\.\./g, ''))); return; }
   if (p.startsWith('/assets/thumbs/')) { serveFile(res, join(__dir, 'thumbs', p.slice('/assets/thumbs/'.length).replace(/\.\./g, ''))); return; }
   const pd = p.match(/^\/d\/([a-z0-9_-]+)\/?$/);
-  if (pd) { const slug = pd[1], d = demoOf(slug); if (!d) { res.writeHead(404).end('unknown demo'); return; }
-    if (MERGED[slug]) { res.writeHead(302, { Location: `/d/${MERGED[slug]}${url.search}` }).end(); return; }
+  if (pd) { const slug = pd[1];
+    if (Object.hasOwn(MERGED, slug)) { res.writeHead(302, { Location: `/d/${MERGED[slug]}${url.search}` }).end(); return; }
+    if (RETIRED.has(slug)) { res.writeHead(302, { Location: url.searchParams.get('lang') === 'en' ? '/?lang=en' : '/' }).end(); return; }
+    const d = demoOf(slug); if (!d) { res.writeHead(404).end('unknown demo'); return; }
     if (d.type === 'external' && d.live && d.externalUrl) { res.writeHead(302, { Location: d.externalUrl }).end(); return; }
     const lang = normLang(url.searchParams.get('lang'));
     const PAGES = { 'browser-wasm': (s) => untertitelPage(s, lang), 'photo-tool': (s) => photoToolPage(s, lang), 'report-html': (s) => reportHtmlPage(s, lang), 'report-md': (s) => reportMdPage(s, lang), image: (s) => imagePage(s, lang), timeline: (s) => timelinePage(s, lang), textvideo: (s) => textVideoPage(s, lang), route: (s) => routePage(s, lang), landing: (s) => landingPage(s, lang) };

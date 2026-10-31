@@ -11,7 +11,7 @@ import net from 'node:net';
 import { wasm, nowSec } from '../lib/prompt-wasm.mjs';
 import { inspectTemplate } from '../lib/prompt-core.mjs';
 import { MAX_BYTES, MAX_SECONDS, COMPONENT_FILES, componentsFor, isSilent, checkFile, parseProbe, outputSize, wordsFromResult, groupCues, toSrt, toAss, burnArgs, cleanCue, isOutOfMemory } from '../lib/untertitel-core.mjs';
-import { UT_DIR, UT_PAGE_HEADERS, untertitelStrings, downloadBytes } from '../lib/untertitel-page.mjs';
+import { UT_DIR, UT_PAGE_HEADERS, untertitelStrings, downloadBytes, licenseNotice, untertitelBody } from '../lib/untertitel-page.mjs';
 
 const ROOT = join(fileURLToPath(import.meta.url), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -111,8 +111,27 @@ test('every vendored file is listed; big files are fetched by the Dockerfile wit
   }
 });
 
+test('licence duties of the GPL ffmpeg core: texts shipped, exact sources named, notice visible on the page', async () => {
+  for (const f of ['LICENSE.ffmpeg-gpl-2.0.txt', 'LICENSE.ffmpeg-wasm-mit.txt', 'LICENSE.whisper-cpp-mit.txt', 'LICENSE.openai-whisper-mit.txt', 'NOTICE.txt']) assert.ok(PROV.files[f], `${f} listed`);
+  assert.match(read('static/vendor/untertitel/LICENSE.ffmpeg-gpl-2.0.txt'), /GNU GENERAL PUBLIC LICENSE\s+Version 2, June 1991/);
+  const notice = read('static/vendor/untertitel/NOTICE.txt');
+  for (const must of ['ffmpegwasm/ffmpeg.wasm/tree/v0.12.10', 'FFmpeg/FFmpeg/tree/n5.1.4', 'ffmpegwasm/x264', 'ffmpegwasm/x265', '--enable-gpl', 'whisper.cpp/tree/v1.8.2', 'Copyright (c) 2022 OpenAI', 'The ggml authors']) assert.ok(notice.includes(must), must);
+  // the shipped core is the npm package's file, named by version and digest
+  assert.equal(PROV.sources['ffmpeg-core.js + ffmpeg-core.wasm'].package, '@ffmpeg/core@0.12.10');
+  assert.equal(PROV.files['ffmpeg-core.wasm'].sha256, '9f57947a5bd530d8f00c5b3f2cb2a3492faa7e5d823315342d6a8656d0a6b7b7');
+  for (const lang of ['de', 'en']) {
+    const h = licenseNotice(lang);
+    assert.match(h, /GPL/);
+    assert.match(h, /href="https:\/\/github\.com\/ffmpegwasm\/ffmpeg\.wasm\/tree\/v0\.12\.10"/);
+    assert.match(h, /href="https:\/\/github\.com\/FFmpeg\/FFmpeg\/tree\/n5\.1\.4"/);
+    assert.match(h, /href="\/static\/vendor\/untertitel\/LICENSE\.ffmpeg-gpl-2\.0\.txt"/);
+    assert.match(untertitelBody(lang), /id="ut-lic"/, 'the notice is part of the page');
+  }
+});
+
 test('licences of everything shipped are named', () => {
   assert.deepEqual(Object.values(PROV.sources).map((s) => s.license).sort(), ['GPL-2.0-or-later', 'MIT', 'MIT', 'MIT', 'OFL-1.1']);
+  assert.match(PROV.sources['ffmpeg-core.js + ffmpeg-core.wasm'].note, /x264, x265/, 'the reason for the GPL is named correctly');
   assert.ok(existsSync(join(UT_DIR, 'LICENSE.shout.txt')) && existsSync(join(UT_DIR, 'LICENSE.poppins-ofl.txt')));
   assert.match(PROV.sources['ffmpeg-core.js + ffmpeg-core.wasm'].source_code, /^https:\/\/github\.com\/ffmpegwasm/);
 });

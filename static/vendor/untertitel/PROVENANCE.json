@@ -5,13 +5,14 @@
       "package": "@transcribe/shout@1.0.7",
       "license": "MIT",
       "project": "https://github.com/transcribejs/transcribe.js (whisper.cpp wasm build, wasm embedded in the file)",
-      "note": "whisper.cpp is MIT"
+      "note": "contains whisper.cpp v1.8.2 (MIT, commit 4979e04f5dcaccb36057e059bbaed8a2f5288315)"
     },
     "ffmpeg-core.js + ffmpeg-core.wasm": {
       "package": "@ffmpeg/core@0.12.10",
       "license": "GPL-2.0-or-later",
       "source_code": "https://github.com/ffmpegwasm/ffmpeg.wasm/tree/v0.12.10",
-      "note": "contains FFmpeg, x264 and libass; GPL because of x264"
+      "note": "FFmpeg n5.1.4 built with --enable-gpl (x264, x265) plus further libraries, so the whole core is GPL-2.0-or-later. File is identical to the npm package.",
+      "source_code_all": "see NOTICE.txt"
     },
     "ffmpeg/*.js": {
       "package": "@ffmpeg/ffmpeg@0.12.15",
@@ -90,6 +91,26 @@
       "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-base-q5_1.bin",
       "sha256": "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898",
       "bytes": 59707625
+    },
+    "LICENSE.ffmpeg-gpl-2.0.txt": {
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "bytes": 18092
+    },
+    "LICENSE.ffmpeg-wasm-mit.txt": {
+      "sha256": "3e123e29517d76504ffce77b3f8e2ccffd4712493f27694b0aba3e376676459f",
+      "bytes": 1066
+    },
+    "LICENSE.openai-whisper-mit.txt": {
+      "sha256": "b5d65a59060e68c4ff940e1eddfa6f94b2d68fdf58ed7f4dd57721c997e35e9d",
+      "bytes": 1063
+    },
+    "LICENSE.whisper-cpp-mit.txt": {
+      "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+      "bytes": 1078
+    },
+    "NOTICE.txt": {
+      "sha256": "eb9b4b6b337fa9c3953cc5fdfae619a69142e9b60eff22db77f36b9214148323",
+      "bytes": 3164
     }
   }
 }

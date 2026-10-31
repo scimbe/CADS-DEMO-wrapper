@@ -64,7 +64,7 @@ test('demo pages with a template carry the builder (DE+EN); others do not; pages
 test('every inline script of a templated page parses (the client code lives in a template literal, where one stray backslash breaks it)', async () => {
   for (const slug of ['newsletter', 'diagram']) {
     const h = await (await fetch(`${main.base}/d/${slug}?lang=en`)).text();
-    const scripts = [...h.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*type="module")[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]).filter((x) => x.trim());
+    const scripts = [...h.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*type="module")(?![^>]*type="application\/json")[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]).filter((x) => x.trim());
     assert.ok(scripts.length >= 2, slug);
     for (const js of scripts) assert.doesNotThrow(() => new Function(js), slug);
     assert.ok(scripts.some((js) => js.includes('function postStream') && js.includes("split('\\n\\n')")), 'POST stream reader present with real newline escapes');
