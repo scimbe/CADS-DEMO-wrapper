@@ -202,3 +202,17 @@ sind. Ausnahmen: das breite Diagramm und die Folien des Erklärvideos werden gan
   das als „in Vorbereitung“). Zahlen stammen aus den gezeigten Läufen.
 - Länge: Das Hauptvideo hat 6 Szenen bei etwa 5 bis 7 s; die Länge folgt der
   gemessenen Sprechdauer (siehe `src/vo-timing.json`).
+
+### Firmennetz Nordwind (`firmennetz-nordwind`)
+
+Schaubild statt Aufnahme, weil die Seite eine Anmeldung verlangt; auf jeder Folie steht „Schematische Darstellung“. Aufbau wie im Dashboard der Demo: Zentrale in der Mitte, Cloud, Werkstatt und Hafenbüro je über einen eigenen Kanal. Belegt durch Karte in `demos.json` und das Repo CADS-a2a-demo (Runbook, `nordwind-provision.sh`, Dashboard). Nicht behauptet: dass nichts über Fremddienste läuft; belegt ist nur „lokale KI“ in der Werkstatt, Ende-zu-Ende-Verschlüsselung und kein offener Port.
+
+| # | Sprechtext DE |
+|---|---------------|
+| 1 | Mehrere Standorte, eine Aufgabe: Wer macht was? |
+| 2 | Vier Standorte, jeder mit eigener Aufgabe. |
+| 3 | Das Hafenbüro holt das Wetter, die Werkstatt schreibt mit lokaler KI, die Zentrale fügt beides zusammen. |
+| 4 | Alles läuft verschlüsselt, ohne Zugang von außen. |
+| 5 | Probier es aus: Klick auf Szenario starten. |
+
+("Cloud" steht nur im Bild: die Stimme spricht es deutsch als „Klut“.)

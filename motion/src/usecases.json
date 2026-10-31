@@ -1244,5 +1244,92 @@
     }
    }
   ]
+ },
+ "firmennetz-nordwind": {
+  "id": "FirmennetzNordwind",
+  "url": "a2a-demo.bunsenbrenner.org",
+  "poster": 2,
+  "scenes": [
+   {
+    "kind": "problem",
+    "big": [
+     {
+      "de": "Mehrere Standorte,",
+      "en": "Several sites,"
+     },
+     {
+      "de": "eine Aufgabe?",
+      "en": "one job?",
+      "flame": true
+     }
+    ]
+   },
+   {
+    "kind": "net",
+    "phase": "sites",
+    "n": 1,
+    "title": {
+     "de": "Vier Standorte",
+     "en": "Four sites"
+    },
+    "sub": {
+     "de": "Cloud · Zentrale · Werkstatt · Hafenbüro",
+     "en": "Cloud · HQ · workshop · harbour office"
+    },
+    "chip": {
+     "de": "Schematische Darstellung",
+     "en": "Schematic drawing"
+    }
+   },
+   {
+    "kind": "net",
+    "phase": "roles",
+    "n": 2,
+    "title": {
+     "de": "Ein Auftrag",
+     "en": "One job"
+    },
+    "sub": {
+     "de": "jeder Standort übernimmt einen Teil",
+     "en": "each site takes one part"
+    },
+    "chip": {
+     "de": "Schematische Darstellung",
+     "en": "Schematic drawing"
+    }
+   },
+   {
+    "kind": "net",
+    "phase": "secure",
+    "n": 3,
+    "title": {
+     "de": "Verschlüsselt",
+     "en": "Encrypted"
+    },
+    "sub": {
+     "de": "kein Zugang von außen",
+     "en": "no entrance from outside"
+    },
+    "chip": {
+     "de": "Schematische Darstellung",
+     "en": "Schematic drawing"
+    }
+   },
+   {
+    "kind": "close",
+    "title": {
+     "de": "Firmennetz Nordwind",
+     "en": "Nordwind company network"
+    },
+    "sub": {
+     "de": "Start mit Anmeldung",
+     "en": "Starting needs a sign-in"
+    },
+    "cta": {
+     "de": "Szenario starten",
+     "en": "Start scenario"
+    }
+   }
+  ]
  }
 }

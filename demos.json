@@ -105,6 +105,7 @@
     "title": "Firmennetz Nordwind: Agenten über vier Standorte",
     "tagline": "Cloud, Zentrale, Werkstatt und Hafenbüro arbeiten zusammen, verschlüsselt von Ende zu Ende und ohne offenen Port.",
     "blurb": "Ein Klick startet einen echten Auftrag: Das Hafenbüro holt Live-Wetter, die Werkstatt schreibt mit lokaler KI, die Zentrale führt beides zusammen.",
+    "video": "firmennetz-nordwind",
     "externalUrl": "https://a2a-demo.bunsenbrenner.org/",
     "live": true,
     "order": 20,

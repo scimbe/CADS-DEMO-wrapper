@@ -23,6 +23,7 @@ Storyboard und Selbstprüfung: `motion/STORYBOARD.md`.
 | `route-planen-*` | Route planen (Bremen) |
 | `text-wird-video-*` | Erklärvideo aus deinem Text |
 | `untertitel-*` | Untertitel für kurze Videos |
+| `firmennetz-nordwind-*` | Firmennetz Nordwind (Schaubild, keine Aufnahme: die Seite braucht eine Anmeldung) |
 
 Die Zuordnung steht als `video` in `demos.json`; die Länge folgt der gemessenen
 Sprechdauer (`motion/src/vo-timing.json`).

@@ -64,7 +64,7 @@ test('embeds: hero so-einfach (no autoplay, preload none), row termin-per-anruf 
   const de = await (await fetch(base + '/')).text();
   assert.match(de, /so-einfach-16x9\.mp4/); assert.match(de, /so-einfach-9x16\.mp4/);
   assert.match(de, /termin-per-anruf-16x9\.mp4/); assert.match(de, /frag-deine-region-16x9\.mp4/);
-  assert.ok(!/(die-idee|nordwind|[^a-z]sicher)-(16x9|9x16)/.test(de), 'old technology videos are no longer embedded');
+  assert.ok(!/(die-idee|(?<![a-z-])nordwind|[^a-z]sicher)-(16x9|9x16)/.test(de), 'old technology videos are no longer embedded');
   assert.match(de, /href="https:\/\/assistent-cal-f29c55da\.bunsenbrenner\.org\/" target="_blank" rel="noopener noreferrer"/);
   assert.match(de, /captions\/so-einfach\.de\.vtt/);
   assert.ok(!/autoplay/i.test(de)); assert.match(de, /preload="none"/);
@@ -106,7 +106,7 @@ test('use-case videos: every cut, poster and caption exists; captions follow the
 test('every demo card with a video points at an existing clip; closed cards load nothing; each clip belongs to one card', async () => {
   const { readFileSync, existsSync } = await import('node:fs');
   const demos = JSON.parse(readFileSync(new URL('../demos.json', import.meta.url), 'utf8'));
-  const visible = Object.entries(demos).filter(([slug, d]) => !d.hidden && d.live && slug !== 'a2a-demo'); // Nordwind-Clip folgt
+  const visible = Object.entries(demos).filter(([slug, d]) => !d.hidden && d.live);
   const de = await (await fetch(base + '/')).text();
   const clips = visible.map(([, d]) => d.video).filter(Boolean);
   assert.equal(new Set(clips).size, clips.length);
