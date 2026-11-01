@@ -14,7 +14,7 @@ const mk = ({ llm, env = {}, auth, duellEnv = {} } = {}) => {
   const calls = [];
   const fn = llm || (async (s, u) => { calls.push({ s, u }); return GOOD; });
   const d = createDuell({ env: { DUELL_DAILY_MAX: '50', ...duellEnv }, salt: 's', log: () => {}, llm: fn });
-  const ai = createDuellAi({ env: { DUELL_AI_SALT: 'x', ...env }, llm: fn, shared: d.shared, auth, log: () => {} });
+  const ai = createDuellAi({ env: { DUELL_AI_SALT: 'x', DUELL_AI_PROOF_BITS: '0', ...env }, llm: fn, shared: d.shared, auth, log: () => {} });
   return { d, ai, calls };
 };
 const line = (text, device = DEV) => ({ kind: 'line', input: { text, style: 'neon' }, device, lang: 'de' });
@@ -128,7 +128,7 @@ test('Geteilte Grenzen: ein Aufruf zugleich mit dem Spiel, Tagesgrenze zaehlt be
 });
 test('HTTP: App-Herkunft und Herkunft-lose Huelle duerfen, fremde Herkunft nicht; Log ohne Eingaben', async () => {
   const logs = [], fn = async () => GOOD, d = createDuell({ env: {}, salt: 's', log: () => {}, llm: fn });
-  const ai = createDuellAi({ env: { DUELL_AI_SALT: 'x' }, llm: fn, shared: d.shared, log: (o) => logs.push(JSON.stringify(o)) });
+  const ai = createDuellAi({ env: { DUELL_AI_SALT: 'x', DUELL_AI_PROOF_BITS: '0' }, llm: fn, shared: d.shared, log: (o) => logs.push(JSON.stringify(o)) });
   const srv = http.createServer(async (q, s) => { if (!(await ai.route(q, s, new URL(q.url, 'http://x')))) s.writeHead(404).end(); });
   await new Promise((r) => srv.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${srv.address().port}/api/duell/ai`;
@@ -172,6 +172,20 @@ test('Wunsch Spiel: ganze Welt in vier Bereichen, nur gueltige Werte kommen durc
   const c = (await run(ai, wish('game', 'Weltraum'))).body.options[0].changes;
   assert.deepEqual(c.look, { a: '#060a2a', d: 'stars', e: ['🪐'], p: '#9aa7c7', f: 'emoji', o: '🌵', g: '#1a1a33', h: '#7a6cff', m: '✨' });
   assert.equal(c.emoji, '🚀'); assert.equal(c.url, undefined);
+});
+test('Schutz: neues Geraet braucht Nachweis, Stundenlimit greift, bekannte Geraete bleiben frei', async () => {
+  const { createHash } = await import('node:crypto');
+  const solve = (d) => { for (let n = 0; ; n++) { const p = n.toString(36), h = createHash('sha256').update(d + ':' + p).digest(); if (!h[0]) return p; } };
+  const dev = (c) => c.repeat(32), { ai } = mk({ env: { DUELL_AI_PROOF_BITS: '8', DUELL_AI_NEW_PER_HOUR: '2' } });
+  const go = (d, x, proof) => run(ai, { ...line(x), device: d, proof });
+  assert.equal((await go(dev('a'), 'Eins')).status, 403, 'ohne Nachweis');
+  assert.equal((await go(dev('a'), 'Eins', 'zz!')).status, 403, 'kaputter Nachweis');
+  assert.equal((await go(dev('a'), 'Eins', solve(dev('a')))).status, 200);
+  assert.equal((await go(dev('b'), 'Zwei', solve(dev('b')))).status, 200);
+  const full = await go(dev('c'), 'Drei', solve(dev('c')));
+  assert.equal(full.status, 429); assert.equal(full.body.error, 'new-limit'); assert.ok(full.headers['Retry-After']);
+  assert.equal(full.body.meter.remaining, 3, 'kostet keinen Versuch');
+  assert.equal((await go(dev('a'), 'Vier')).status, 200, 'bekanntes Geraet braucht weder Nachweis noch Platz');
 });
 test('Wunsch Beat: Tempo und Raster im Rahmen, falsche Raster fallen weg', async () => {
   const { ai } = mk(answer({ bpm: 500, k: 'x---x---x---x---', s: 'xxx', h: 'y---------------', fx: 'chip', x: 'Turbo' }));

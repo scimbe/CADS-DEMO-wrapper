@@ -4605,7 +4605,7 @@ var qrcode = function() {
    to local suggestions at once whenever the answer is anything but a result. Only typed text leaves the device, never a photo. */
 (function (root) {
   "use strict";
-  var TIMEOUT = 25000;
+  var TIMEOUT = 25000, PROOF_BITS = 16;
   var HOOKS = {
     de: [["Beat läuft, ich bleib dran", "Heute fängt was Neues an", "Hände hoch, wer das kann", "Mein Tag, mein Plan"], ["Kick und Snare, ich bin da", "Alles klar, alles wahr", "Einmal hin und wieder her", "Noch ein Takt, ich will mehr"]],
     en: [["Beat is on, I'm feeling right", "Got my plan for day and night", "Hands up if you know the line", "This one here is mine"], ["Kick and snare, I'm on my way", "Nothing stops me here today", "One more round and one more try", "Watch this little rhythm fly"]]
@@ -4629,7 +4629,16 @@ var qrcode = function() {
     if (status === 422) return "blocked";
     return "local";
   }
-  var api = { local: local, verdict: verdict, HOOKS: HOOKS };
+  // The small proof of work a new device shows once: a number whose SHA-256 with the device id starts with `bits` zero bits.
+  async function solve(device, bits, subtle) {
+    var enc = new TextEncoder();
+    for (var n = 0; ; n++) {
+      var h = new Uint8Array(await subtle.digest("SHA-256", enc.encode(device + ":" + n.toString(36)))), ok = true;
+      for (var i = 0, left = bits; left > 0 && ok; i++, left -= 8) ok = !(h[i] >> Math.max(0, 8 - left));
+      if (ok) return n.toString(36);
+    }
+  }
+  var api = { local: local, verdict: verdict, HOOKS: HOOKS, solve: solve };
 
   if (typeof window === "undefined") { if (typeof module !== "undefined" && module.exports) module.exports = api; return; }
 
@@ -4641,6 +4650,10 @@ var qrcode = function() {
       s.aiDev = Array.from(b).map(function (x) { return (x + 256).toString(16).slice(1); }).join(""); Kit.save();
     }
     return s.aiDev;
+  }
+  async function proof() {
+    if (typeof Kit.store.aiProof !== "string") { Kit.store.aiProof = await solve(device(), PROOF_BITS, crypto.subtle); Kit.save(); }
+    return Kit.store.aiProof;
   }
   function base() { return (window.DUELL_API || C.DEFAULT_API).replace(/\/config$/, "/ai"); }
   // iOS loads the page from a file and blocks its network; there the shell makes this one call. Everywhere else: plain fetch.
@@ -4661,7 +4674,7 @@ var qrcode = function() {
     var lang = Kit.lang, how = "local", options = null;
     try {
       if (navigator.onLine === false) throw new Error("offline");
-      var r = await post("", { kind: kind, input: input, device: device(), lang: lang });
+      var r = await post("", { kind: kind, input: input, device: device(), proof: await proof(), lang: lang });
       keep(r.json);
       how = verdict(r.status, r.json);
       if (how === "result") options = r.json.options;
