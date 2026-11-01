@@ -5279,7 +5279,7 @@ var qrcode = function() {
     c.font = "700 " + W * 0.032 + "px system-ui,sans-serif"; c.fillText(w.p + ", " + day + " · open-meteo.com, CC BY 4.0, gerundet", W * 0.04, y + h * 0.75);
   }
   function credit(c, W, H, doc, me, col) {
-    var who = [me.emoji, me.nick].filter(Boolean).join(" ");
+    var who = me.nick || "";          // no emoji in exports: the system glyphs are not ours to publish
     c.font = "800 " + W * 0.036 + "px system-ui,sans-serif," + EMO; c.textBaseline = "alphabetic";
     c.fillStyle = col; c.textAlign = "left"; c.fillText(who, W * 0.04, H - W * 0.032);
     c.textAlign = "right"; c.fillText("my daily idea", W * 0.96, H - W * 0.032);
