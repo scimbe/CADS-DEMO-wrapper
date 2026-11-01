@@ -5958,7 +5958,7 @@ var PANEL = {
     var d = ed.doc;
     if (d.k === "card") {
       var f = field(p, t("line"), d.x, 90, function (v) { d.x = v; }, true), L = ed.idea ? ideaText(ed.idea).lines : null;
-      if (L) p.appendChild(el("button", "chip", "🎲 " + t("dice"), function () { Kit.sfx.pop(); ed.line = (ed.line + 1) % L.length; d.x = L[ed.line]; f.value = d.x; ed.base.x = d.x; changed(); }));
+      if (L) p.appendChild(el("button", "chip", "🎲 " + t("dice"), function () { Kit.sfx.pop(); ed.line = (ed.line + 1) % L.length; d.x = L[ed.line]; f.value = d.x; changed(); }));
       playButton(p);
       aiBlock(p, { kind: "line", label: t("aiLine"), input: function () { var x = D.cleanInput(d.x, 90) || t("own"); return { text: x, style: d.st }; }, show: String, apply: function (o) { var v = D.cleanInput(o, 90); if (v) { d.x = v; f.value = v; changed(); } } });
       weatherBlock(p);
