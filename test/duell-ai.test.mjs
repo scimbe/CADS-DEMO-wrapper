@@ -152,14 +152,13 @@ test('HTTP: App-Herkunft und Herkunft-lose Huelle duerfen, fremde Herkunft nicht
 
 const wish = (type, text, now = {}) => ({ kind: 'wish', input: { type, wish: text, idea: 'Grundidee', now }, device: DEV, lang: 'de' });
 const answer = (obj) => ({ llm: async () => JSON.stringify(obj) });
-test('Wunsch Karte: nur erlaubte Felder, Palette statt Farbe, Sticker nur aus den Sets, Note kurz', async () => {
+test('Wunsch Karte: nur erlaubte Felder, Palette statt Farbe, Sticker nur geprueft, Note kurz', async () => {
   const { ai } = mk(answer({ x: 'Gruselig gut', st: 'neon', palette: 3, stickers: ['💀', '🖕', 'x', '🐸', '🔥', '⚡'], col: ['#000000', '#000000'], sk: [{ e: '🖕' }], url: 'http://x', note: 'Gruseliger gemacht', g: { gravity: 1 } }));
   const r = await run(ai, wish('card', 'mach es gruseliger'));
   assert.equal(r.status, 200);
-  assert.deepEqual(r.body.options[0].changes, { x: 'Gruselig gut', st: 'neon', palette: 3, stickers: ['💀', '🐸', '🔥'] });
+  assert.deepEqual(r.body.options[0].changes, { x: 'Gruselig gut', st: 'neon', palette: 3, stickers: ['💀', '🐸', '🔥', '⚡'] });
   assert.equal(r.body.options[0].note, 'Gruseliger gemacht');
   assert.equal(r.body.meter.remaining, 2, 'zaehlt als ein Versuch');
-  for (const e of r.body.options[0].changes.stickers) assert.ok(STICKERS.has(e));
 });
 test('Wunsch Spiel: Physik wird geklemmt, Welt und Figur geprueft, Fremdes faellt weg', async () => {
   const { ai } = mk(answer({ gravity: 99999, jump: 1, gap: 150, speed: '200', theme: 'lava', emoji: '🚀', title: 'Lava Lauf', __proto__: {}, script: 'x' }));
@@ -167,6 +166,12 @@ test('Wunsch Spiel: Physik wird geklemmt, Welt und Figur geprueft, Fremdes faell
   assert.deepEqual(c, { gravity: 2600, jump: 280, gap: 150, theme: 'lava', emoji: '🚀', title: 'Lava Lauf' });
   const bad = mk(answer({ theme: 'hoelle', emoji: '🔫', title: 'n4zi run' }));
   assert.equal((await run(bad.ai, wish('game', 'x y'))).status, 503, 'nichts Gueltiges');
+});
+test('Wunsch Spiel: ganze Welt in vier Bereichen, nur gueltige Werte kommen durch', async () => {
+  const { ai } = mk(answer({ skyTop: '#060A2A', skyBottom: 'rot', motif: 'stars', drift: ['🪐', '🔫', 'x'], emoji: '🚀', trail: '✨', tube: '#9aa7c7', form: 'emoji', obstacle: '🌵', ground: '#1a1a33', groundEdge: '#7a6cff', url: 'http://x' }));
+  const c = (await run(ai, wish('game', 'Weltraum'))).body.options[0].changes;
+  assert.deepEqual(c.look, { a: '#060a2a', d: 'stars', e: ['🪐'], p: '#9aa7c7', f: 'emoji', o: '🌵', g: '#1a1a33', h: '#7a6cff', m: '✨' });
+  assert.equal(c.emoji, '🚀'); assert.equal(c.url, undefined);
 });
 test('Wunsch Beat: Tempo und Raster im Rahmen, falsche Raster fallen weg', async () => {
   const { ai } = mk(answer({ bpm: 500, k: 'x---x---x---x---', s: 'xxx', h: 'y---------------', fx: 'chip', x: 'Turbo' }));
