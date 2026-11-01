@@ -4,18 +4,18 @@
     "name": "flappy",
     "video": "flappy-spiel",
     "version": "0.1.0",
-    "title": "Flappy-Spiel bauen",
-    "tagline": "Ein Live-Studio: Du stellst dein Flappy-Bird ein, und eine echte Rollen-Ketten-Pipeline über den Tunnel baut daraus dein spielbares Spiel — payload-blind am Edge.",
-    "blurb": "Stell dein Flappy-Bird nach deinen Wünschen ein und spiel es direkt im Browser.",
+    "title": "Flug-Spiel bauen",
+    "tagline": "Ein Live-Studio: Du stellst dein Flug-Spiel ein, und eine echte Rollen-Ketten-Pipeline über den Tunnel baut daraus dein spielbares Spiel — payload-blind am Edge.",
+    "blurb": "Stell dein Flug-Spiel nach deinen Wünschen ein und spiel es direkt im Browser.",
     "externalUrl": "https://flappy-demo.bunsenbrenner.org/",
     "live": true,
     "order": 7,
     "category": "Spiel",
     "category_en": "Game",
-    "blurb_en": "Set up your own Flappy Bird the way you like it and play it right in the browser.",
+    "blurb_en": "Set up your own flight game the way you like it and play it right in the browser.",
     "tech": "Eigenständige Live-App. Eine Rollen-Kette (Pipeline) baut das Spiel über den CADS-Tunnel; der Tunnel-Betreiber sieht den Inhalt nicht (payload-blind am Edge).",
     "tech_en": "Standalone live app. A role chain (pipeline) builds the game through the CADS tunnel; the tunnel operator cannot see the content (payload-blind at the edge).",
-    "title_en": "Build a Flappy game"
+    "title_en": "Build a flight game"
   },
   "duell": {
     "type": "external",
