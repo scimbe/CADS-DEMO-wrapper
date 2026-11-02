@@ -206,7 +206,7 @@ a.btn{display:grid;place-items:center;text-decoration:none;margin-top:8px}
 .liveov{position:fixed;inset:0;z-index:50;background:var(--a);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px}
 .livebody{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
 .liveback{position:absolute;top:12px;right:12px;width:44px;height:44px;border:3px solid var(--ink);background:var(--paper);font:900 20px var(--ui)}
-.livebig{font:400 36px/1.05 var(--disp);text-transform:uppercase}.livebadge{font-size:48px;letter-spacing:8px}.livecount{font:900 28px var(--ui)}
+.livebig{font:400 36px/1.05 var(--disp);text-transform:uppercase}.livebadge{font-size:48px;letter-spacing:8px}.livemini{font-size:22px;letter-spacing:6px;margin:0}.livecount{font:900 28px var(--ui)}
 .livecv{width:min(92vw,46vh);aspect-ratio:1000/1600;border:3px solid var(--ink);touch-action:none;background:#111}.livescore{font:900 22px var(--ui)}
 .btn.hot.live{background:var(--b);color:#fff}
 .being{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px;border:4px solid transparent;border-radius:12px}
@@ -6673,7 +6673,9 @@ function lost() { if (!ov) return; cancelAnimationFrame(loop); clearInterval(net
 // ---------- the game ----------
 function play(serving) {
   var body = layer(), cv = el("canvas", "livecv"), c = cv.getContext("2d"), info = el("p", "livescore", "");
-  cv.width = B.W / 2; cv.height = B.H / 2; body.appendChild(info); body.appendChild(cv);
+  cv.width = B.W / 2; cv.height = B.H / 2;
+  // The three pictures stay up the whole game: the invited player cannot hold the start screen to compare them.
+  body.appendChild(el("p", "livemini", B.badge(conn.channel))); body.appendChild(info); body.appendChild(cv);
   var seed = conn.channel, s = { me: B.W / 2, opp: B.W / 2, oppAt: performance.now(), ball: null, score: [0, 0], n: 0, held: false, again: [false, false], done: false };
   var countdown = performance.now() + 3000, last = performance.now();
   function toX(e) { var r = cv.getBoundingClientRect(); return Math.min(B.W - B.PW / 2, Math.max(B.PW / 2, (e.clientX - r.left) / r.width * B.W)); }
