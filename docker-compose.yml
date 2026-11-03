@@ -56,10 +56,16 @@ services:
       - SHORT_MAX_LIVE=${SHORT_MAX_LIVE:-100000}
       - SHORT_BASE=${SHORT_BASE:-https://bunsenbrenner.org}
       - SHORT_PUBLIC_BASE=${SHORT_PUBLIC_BASE:-https://demos-34a13a96.bunsenbrenner.org}
+      # My Daily Idea, Profil unter "Mein Stil" (siehe lib/duell-profile.mjs). Ohne DUELL_PROFILE_SALT findet nach
+      # einem Neustart niemand sein Profil wieder; ohne DUELL_PROFILE_DIR antworten die Routen 503 und alles bleibt lokal.
+      - DUELL_PROFILE_DIR=/data/duell-profile
+      - DUELL_PROFILE_SALT=${DUELL_PROFILE_SALT:-}
+      - DUELL_PROFILE_TTL_DAYS=${DUELL_PROFILE_TTL_DAYS:-400}
     volumes:
       - ${CT_CHANNEL_DIR:-./channel}:/opt/ct-channel:ro
       - demos-shortlinks:/data/shortlinks
       - duell-ai:/var/lib/duell-ai
+      - duell-profile:/data/duell-profile
     expose:
       - "8790"          # reachable only via the agent, not published to the host
     restart: unless-stopped
@@ -92,6 +98,7 @@ volumes:
   demos_agent_state:
   demos-shortlinks:
   duell-ai:
+  duell-profile:
 
 networks:
   default:

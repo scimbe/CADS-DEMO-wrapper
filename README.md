@@ -130,6 +130,24 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | `SHORT_MAX_LIVE` | 100000 | Obergrenze gespeicherter Eintraege |
 | `SHORT_BASE` / `SHORT_PUBLIC_BASE` | `https://bunsenbrenner.org` / Galerie-Host | sichtbarer Link / Host fuer Bilder und `og:url` |
 
+### Profil unter „Mein Stil“ (My Daily Idea)
+Code: `lib/duell-profile.mjs`, Tests: `test/duell-profile.test.mjs`. Freiwillig; ohne Anmeldung bleibt alles auf dem Gerät.
+- `POST /api/duell/profile/get|put|delete` `{via: account|code, code?, rev, profile, age16?, fresh?}`. `put` mit veralteter `rev` -> `409`.
+- `via: account`: bunsenbrenner-Login (Gate-Cookie, nur gleiche Herkunft). Das erste Speichern verlangt `age16: true`
+  (Selbstauskunft „16 oder älter“, Art. 8 DSGVO); der Tag der Angabe wird gespeichert. Unter 16 gibt es den Sync-Code.
+- `via: code`: 128-Bit-Zufallscode, auf dem Gerät erzeugt; kein Konto, keine E-Mail. Wer den Code hat, hat das Profil.
+- Gespeichert: Spitzname, Emoji, Farben, Sticker-Set, Wandbilder außer Fotowerken (`k: photo` wird verworfen), gemerkte Karten,
+  beim Code die KI-Geräte-ID. Dateiname ist ein HMAC; keine E-Mail, keine IP, kein Code auf der Platte.
+- Löschen entfernt die Daten sofort und lässt nur `{r, gone: true}` zurück, damit ein zweites Gerät das Profil nicht neu hochlädt.
+  Ungenutzte Profile werden nach `DUELL_PROFILE_TTL_DAYS` gelöscht.
+
+| Variable | Default | Bedeutung |
+|---|---|---|
+| `DUELL_PROFILE_DIR` | leer (aus, `503`) | Verzeichnis im Volume |
+| `DUELL_PROFILE_SALT` | zufällig je Start | HMAC-Salz für die Dateinamen; ohne festen Wert sind Profile nach einem Neustart unerreichbar |
+| `DUELL_PROFILE_TTL_DAYS` | 400 | Löschfrist für ungenutzte Profile |
+| `DUELL_PROFILE_MAX` / `DUELL_PROFILE_NEW_PER_HOUR` / `DUELL_PROFILE_IP_NEW_PER_HOUR` / `DUELL_PROFILE_WRITES_PER_HOUR` | 20000 / 60 / 5 / 240 | Grenzen |
+
 ### KI-Aktionen und Kontingent (My Daily Idea)
 Code: `lib/duell-ai.mjs`, Tests: `test/duell-ai.test.mjs`. Gleiches Modell und gleiche Grenzen wie `/api/duell/config` (ein Aufruf zugleich, Tagesgrenze, Limit je gehashter IP).
 - `POST /api/duell/ai` `{kind: wish|line|meme|lyrics, input, device, lang}` -> `{kind, options, meter}`; `POST /api/duell/ai/status` und `/interest` `{device}` -> `{meter}`.
