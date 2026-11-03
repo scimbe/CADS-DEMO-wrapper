@@ -160,6 +160,15 @@ test('Wunsch Karte: nur erlaubte Felder, Palette statt Farbe, Sticker nur geprue
   assert.equal(r.body.options[0].note, 'Gruseliger gemacht');
   assert.equal(r.body.meter.remaining, 2, 'zaehlt als ein Versuch');
 });
+test('Wunsch Adventstuerchen: sehr weihnachtlich aendert Titel, Untertitel, Botschaft, Stil, Farben und Sticker auf einmal', async () => {
+  const XMAS = { t: 'Tür voller Schnee', s: 'Tipp drauf, es schneit.', x: 'Frohe Weihnachten, du Keks!', st: 'advent', colors: ['#0F5132', '#ffd400'], stickers: ['🎄', '⭐', '🎁', '🔫', '❄️', '⛄', '🦌'], nr: 3, note: 'Weihnachtlich gemacht' };
+  const calls = [], { ai } = mk({ llm: async (sys) => { calls.push({ s: sys }); return JSON.stringify(XMAS); } });
+  const r = await run(ai, wish('card', 'sehr weihnachtlich', { x: 'Hallo', st: 'druck' }));
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body.options[0].changes, { t: 'Tür voller Schnee', s: 'Tipp drauf, es schneit.', x: 'Frohe Weihnachten, du Keks!', st: 'advent', colors: ['#0f5132', '#ffd400'], stickers: ['🎄', '⭐', '🎁', '❄️', '⛄'] });
+  assert.match(calls[0].s, /advent/); assert.match(calls[0].s, /🎄/);
+  for (const e of ['🎄', '⭐', '🎁', '❄️', '⛄', '🍪']) assert.ok(STICKERS.has(e), 'Advents-Set der App: ' + e);
+});
 test('Wunsch Spiel: Physik wird geklemmt, Welt und Figur geprueft, Fremdes faellt weg', async () => {
   const { ai } = mk(answer({ gravity: 99999, jump: 1, gap: 150, speed: '200', theme: 'lava', emoji: '🚀', title: 'Lava Lauf', __proto__: {}, script: 'x' }));
   const c = (await run(ai, wish('game', 'schwer mit Lava'))).body.options[0].changes;
