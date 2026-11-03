@@ -135,6 +135,7 @@ Code: `lib/duell-ai.mjs`, Tests: `test/duell-ai.test.mjs`. Gleiches Modell und g
 - `POST /api/duell/ai` `{kind: wish|line|meme|lyrics, input, device, lang}` -> `{kind, options, meter}`; `POST /api/duell/ai/status` und `/interest` `{device}` -> `{meter}`.
 - `wish` ist das Hauptmerkmal: Ein freier Wunsch aendert genau eine Kreation, aber nur die Felder ihres Typs (`WISH` in `lib/duell-ai.mjs`): Karte und Foto Text, Stil, Farbpaar aus der Palette, Sticker aus den Sets; Beat Titel, Tempo, Raster, Effekt; Spiel Physik in festen Grenzen, Welt, Figur, Titel. Alles andere verwirft der Server.
 - `POST /api/duell/ai/weather` `{place, date}` -> `{place, date, hi, lo, rain, code, source}`: echte Werte von Open-Meteo fuer heute bis in 7 Tagen, ohne Modell und ohne Kontingent (`lib/duell-weather.mjs`). Bei Fehlern gibt es keine Zahlen. Grenzen: `DUELL_WEATHER_IP_PER_HOUR` (30), `DUELL_WEATHER_DAILY_MAX` (1000).
+- `POST /api/duell/ai/fact` `{api, date, q?, lang}` -> `{api, date, h, v?, c?, a?, r?, src, stale?}`: Datenkarten aus freien Web-APIs, ohne Modell und ohne Kontingent (`lib/duell-facts.mjs`, Quellen in `lib/duell-facts-sources.mjs`). Jede Quelle ist auf kommerzielle Nutzung, Quellenpflicht, HTTPS und Eignung ab 13 geprueft; `src` ist die Pflicht-Quellzeile. Gleiche Auswahl fuer alle an einem Tag (aus dem Datum, kein Zufall), Cache je Quelle, Zeitlimit 6 s, jede Zeile durch den Wortfilter. Faellt eine Quelle aus, kommt der letzte echte Stand der Woche mit `stale: true` und seinem Datum, sonst `503`. Keine der Quellen braucht einen Schluessel; ein kuenftiger Schluessel wird nur als ENV gelesen (`key` im Adapter) und nie an die Seite gegeben. Grenzen: `DUELL_FACTS_IP_PER_HOUR` (60), `DUELL_FACTS_DAILY_MAX` (300 je Quelle).
 - Antworten: `429 quota` (Kontingent verbraucht), `429 busy|daily-limit|rate-limited`, `422 blocked`, `503 llm-unavailable|ai-off`. Die Seite faellt dann sofort auf lokale Vorschlaege zurueck. Nur erfolgreiche Aktionen zaehlen.
 - Grenzen ehrlich: Ohne Konto zaehlt ein HMAC einer zufaelligen Geraete-ID. Wer die App-Daten loescht, hat ein neues Kontingent; das ist gewollt und nur ueber IP-Limit und Tagesgrenze gedeckelt. Mit Anmeldung (Cookie, nur gleiche Herkunft) zaehlt das Konto; die App-Huellen senden kein Cookie.
 - Gespeichert werden nur HMACs und Zaehler, keine IP, keine E-Mail, keine Eingaben. Fotos bleiben auf dem Geraet; es geht nur getippter Text an den Server.
@@ -151,6 +152,7 @@ Code: `lib/duell-ai.mjs`, Tests: `test/duell-ai.test.mjs`. Gleiches Modell und g
 | `DUELL_AI_KEYS_MAX` | 100000 | groesste Zaehlerdatei; die aeltesten Eintraege fallen zuerst heraus |
 | `DUELL_AI_CACHE_TTL_S` / `DUELL_AI_CACHE_MAX` | 86400 / 300 | Antwort-Cache |
 | `DUELL_WEATHER_IP_PER_HOUR` / `DUELL_WEATHER_DAILY_MAX` | 30 / 1000 | Wetteranfragen je gehashter IP und Stunde / pro UTC-Tag |
+| `DUELL_FACTS_IP_PER_HOUR` / `DUELL_FACTS_DAILY_MAX` | 60 / 300 | Datenkarten je gehashter IP und Stunde / Abrufe je Quelle und UTC-Tag |
 | `DUELL_IP_HEADER` / `DUELL_IP_SALT` | leer / zufaellig je Prozess | Kopfzeile mit der echten Client-IP, leer heisst keine Grenzen je IP hinter dem Tunnel; Salz der IP-Hashes |
 
 ## Notes
