@@ -216,3 +216,11 @@ test('Wunsch-Injection: Text bleibt Daten, boese Felder kommen nicht durch, Rege
   assert.equal(calls[0].u.match(/<data>/g).length, 3); assert.equal(calls[0].u.match(/<\/data>/g).length, 3);
   assert.ok(!calls[0].s.includes('boese'));
 });
+
+test('wish: the feel-good cards keep their style herz and their stickers', async () => {
+  for (const e of ['💛', '🌻', '✨', '🫶', '🌈', '☀️']) assert.ok(STICKERS.has(e), 'Herz-Set der App: ' + e);
+  const { WISH } = await import('../lib/duell-ai.mjs');
+  const got = WISH.card.take({ st: 'herz', stickers: ['💛', '🌻', '🫶'] }, []);
+  assert.equal(got.st, 'herz'); assert.deepEqual(got.stickers, ['💛', '🌻', '🫶']);
+  assert.match(WISH.card.what, /herz/);
+});
