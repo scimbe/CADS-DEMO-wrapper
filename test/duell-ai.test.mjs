@@ -56,6 +56,20 @@ test('Kontingent uebersteht einen Neustart; gespeichert sind nur HMACs und Zahle
   await run(noSalt, line('Hallo'));
   assert.ok(!existsSync(f + '2'), 'ohne festen Schluessel wird nichts gespeichert');
 });
+test('Kontingent: ein Eintrag verschwindet 365 Tage nach der letzten Nutzung (wie in der Datenschutzerklaerung)', async () => {
+  const f = join(mkdtempSync(join(tmpdir(), 'duell-ai-')), 'state.json'), DAY = 86400000;
+  let t = Date.parse('2026-01-10T12:00:00Z');
+  const make = () => createDuellAi({ env: { DUELL_AI_SALT: 'x', DUELL_AI_PROOF_BITS: '0', DUELL_AI_STATE_FILE: f }, llm: async () => GOOD, shared: mk().d.shared, now: () => t, log: () => {} });
+  const one = make(); await run(one, line('Hallo'));
+  assert.equal(Object.keys(JSON.parse(readFileSync(f, 'utf8'))).length, 1);
+  t += 365 * DAY;   // still inside: last use exactly a year ago today
+  assert.equal(make().meter(await person(make())).remaining, 2);
+  t += 2 * DAY;
+  const late = make();
+  assert.equal(late.meter(await person(late)).remaining, 3, 'nach einem Jahr ohne Nutzung ist der Eintrag weg');
+  await run(late, line('Hallo', DEV2));
+  assert.deepEqual(Object.values(JSON.parse(readFileSync(f, 'utf8'))).map((v) => v.t), ['2027-01-12'], 'beim Speichern wird der alte Eintrag auch von der Platte geloescht');
+});
 test('Abo: nur Konto auf der Allowlist, mit Tagesgrenze; Konto statt Geraet; Gate-Ausfall heisst nicht frei', async () => {
   const auth = (email, error) => ({ mode: 'gate', identify: async () => (error ? { error: true } : { email }) });
   const env = { DUELL_AI_ABO_ALLOWLIST: 'Test@Example.org', DUELL_AI_ABO_PER_DAY: '5' };

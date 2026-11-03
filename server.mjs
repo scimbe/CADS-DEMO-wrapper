@@ -27,6 +27,7 @@ import { createDuell } from './lib/duell.mjs';
 import { createShortLinks } from './lib/shortlink.mjs';
 import { createDuellAi } from './lib/duell-ai.mjs';
 import { createWeather } from './lib/duell-weather.mjs';
+import { createLegalPages } from './lib/legal-pages.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
@@ -1069,6 +1070,7 @@ const INSTALLATIONS = createInstallations();
 const DUELL = createDuell({ llmEnv: ENV, root: __dir }); // public by design (no login), see lib/duell.mjs
 const SHORT = createShortLinks({ root: __dir, clientKey: DUELL.clientKey }); // public by design (no login), see lib/shortlink.mjs
 const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
+const LEGAL = createLegalPages({ root: __dir }); // public by design: legal notice, privacy, terms of My Daily Idea, lib/legal-pages.mjs
 const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather() }); // AI actions with a free allowance, lib/duell-ai.mjs
 // One failing request answers 500; it never takes the gallery (and everybody's runs) down with it.
 http.createServer((req, res) => route(req, res).catch((e) => {
@@ -1082,6 +1084,7 @@ async function route(req, res) {
   if (await DUELL_AI.route(req, res, url)) return; // own limits and allowance, reads the login itself
   if (await DUELL.route(req, res, url)) return; // Duell: config API, web game, assetlinks (public, own limits)
   if (await SHORT.route(req, res, url)) return; // short links of My Daily Idea (public, own limits)
+  if (await LEGAL.route(req, res, url)) return; // legal pages of My Daily Idea (public, never with a placeholder)
   if (await AUTH.guard(req, res, url)) return;
   if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage(DEMOS, normLang(url.searchParams.get('lang')), { sandboxLive: !!LOCAL_RUN.version, savedLive: process.env.INSTALLATIONS_LIVE === '1' })); return; }
   if (p === '/installationen') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(installationsPage(url.searchParams.get('lang'), INSTALLATIONS.enabled)); return; }
