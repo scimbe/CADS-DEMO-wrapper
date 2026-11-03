@@ -30,6 +30,9 @@ services:
       # Wetterkarte: Grenzen je gehashter IP und pro UTC-Tag (siehe lib/duell-weather.mjs).
       - DUELL_WEATHER_IP_PER_HOUR=${DUELL_WEATHER_IP_PER_HOUR:-30}
       - DUELL_WEATHER_DAILY_MAX=${DUELL_WEATHER_DAILY_MAX:-1000}
+      # Datenkarten aus freien Web-APIs: Grenzen je gehashter IP und je Quelle und UTC-Tag (siehe lib/duell-facts.mjs).
+      - DUELL_FACTS_IP_PER_HOUR=${DUELL_FACTS_IP_PER_HOUR:-60}
+      - DUELL_FACTS_DAILY_MAX=${DUELL_FACTS_DAILY_MAX:-300}
       # Ohne DUELL_IP_HEADER gibt es keine Grenzen je IP (siehe README, Kurzlinks und KI-Aktionen).
       - DUELL_IP_HEADER=${DUELL_IP_HEADER:-}
       - DUELL_IP_SALT=${DUELL_IP_SALT:-}
