@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, writeFileSync, appendFileSync, statSync } fr
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createShortLinks, ID_RE, ALPHABET, newId, OPEN_SCRIPT, MAX_FRAGMENT } from '../lib/shortlink.mjs';
+import { createShortLinks, ID_RE, ALPHABET, newId, OPEN_SCRIPT, MAX_FRAGMENT, jpegSize } from '../lib/shortlink.mjs';
 import { createDuell } from '../lib/duell.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -235,5 +235,46 @@ test('wiring: uses the salted client key of Duell, and the route is ours only fo
   assert.match(key, /^[0-9a-f]{16}$/); assert.ok(!key.includes('203'));
   const s = mk(); const h = await serve(s);
   assert.equal((await fetch(`${h.base}/sonst`)).status, 599);
+  h.close();
+});
+
+// Header-only JPEG: APP0, then a baseline frame header with the given size, then end of image.
+function jpeg(w, h, pad = 0) {
+  const app0 = Buffer.from([0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 1, 1, 0, 0, 1, 0, 1, 0, 0]);
+  const sof = Buffer.from([0xff, 0xc0, 0x00, 0x11, 8, h >> 8, h & 255, w >> 8, w & 255, 3, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1]);
+  return Buffer.concat([Buffer.from([0xff, 0xd8]), app0, sof, Buffer.alloc(pad, 0x42), Buffer.from([0xff, 0xd9])]);
+}
+test('picture: jpegSize reads the frame header and refuses anything else', () => {
+  assert.deepEqual(jpegSize(jpeg(1200, 630)), { w: 1200, h: 630 });
+  assert.equal(jpegSize(Buffer.from('<svg/>')), null);
+  assert.equal(jpegSize(Buffer.concat([jpeg(1200, 630).subarray(0, -2), Buffer.from('xx')])), null, 'kein Ende');
+});
+test('picture: only the creator, once, exactly 1200x630; the page then names it, delete and expiry remove it', async () => {
+  let t = 1e12; const s = mk({}, { now: () => t }); const h = await serve(s);
+  const { id, token } = await (await post(h.base, { f: F, k: 'card', l: 'de' })).json();
+  const put = (body, tok = token, type = 'image/jpeg', to = id) => fetch(`${h.base}/api/s/${to}/img`, { method: 'PUT', headers: { 'Content-Type': type, Authorization: 'Bearer ' + tok }, body });
+  const ogImg = async () => (await (await fetch(`${h.base}/s/${id}`)).text()).match(/og:image" content="([^"]*)"/)[1];
+  assert.match(await ogImg(), /\/s\/img\/card\.jpg$/, 'ohne Bild das feste');
+  assert.equal((await put(jpeg(1200, 630), 'falsch')).status, 403);
+  assert.equal((await put(jpeg(1200, 630), token, 'image/png')).status, 415);
+  assert.equal((await put(jpeg(800, 800))).status, 400);
+  assert.equal((await put(Buffer.from('nicht jpeg'))).status, 400);
+  assert.equal((await put(jpeg(1200, 630, 500 * 1024))).status, 413);
+  assert.equal((await put(jpeg(1200, 630), token, 'image/jpeg', '22222222')).status, 404);
+  assert.equal((await put(jpeg(1200, 630))).status, 204);
+  assert.equal((await put(jpeg(1200, 630))).status, 409, 'nur einmal');
+  assert.match(await ogImg(), new RegExp(`/s/img/${id}\\.jpg$`));
+  const img = await fetch(`${h.base}/s/img/${id}.jpg`);
+  assert.equal(img.status, 200); assert.equal(img.headers.get('content-type'), 'image/jpeg'); assert.deepEqual(jpegSize(Buffer.from(await img.arrayBuffer())), { w: 1200, h: 630 });
+  assert.equal((await fetch(`${h.base}/s/img/22222222.jpg`)).status, 404);
+  assert.equal(statSync(join(s.cfg.dataDir, 'img', `${id}.jpg`)).mode & 0o777, 0o600);
+  const pre = await fetch(`${h.base}/api/s/${id}/img`, { method: 'OPTIONS', headers: { Origin: 'null' } });
+  assert.match(pre.headers.get('access-control-allow-methods'), /PUT/);
+  assert.equal(s.remove(id, token).status, 204);
+  assert.equal(s.hasPic(id), false, 'loeschen nimmt das Bild mit'); assert.equal((await fetch(`${h.base}/s/img/${id}.jpg`)).status, 404);
+  const b = await (await post(h.base, { f: F, k: 'card' })).json();
+  assert.equal((await put(jpeg(1200, 630), b.token, 'image/jpeg', b.id)).status, 204);
+  t += 91 * DAY; s.sweep(true);
+  assert.equal(s.hasPic(b.id), false, 'abgelaufen nimmt das Bild mit');
   h.close();
 });
