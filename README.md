@@ -145,8 +145,8 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | `SHORT_BASE` / `SHORT_PUBLIC_BASE` | `https://bunsenbrenner.org` / Galerie-Host | sichtbarer Link / Host fuer Bilder und `og:url` |
 
 ### KI-Aktionen, Toepfe, Siegel und Melden (My Daily Idea)
-Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell-report.mjs`; Tests: `test/duell-ai.test.mjs`, `test/duell-queue.test.mjs`, `test/duell-seal.test.mjs`, `test/duell-report.test.mjs`. Gleiches Modell und gleiche Warteschlange wie `/api/duell/config`.
-- `POST /api/duell/ai` `{kind: wish|line|meme|lyrics|protokoll, input, device, key?, proof?, lang, queue?}` -> `{kind, options, seals, cost, receipt?, meter}`;
+Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell-report.mjs`; Tests: `test/duell-ai.test.mjs`, `test/duell-ai-kinds.test.mjs`, `test/duell-queue.test.mjs`, `test/duell-seal.test.mjs`, `test/duell-report.test.mjs`. Gleiches Modell und gleiche Warteschlange wie `/api/duell/config`.
+- `POST /api/duell/ai` `{kind: wish|line|meme|lyrics|protokoll|plan|liste|quiz|welt|text, input, device, key?, proof?, lang, queue?}` -> `{kind, options, seals, hashes, cost, receipt?, meter}`;
   `POST /api/duell/ai/accept` bzw. `/discard` `{device, key?, receipt}` -> `{final|refunded, meter}`; `POST /api/duell/ai/status` `{device, key?}` -> `{meter}`.
 - Einheit "KI-Aktion" nach Ausgabe-Token: bis 300 = 1, bis 900 = 2, darueber 3, Protokoll immer 3; Cache-Treffer 0. Abgebucht wird bei der Ausgabe (fertig, aber nie abgeholt: beim Verfall des Tickets),
   bei fast leerem Topf wird die Ausgabe des Modells auf das begrenzt, was der Topf noch traegt,
@@ -155,8 +155,18 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
   erzeugt mit `node bin/duell-key.mjs pro|biz <id>`; von der Liste nehmen = widerrufen). Es gibt keinen Kaufweg. Pro: Monats-Topf fuer hoechstens 6 Geraete.
   Business: Team-Topf je Monat und, sobald ein Business-Schluessel existiert, ein reservierter Anteil der Tagesgrenze (hoechstens die Haelfte), den Free und Pro nicht nutzen.
   Protokolle zaehlen nie im Jugend-Zaehler: Business-Topf, sonst ein kleiner Protokoll-Probetopf je Geraet. `meter.resetAt` sagt immer, wann der Topf wieder voll ist.
-- Siegel: jede Option traegt `seals[i]` = `s1.<kind>.<zeit>.<HMAC>` ueber kind, Zeit und Inhalt (sortiertes JSON); pruefen mit `POST /api/duell/seal {seal, content}` -> `{valid, kind, at}`.
-- Melden: `POST /api/duell/report {reason: harm|sex|hate|private|wrong|other, kind?, link?, seal?, option?, consent?, content?}` -> `202 {id}`. Inhalt nur mit `consent:true`,
+- Strukturierte Arten (KI-Konzept Abschnitt 2, "Satz rein, gepruefte Struktur-JSON raus"; Daten, Mengen und Summen rechnet die App):
+  `plan {art: termin|einladung|wichteln, satz<=200, ctx?}` -> Regeln (wochentage, tageszeiten, uhrzeit, dauer_min, zeitraum relativ, ort-Typ, mitbringen, budget_eur, thema, ideen, regeltext), temperature 0.1;
+  `liste {art: einkauf|mitbring|aufgaben, satz<=300, ctx?}` -> posten `{n, kat, m: pro_person|fix|nach_bedarf, e, veg}` bzw. aufgaben `{was, frist relativ, wer: ""}`, personen/vegetarisch nur wie angegeben;
+  `quiz {modus: lernen|gruppe|firma, thema<=80 | text<=3000, n 3-8, ctx?}` -> fragen `{f, a, d[3], quelle_im_text}` (vom Code gegen den Text geprueft) bzw. Gruppe: typen (nur Staerken) + fragen; kostet mindestens 2;
+  `welt {satz<=140}` -> Config wie `/api/duell/config` plus `abschnitte[3] {physik, delta, thema, emoji}` aus festen Listen;
+  `text {art: worte|spruch|song, anlass (feste Liste), insider<=80?, name?: true, ctx?}` -> 3 Varianten (worte <=80 Zeichen, spruch, song: hook + beat in einem Aufruf), Name nur als `{name}`.
+  Jede Art: `kind_ok` im selben Aufruf (`false` -> `422 {error: blocked, why: kind_ok}`, kostenlos), Selbstgefaehrdung -> `422 {why: crisis, help}` ohne Modell, Adressen/PLZ/Kontakt -> Platzhalter,
+  Zahlen (Personen, Budget, Uhrzeit) nur, wenn sie in der Eingabe stehen, Cache nach normalisierter Eingabe (nie fuer eigenen Text, Name oder Insider). `ctx`: Profil-Kontext der App (<= 240 Zeichen).
+  Qualitaetstor: `test/fixtures/duell-golden.json` (je Art 30 Faelle + Red-Teaming), Lauf gegen das Modell: `LITELLM_BASE_URL=... LITELLM_KEY_FILE=~/.config/cads/litellm-test.key node bin/duell-golden.mjs [--kind plan] [--redteam]`.
+- Siegel: jede Option traegt `seals[i]` = `s2.<kind>.<zeit>.<HMAC ueber kind, Zeit und hashes[i]>` mit `hashes[i]` = base64url(SHA-256(kanonisches JSON der Option)), 43 Zeichen;
+  pruefen mit `POST /api/duell/seal {seal, content}` oder `{seal, optionHash}` -> `{valid, kind, at}`. Aeltere `s1`-Siegel bleiben gueltig, pruefbar nur mit `content`.
+- Melden: `POST /api/duell/report {reason: harm|sex|hate|private|wrong|other, kind?, link?, seal?, option? | optionHash?, consent?, content?}` -> `202 {id}`. Inhalt nur mit `consent:true`,
   keine IP, kein Geraet. `option` ist genau das, was das Siegel deckt (`options[i]` bzw. die Config ohne seal/meter/cost/receipt); dagegen wird das Siegel
   geprueft (`sealOk`), gespeichert wird `option` nie. Ein gueltiges Siegel bestimmt das `kind` der Meldung. Ablage `DUELL_REPORT_DIR/reports.jsonl` (Volume). Review mit `Authorization: Bearer <DUELL_ADMIN_TOKEN>`: `GET /api/duell/report`,
   `POST /api/duell/report/<id> {action: dismiss|block}` (`block` sperrt den Kurzlink, `410 blocked`), Inhalt wird mit der Entscheidung geloescht,
