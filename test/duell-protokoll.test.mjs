@@ -38,6 +38,8 @@ test('Protokoll: ohne ausdrueckliche Zustimmung kein Modellaufruf; mit Zustimmun
   assert.match(calls.long[0].u, /^Given participants: <data>Anna, Ben<\/data>\nTranscript: <data>Thema Sommerfest/);
   assert.match(calls.long[0].s, /Never invent names, dates, numbers or decisions/);
   assert.match(calls.long[0].s, /All texts in German/);
+  // the task list link puts a person only where the meeting named them: the model must not guess one either
+  assert.match(calls.long[0].s, /"who": only a name the transcript explicitly gives for this very task, otherwise "" \(never guess from context\)/);
 });
 
 test('Protokoll: ohne Speicherung - kein Cache, gleicher Text ruft das Modell erneut; Log ohne Text und Namen', async () => {
