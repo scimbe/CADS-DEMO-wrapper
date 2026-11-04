@@ -96,10 +96,15 @@ login-pflichtig (`DEMO_AUTH_MODE=gate`). Code: `lib/route.mjs`, Tests: `test/rou
 
 ## Duell (Jugend-App)
 Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffentlich (vor dem Login-Gate, eigene Grenzen).
-- `POST /api/duell/config` `{prompt (<=140 Zeichen), lang}` -> `{params:{gravity,flapPower,pipeGap,pipeSpeed}, theme, title, emoji}`.
+- `POST /api/duell/config` `{prompt (<=140 Zeichen), lang, device?, key?, proof?, queue?}` -> `{params:{gravity,flapPower,pipeGap,pipeSpeed}, theme, title, emoji, seal}`,
+  mit `device` zusaetzlich `{cost, receipt?, meter}` (zaehlt im Topf wie eine KI-Aktion, Cache-Treffer 0).
   Bereiche wie im Flappy-Studio (900-2600, 280-620, 90-200, 90-260), Themes `day|night|sunset|retro|candy`.
-  Wortfilter de/en vor und nach dem Modell, Antwort-Cache, Limit je gehashter IP, Tagesgrenze, ein Modellaufruf zugleich;
+  Wortfilter de/en vor und nach dem Modell, Antwort-Cache, Limit je gehashter IP (nur Free), Tagesgrenze, Warteschlange;
   bei Grenze `429`, bei Ausfall `503` (sofort), bei Filtertreffer `422`. Modell: `LITELLM_*` wie die uebrige Galerie, Denken aus.
+- Warteschlange (`lib/duell-queue.mjs`): Business vor Pro vor Free (mit Alterung, niemand wartet ewig), hoechstens `DUELL_LLM_PARALLEL`
+  Modellaufrufe zugleich. Eine Anfrage wartet bis `DUELL_QUEUE_HOLD_MS` auf ihren Platz; dann `429 {error:"busy", position, etaS}`,
+  oder mit `queue:"ticket"` `202 {queued, ticket, position, etaS}` und `POST /api/duell/queue {ticket}` bis zur Antwort.
+  Volle Schlange `429 queue-full`, zu lange gewartet `429 queue-timeout`, zweite Anfrage derselben Person `409 pending`.
 - `GET /duell` liefert `apps/duell-web/dist/index.html` (Platzhalter bis zum Marketplace-PR; Pfad per `DUELL_WEB_FILE`).
 - `GET /.well-known/assetlinks.json` fuer `org.bunsenbrenner.cads` (wirkt nur auf dem Host des App-Links, siehe unten).
 
@@ -109,6 +114,13 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | `DUELL_DAILY_MAX` | 400 | Modellaufrufe pro UTC-Tag insgesamt |
 | `DUELL_CACHE_TTL_S` / `DUELL_CACHE_MAX` | 86400 / 500 | Antwort-Cache |
 | `DUELL_LLM_TIMEOUT_MS` | 20000 | Zeitlimit des Modellaufrufs |
+| `DUELL_LLM_PARALLEL` | 1 | Modellaufrufe zugleich (gemessen: das Modell buendelt nicht, mehr erhoeht nur die Latenz) |
+| `DUELL_QUEUE_MAX` / `DUELL_QUEUE_WAIT_MS` | 30 / 45000 | Laenge der Warteschlange / laengste Wartezeit darin |
+| `DUELL_QUEUE_HOLD_MS` | 8000 | so lange haelt der Server eine Anfrage offen, bevor `429 busy` bzw. `202` mit Ticket kommt |
+| `DUELL_QUEUE_AGING_MS` | 10000 | Alterung: wer so lange wartet, steigt eine Stufe |
+| `DUELL_QUEUE_ABANDON_MS` / `DUELL_QUEUE_TICKET_TTL_S` | 15000 / 60 | Ticket ohne Abfrage verfaellt / fertige Antwort wird so lange aufgehoben (nicht abgeholt = kostet nichts) |
+| `DUELL_CONFIG_ANON` | 1 | `0`: Spiel-Konfiguration nur noch mit `device` (sobald alle Apps es senden) |
+| `DUELL_SEAL_SECRET` | zufaellig je Start | Schluessel des KI-Siegels; ohne festen Wert sind Siegel nur bis zum Neustart pruefbar |
 | `DUELL_IP_HEADER` | leer | Header mit der Client-IP (z. B. `x-forwarded-for`). Leer = Socket-Adresse; ist die privat (Proxy/Tunnel), ist das IP-Limit aus, es bleiben Cache, Tagesgrenze und ein Aufruf zugleich |
 | `DUELL_IP_SALT` | zufaellig je Start | Salz fuer den IP-Hash |
 | `DUELL_CORS_ORIGINS` | `https://appassets.androidplatform.net` | erlaubte Herkunft (kommagetrennt); andere Browser-Herkuenfte bekommen `403` |
@@ -130,24 +142,41 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | `SHORT_MAX_LIVE` | 100000 | Obergrenze gespeicherter Eintraege |
 | `SHORT_BASE` / `SHORT_PUBLIC_BASE` | `https://bunsenbrenner.org` / Galerie-Host | sichtbarer Link / Host fuer Bilder und `og:url` |
 
-### KI-Aktionen und Kontingent (My Daily Idea)
-Code: `lib/duell-ai.mjs`, Tests: `test/duell-ai.test.mjs`. Gleiches Modell und gleiche Grenzen wie `/api/duell/config` (ein Aufruf zugleich, Tagesgrenze, Limit je gehashter IP).
-- `POST /api/duell/ai` `{kind: wish|line|meme|lyrics, input, device, lang}` -> `{kind, options, meter}`; `POST /api/duell/ai/status` und `/interest` `{device}` -> `{meter}`.
-- `wish` ist das Hauptmerkmal: Ein freier Wunsch aendert genau eine Kreation, aber nur die Felder ihres Typs (`WISH` in `lib/duell-ai.mjs`): Karte und Foto Text, Stil, Farbpaar aus der Palette, Sticker aus den Sets; Beat Titel, Tempo, Raster, Effekt; Spiel Physik in festen Grenzen, Welt, Figur, Titel. Alles andere verwirft der Server.
-- `POST /api/duell/ai/weather` `{place, date}` -> `{place, date, hi, lo, rain, code, source}`: echte Werte von Open-Meteo fuer heute bis in 7 Tagen, ohne Modell und ohne Kontingent (`lib/duell-weather.mjs`). Bei Fehlern gibt es keine Zahlen. Grenzen: `DUELL_WEATHER_IP_PER_HOUR` (30), `DUELL_WEATHER_DAILY_MAX` (1000).
-- Antworten: `429 quota` (Kontingent verbraucht), `429 busy|daily-limit|rate-limited`, `422 blocked`, `503 llm-unavailable|ai-off`. Die Seite faellt dann sofort auf lokale Vorschlaege zurueck. Nur erfolgreiche Aktionen zaehlen.
-- Grenzen ehrlich: Ohne Konto zaehlt ein HMAC einer zufaelligen Geraete-ID. Wer die App-Daten loescht, hat ein neues Kontingent; das ist gewollt und nur ueber IP-Limit und Tagesgrenze gedeckelt. Mit Anmeldung (Cookie, nur gleiche Herkunft) zaehlt das Konto; die App-Huellen senden kein Cookie.
-- Gespeichert werden nur HMACs und Zaehler, keine IP, keine E-Mail, keine Eingaben. Fotos bleiben auf dem Geraet; es geht nur getippter Text an den Server.
-- Abo: Es gibt keinen Zahlungsweg. `DUELL_AI_ABO_ALLOWLIST` schaltet Konten zum Testen frei.
+### KI-Aktionen, Toepfe, Siegel und Melden (My Daily Idea)
+Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell-report.mjs`; Tests: `test/duell-ai.test.mjs`, `test/duell-queue.test.mjs`, `test/duell-seal.test.mjs`, `test/duell-report.test.mjs`. Gleiches Modell und gleiche Warteschlange wie `/api/duell/config`.
+- `POST /api/duell/ai` `{kind: wish|line|meme|lyrics|protokoll, input, device, key?, proof?, lang, queue?}` -> `{kind, options, seals, cost, receipt?, meter}`;
+  `POST /api/duell/ai/accept` bzw. `/discard` `{device, key?, receipt}` -> `{final|refunded, meter}`; `POST /api/duell/ai/status` `{device, key?}` -> `{meter}`.
+- Einheit "KI-Aktion" nach Ausgabe-Token: bis 300 = 1, bis 900 = 2, darueber 3, Protokoll immer 3; Cache-Treffer 0. Abgebucht wird bei der Ausgabe (nicht abgeholt = 0),
+  "Verwerfen" schreibt innerhalb von `DUELL_AI_RECEIPT_TTL_S` gut, hoechstens halb so oft wie der Topf gross ist, "Uebernehmen" macht es endgueltig.
+- Toepfe: Free 7 je Woche (Montag 00:00 UTC) je Geraet oder Konto; Pro und Business nur ueber einen Schluessel aus `DUELL_ENTITLEMENTS` (signiert mit `DUELL_ENTITLEMENT_SECRET`,
+  erzeugt mit `node bin/duell-key.mjs pro|biz <id>`; von der Liste nehmen = widerrufen). Es gibt keinen Kaufweg. Pro: Monats-Topf fuer hoechstens 6 Geraete.
+  Business: Team-Topf je Monat und, sobald ein Business-Schluessel existiert, ein reservierter Anteil der Tagesgrenze (hoechstens die Haelfte), den Free und Pro nicht nutzen.
+  Protokolle zaehlen nie im Jugend-Zaehler: Business-Topf, sonst ein kleiner Protokoll-Probetopf je Geraet. `meter.resetAt` sagt immer, wann der Topf wieder voll ist.
+- Siegel: jede Option traegt `seals[i]` = `s1.<kind>.<zeit>.<HMAC>` ueber kind, Zeit und Inhalt (sortiertes JSON); pruefen mit `POST /api/duell/seal {seal, content}` -> `{valid, kind, at}`.
+- Melden: `POST /api/duell/report {reason: harm|sex|hate|private|wrong|other, kind?, link?, seal?, consent?, content?}` -> `202 {id}`. Inhalt nur mit `consent:true`,
+  keine IP, kein Geraet. Ablage `DUELL_REPORT_DIR/reports.jsonl` (Volume). Review mit `Authorization: Bearer <DUELL_ADMIN_TOKEN>`: `GET /api/duell/report`,
+  `POST /api/duell/report/<id> {action: dismiss|block}` (`block` sperrt den Kurzlink, `410 blocked`), Inhalt wird mit der Entscheidung geloescht. `GET /api/duell/metrics`: nur kind, outcome, ms.
+- `POST /api/duell/ai/weather` `{place, date}` -> `{place, date, hi, lo, rain, code, source}`: echte Werte von Open-Meteo fuer heute bis in 7 Tagen, ohne Modell und ohne Kontingent (`lib/duell-weather.mjs`). Grenzen: `DUELL_WEATHER_IP_PER_HOUR` (30), `DUELL_WEATHER_DAILY_MAX` (1000).
+- Antworten: `429 quota` (Topf leer), `429 busy|queue-full|queue-timeout|daily-limit|rate-limited`, `202` (Ticket), `403 proof|devices|bad-key`, `409 pending`, `422 blocked`, `503 llm-unavailable|ai-off`.
+  Die Seite faellt dann sofort auf ihren Weg ohne KI zurueck. Nur ausgegebene Ergebnisse zaehlen.
+- Ohne Konto zaehlt ein HMAC einer zufaelligen Geraete-ID; wer die App-Daten loescht, hat einen neuen Free-Topf, gedeckelt ueber IP-Limit, Tagesgrenze und neue Geraete je Stunde.
+  Gespeichert werden nur HMACs und Zaehler, keine IP, keine E-Mail, keine Eingaben. Fotos und Audio bleiben auf dem Geraet.
+- Durchsatz messen: `LITELLM_BASE_URL=... LITELLM_KEY_FILE=~/.config/cads/litellm-test.key node bin/duell-bench.mjs --par 1,2,3,4 --n 8`.
 
 | ENV | Default | Bedeutung |
 |-----|---------|-----------|
 | `DUELL_AI_ENABLED` | 1 | `0` schaltet die KI-Aktionen ab, die Seite bleibt lokal |
-| `DUELL_AI_FREE` | 3 | kostenlose Aktionen je Person |
-| `DUELL_AI_SALT` | leer | Schluessel der HMACs. Ohne ihn wird nichts gespeichert und das Kontingent gilt nur bis zum Neustart |
+| `DUELL_AI_FREE_PER_WEEK` | 7 | Free-Topf je Geraet bzw. Konto und Woche |
+| `DUELL_AI_PRO_PER_MONTH` / `DUELL_AI_PRO_DEVICES` | 300 / 6 | Pro-Topf je Schluessel und Monat / Geraete je Schluessel |
+| `DUELL_AI_BIZ_PER_MONTH` / `DUELL_AI_BIZ_RESERVED_PER_DAY` | 300 / 120 | Business-Topf je Team und Monat / reservierte Modellaufrufe je Tag |
+| `DUELL_PROTOKOLL_TRIAL_PER_MONTH` | 3 | Protokoll ohne Team-Schluessel (ein Protokoll) je Geraet und Monat |
+| `DUELL_AI_REFUND_SHARE` / `DUELL_AI_RECEIPT_TTL_S` | 0.5 / 1800 | Anteil des Topfs, der je Zeitraum gutgeschrieben werden kann / Gueltigkeit des Belegs |
+| `DUELL_ENTITLEMENT_SECRET` / `DUELL_ENTITLEMENTS` | leer | Schluessel zum Signieren / Liste gueltiger Pro- und Business-Schluessel (kommagetrennt) |
+| `DUELL_AI_SALT` | leer | Schluessel der HMACs. Ohne ihn wird nichts gespeichert und die Toepfe gelten nur bis zum Neustart |
 | `DUELL_AI_STATE_FILE` | leer (Compose: `/var/lib/duell-ai/state.json`) | Zaehlerdatei auf dem Volume `duell-ai` |
-| `DUELL_AI_ABO_ALLOWLIST` | leer | E-Mails mit Abo-Flag (kommagetrennt), nur zum Testen |
-| `DUELL_AI_ABO_PER_DAY` | 30 | Aktionen je Abo-Konto und UTC-Tag |
+| `DUELL_REPORT_DIR` | leer (Compose: `/var/lib/duell-ai/reports`) | Meldungen; ohne Verzeichnis `503` |
+| `DUELL_REPORT_PER_HOUR` / `DUELL_REPORT_DAILY_MAX` | 5 / 300 | Meldungen je gehashter IP und Stunde / pro UTC-Tag |
+| `DUELL_ADMIN_TOKEN` | leer (aus) | Token fuer Review und Messung (mindestens 16 Zeichen) |
 | `DUELL_AI_KEYS_MAX` | 100000 | groesste Zaehlerdatei; die aeltesten Eintraege fallen zuerst heraus |
 | `DUELL_AI_CACHE_TTL_S` / `DUELL_AI_CACHE_MAX` | 86400 / 300 | Antwort-Cache |
 | `DUELL_WEATHER_IP_PER_HOUR` / `DUELL_WEATHER_DAILY_MAX` | 30 / 1000 | Wetteranfragen je gehashter IP und Stunde / pro UTC-Tag |

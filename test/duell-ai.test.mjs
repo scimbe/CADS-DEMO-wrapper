@@ -1,4 +1,4 @@
-// My Daily Idea AI actions: allowance, entitlement, filters, schema, injection, shared limits, HTTP rules.
+// My Daily Idea AI actions: pots, entitlement, filters, schema, injection, shared limits, HTTP rules.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
@@ -10,29 +10,35 @@ import { createDuellAi, isUnfit, hasContact, KINDS, STICKERS } from '../lib/duel
 
 const DEV = 'a'.repeat(32), DEV2 = 'b'.repeat(32);
 const GOOD = JSON.stringify({ options: ['Heute bin ich ein Keks', 'Montag, wir muessen reden', 'Frosch im Hals, Stil im Herz'] });
-const mk = ({ llm, env = {}, auth, duellEnv = {} } = {}) => {
+const CONF = JSON.stringify({ gravity: 1500, theme: 'night', emoji: '🚀', title: 'Rakete' });
+const mk = ({ llm, env = {}, auth, duellEnv = {}, now } = {}) => {
   const calls = [];
   const fn = llm || (async (s, u) => { calls.push({ s, u }); return GOOD; });
-  const d = createDuell({ env: { DUELL_DAILY_MAX: '50', ...duellEnv }, salt: 's', log: () => {}, llm: fn });
-  const ai = createDuellAi({ env: { DUELL_AI_SALT: 'x', DUELL_AI_PROOF_BITS: '0', ...env }, llm: fn, shared: d.shared, auth, log: () => {} });
+  const d = createDuell({ env: { DUELL_DAILY_MAX: '50', DUELL_SEAL_SECRET: 'seal', ...duellEnv }, salt: 's', log: () => {}, llm: fn, now });
+  const ai = createDuellAi({ env: { DUELL_AI_SALT: 'x', DUELL_AI_PROOF_BITS: '0', ...env }, llm: fn, shared: d.shared, auth, log: () => {}, now });
   return { d, ai, calls };
 };
 const line = (text, device = DEV) => ({ kind: 'line', input: { text, style: 'neon' }, device, lang: 'de' });
 const person = (ai, device = DEV) => ai.who(null, device);
 const run = async (ai, body) => ai.act(body, await person(ai, body.device || DEV), null);
 
-test('Kontingent: drei Aktionen frei, die vierte ist 429 quota ohne Modellaufruf, Zaehler ist ehrlich', async () => {
-  const { ai, calls } = mk();
-  for (let i = 0; i < 3; i++) {
+test('Free-Topf: sieben Aktionen je Woche, die achte ist 429 quota ohne Modellaufruf, Montag fuellt auf', async () => {
+  let t = Date.parse('2026-11-04T12:00:00Z');   // a Wednesday
+  const { ai, calls } = mk({ now: () => t });
+  for (let i = 0; i < 7; i++) {
     const r = await run(ai, line('Karte ' + i));
-    assert.equal(r.status, 200); assert.equal(r.body.options.length, 3); assert.equal(r.body.meter.remaining, 2 - i);
+    assert.equal(r.status, 200); assert.equal(r.body.options.length, 3); assert.equal(r.body.cost, 1); assert.equal(r.body.meter.remaining, 6 - i);
   }
-  const r = await run(ai, line('Karte vier'));
+  const r = await run(ai, line('Karte acht'));
   assert.equal(r.status, 429); assert.equal(r.body.error, 'quota'); assert.equal(r.body.meter.remaining, 0);
-  assert.equal(calls.length, 3);
-  assert.equal((await run(ai, line('Karte vier', DEV2))).status, 200, 'anderes Geraet ist getrennt');
+  assert.equal(r.body.meter.period, 'week'); assert.equal(r.body.meter.resetAt, '2026-11-09T00:00:00.000Z', 'no dead end: the meter says when it refills');
+  assert.equal(calls.length, 7);
+  assert.equal((await run(ai, line('Karte acht', DEV2))).status, 200, 'anderes Geraet ist getrennt');
+  t = Date.parse('2026-11-09T00:00:01Z');
+  const monday = await run(ai, line('Karte neun'));
+  assert.equal(monday.status, 200); assert.equal(monday.body.meter.remaining, 6);
 });
-test('Kontingent: Fehlschlag, Filtertreffer und Ausfall kosten nichts; Cache-Treffer zaehlt, spart aber das Modell', async () => {
+test('Kontingent: Fehlschlag, Filtertreffer und Ausfall kosten nichts; ein Cache-Treffer kostet 0 und spart das Modell', async () => {
   let mode = 'down';
   const calls = [];
   const { ai } = mk({ llm: async () => { calls.push(1); if (mode === 'down') throw new Error('x'); return mode === 'junk' ? 'kein json' : GOOD; } });
@@ -40,36 +46,88 @@ test('Kontingent: Fehlschlag, Filtertreffer und Ausfall kosten nichts; Cache-Tre
   mode = 'junk'; assert.equal((await run(ai, line('Hallo'))).status, 503);
   assert.equal((await run(ai, line('fuck you'))).status, 422);
   mode = 'ok';
-  assert.equal((await run(ai, line('Hallo'))).body.meter.remaining, 2);
+  assert.equal((await run(ai, line('Hallo'))).body.meter.remaining, 6);
   const before = calls.length, again = await run(ai, line('Hallo'));
-  assert.equal(again.headers['X-Duell-Cache'], 'hit'); assert.equal(calls.length, before); assert.equal(again.body.meter.remaining, 1);
+  assert.equal(again.headers['X-Duell-Cache'], 'hit'); assert.equal(calls.length, before);
+  assert.equal(again.body.cost, 0); assert.equal(again.body.receipt, undefined); assert.equal(again.body.meter.remaining, 6, 'cache hit is free');
+});
+test('Gewichtung: Kosten nach Ausgabe-Token (<=300: 1, <=900: 2, darueber 3), Protokoll immer 3', async () => {
+  const { costOf, estimateTokens } = await import('../lib/duell-pots.mjs');
+  assert.deepEqual([costOf('wish', 0), costOf('wish', 300), costOf('wish', 301), costOf('wish', 900), costOf('wish', 901), costOf('protokoll', 10)], [1, 1, 2, 2, 3, 3]);
+  assert.equal(estimateTokens('x'.repeat(35)), 10);
+  const usage = (n) => async () => ({ text: GOOD, usage: { completion_tokens: n } });
+  const a = mk({ llm: usage(450) }), r = await run(a.ai, line('lang'));
+  assert.equal(r.body.cost, 2); assert.equal(r.body.meter.remaining, 5);
+  const b = mk({ llm: usage(120) }); assert.equal((await run(b.ai, line('kurz'))).body.cost, 1);
+  const edge = mk({ llm: usage(2000) });   // more than is left: the pot never goes below zero
+  for (let i = 0; i < 2; i++) await run(edge.ai, line('voll ' + i));
+  const last = await run(edge.ai, line('rest'));
+  assert.equal(last.body.cost, 1); assert.equal(last.body.meter.remaining, 0);
+});
+test('Uebernehmen und Verwerfen: Beleg ist signiert, Verwerfen schreibt gut (begrenzt), Uebernehmen ist endgueltig, Faelschung scheitert', async () => {
+  let t = Date.parse('2026-11-04T12:00:00Z');
+  const { ai } = mk({ now: () => t });
+  const p = await person(ai);
+  const a = await run(ai, line('eins'));
+  assert.match(a.body.receipt, /^r1\.f\./); assert.equal(a.body.meter.remaining, 6);
+  const back = ai.close(p, a.body.receipt, 'discard');
+  assert.equal(back.status, 200); assert.equal(back.body.refunded, 1); assert.equal(back.body.meter.remaining, 7); assert.equal(back.body.meter.refundsLeft, 2);
+  assert.equal(ai.close(p, a.body.receipt, 'discard').body.refunded, 0, 'once only');
+  const b = await run(ai, line('zwei'));
+  assert.equal(ai.close(p, b.body.receipt, 'accept').body.final, true);
+  assert.equal(ai.close(p, b.body.receipt, 'discard').body.refunded, 0, 'accepted is final');
+  const forged = b.body.receipt.replace(/\.(\d)\./, '.3.');
+  assert.equal(ai.close(p, forged, 'discard').status, 400);
+  assert.equal(ai.close(await person(ai, DEV2), (await run(ai, line('drei'))).body.receipt, 'discard').status, 400, 'a receipt belongs to its pot');
+  for (const x of ['vier', 'fuenf']) ai.close(p, (await run(ai, line(x))).body.receipt, 'discard');
+  const capped = ai.close(p, (await run(ai, line('sechs'))).body.receipt, 'discard');
+  assert.equal(capped.body.refunded, 0); assert.equal(capped.body.why, 'refund-limit', 'at most half the pot comes back per week');
+  const late = await run(ai, line('sieben', DEV2));
+  t += 31 * 60 * 1000;
+  assert.equal(ai.close(await person(ai, DEV2), late.body.receipt, 'discard').body.why, 'expired');
 });
 test('Kontingent uebersteht einen Neustart; gespeichert sind nur HMACs und Zahlen', async () => {
   const f = join(mkdtempSync(join(tmpdir(), 'duell-ai-')), 'sub/state.json'), env = { DUELL_AI_STATE_FILE: f };
   const one = mk({ env }); await run(one.ai, line('Hallo'));
   const raw = readFileSync(f, 'utf8');
   assert.ok(!raw.includes(DEV) && !raw.includes('Hallo'), 'keine Klartexte');
-  assert.match(raw, /^\{"d[a-f0-9]{32}":\{"u":1,"t":"\d{4}-\d\d-\d\d"\}\}$/);
+  const [[k, v]] = Object.entries(JSON.parse(raw));
+  assert.match(k, /^d[a-f0-9]{32}$/);
+  assert.deepEqual(Object.keys(v).sort(), ['per', 'r', 's', 't', 'u']); assert.equal(v.u, 1); assert.match(v.per, /^\d{4}-W\d\d$/);
   const two = mk({ env });
-  assert.equal(two.ai.meter(await person(two.ai)).remaining, 2);
+  assert.equal(two.ai.meter(await person(two.ai)).remaining, 6);
   const noSalt = createDuellAi({ env: { DUELL_AI_STATE_FILE: f + '2' }, llm: async () => GOOD, shared: mk().d.shared, log: () => {} });
   await run(noSalt, line('Hallo'));
   assert.ok(!existsSync(f + '2'), 'ohne festen Schluessel wird nichts gespeichert');
 });
-test('Abo: nur Konto auf der Allowlist, mit Tagesgrenze; Konto statt Geraet; Gate-Ausfall heisst nicht frei', async () => {
+test('Pro und Business: nur signierte Schluessel aus der Liste, eigene Toepfe, Pro hoechstens 6 Geraete, Konto statt Geraet', async () => {
+  const { mintKey } = await import('../lib/duell-pots.mjs');
+  const S = 'entitlement-secret-for-tests';
+  const pro = mintKey(S, 'pro', 'familie-1'), biz = mintKey(S, 'biz', 'team-a'), unlisted = mintKey(S, 'pro', 'nicht-gelistet'), forged = pro.slice(0, -3) + 'AAA';
+  const env = { DUELL_ENTITLEMENT_SECRET: S, DUELL_ENTITLEMENTS: [pro, biz, forged].join(','), DUELL_AI_PRO_PER_MONTH: '5', DUELL_AI_PRO_DEVICES: '2' };
+  const { ai } = mk({ env });
+  const p = await ai.who(null, { device: DEV, key: pro });
+  assert.deepEqual([p.tier, p.pot], ['pro', 'pro']);
+  for (let i = 0; i < 5; i++) { const x = await ai.act(line('Pro ' + i), p, null); assert.equal(x.status, 200, JSON.stringify(x.body)); }
+  const q = await ai.act(line('Pro sechs'), p, null);
+  assert.equal(q.body.error, 'quota'); assert.equal(q.body.meter.period, 'month');
+  assert.equal(ai.meter(await person(ai)).remaining, 7, 'the Free pot of the same device is untouched');
+  assert.equal((await ai.who(null, { device: DEV, key: unlisted })).error, 'bad-key', 'not on the list');
+  assert.equal((await ai.who(null, { device: DEV, key: forged })).error, 'bad-key', 'listed but not signed');
+  const p2 = await ai.who(null, { device: DEV2, key: pro }), p3 = await ai.who(null, { device: 'c'.repeat(32), key: pro });
+  assert.equal((await ai.act(line('Geraet zwei'), p2, null)).body.error, 'quota', 'second device shares the family pot');
+  assert.equal((await ai.act(line('Geraet drei'), p3, null)).body.error, 'devices');
+  const b = await ai.who(null, { device: DEV, key: biz });
+  assert.deepEqual([b.tier, b.pot], ['business', 'business']);
+  assert.equal((await ai.act(line('Team'), b, null)).body.meter.size, 300);
   const auth = (email, error) => ({ mode: 'gate', identify: async () => (error ? { error: true } : { email }) });
-  const env = { DUELL_AI_ABO_ALLOWLIST: 'Test@Example.org', DUELL_AI_ABO_PER_DAY: '5' };
-  const abo = mk({ env, auth: auth('test@example.org') });
-  const p = await abo.ai.who({}, undefined);
-  assert.deepEqual([p.abo, p.account], [true, true]);
-  for (let i = 0; i < 5; i++) assert.equal((await abo.ai.act(line('Abo ' + i), p, null)).status, 200);
-  assert.equal((await abo.ai.act(line('Abo sechs'), p, null)).body.error, 'quota');
-  const other = mk({ env, auth: auth('frei@example.org') });
-  const q = await other.ai.who({}, DEV), q2 = await other.ai.who({}, DEV2);
-  assert.equal(q.abo, false); assert.equal(q.key, q2.key, 'Konto bindet, Geraetewechsel hilft nicht');
-  assert.equal((await mk({ env, auth: auth(null) }).ai.who({}, DEV)).account, false, 'nicht angemeldet: Geraet');
-  assert.equal((await mk({ env, auth: auth(null, true) }).ai.who({}, DEV)).status, 503);
-  assert.equal((await mk({ env }).ai.who({}, 'kurz')).error, 'bad-device');
+  const acc = mk({ auth: auth('frei@example.org') });
+  const a1 = await acc.ai.who({}, DEV), a2 = await acc.ai.who({}, DEV2);
+  assert.equal(a1.tier, 'free'); assert.equal(a1.key, a2.key, 'Konto bindet, Geraetewechsel hilft nicht');
+  assert.equal((await mk({ auth: auth(null) }).ai.who({}, DEV)).account, false, 'nicht angemeldet: Geraet');
+  assert.equal((await mk({ auth: auth(null, true) }).ai.who({}, DEV)).status, 503);
+  assert.equal((await mk().ai.who({}, 'kurz')).error, 'bad-device');
+  assert.equal(mk({ env: { DUELL_AI_ABO_ALLOWLIST: 'frei@example.org' }, auth: auth('frei@example.org') }).ai.meter(a1).tier, 'free', 'the old test allowlist is gone');
 });
 test('Ausgabe: festes Schema je Art, Fremdes faellt weg, Laengen halten', async () => {
   const { line: l, meme, lyrics } = KINDS;
@@ -98,7 +156,7 @@ test('Prompt-Injection: Eingabe bleibt Daten, Tags sind entschaerft, boese Model
   const { ai } = mk({ llm: async () => JSON.stringify({ options: evil }) });
   const r = await run(ai, line('egal'));
   assert.equal(r.status, 503, 'nichts Verwertbares -> Ausfall, lokaler Weg, kein Verbrauch: ' + JSON.stringify(r.body));
-  assert.equal(r.body.meter.remaining, 3);
+  assert.equal(r.body.meter.remaining, 7);
   const mixed = mk({ llm: async () => JSON.stringify({ options: ['Sauber bleibt', ...evil] }) });
   assert.deepEqual((await run(mixed.ai, line('egal'))).body.options, ['Sauber bleibt']);
 });
@@ -113,18 +171,47 @@ test('Eingabe: Unfug ist 400, Fremdart gibt es nicht, Eigenschaften des Objekt-P
   for (const b of [{ kind: 'x', input: {} }, { kind: 'constructor', input: {} }, { kind: '__proto__', input: {} }, { kind: 'line' }, { kind: 'line', input: { text: '' } }, { kind: 'meme', input: { desc: 5 } }]) assert.equal((await run(ai, b)).status, 400, JSON.stringify(b));
   assert.equal(calls.length, 0);
 });
-test('Geteilte Grenzen: ein Aufruf zugleich mit dem Spiel, Tagesgrenze zaehlt beide, Abschalter wirkt', async () => {
+test('Geteilte Grenzen: eine Warteschlange mit dem Spiel, Business vor Pro vor Free, Tagesgrenze zaehlt beide, Abschalter wirkt', async () => {
+  const { mintKey } = await import('../lib/duell-pots.mjs');
+  const S = 'entitlement-secret-for-tests', pro = mintKey(S, 'pro', 'fam'), biz = mintKey(S, 'biz', 'team');
   let open; const wait = new Promise((r) => { open = r; });
-  const { d, ai } = mk({ llm: async () => { await wait; return GOOD; } });
-  const first = run(ai, line('eins')); await new Promise((r) => setImmediate(r));
-  assert.equal((await run(ai, line('zwei', DEV2))).body.error, 'busy');
-  assert.equal((await d.config({ prompt: 'schnell', lang: 'de' }, null)).body.error, 'busy');
-  open(); assert.equal((await first).status, 200);
+  const order = [];
+  const { d, ai } = mk({ env: { DUELL_ENTITLEMENT_SECRET: S, DUELL_ENTITLEMENTS: pro + ',' + biz }, duellEnv: { DUELL_QUEUE_HOLD_MS: '5000' },
+    llm: async (s, u) => { order.push((u.match(/<(?:data|wish)>([^<]*)<\/(?:data|wish)>/) || [])[1]); await wait; return u.startsWith('<wish>') ? CONF : GOOD; } });
+  const first = run(ai, line('eins'));
+  await new Promise((r) => setImmediate(r));
+  const free = run(ai, line('frei', DEV2));
+  const game = d.config({ prompt: 'schnell', lang: 'de' }, null);
+  const proR = ai.act(line('pro'), await ai.who(null, { device: 'c'.repeat(32), key: pro }), null);
+  const bizR = ai.act(line('team'), await ai.who(null, { device: 'd'.repeat(32), key: biz }), null);
+  await new Promise((r) => setTimeout(r, 20));
+  assert.deepEqual(d.shared.queue.stats().byTier, { business: 1, pro: 1, free: 2 });
+  open();
+  for (const r of await Promise.all([first, free, game, proR, bizR])) assert.equal(r.status, 200);
+  assert.deepEqual(order.slice(0, 3), ['eins', 'team', 'pro'], 'Business > Pro > Free (eins was already running)');
+  assert.deepEqual(order.slice(3).sort(), ['frei', 'schnell'], 'the free card and the game config share the line, in arrival order');
+  assert.equal(d._state.daily.n, 5);
   const lim = mk({ duellEnv: { DUELL_DAILY_MAX: '1' } });
   await lim.d.config({ prompt: 'schnell', lang: 'de' }, null);
   const r = await run(lim.ai, line('nach grenze'));
-  assert.equal(r.body.error, 'daily-limit'); assert.equal(r.body.meter.remaining, 3);
+  assert.equal(r.body.error, 'daily-limit'); assert.equal(r.body.meter.remaining, 7);
   assert.equal((await run(mk({ env: { DUELL_AI_ENABLED: '0' } }).ai, line('aus'))).body.error, 'ai-off');
+});
+test('Business: reservierter Tagesanteil - Free und Pro halten ihn frei, Business darf ihn nutzen', async () => {
+  const { mintKey } = await import('../lib/duell-pots.mjs');
+  const S = 'entitlement-secret-for-tests', biz = mintKey(S, 'biz', 'team'), dev = (c) => c.repeat(32);
+  const env = { DUELL_ENTITLEMENT_SECRET: S, DUELL_ENTITLEMENTS: biz }, duellEnv = { DUELL_DAILY_MAX: '4', DUELL_AI_BIZ_RESERVED_PER_DAY: '2' };
+  const { ai } = mk({ env, duellEnv });
+  assert.equal((await run(ai, line('frei eins', dev('a')))).status, 200);
+  assert.equal((await run(ai, line('frei zwei', dev('b')))).status, 200);
+  const r = await run(ai, line('frei drei', dev('c')));
+  assert.equal(r.status, 429); assert.equal(r.body.error, 'daily-limit', 'the last two calls of the day are held for Business');
+  const b = await ai.who(null, { device: dev('d'), key: biz });
+  assert.equal((await ai.act(line('team eins'), b, null)).status, 200);
+  assert.equal((await ai.act(line('team zwei'), b, null)).status, 200);
+  assert.equal((await ai.act(line('team drei'), b, null)).body.error, 'daily-limit', 'the day is over for everybody');
+  const none = mk({ duellEnv });
+  for (const c of ['a', 'b', 'c', 'd']) assert.equal((await run(none.ai, line('ohne ' + c, dev(c)))).status, 200, 'without a Business key nothing is held back');
 });
 test('HTTP: App-Herkunft und Herkunft-lose Huelle duerfen, fremde Herkunft nicht; Log ohne Eingaben', async () => {
   const logs = [], fn = async () => GOOD, d = createDuell({ env: {}, salt: 's', log: () => {}, llm: fn });
@@ -141,9 +228,9 @@ test('HTTP: App-Herkunft und Herkunft-lose Huelle duerfen, fremde Herkunft nicht
     assert.equal((await post('', line('x'), { Origin: 'https://boese.example' })).status, 403);
     assert.equal((await post('', line('x'), { Origin: 'null' })).status, 403);
     assert.equal((await post('/status', { device: DEV })).status, 200);
-    assert.equal((await (await post('/status', { device: DEV })).json()).meter.remaining, 2);
+    assert.equal((await (await post('/status', { device: DEV })).json()).meter.remaining, 6);
     const i = await (await post('/interest', { device: DEV })).json();
-    assert.equal(i.meter.interest, true);
+    assert.equal(i.meter.remaining, 6, 'the old wall call only answers the meter now, nothing is stored');
     assert.equal((await post('/status', { device: 'x' })).status, 400);
     assert.equal((await fetch(base + '/status')).status, 405);
     assert.ok(!logs.join().includes('Geheimer') && !logs.join().includes(DEV) && !logs.join().includes('127.0.0.1'));
@@ -158,7 +245,7 @@ test('Wunsch Karte: nur erlaubte Felder, Palette statt Farbe, Sticker nur geprue
   assert.equal(r.status, 200);
   assert.deepEqual(r.body.options[0].changes, { x: 'Gruselig gut', st: 'neon', palette: 3, stickers: ['💀', '🐸', '🔥', '⚡'] });
   assert.equal(r.body.options[0].note, 'Gruseliger gemacht');
-  assert.equal(r.body.meter.remaining, 2, 'zaehlt als ein Versuch');
+  assert.equal(r.body.meter.remaining, 6, 'zaehlt als ein Versuch');
 });
 test('Wunsch Adventstuerchen: sehr weihnachtlich aendert Titel, Untertitel, Botschaft, Stil, Farben und Sticker auf einmal', async () => {
   const XMAS = { t: 'Tür voller Schnee', s: 'Tipp drauf, es schneit.', x: 'Frohe Weihnachten, du Keks!', st: 'advent', colors: ['#0F5132', '#ffd400'], stickers: ['🎄', '⭐', '🎁', '🔫', '❄️', '⛄', '🦌'], nr: 3, note: 'Weihnachtlich gemacht' };
@@ -193,7 +280,7 @@ test('Schutz: neues Geraet braucht Nachweis, Stundenlimit greift, bekannte Gerae
   assert.equal((await go(dev('b'), 'Zwei', solve(dev('b')))).status, 200);
   const full = await go(dev('c'), 'Drei', solve(dev('c')));
   assert.equal(full.status, 429); assert.equal(full.body.error, 'new-limit'); assert.ok(full.headers['Retry-After']);
-  assert.equal(full.body.meter.remaining, 3, 'kostet keinen Versuch');
+  assert.equal(full.body.meter.remaining, 7, 'kostet keinen Versuch');
   assert.equal((await go(dev('a'), 'Vier')).status, 200, 'bekanntes Geraet braucht weder Nachweis noch Platz');
 });
 test('Wunsch Beat: Tempo und Raster im Rahmen, falsche Raster fallen weg', async () => {
@@ -203,7 +290,7 @@ test('Wunsch Beat: Tempo und Raster im Rahmen, falsche Raster fallen weg', async
 test('Wunsch: ohne Aenderung kein Ergebnis und kein Verbrauch; unbekannter Typ ist 400; Wunsch mit Schimpfwort ist 422', async () => {
   const same = mk(answer({ x: 'Hallo', st: 'neon' }));
   const r = await run(same.ai, wish('card', 'lass alles', { x: 'Hallo', st: 'neon' }));
-  assert.equal(r.status, 503); assert.equal(r.body.meter.remaining, 3);
+  assert.equal(r.status, 503); assert.equal(r.body.meter.remaining, 7);
   assert.equal((await run(mk().ai, wish('poster', 'x'))).status, 400);
   assert.equal((await run(mk().ai, wish('__proto__', 'x'))).status, 400);
   assert.equal((await run(mk().ai, wish('card', 'mach es mit fuck'))).status, 422);
@@ -223,4 +310,18 @@ test('wish: the feel-good cards keep their style herz and their stickers', async
   const got = WISH.card.take({ st: 'herz', stickers: ['💛', '🌻', '🫶'] }, []);
   assert.equal(got.st, 'herz'); assert.deepEqual(got.stickers, ['💛', '🌻', '🫶']);
   assert.match(WISH.card.what, /herz/);
+});
+
+test('Umstieg: Zaehler von vor den Toepfen gelten als bekanntes Geraet (kein Nachweis, kein Platz bei den Neuen), Lebenszeit-Zaehlung ist weg', async () => {
+  const f = join(mkdtempSync(join(tmpdir(), 'duell-ai-')), 'state.json');
+  const one = mk({ env: { DUELL_AI_STATE_FILE: f } });
+  const key = (await person(one.ai)).key;
+  const { writeFileSync } = await import('node:fs');
+  writeFileSync(f, JSON.stringify({ [key]: { u: 3, t: '2026-10-01' } }));   // used up the old three for life
+  const { ai } = mk({ env: { DUELL_AI_STATE_FILE: f, DUELL_AI_PROOF_BITS: '20', DUELL_AI_NEW_PER_HOUR: '0' } });
+  const r = await run(ai, line('wieder da'));
+  assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(r.body.meter.remaining, 6);
+  const again = await run(ai, line('nochmal'));
+  assert.equal(again.status, 200, 'still known after the first booking');
+  assert.equal((await run(ai, line('neu', DEV2))).body.error, 'proof', 'a really new device still shows its proof');
 });

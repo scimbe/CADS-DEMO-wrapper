@@ -26,6 +26,7 @@ import { DEFAULT_REGISTRY_URL, REFUSAL, loadVerifiedManifest, readTrustRoot } fr
 import { createDuell } from './lib/duell.mjs';
 import { createShortLinks } from './lib/shortlink.mjs';
 import { createDuellAi } from './lib/duell-ai.mjs';
+import { createReports } from './lib/duell-report.mjs';
 import { createWeather } from './lib/duell-weather.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
@@ -1069,7 +1070,8 @@ const INSTALLATIONS = createInstallations();
 const DUELL = createDuell({ llmEnv: ENV, root: __dir }); // public by design (no login), see lib/duell.mjs
 const SHORT = createShortLinks({ root: __dir, clientKey: DUELL.clientKey }); // public by design (no login), see lib/shortlink.mjs
 const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
-const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather() }); // AI actions with a free allowance, lib/duell-ai.mjs
+const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather() }); // AI actions and their pots, lib/duell-ai.mjs
+const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id) }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
 // One failing request answers 500; it never takes the gallery (and everybody's runs) down with it.
 http.createServer((req, res) => route(req, res).catch((e) => {
   console.log(JSON.stringify({ event: 'request-error', path: String(req.url).split('?')[0].slice(0, 120), error: String(e && e.message || e).slice(0, 200) }));
@@ -1080,6 +1082,7 @@ async function route(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
   if (await DUELL_AI.route(req, res, url)) return; // own limits and allowance, reads the login itself
+  if (await REPORTS.route(req, res, url)) return; // report, seal check (public); reviewer routes need DUELL_ADMIN_TOKEN
   if (await DUELL.route(req, res, url)) return; // Duell: config API, web game, assetlinks (public, own limits)
   if (await SHORT.route(req, res, url)) return; // short links of My Daily Idea (public, own limits)
   if (await AUTH.guard(req, res, url)) return;
