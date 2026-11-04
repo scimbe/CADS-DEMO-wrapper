@@ -1,4 +1,4 @@
-// Review findings of PR #91 (B1-B5): each test reproduces one finding and failed before its fix.
+// Review findings of PR #91 (B1-B5, then N1, N2 and the rests of B4 and B5d): each test reproduces one finding and failed before its fix.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync } from 'node:fs';
@@ -187,4 +187,124 @@ test('B5 (Beschreibung): bei voller Schlange verdraengt Business auch einen wart
   assert.ok(!b.error);
   assert.deepEqual(await p2.done, { error: 'queue-full' }, 'the lowest ranked waiting job leaves, here a Pro job');
   release(); assert.deepEqual(await p1.done, { value: 1 });
+});
+
+// ---- Nachfix: N1, N2, Siegel beim Melden, Loeschfrist ohne Verkehr, B5d-Rest -----------------------------------------
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const reports = (env = {}, now) => {
+  const d = createDuell({ env: { DUELL_SEAL_SECRET: 'seal' }, salt: 's', log: () => {}, llm: async () => GOOD, now });
+  const rep = createReports({ env: { DUELL_REPORT_DIR: mkdtempSync(join(tmpdir(), 'duell-review-')), DUELL_ADMIN_TOKEN: 'admin-token-0123456789abcdef', ...env }, shared: d.shared, log: () => {}, now });
+  return { d, rep, rows: () => readFileSync(rep._file(), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) };
+};
+
+test('N1: gleichzeitige neue Geraete eines Pro-Schluessels kommen nicht ueber DUELL_AI_PRO_DEVICES', async () => {
+  const pro = mintKey(S, 'pro', 'fam'), g = gated();
+  const { d, ai } = mk({ env: { DUELL_ENTITLEMENTS: pro, DUELL_AI_PRO_DEVICES: '2' }, duellEnv: { DUELL_DAILY_MAX: '500', DUELL_QUEUE_HOLD_MS: '20' }, llm: async () => { await g.gate; return GOOD; } });
+  const rs = [];
+  for (const c of ['1', '2', '3', '4']) rs.push(await ai.act({ ...line('t' + c, dev(c), pro), queue: 'ticket' }, await ai.who(null, { device: dev(c), key: pro }), null));
+  assert.deepEqual(rs.map((r) => r.status + (r.body.error ? ':' + r.body.error : '')), ['202', '202', '403:devices', '403:devices'], 'waiting devices hold their place');
+  g.open();
+  for (const r of rs.slice(0, 2)) { let x; do { x = await d.poll({ ticket: r.body.ticket }); } while (x.status === 202); assert.equal(x.status, 200); }
+  assert.equal((await ai.act(line('spaeter', dev('5'), pro), await ai.who(null, { device: dev('5'), key: pro }), null)).body.error, 'devices');
+});
+
+test('N1: ein Pro-Geraet ohne Ergebnis (Fehler, Ablehnung) gibt seinen reservierten Platz zurueck', async () => {
+  const pro = mintKey(S, 'pro', 'fam');
+  let down = true;
+  const { ai } = mk({ env: { DUELL_ENTITLEMENTS: pro, DUELL_AI_PRO_DEVICES: '1' }, llm: async () => { if (down) throw new Error('x'); return GOOD; } });
+  assert.equal((await ai.act(line('kaputt', dev('a'), pro), await ai.who(null, { device: dev('a'), key: pro }), null)).status, 503);
+  down = false;
+  const r = await ai.act(line('danach', dev('b'), pro), await ai.who(null, { device: dev('b'), key: pro }), null);
+  assert.equal(r.status, 200, `the failed device gave its place back (${r.body.error})`);
+});
+
+test('N2: zwei Geraete am letzten Rest des Topfs bekommen ihn nicht doppelt; ein Fehlschlag gibt die Reservierung frei', async () => {
+  const pro = mintKey(S, 'pro', 'fam'), g = gated();
+  let down = false;
+  const { ai } = mk({ env: { DUELL_ENTITLEMENTS: pro, DUELL_AI_PRO_PER_MONTH: '2' }, duellEnv: { DUELL_DAILY_MAX: '500' }, llm: async () => { await g.gate; if (down) throw new Error('x'); return { text: GOOD, usage: { completion_tokens: 250 } }; } });
+  const A = dev('a'), B = dev('b'), pA = await ai.who(null, { device: A, key: pro }), pB = await ai.who(null, { device: B, key: pro });
+  g.open();
+  assert.equal((await ai.act(line('erste', A, pro), pA, null)).body.cost, 1);
+  assert.equal(ai.meter(pA).remaining, 1);
+  const [x, y] = await Promise.all([ai.act(line('ra', A, pro), pA, null), ai.act(line('rb', B, pro), pB, null)]);
+  assert.deepEqual([x, y].map((r) => r.status + ':' + (r.body.error || r.body.cost)), ['200:1', '429:quota'], 'the second device sees the unit held by the first');
+  const pro2 = mintKey(S, 'pro', 'fam2'), m = mk({ env: { DUELL_ENTITLEMENTS: pro2, DUELL_AI_PRO_PER_MONTH: '1' }, llm: async () => { if (down) throw new Error('x'); return GOOD; } });
+  const qA = await m.ai.who(null, { device: A, key: pro2 }), qB = await m.ai.who(null, { device: B, key: pro2 });
+  down = true; assert.equal((await m.ai.act(line('kaputt', A, pro2), qA, null)).status, 503);
+  down = false;
+  const r = await m.ai.act(line('danach', B, pro2), qB, null);
+  assert.equal(r.status, 200, `a failure gives the held unit back (${r.body.error})`); assert.equal(r.body.cost, 1);
+});
+
+test('N2: die Kappung der Ausgabe rechnet mit dem Rest nach den Reservierungen der anderen', async () => {
+  const pro = mintKey(S, 'pro', 'fam'), g = gated(), caps = [];
+  const { ai } = mk({ env: { DUELL_ENTITLEMENTS: pro, DUELL_AI_PRO_PER_MONTH: '3' }, duellEnv: { DUELL_DAILY_MAX: '500', DUELL_LLM_PARALLEL: '2' }, llm: async (s, u, o) => { caps.push(o && o.maxTokens); await g.gate; return GOOD; } });
+  const a = ai.act(line('eins', dev('a'), pro), await ai.who(null, { device: dev('a'), key: pro }), null);
+  await tick();
+  const b = ai.act(line('zwei', dev('b'), pro), await ai.who(null, { device: dev('b'), key: pro }), null);
+  await tick(); await tick(); g.open(); await a; await b;
+  assert.deepEqual(caps, [undefined, 900], 'three left, one held by the first device: the second may cost at most 2');
+});
+
+test('Melden: das Siegel wird gegen die gesiegelte Option geprueft, der Inhalt bleibt der eingewilligte', async () => {
+  const { d, rep, rows } = reports();
+  const option = 'Frosch mit Hut', seal = d.shared.sealer.seal('line', option, Date.now());
+  assert.equal(rep.report({ reason: 'harm', kind: 'line', seal, option, consent: true, content: { type: 'card', x: option } }, null).status, 202);
+  assert.equal(rep.report({ reason: 'harm', kind: 'line', seal, option }, null).status, 202);
+  assert.equal(rep.report({ reason: 'harm', kind: 'line', seal, option: option + '!' }, null).status, 202);
+  const [a, b, c] = rows();
+  assert.equal(a.sealOk, true, 'the seal holds for the option the app shows'); assert.deepEqual(a.content, { type: 'card', x: option });
+  assert.equal(b.sealOk, true, 'checking needs no consent: the option itself is never stored'); assert.equal(b.content, undefined); assert.ok(!JSON.stringify(b).includes('Frosch'));
+  assert.equal(c.sealOk, false);
+});
+
+test('Melden: ob Inhalt gespeichert wird, entscheidet das kind aus dem Siegel, nicht das des Clients', async () => {
+  const { d, rep, rows } = reports();
+  const proto = { title: 'Teamrunde', participants: ['Erika Muster'], topics: ['Budget'], decisions: [], tasks: [] };
+  const seal = d.shared.sealer.seal('protokoll', proto, Date.now());
+  for (const kind of [undefined, 'line']) assert.equal(rep.report({ reason: 'wrong', kind, seal, option: proto, consent: true, content: proto }, null).status, 202);
+  assert.equal(rep.report({ reason: 'wrong', kind: 'line', seal, consent: true, content: proto }, null).status, 202);
+  assert.ok(!readFileSync(rep._file(), 'utf8').includes('Erika'), 'a protocol is never stored, whatever kind the client sends');
+  assert.deepEqual(rows().map((r) => [r.kind, r.sealOk]), [['protokoll', true], ['protokoll', true], ['protokoll', true]]);
+  const long = 's1.line.abc.' + 'A'.repeat(150);
+  rep.report({ reason: 'other', kind: 'line', seal: long }, null);
+  assert.equal(rows().at(-1).seal, long, 'a seal up to 200 characters is kept, as the app allows');
+});
+
+test('Melden: die Loeschfrist greift auch ohne Verkehr (Zeitgeber)', async () => {
+  let t = Date.parse('2026-11-04T12:00:00Z');
+  const { rep } = reports({ DUELL_REPORT_KEEP_DAYS: '30', DUELL_REPORT_EXPIRE_MS: '10' }, () => t);
+  rep.report({ reason: 'harm', kind: 'line', content: 'Frosch im Hals', consent: true }, null);
+  t += 31 * 86400000;
+  await wait(40);
+  assert.ok(!readFileSync(rep._file(), 'utf8').includes('Frosch'), 'the content left the file without any read or write');
+});
+
+test('B5d: die Spielkonfiguration mit Ticket gibt den Platz eines neuen Geraets frei, wenn das Modell scheitert', async () => {
+  let down = true; const g = gated();
+  const { d } = mk({ env: { DUELL_AI_NEW_PER_HOUR: '1' }, duellEnv: { DUELL_QUEUE_HOLD_MS: '20' }, llm: async (s, u) => { await g.gate; if (down) throw new Error('x'); return u.startsWith('<wish>') ? CONF : GOOD; } });
+  const q = await d.config({ prompt: 'unterwasser', lang: 'de', device: dev('a'), queue: 'ticket' }, null);
+  assert.equal(q.status, 202);
+  g.open(); let x; do { x = await d.poll({ ticket: q.body.ticket }); } while (x.status === 202);
+  assert.equal(x.status, 503);
+  down = false;
+  const r = await d.config({ prompt: 'weltraum', lang: 'de', device: dev('b') }, null);
+  assert.equal(r.status, 200, `the failed newcomer gave its place back (${r.body.error})`);
+});
+
+test('B5d: ein Ticket, das in der Schlange verfaellt (queue-timeout), gibt Platz und Reservierung zurueck', async () => {
+  for (const mode of ['new', 'pro']) {
+    const pro = mintKey(S, 'pro', 'fam'), g = gated();
+    const { d, ai } = mk({ env: { DUELL_AI_NEW_PER_HOUR: '1', DUELL_ENTITLEMENTS: pro, DUELL_AI_PRO_DEVICES: '1', DUELL_AI_PRO_PER_MONTH: '1' }, duellEnv: { DUELL_QUEUE_HOLD_MS: '10', DUELL_QUEUE_WAIT_MS: '30' }, llm: async (s, u) => { await g.gate; return u.startsWith('<wish>') ? CONF : GOOD; } });
+    const as = (c) => (mode === 'pro' ? { device: dev(c), key: pro } : { device: dev(c) });
+    const busy = d.config({ prompt: 'blockiert', lang: 'de' }, null);   // holds the one model slot
+    await tick();
+    const q = await ai.act({ ...line('wartet', dev('a'), mode === 'pro' ? pro : undefined), queue: 'ticket' }, await ai.who(null, as('a')), null);
+    assert.equal(q.status, 202);
+    await wait(60);
+    assert.equal((await d.poll({ ticket: q.body.ticket })).body.error, 'queue-timeout');
+    g.open(); await busy;
+    const r = await ai.act(line('danach', dev('b'), mode === 'pro' ? pro : undefined), await ai.who(null, as('b')), null);
+    assert.equal(r.status, 200, `${mode}: the timed-out ticket gave its place back (${r.body.error})`);
+  }
 });

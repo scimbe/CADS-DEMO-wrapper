@@ -156,10 +156,12 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
   Business: Team-Topf je Monat und, sobald ein Business-Schluessel existiert, ein reservierter Anteil der Tagesgrenze (hoechstens die Haelfte), den Free und Pro nicht nutzen.
   Protokolle zaehlen nie im Jugend-Zaehler: Business-Topf, sonst ein kleiner Protokoll-Probetopf je Geraet. `meter.resetAt` sagt immer, wann der Topf wieder voll ist.
 - Siegel: jede Option traegt `seals[i]` = `s1.<kind>.<zeit>.<HMAC>` ueber kind, Zeit und Inhalt (sortiertes JSON); pruefen mit `POST /api/duell/seal {seal, content}` -> `{valid, kind, at}`.
-- Melden: `POST /api/duell/report {reason: harm|sex|hate|private|wrong|other, kind?, link?, seal?, consent?, content?}` -> `202 {id}`. Inhalt nur mit `consent:true`,
-  keine IP, kein Geraet. Ablage `DUELL_REPORT_DIR/reports.jsonl` (Volume). Review mit `Authorization: Bearer <DUELL_ADMIN_TOKEN>`: `GET /api/duell/report`,
+- Melden: `POST /api/duell/report {reason: harm|sex|hate|private|wrong|other, kind?, link?, seal?, option?, consent?, content?}` -> `202 {id}`. Inhalt nur mit `consent:true`,
+  keine IP, kein Geraet. `option` ist genau das, was das Siegel deckt (`options[i]` bzw. die Config ohne seal/meter/cost/receipt); dagegen wird das Siegel
+  geprueft (`sealOk`), gespeichert wird `option` nie. Ein gueltiges Siegel bestimmt das `kind` der Meldung. Ablage `DUELL_REPORT_DIR/reports.jsonl` (Volume). Review mit `Authorization: Bearer <DUELL_ADMIN_TOKEN>`: `GET /api/duell/report`,
   `POST /api/duell/report/<id> {action: dismiss|block}` (`block` sperrt den Kurzlink, `410 blocked`), Inhalt wird mit der Entscheidung geloescht,
-  spaetestens nach `DUELL_REPORT_KEEP_DAYS`. Bei `kind:"protokoll"` wird nie Inhalt gespeichert (Namen Dritter), nur das Siegel geprueft. `GET /api/duell/metrics`: nur kind, outcome, ms.
+  spaetestens nach `DUELL_REPORT_KEEP_DAYS` (geprueft auch ohne Verkehr alle `DUELL_REPORT_EXPIRE_MS`, Standard 1 h). Ist es laut Client oder Siegel
+  ein Protokoll, wird nie Inhalt gespeichert (Namen Dritter), nur das Siegel geprueft. `GET /api/duell/metrics`: nur kind, outcome, ms.
 - `POST /api/duell/ai/weather` `{place, date}` -> `{place, date, hi, lo, rain, code, source}`: echte Werte von Open-Meteo fuer heute bis in 7 Tagen, ohne Modell und ohne Kontingent (`lib/duell-weather.mjs`). Grenzen: `DUELL_WEATHER_IP_PER_HOUR` (30), `DUELL_WEATHER_DAILY_MAX` (1000).
 - Antworten: `429 quota` (Topf leer), `429 busy|queue-full|queue-timeout|daily-limit|rate-limited`, `202` (Ticket), `403 proof|devices|bad-key`, `409 pending`, `422 blocked`, `503 llm-unavailable|ai-off`.
   Die Seite faellt dann sofort auf ihren Weg ohne KI zurueck. Nur ausgegebene Ergebnisse zaehlen (und fertige, deren Ticket verfaellt).
@@ -181,6 +183,7 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
 | `DUELL_REPORT_DIR` | leer (Compose: `/var/lib/duell-ai/reports`) | Meldungen; ohne Verzeichnis `503` |
 | `DUELL_REPORT_PER_HOUR` / `DUELL_REPORT_DAILY_MAX` | 5 / 300 | Meldungen je gehashter IP und Stunde / pro UTC-Tag |
 | `DUELL_REPORT_KEEP_DAYS` | 30 | Loeschfrist: Inhalt offener Meldungen und entschiedene Datensaetze; offene Datensaetze nach dem Doppelten |
+| `DUELL_REPORT_EXPIRE_MS` | 3600000 | wie oft die Loeschfrist auch ohne Verkehr angewandt wird (0 = nur bei Zugriff) |
 | `DUELL_ADMIN_TOKEN` | leer (aus) | Token fuer Review und Messung (mindestens 16 Zeichen) |
 | `DUELL_AI_KEYS_MAX` | 100000 | groesste Zaehlerdatei; die aeltesten Eintraege fallen zuerst heraus |
 | `DUELL_AI_CACHE_TTL_S` / `DUELL_AI_CACHE_MAX` | 86400 / 300 | Antwort-Cache |
