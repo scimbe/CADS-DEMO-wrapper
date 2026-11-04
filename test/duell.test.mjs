@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import net from 'node:net';
 import { spawn } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -353,6 +353,24 @@ test('HTTP: GET /duell serves the game file (fragment is the client\'s business)
   assert.equal((await fetch(base + '/duell', { method: 'POST' })).status, 405);
   const { p, url } = await boot({ DUELL_WEB_FILE: '/nonexistent/index.html' });
   try { assert.equal((await fetch(url + '/duell')).status, 404); } finally { p.kill(); }
+});
+
+test('HTTP: /duell/parts/<name>.<hash>.js serves the page parts next to the game file, nothing else from there', async () => {
+  const dir = join(dirname(webFile), 'parts'); mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'play.0123456789ab.js'), 'window.PartTest=1;\n');
+  writeFileSync(join(dir, 'notes.txt'), 'secret');
+  const r = await fetch(base + '/duell/parts/play.0123456789ab.js');
+  assert.equal(r.status, 200); assert.match(r.headers.get('content-type'), /^text\/javascript/);
+  assert.equal(r.headers.get('x-content-type-options'), 'nosniff'); assert.match(r.headers.get('cache-control'), /immutable/);
+  assert.equal(r.headers.get('cross-origin-resource-policy'), 'same-origin');
+  assert.equal(await r.text(), 'window.PartTest=1;\n');
+  assert.equal((await fetch(base + '/duell/parts/play.0123456789ab.js', { method: 'HEAD' })).status, 200);
+  assert.equal((await fetch(base + '/duell/parts/play.0123456789ab.js', { method: 'POST' })).status, 405);
+  assert.equal((await fetch(base + '/duell/parts/table.0123456789ab.js')).status, 404, 'missing part');
+  for (const bad of ['/duell/parts/notes.txt', '/duell/parts/play.js', '/duell/parts/..%2Findex.html', '/duell/parts/%2e%2e/index.html', '/duell/parts/PLAY.0123456789ab.js'])
+    assert.notEqual((await fetch(base + bad)).status, 200, bad);
+  const { p, url } = await boot({ DUELL_WEB_FILE: '/nonexistent/index.html' });
+  try { assert.equal((await fetch(url + '/duell/parts/play.0123456789ab.js')).status, 404); } finally { p.kill(); }
 });
 
 test('the game file at apps/duell-web/dist/index.html is served by default and reads the #c= fragment', async () => {
