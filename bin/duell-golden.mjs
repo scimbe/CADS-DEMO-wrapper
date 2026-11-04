@@ -47,7 +47,7 @@ async function main() {
   if (!base || !keyFile) { console.error('set LITELLM_BASE_URL and LITELLM_KEY_FILE'); process.exit(2); }
   const call = makeLlm({ baseUrl: base, apiKey: readFileSync(keyFile, 'utf8').trim(), model: process.env.LITELLM_DEFAULT_MODEL || 'local-qwen36-35b-a3b-coding', timeoutMs: 60000, temperature: 0.8, maxTokens: 900, detail: true });
   const set = JSON.parse(readFileSync(GOLDEN, 'utf8'));
-  const only = arg('--kind', '') ? arg('--kind').split(',') : Object.keys(set.kinds);
+  const only = (arg('--kind', '') ? arg('--kind').split(',') : Object.keys(set.kinds)).filter((k) => set.kinds[k]);   // --kind none --redteam: red-teaming only
   const runOne = async (kind, input) => {
     const def = KINDS[kind], d = def.read(input);
     if (!def.need(d)) return { outcome: 'bad-request', data: d };

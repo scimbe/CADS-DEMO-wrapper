@@ -7,7 +7,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDuell } from '../lib/duell.mjs';
-import { createDuellAi, KINDS, PLAN, LISTE, WELT, TEXT, CRISIS_HELP, fit, inText, isCrisis, isMean, redactContact, screenInput, statedNumbers } from '../lib/duell-ai.mjs';
+import { createDuellAi, repairJson, KINDS, PLAN, LISTE, WELT, TEXT, CRISIS_HELP, fit, inText, isCrisis, isMean, redactContact, screenInput, statedNumbers } from '../lib/duell-ai.mjs';
 import { createReports } from '../lib/duell-report.mjs';
 import { makeSealer, optionHash, HASH_RE } from '../lib/duell-seal.mjs';
 import { at, check, GOLDEN, verdict } from '../bin/duell-golden.mjs';
@@ -109,6 +109,8 @@ test('quiz: Distraktoren ohne die Antwort, quelle_im_text vom Code geprueft, eig
   const bio = mk({ answer: ANSWERS.quiz });
   assert.equal((await run(bio.ai, 'quiz', { modus: 'lernen', text: 'Hefe vergaert Zucker zu Alkohol und Kohlendioxid. Das nennt man alkoholische Gaerung, sie braucht keinen Sauerstoff.' })).status, 200);
   assert.equal((await run(bio.ai, 'quiz', { modus: 'lernen', thema: 'Alkohol trinken' })).status, 422);
+  const heart = mk({ answer: { ...ANSWERS.quiz, fragen: [1, 2, 3].map((i) => ({ f: `Wohin pumpt das Herz das Blut ${i}?`, a: 'In die Lunge', d: ['In den Magen', 'In die Leber', 'In die Niere'] })) } });
+  assert.equal((await run(heart.ai, 'quiz', { modus: 'lernen', thema: 'Das menschliche Herz' })).body.options[0].fragen.length, 3, 'a biology answer may say Blut');
 });
 
 test('quiz gruppe: Ergebnistypen sind Staerken mit gueltigem Index, nie ein echter Name aus der Eingabe', async () => {
@@ -231,7 +233,13 @@ test('Golden-Set: je Art 30 deutsche Faelle, gueltige Eingaben, Pruefungen wohlg
   assert.deepEqual(verdict('text', [{ x: 'Danke dir' }, { x: 'Hallo' }], [{ at: 'x', any: ['dank'] }, { at: '', min: 2 }]), []);
 });
 
-test('Hilfen: statedNumbers, inText', () => {
+test('Hilfen: statedNumbers, inText, repairJson', () => {
+  const bad = '{"f":"Was?","a":"Herrschaft","d":"Neue Sportart","Ein Tanzstil","Ein Gericht"],"q":false}';
+  assert.deepEqual(JSON.parse(repairJson(bad)).d, ['Neue Sportart', 'Ein Tanzstil', 'Ein Gericht']);
+  assert.equal(repairJson('{"a":"x","b":["y"]}'), '{"a":"x","b":["y"]}', 'valid JSON stays as it is');
+  const nested = '{"kind_ok":true,"varianten":[{"titel":"A","hook":["x","y"]},{"beat":{"bpm":110}}}';
+  assert.deepEqual(JSON.parse(repairJson(nested)).varianten[1], { beat: { bpm: 110 } }, 'a missing ] is closed');
+  assert.equal(JSON.parse(repairJson('{"a":["b}",1')).a[0], 'b}', 'brackets in strings do not count');
   assert.deepEqual([...statedNumbers('Grillen fuer acht, 2 vegetarisch, 10 Euro')].sort((a, b) => a - b), [2, 8, 10]);
   assert.equal(inText('In den Chloroplasten', 'Die Photosynthese findet in den Chloroplasten statt.'), true);
   assert.equal(inText('Mitochondrien', 'Die Photosynthese findet in den Chloroplasten statt.'), false);

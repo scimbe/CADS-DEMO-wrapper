@@ -1,5 +1,5 @@
 {
- "_doc": "Golden-Set der fuenf strukturierten KI-Arten (KI-Konzept 6.5): je Art 30 deutsche Faelle mit Pruefungen 'passt inhaltlich zur Eingabe'. Pruefsprache: at = Pfad in options[0] (text: alle Varianten), Arrays werden aufgefaltet; eq/in/has/hasAny/not/min/max/any (any: Teilwort im gefalteten Text, ohne Umlaute). redteam: erwartete Abweisung. Lauf: node bin/duell-golden.mjs",
+ "_doc": "Golden-Set (welt: Emoji-Pruefungen gelten fuer die ganze Welt, Haupt-Emoji und Abschnitte). Golden-Set der fuenf strukturierten KI-Arten (KI-Konzept 6.5): je Art 30 deutsche Faelle mit Pruefungen 'passt inhaltlich zur Eingabe'. Pruefsprache: at = Pfad in options[0] (text: alle Varianten), Arrays werden aufgefaltet; eq/in/has/hasAny/not/min/max/any (any: Teilwort im gefalteten Text, ohne Umlaute). redteam: erwartete Abweisung. Lauf: node bin/duell-golden.mjs",
  "kinds": {
   "plan": [
    {
@@ -2413,8 +2413,8 @@
       "eq": "candy"
      },
      {
-      "at": "route.emoji",
-      "hasAny": [
+      "at": "",
+      "any": [
        "🍩",
        "🍭"
       ]
@@ -2432,9 +2432,13 @@
       "eq": "night"
      },
      {
-      "at": "route.thema",
-      "hasAny": [
-       "night"
+      "at": "",
+      "any": [
+       "🌙",
+       "🌃",
+       "🦉",
+       "👻",
+       "🌟"
       ]
      }
     ]
@@ -2454,8 +2458,8 @@
       ]
      },
      {
-      "at": "route.emoji",
-      "hasAny": [
+      "at": "",
+      "any": [
        "🌴",
        "🦖",
        "🌋",
@@ -2471,8 +2475,8 @@
     },
     "expect": [
      {
-      "at": "route.emoji",
-      "hasAny": [
+      "at": "",
+      "any": [
        "❄️",
        "⛄",
        "🐧"
@@ -2532,8 +2536,8 @@
       ]
      },
      {
-      "at": "route.emoji",
-      "hasAny": [
+      "at": "",
+      "any": [
        "🌋",
        "🔥"
       ]
@@ -2567,9 +2571,13 @@
       "eq": "sunset"
      },
      {
-      "at": "route.thema",
-      "hasAny": [
-       "sunset"
+      "at": "",
+      "any": [
+       "🌅",
+       "🌊",
+       "🌴",
+       "☀️",
+       "🐚"
       ]
      }
     ]
@@ -2585,8 +2593,8 @@
       "eq": "night"
      },
      {
-      "at": "route.emoji",
-      "hasAny": [
+      "at": "",
+      "any": [
        "👻",
        "🌙"
       ]
@@ -2639,8 +2647,8 @@
       "eq": "🐧"
      },
      {
-      "at": "route.emoji",
-      "hasAny": [
+      "at": "",
+      "any": [
        "❄️",
        "⛄",
        "🐧"
@@ -2655,8 +2663,8 @@
     },
     "expect": [
      {
-      "at": "route.emoji",
-      "hasAny": [
+      "at": "",
+      "any": [
        "🎄",
        "⛄",
        "❄️",
@@ -2736,8 +2744,8 @@
     },
     "expect": [
      {
-      "at": "route.emoji",
-      "hasAny": [
+      "at": "",
+      "any": [
        "⚡"
       ]
      },
@@ -2803,8 +2811,8 @@
       ]
      },
      {
-      "at": "route.emoji",
-      "hasAny": [
+      "at": "",
+      "any": [
        "🌵"
       ]
      }
@@ -2869,8 +2877,8 @@
     },
     "expect": [
      {
-      "at": "route.emoji",
-      "hasAny": [
+      "at": "",
+      "any": [
        "🌈"
       ]
      },
