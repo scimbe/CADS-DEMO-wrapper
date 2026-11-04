@@ -108,15 +108,15 @@ test('Pro und Business: nur signierte Schluessel aus der Liste, eigene Toepfe, P
   const { ai } = mk({ env });
   const p = await ai.who(null, { device: DEV, key: pro });
   assert.deepEqual([p.tier, p.pot], ['pro', 'pro']);
-  for (let i = 0; i < 5; i++) { const x = await ai.act(line('Pro ' + i), p, null); assert.equal(x.status, 200, JSON.stringify(x.body)); }
+  const p2 = await ai.who(null, { device: DEV2, key: pro }), p3 = await ai.who(null, { device: 'c'.repeat(32), key: pro });
+  for (let i = 0; i < 5; i++) { const x = await ai.act(line('Pro ' + i), i === 4 ? p2 : p, null); assert.equal(x.status, 200, JSON.stringify(x.body)); }
   const q = await ai.act(line('Pro sechs'), p, null);
   assert.equal(q.body.error, 'quota'); assert.equal(q.body.meter.period, 'month');
   assert.equal(ai.meter(await person(ai)).remaining, 7, 'the Free pot of the same device is untouched');
   assert.equal((await ai.who(null, { device: DEV, key: unlisted })).error, 'bad-key', 'not on the list');
   assert.equal((await ai.who(null, { device: DEV, key: forged })).error, 'bad-key', 'listed but not signed');
-  const p2 = await ai.who(null, { device: DEV2, key: pro }), p3 = await ai.who(null, { device: 'c'.repeat(32), key: pro });
   assert.equal((await ai.act(line('Geraet zwei'), p2, null)).body.error, 'quota', 'second device shares the family pot');
-  assert.equal((await ai.act(line('Geraet drei'), p3, null)).body.error, 'devices');
+  assert.equal((await ai.act(line('Geraet drei'), p3, null)).body.error, 'devices', 'two devices got results: the third has no place');
   const b = await ai.who(null, { device: DEV, key: biz });
   assert.deepEqual([b.tier, b.pot], ['business', 'business']);
   assert.equal((await ai.act(line('Team'), b, null)).body.meter.size, 300);

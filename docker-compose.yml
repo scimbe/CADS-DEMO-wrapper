@@ -33,6 +33,7 @@ services:
       # KI-Siegel, Meldungen (Volume duell-ai), Review/Messung nur mit Token.
       - DUELL_SEAL_SECRET=${DUELL_SEAL_SECRET:-}
       - DUELL_REPORT_DIR=${DUELL_REPORT_DIR:-/var/lib/duell-ai/reports}
+      - DUELL_REPORT_KEEP_DAYS=${DUELL_REPORT_KEEP_DAYS:-30}
       - DUELL_ADMIN_TOKEN=${DUELL_ADMIN_TOKEN:-}
       # Warteschlange vor dem Modell (siehe lib/duell-queue.mjs). 1 = gemessen bester Wert, solange das Modell nicht buendelt.
       - DUELL_LLM_PARALLEL=${DUELL_LLM_PARALLEL:-1}
