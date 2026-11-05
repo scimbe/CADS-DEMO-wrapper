@@ -108,6 +108,7 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
   zu lange gewartet `429 queue-timeout`, zweite Anfrage derselben Person `409 pending` (bei Pro und Business: desselben Geraets).
   Ein fertiges, aber nie abgeholtes Ticket wird beim Verfall abgebucht, ein nie gestartetes kostet nichts.
 - `GET /duell` liefert `apps/duell-web/dist/index.html` (Platzhalter bis zum Marketplace-PR; Pfad per `DUELL_WEB_FILE`).
+- `GET /duell/parts/<name>.<hash>.js` liefert die Teildateien daneben (`dist/parts/`, selten genutzter Code, den die Seite nachlaedt); beim Ausrollen den ganzen Ordner `dist/` kopieren, nicht nur `index.html`.
 - `GET /.well-known/assetlinks.json` fuer `org.bunsenbrenner.cads` (wirkt nur auf dem Host des App-Links, siehe unten).
 
 | ENV | Default | Bedeutung |
