@@ -1068,7 +1068,7 @@ function builderVersions() {
 
 const INSTALLATIONS = createInstallations();
 const DUELL = createDuell({ llmEnv: ENV, root: __dir }); // public by design (no login), see lib/duell.mjs
-const SHORT = createShortLinks({ root: __dir, clientKey: DUELL.clientKey }); // public by design (no login), see lib/shortlink.mjs
+const SHORT = createShortLinks({ root: __dir, clientKey: DUELL.clientKey, metric: DUELL.shared.metric }); // public by design (no login), see lib/shortlink.mjs
 const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
 const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather() }); // AI actions and their pots, lib/duell-ai.mjs
 const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id) }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
