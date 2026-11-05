@@ -66,6 +66,8 @@ test('B4 Datenschutz: Hauptstr ohne Punkt ersetzt, keine Fehltreffer bei Weg/Pla
   const anon = mk({ kind_ok: true, varianten: [{ ton: 'warm', x: 'Liebe Lisa, ich bin bei dir.' }, { ton: 'locker', x: 'Ich denk an dich.' }] });
   const a = await run(anon.ai, 'text', { art: 'worte', anlass: 'trost' });
   assert.deepEqual(a.body.options.map((x) => x.x), ['Ich denk an dich.'], 'without a receiver a text with a name is dropped');
+  // the kind_ok rule names everyday plans as harmless (a company party, toys such as water pistols)
+  assert.match(AI.KINDS.plan.system('de', AI.KINDS.plan.read({ satz: 'x' })), /water pistols/);
   const plan = mk({});
   await run(plan.ai, 'plan', { art: 'einladung', satz: 'Geburtstag von Jonas am Samstag' });
   assert.ok(!plan.calls[0].u.includes('Jonas'));
@@ -120,9 +122,9 @@ test('N5 Siegel s2 passt zum Siegel-Muster der App (okSeal, sanitizeKi), es gibt
 });
 
 test('Jugendschutz-Themen: Alkohol, Drogen, Gluecksspiel, Waffen, Sexualitaet erkannt; harmlose Gegenbeispiele nicht', () => {
-  for (const t of ['Biersorten', 'Weizenbier', 'Cocktails', 'Trinkspiele', 'Wodka', 'Kiffen', 'Joint', 'Haschkekse', 'E-Zigarette', 'Casino', 'Sportwetten', 'Pokerabend', 'Pistole', 'Schusswaffe', 'Munition', 'sexy', 'Porno', 'Kondome', 'Stripclub'])
+  for (const t of ['Biersorten', 'Weizenbier', 'Cocktails', 'Trinkspiele', 'Wodka', 'Kiffen', 'Joint', 'Haschkekse', 'E-Zigarette', 'Casino', 'Sportwetten', 'Pokerabend', 'Pistole', 'Schusswaffe', 'Munition', 'sexy', 'Porno', 'Kondome', 'Stripclub', 'heiße Nacht zu zweit im Bett', 'Im Bett zu zweit'])
     assert.equal(AI.isYouthTopic(t), true, t);
-  for (const t of ['Ich lach mich tot', 'Kürbis ritzen', 'Blut im Biologie-Quiz', 'Schlagzeug', 'Fussball schiessen', 'Fußball schießen', 'Waffeln', 'Weintrauben', 'Schweinebraten', 'Drogerie', 'Granatapfel', 'Barbier', 'Wasserpistole', 'Cocktailtomaten', 'weinen', 'eine kurze Pause', 'Highscore'])
+  for (const t of ['Ich lach mich tot', 'Kürbis ritzen', 'Blut im Biologie-Quiz', 'Schlagzeug', 'Fussball schiessen', 'Fußball schießen', 'Waffeln', 'Weintrauben', 'Schweinebraten', 'Drogerie', 'Granatapfel', 'Barbier', 'Wasserpistole', 'Cocktailtomaten', 'weinen', 'eine kurze Pause', 'Highscore', 'eine heiße Schokolade', 'Gute Nacht, ab ins Bett'])
     assert.equal(AI.isYouthTopic(t), false, t);
   for (const [kind, input] of [['text', { art: 'spruch', anlass: 'einfach_so', insider: 'Ich lach mich tot über deine Witze' }], ['text', { art: 'song', anlass: 'schule', insider: 'spielt Schlagzeug in der Schulband' }],
     ['plan', { art: 'termin', satz: 'Fußball schießen im Park am Samstag' }], ['liste', { art: 'einkauf', satz: 'Waffeln backen und Weintrauben für 4' }]]) assert.equal(screen(kind, input), '', JSON.stringify(input));
