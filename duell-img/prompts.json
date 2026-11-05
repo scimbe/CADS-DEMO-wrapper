@@ -1,0 +1,255 @@
+{
+ "model": "FLUX.1-schnell (Black Forest Labs), Apache-2.0",
+ "run": "mflux-generate --model schnell --quantize 4 --steps 4 --width 1280 --height 720",
+ "host": "ssh.cs4f.org",
+ "size": "960x540 JPEG",
+ "source": "scimbe/CADS-agent-marketplace apps/duell-web/src/thumbs.json and src/flavors/business/thumbs.json",
+ "rejected": 7,
+ "sets": {
+  "main": {
+   "style": "youtube thumbnail style, bold graphic composition, one clear hero subject, strong rim light, saturated punchy colours, high contrast, warm palette of sunflower yellow and fiery red with cream highlights and deep black shadows, clean uncluttered background, no text, no letters, no numbers, no logos, no watermark",
+   "items": {
+    "plan-04": {
+     "theme": "Freundschaft",
+     "seed": 1201,
+     "prompt": "a smartphone on a small tripod pointed at an empty cozy sofa with yellow and red cushions in front of a plain wall, warm fairy lights, living room in the evening"
+    },
+    "plan-09": {
+     "theme": "Freundschaft",
+     "seed": 1204,
+     "prompt": "colourful telephones made of yellow and red paper cups connected with taut strings that meet in the middle, on a sunny yellow table, playful craft"
+    },
+    "plan-12": {
+     "theme": "Musik",
+     "seed": 1103,
+     "prompt": "a smartphone lying on a yellow table surrounded by floating colourful paper musical notes and a small red keyboard synthesizer, playful"
+    },
+    "plan-17": {
+     "theme": "Freundschaft",
+     "seed": 1104,
+     "prompt": "a round ring light glowing warmly over a tidy desk with a small mirror and a potted sunflower, empty chair, cozy evening room"
+    },
+    "plan-20": {
+     "theme": "Tiere",
+     "seed": 1105,
+     "prompt": "a cute friendly round toy robot with big glowing eyes waving, standing on a desk, sunflower yellow background with red rim light"
+    },
+    "plan-24": {
+     "theme": "Familie",
+     "seed": 1106,
+     "prompt": "a cozy family game night table with a red buzzer button, a bowl of popcorn and a stack of blank quiz cards, warm lamp light, living room"
+    },
+    "plan-25": {
+     "theme": "Musik",
+     "seed": 1107,
+     "prompt": "a cute small toy robot wearing big red headphones singing into a vintage microphone, yellow and red stage lights, confetti"
+    },
+    "plan-30": {
+     "theme": "Feiertage/Advent",
+     "seed": 1108,
+     "prompt": "a little red paper house with one small open door revealing a glowing golden star inside, fir branches and a candle, warm golden light, dark cozy background"
+    },
+    "plan-23": {
+     "theme": "Essen",
+     "seed": 1109,
+     "prompt": "a cute small toy robot sitting next to a plate of chocolate chip cookies with crumbs on its face, kitchen table, warm yellow light, funny"
+    },
+    "warm-toll": {
+     "theme": "Danke/Wohlfühlen",
+     "seed": 7,
+     "prompt": "a warm hand-drawn paper heart and a small sunflower on a sunny windowsill, soft morning light, cozy and kind mood, gentle"
+    },
+    "warm-danke": {
+     "theme": "Danke/Wohlfühlen",
+     "seed": 1111,
+     "prompt": "a small gift box wrapped in yellow paper with a red ribbon next to a cup of tea and a sunflower on a wooden table, soft warm light"
+    },
+    "warm-super": {
+     "theme": "Danke/Wohlfühlen",
+     "seed": 1112,
+     "prompt": "a shiny golden trophy cup with a red ribbon on a cream table, confetti falling, spotlight, celebration"
+    },
+    "warm-denke": {
+     "theme": "Danke/Wohlfühlen",
+     "seed": 1113,
+     "prompt": "a steaming mug of cocoa and a cozy knitted blanket on a window seat, rain on the window, warm lamp light"
+    },
+    "warm-daumen": {
+     "theme": "Natur",
+     "seed": 1114,
+     "prompt": "a four-leaf clover with a little red ladybug on it, sunlit, macro photo, lucky charm"
+    },
+    "warm-lachen": {
+     "theme": "Natur",
+     "seed": 1115,
+     "prompt": "a bright field of sunflowers under a big warm sun, joyful summer mood"
+    },
+    "warm-freunde": {
+     "theme": "Freundschaft",
+     "seed": 1116,
+     "prompt": "two friends seen from behind sitting on a grassy hill watching a golden sunset together, warm red sky"
+    },
+    "warm-mutig": {
+     "theme": "Natur",
+     "seed": 1117,
+     "prompt": "a young sunflower growing bravely through a crack in the pavement, bright sunlight"
+    },
+    "advent-tuer": {
+     "theme": "Feiertage/Advent",
+     "seed": 1118,
+     "prompt": "a cozy advent wreath with four burning red candles, fir branches, cinnamon stars and orange slices, warm golden light, dark background"
+    },
+    "foto-tour": {
+     "theme": "Musik",
+     "seed": 1119,
+     "prompt": "an empty concert stage with a drum kit and an electric guitar on a stand, bright yellow and red spotlights, smoke and confetti"
+    },
+    "warm-besserung": {
+     "theme": "Danke/Wohlfühlen",
+     "seed": 1120,
+     "prompt": "a cup of hot tea with lemon, a honey jar and a small bunch of yellow tulips on a bedside table, cozy blanket, soft morning light"
+    },
+    "warm-gruss": {
+     "theme": "Essen",
+     "seed": 1121,
+     "prompt": "a sunny breakfast table with croissants, a glass of orange juice and a yellow tulip in morning sunlight"
+    },
+    "warm-sorry": {
+     "theme": "Tiere",
+     "seed": 1202,
+     "prompt": "a cute puppy with big apologetic eyes sitting next to a single red flower, warm light, full frame"
+    },
+    "karte-einladung": {
+     "theme": "Feiertage/Advent",
+     "seed": 1123,
+     "prompt": "a party table with yellow and red balloons, a birthday cake with candles and streamers, festive"
+    },
+    "karte-lob": {
+     "theme": "Schule/Lernen",
+     "seed": 1124,
+     "prompt": "a golden medal with a red ribbon lying on a cream velvet cushion, spotlight, sparkles"
+    },
+    "karte-weisheit": {
+     "theme": "Schule/Lernen",
+     "seed": 1125,
+     "prompt": "a wise owl with big round glasses sitting on a stack of old books, warm lamp light"
+    },
+    "karte-horoskop": {
+     "theme": "Natur",
+     "seed": 1126,
+     "prompt": "a starry night sky over a hilltop with a glowing crescent moon and shooting stars, golden stars against a deep red-purple sky"
+    },
+    "quiz-snack": {
+     "theme": "Essen",
+     "seed": 1127,
+     "prompt": "a heap of colourful snacks, popcorn, pretzels, gummy bears and fries, on a bright yellow background, fun"
+    },
+    "quiz-wetter": {
+     "theme": "Natur",
+     "seed": 1128,
+     "prompt": "a playful sky with a bright yellow sun, a rainbow and a small fluffy cloud dropping a little rain, over green hills"
+    },
+    "foto-haustier": {
+     "theme": "Tiere",
+     "seed": 1129,
+     "prompt": "a curious ginger cat and a happy small dog sitting side by side on a yellow sofa"
+    },
+    "foto-essen": {
+     "theme": "Schule/Lernen",
+     "seed": 1130,
+     "prompt": "a school canteen tray with spaghetti, salad and a red apple, glowing like a star under a spotlight with golden sparkles"
+    },
+    "beat-pausenhof": {
+     "theme": "Musik",
+     "seed": 1131,
+     "prompt": "a colourful drum pad and red headphones on a wooden bench in a sunny schoolyard"
+    },
+    "mut-oper": {
+     "theme": "Musik",
+     "seed": 1132,
+     "prompt": "a small theatre stage with red velvet curtains and a golden spotlight on a shopping basket full of vegetables"
+    },
+    "mut-zeitlupe": {
+     "theme": "Sport",
+     "seed": 1301,
+     "prompt": "a black and white soccer ball frozen in mid-air above green grass with water droplets flying, golden hour sunlight, softly blurred park with trees in the background"
+    },
+    "kanal-kennst": {
+     "theme": "Freundschaft",
+     "seed": 1134,
+     "prompt": "two mugs of hot cocoa with marshmallows on a cozy table, fairy lights in the background"
+    },
+    "kanal-erfinder": {
+     "theme": "Natur",
+     "seed": 1135,
+     "prompt": "a secret treehouse at dusk with warm glowing windows and a rope ladder, fairy lights in the forest"
+    }
+   }
+  },
+  "business": {
+   "style": "professional editorial photo, one clear subject, soft natural daylight, calm corporate palette of clean white and cobalt blue with a small sunny yellow accent, high clarity, clean uncluttered background, no text, no letters, no numbers, no logos, no watermark",
+   "items": {
+    "biz-termin": {
+     "theme": "Kalender",
+     "seed": 2201,
+     "prompt": "a closed blue paper planner and a blue pen on a white desk, a small yellow sticky note, a cup of coffee"
+    },
+    "biz-umfrage-lunch": {
+     "theme": "Essen",
+     "seed": 2102,
+     "prompt": "a bright modern office kitchen table with healthy lunch bowls, salads and sandwiches, blue chairs"
+    },
+    "biz-feedback-meeting": {
+     "theme": "Meeting",
+     "seed": 2202,
+     "prompt": "an empty modern meeting room with a white table, blue chairs, coffee cups and a small vase with yellow flowers, large windows"
+    },
+    "biz-aufgaben": {
+     "theme": "Checkliste",
+     "seed": 2104,
+     "prompt": "blank blue and yellow sticky notes arranged in neat columns on a glass wall in a bright office"
+    },
+    "biz-agenda": {
+     "theme": "Checkliste",
+     "seed": 2105,
+     "prompt": "a notebook with a blue cover, a pen, a yellow highlighter and a cup of coffee neatly arranged on a white desk, top-down view"
+    },
+    "biz-sammeln": {
+     "theme": "Team",
+     "seed": 2106,
+     "prompt": "a small glass jar with coins and a yellow ribbon on a white office desk next to a green plant"
+    },
+    "biz-umfrage-prio": {
+     "theme": "Checkliste",
+     "seed": 2107,
+     "prompt": "three wooden blocks stacked on a white desk, the top block painted cobalt blue, a yellow block beside them, minimal"
+    },
+    "biz-feedback-workshop": {
+     "theme": "Meeting",
+     "seed": 2108,
+     "prompt": "a bright workshop room with a blank flipchart and blue chairs in a half circle, sunlight and plants"
+    },
+    "biz-aufgaben-event": {
+     "theme": "Team",
+     "seed": 2109,
+     "prompt": "an office celebration buffet table with blue balloons, finger food and yellow napkins, daylight"
+    },
+    "biz-einkauf": {
+     "theme": "Kaffee",
+     "seed": 2110,
+     "prompt": "a meeting table with a basket of fruit, croissants, a coffee pot and blue mugs, top-down view"
+    },
+    "biz-umfrage-ort": {
+     "theme": "Kaffee",
+     "seed": 2111,
+     "prompt": "a cosy cafe corner with a laptop and a cappuccino on a small table, blue armchair, big window"
+    },
+    "biz-sammeln-geschenk": {
+     "theme": "Team",
+     "seed": 2112,
+     "prompt": "a gift box wrapped in blue paper with a yellow ribbon on a white office desk next to a small plant"
+    }
+   }
+  }
+ }
+}
