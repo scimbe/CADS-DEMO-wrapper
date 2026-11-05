@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, writeFileSync, appendFileSync, statSync } fr
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createShortLinks, ID_RE, ALPHABET, newId, OPEN_SCRIPT, MAX_FRAGMENT, jpegSize } from '../lib/shortlink.mjs';
+import { createShortLinks, ID_RE, ALPHABET, newId, OPEN_SCRIPT, MAX_FRAGMENT, jpegSize, shareKind } from '../lib/shortlink.mjs';
 import { createDuell } from '../lib/duell.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -277,4 +277,22 @@ test('picture: only the creator, once, exactly 1200x630; the page then names it,
   t += 91 * DAY; s.sweep(true);
   assert.equal(s.hasPic(b.id), false, 'abgelaufen nimmt das Bild mit');
   h.close();
+});
+
+test('share metric: a game link counts as (welt|game, share) from its fragment, nothing else; other kinds are not counted', () => {
+  const rows = [], s = mk({}, { metric: (kind, outcome, ms) => rows.push([kind, outcome, ms]) });
+  const enc = (o) => 'c=' + Buffer.from(JSON.stringify(o)).toString('base64url');
+  const seal = 's2.welt.mw2y455c.AnlRQb9jJYrLILMRBtJj7yR1qlhJF0ER';
+  const welt = enc({ v: 1, seed: 1, params: {}, title: 'Hai-Abenteuer', ki: { k: 'welt', s: seal }, score: 9 });
+  const sheet = enc({ v: 1, d: { k: 'game', ki: { k: 'welt', s: seal }, g: {} } });
+  const slider = enc({ v: 1, seed: 1, params: {}, title: 'Mein Spiel', score: 3 });
+  assert.equal(shareKind(welt), 'welt'); assert.equal(shareKind(sheet), 'welt'); assert.equal(shareKind(slider), 'game');
+  assert.equal(shareKind(enc({ v: 1, ki: { k: 'welt' } })), 'game', 'without a seal no AI world');
+  assert.equal(shareKind(enc({ v: 1, ki: { k: 'wish', s: seal } })), 'game');
+  assert.equal(shareKind('c=!!'), 'game'); assert.equal(shareKind('i=quiz'), 'game');
+  assert.equal(s.create({ f: welt, k: 'game', n: 9 }).status, 201);
+  assert.equal(s.create({ f: slider, k: 'game', n: 3 }).status, 201);
+  assert.equal(s.create({ f: slider, k: 'card' }).status, 201);
+  assert.deepEqual(rows, [['welt', 'share', 0], ['game', 'share', 0]]);
+  assert.equal(mk().create({ f: welt, k: 'game' }).status, 201, 'without a metric hook nothing changes');
 });
