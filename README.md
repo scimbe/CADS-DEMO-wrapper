@@ -157,18 +157,22 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
   Protokolle zaehlen nie im Jugend-Zaehler: Business-Topf, sonst ein kleiner Protokoll-Probetopf je Geraet. `meter.resetAt` sagt immer, wann der Topf wieder voll ist.
 - Strukturierte Arten (KI-Konzept Abschnitt 2, "Satz rein, gepruefte Struktur-JSON raus"; Daten, Mengen und Summen rechnet die App):
   `plan {art: termin|einladung|wichteln, satz<=200, ctx?}` -> Regeln (wochentage, tageszeiten, uhrzeit, dauer_min, zeitraum relativ, ort-Typ, mitbringen, budget_eur, thema, ideen, regeltext), temperature 0.1;
-  `liste {art: einkauf|mitbring|aufgaben, satz<=300, ctx?}` -> posten `{n, kat, m: pro_person|fix|nach_bedarf, e, veg}` bzw. aufgaben `{was, frist relativ, wer: ""}`, personen/vegetarisch nur wie angegeben;
+  `liste {art: einkauf|mitbring|aufgaben, satz<=300, ctx?}` -> posten `{n, kat, m: pro_person|fix|nach_bedarf, e, veg}` bzw. aufgaben `{was, frist relativ, wer: ""}`, personen/vegetarisch nur wie angegeben (zwei Gruppen wie "4 Erwachsene und 4 Kinder" -> personen 0, die App summiert);
   `quiz {modus: lernen|gruppe|firma, thema<=80 | text<=3000, n 3-8, ctx?}` -> fragen `{f, a, d[3], quelle_im_text}` (vom Code gegen den Text geprueft) bzw. Gruppe: typen (nur Staerken) + fragen; kostet mindestens 2;
   `welt {satz<=140}` -> Config wie `/api/duell/config` plus `abschnitte[3] {physik, delta, thema, emoji}` aus festen Listen;
   `text {art: worte|spruch|song, anlass (feste Liste), insider<=80?, name?: true, ctx?}` -> 3 Varianten (worte <=80 Zeichen, spruch, song: hook + beat in einem Aufruf), Name nur als `{name}`.
-  Jede Art: `kind_ok` im selben Aufruf (`false` -> `422 {error: blocked, why: kind_ok}`, kostenlos), Selbstgefaehrdung -> `422 {why: crisis, help}` ohne Modell, Adressen/PLZ/Kontakt -> Platzhalter,
+  Jede Art: `kind_ok` im selben Aufruf (`false` -> `422 {error: blocked, why: kind_ok}`, kostenlos), Selbstgefaehrdung -> `422 {why: crisis, help}` ohne Modell (nur diese fuenf Arten),
+  Jugendschutz (Alkohol, Drogen/Rauchen, Gluecksspiel, Waffen, Sexualitaet) -> `422 blocked` vor dem Modell, in der Ausgabe faellt ein solcher Text weg (Lern-Quiz darf "Blut" sagen),
+  Adressen/PLZ/Kontakt -> Platzhalter. Namen: die App ersetzt den Namen durch `{name}`; der Server ersetzt zusaetzlich nur haeufige Vornamen (Liste) durch `[Name]`
+  bzw. `{name}` bei `name:true` - ein Name ausserhalb der Liste erreicht das Modell. Eine Ablehnung (`kind_ok`) oder `bad-output` kostet nichts, obwohl die GPU arbeitet;
+  dagegen schuetzen die Limits je IP und Geraet.
   Zahlen (Personen, Budget, Uhrzeit) nur, wenn sie in der Eingabe stehen, Cache nach normalisierter Eingabe (nie fuer eigenen Text, Name oder Insider). `ctx`: Profil-Kontext der App (<= 240 Zeichen).
   Qualitaetstor: `test/fixtures/duell-golden.json` (je Art 30 Faelle + Red-Teaming), Lauf gegen das Modell: `LITELLM_BASE_URL=... LITELLM_KEY_FILE=~/.config/cads/litellm-test.key node bin/duell-golden.mjs [--kind plan] [--redteam]`.
 - Siegel: jede Option traegt `seals[i]` = `s2.<kind>.<zeit>.<HMAC ueber kind, Zeit und hashes[i]>` mit `hashes[i]` = base64url(SHA-256(kanonisches JSON der Option)), 43 Zeichen;
   pruefen mit `POST /api/duell/seal {seal, content}` oder `{seal, optionHash}` -> `{valid, kind, at}`. Aeltere `s1`-Siegel bleiben gueltig, pruefbar nur mit `content`.
 - Melden: `POST /api/duell/report {reason: harm|sex|hate|private|wrong|other, kind?, link?, seal?, option? | optionHash?, consent?, content?}` -> `202 {id}`. Inhalt nur mit `consent:true`,
   keine IP, kein Geraet. `option` ist genau das, was das Siegel deckt (`options[i]` bzw. die Config ohne seal/meter/cost/receipt); dagegen wird das Siegel
-  geprueft (`sealOk`), gespeichert wird `option` nie. Ein gueltiges Siegel bestimmt das `kind` der Meldung. Ablage `DUELL_REPORT_DIR/reports.jsonl` (Volume). Review mit `Authorization: Bearer <DUELL_ADMIN_TOKEN>`: `GET /api/duell/report`,
+  geprueft (`sealOk`), gespeichert wird `option` nie. Ein geprueftes `optionHash` steht im Datensatz, mit Inhalt dazu `contentOk` (passt der Inhalt zum Hash). Ein gueltiges Siegel bestimmt das `kind` der Meldung. Ablage `DUELL_REPORT_DIR/reports.jsonl` (Volume). Review mit `Authorization: Bearer <DUELL_ADMIN_TOKEN>`: `GET /api/duell/report`,
   `POST /api/duell/report/<id> {action: dismiss|block}` (`block` sperrt den Kurzlink, `410 blocked`), Inhalt wird mit der Entscheidung geloescht,
   spaetestens nach `DUELL_REPORT_KEEP_DAYS` (geprueft auch ohne Verkehr alle `DUELL_REPORT_EXPIRE_MS`, Standard 1 h). Ist es laut Client oder Siegel
   ein Protokoll, wird nie Inhalt gespeichert (Namen Dritter), nur das Siegel geprueft. `GET /api/duell/metrics`: nur kind, outcome, ms.

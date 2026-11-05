@@ -213,7 +213,7 @@ test('Red-Teaming offline: Beleidigung, Mobbing, Mutprobe, Gewalt -> 422 ohne Mo
 
 test('Golden-Set: je Art 30 deutsche Faelle, gueltige Eingaben, Pruefungen wohlgeformt; Pruefsprache', () => {
   const set = JSON.parse(readFileSync(GOLDEN, 'utf8')), ids = new Set();
-  const OPS = new Set(['at', 'eq', 'in', 'has', 'hasAny', 'not', 'min', 'max', 'any']);
+  const OPS = new Set(['at', 'eq', 'in', 'has', 'hasAny', 'not', 'min', 'max', 'any', 'facts']);
   for (const kind of NEW) {
     assert.equal(set.kinds[kind].length, 30, kind);
     for (const c of set.kinds[kind]) {
