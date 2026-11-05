@@ -162,9 +162,10 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
   `welt {satz<=140}` -> Config wie `/api/duell/config` plus `abschnitte[3] {physik, delta, thema, emoji}` aus festen Listen;
   `text {art: worte|spruch|song, anlass (feste Liste), insider<=80?, name?: true, ctx?}` -> 3 Varianten (worte <=80 Zeichen, spruch, song: hook + beat in einem Aufruf), Name nur als `{name}`.
   Jede Art: `kind_ok` im selben Aufruf (`false` -> `422 {error: blocked, why: kind_ok}`, kostenlos), Selbstgefaehrdung -> `422 {why: crisis, help}` ohne Modell (nur diese fuenf Arten),
-  Jugendschutz (Alkohol, Drogen/Rauchen, Gluecksspiel, Waffen, Sexualitaet) -> `422 blocked` vor dem Modell, in der Ausgabe faellt ein solcher Text weg (Lern-Quiz darf "Blut" sagen),
+  Jugendschutz (Alkohol mit Sorten, Mixgetraenken und Slang, Drogen/Rauchen mit Slang, Gluecksspiel, Waffen, Sexualitaet; mehrdeutige Woerter wie Radler, Korn, Gras nur im Trink- bzw. Konsumkontext) -> `422 blocked` vor dem Modell, in der Ausgabe faellt ein solcher Text weg (Lern-Quiz darf "Blut" sagen),
   Adressen/PLZ/Kontakt -> Platzhalter. Namen: die App ersetzt den Namen durch `{name}`; der Server ersetzt zusaetzlich nur haeufige Vornamen (Liste) durch `[Name]`
-  bzw. `{name}` bei `name:true` - ein Name ausserhalb der Liste erreicht das Modell. Eine Ablehnung (`kind_ok`) oder `bad-output` kostet nichts, obwohl die GPU arbeitet;
+  bzw. `{name}` bei `name:true` - ein Name ausserhalb der Liste erreicht das Modell. Das Quiz-Thema bleibt unveraendert (Allgemeinwissen wie "Big Ben",
+  "Sophie Scholl"); ein Text der Ausgabe mit einem Platzhalter (`[Name]`, `[Adresse]` ...) faellt weg. Eine Ablehnung (`kind_ok`) oder `bad-output` kostet nichts, obwohl die GPU arbeitet;
   dagegen schuetzen die Limits je IP und Geraet.
   Zahlen (Personen, Budget, Uhrzeit) nur, wenn sie in der Eingabe stehen, Cache nach normalisierter Eingabe (nie fuer eigenen Text, Name oder Insider). `ctx`: Profil-Kontext der App (<= 240 Zeichen).
   Qualitaetstor: `test/fixtures/duell-golden.json` (je Art 30 Faelle + Red-Teaming), Lauf gegen das Modell: `LITELLM_BASE_URL=... LITELLM_KEY_FILE=~/.config/cads/litellm-test.key node bin/duell-golden.mjs [--kind plan] [--redteam]`.
