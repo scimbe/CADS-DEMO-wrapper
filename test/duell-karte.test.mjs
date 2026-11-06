@@ -316,16 +316,17 @@ test('W3 review: slur spellings around "nigh" stay blocked; tables, live rooms a
   assert.deepEqual(s.p, { k: 'x---x---x---x---', s: '----x-------x---', h: 'x-x-x-x-x-x-x-x-', b: '----------------' });
 });
 
-test('W3 review: a money ability for someone under 18 is a 403 age, no strike; the age band is in the user turn, not the prefix', async () => {
+test('W3 review: a money ability for someone under 18 is a 403 age and a strike; the age band is in the user turn, not the prefix', async () => {
   const llm = fakeLlm({ card: { ok: true, cap: 'zug-sammeln', title: 'Fahrt', sub: '', word: '' } });
   const { ai } = mk({ cardLlm: llm });
-  for (let i = 0; i < 4; i++) {
+  // (the schema for under 18 has no money ability; a model that picks it anyway is refused, and that is a strike)
+  for (let i = 0; i < 3; i++) {
     const r = await run(ai, { ...body('x'), input: { text: 'Geld einsammeln ' + i, art: 'faehigkeit', age: 'u18' } });
     assert.equal(r.status, 403); assert.equal(r.body.error, 'age');
   }
+  assert.equal((await run(ai, { ...body('x'), input: { text: 'Geld einsammeln', art: 'faehigkeit', age: 'u18' } })).body.error, 'throttled');
   assert.match(llm.calls[1].user, /Age: under 18/);
   assert.ok(!CARD_SYSTEM.some((b) => /under 18, never/.test(b.text)));
-  assert.notEqual((await run(ai, body('Karte mit Frosch'))).body.error, 'throttled', 'age refusals are no strikes');
 });
 
 test('W4 hooks: seen on every request, moderation pause is 403 (crisis help first), sealKarte and register on accept, credit after the pot', async () => {
@@ -389,4 +390,26 @@ test('review #103: S4 refusals end in a pause, a daily cap holds every outcome, 
   const r1 = await run(c.ai, { ...body('Karte A'), key });
   assert.equal(r1.status, 200); assert.equal(r1.body.create.remaining, 4);
   assert.equal((await run(c.ai, body('Karte B'))).body.create.remaining, 3, 'one create pot per account, with or without key');
+});
+
+test('review #104: under 18 the money ability is not even in the schema; quiz texts pass S1 before the card; no live duel; a Pro key does not lift a ban', async () => {
+  const { schemaFor } = await import('../lib/duell-karte.mjs');
+  assert.ok(!schemaFor({ art: 'faehigkeit', age: 'u18' }).properties.cap.enum.includes('zug-sammeln'));
+  assert.ok(schemaFor({ art: 'faehigkeit', age: 'a18' }).properties.cap.enum.includes('zug-sammeln'));
+  assert.ok(!CAP_IDS.some((id) => App.D.byId(id).live), 'no live duel');
+  const llm = fakeLlm({ card: { ok: true, cap: 'zug-wette', title: 'Wette', sub: '', word: '' } });
+  const { ai } = mk({ cardLlm: llm });
+  await run(ai, { ...body('x'), input: { text: 'Eine Wette mit meiner Schwester', art: 'faehigkeit', age: 'u18' } });
+  assert.equal(llm.calls[1].schema, schemaFor({ art: 'faehigkeit', age: 'u18' }));
+  const quiz = fakeLlm({ card: { ok: true, title: 'Quiz', questions: [{ q: 'Wer ist Pikachu?', a: 'Ein Pokemon', wrong: ['A', 'B', 'C'] }, { q: 'b?', a: 'c', wrong: ['d', 'e', 'f'] }, { q: 'g?', a: 'h', wrong: ['i', 'j', 'k'] }] } });
+  const q = mk({ cardLlm: quiz });
+  const r = await run(q.ai, { ...body('x'), input: { text: 'Quiz über Tiere', art: 'quiz', age: 'u18' } });
+  assert.equal(r.status, 422); assert.equal(quiz.calls.length, 2, 'refused before call B');
+  const { mintKey } = await import('../lib/duell-pots.mjs');
+  const key = mintKey('ent', 'pro', 'fam1'), banned = new Set();
+  const c = mk({ env: { DUELL_ENTITLEMENT_SECRET: 'ent', DUELL_ENTITLEMENTS: key } });
+  c.d.shared.mod = { canCreate: (k) => (banned.has(k) ? { ok: false, error: 'account-banned' } : { ok: true }) };
+  banned.add((await c.ai.who({}, { device: DEV })).key);
+  assert.equal((await run(c.ai, body('Geburtstagskarte'))).body.error, 'account-banned');
+  assert.equal((await run(c.ai, { ...body('Geburtstagskarte'), key })).body.error, 'account-banned', 'a Pro key is no way around');
 });
