@@ -20,6 +20,8 @@ services:
       # My Daily Idea, KI-Toepfe (siehe lib/duell-ai.mjs, lib/duell-pots.mjs). Ohne DUELL_AI_SALT zaehlt es nur bis zum Neustart.
       - DUELL_AI_SALT=${DUELL_AI_SALT:-}
       - DUELL_AI_STATE_FILE=${DUELL_AI_STATE_FILE:-/var/lib/duell-ai/state.json}
+      # Kartenstatistik: stat.json/votes.json neben state.json; ohne DUELL_STAT_SALT zaehlen keine Daumen (lib/duell-stat.mjs).
+      - DUELL_STAT_SALT=${DUELL_STAT_SALT:-}
       - DUELL_AI_ENABLED=${DUELL_AI_ENABLED:-1}
       - DUELL_AI_FREE_PER_WEEK=${DUELL_AI_FREE_PER_WEEK:-7}
       - DUELL_AI_PRO_PER_MONTH=${DUELL_AI_PRO_PER_MONTH:-300}

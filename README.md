@@ -109,6 +109,7 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
   Ein fertiges, aber nie abgeholtes Ticket wird beim Verfall abgebucht, ein nie gestartetes kostet nichts.
 - `GET /duell` liefert `apps/duell-web/dist/index.html` (Platzhalter bis zum Marketplace-PR; Pfad per `DUELL_WEB_FILE`).
 - `GET /duell/parts/<name>.<hash>.js` liefert die Teildateien daneben (`dist/parts/`, selten genutzter Code, den die Seite nachlaedt); beim Ausrollen den ganzen Ordner `dist/` kopieren, nicht nur `index.html`.
+- `GET /duell/business/` (auch ohne Schrägstrich) liefert Daily Business, den Business-Build derselben App (`node scripts/build.js --flavor business` -> `dist/business/index.html`), `GET /duell/business/parts/<name>.<hash>.js` seine eigenen Teile aus `dist/business/parts/`. Gleiche Kompression, ETag und Cache-Regeln wie `/duell`; fehlt der Build, antwortet die Route `404 duell: no business build`. Beim Ausrollen `dist/business/` mit `parts/` kopieren.
 - `GET /.well-known/assetlinks.json` fuer `org.bunsenbrenner.cads` (wirkt nur auf dem Host des App-Links, siehe unten).
 
 | ENV | Default | Bedeutung |
@@ -128,6 +129,7 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | `DUELL_IP_SALT` | zufaellig je Start | Salz fuer den IP-Hash |
 | `DUELL_CORS_ORIGINS` | `https://appassets.androidplatform.net` | erlaubte Herkunft (kommagetrennt); andere Browser-Herkuenfte bekommen `403` |
 | `DUELL_WEB_FILE` | `apps/duell-web/dist/index.html` | Spieldatei fuer `/duell` |
+| `DUELL_BIZ_FILE` | `business/index.html` neben `DUELL_WEB_FILE` | Seite fuer `/duell/business/` |
 | `DUELL_ASSETLINKS_SHA256` / `DUELL_ANDROID_PACKAGE` | Release-Fingerabdruck / `org.bunsenbrenner.cads` | Inhalt der assetlinks.json |
 
 ### Kurzlinks (`lib/shortlink.mjs`, Tests: `test/shortlink.test.mjs`)
@@ -228,6 +230,36 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
 | `DUELL_CREDIT_USE` / `_REACH` / `_REACH_AT` / `_DECK` / `_CARD_CAP` / `_YEAR_CAP` | 2 / 3 / 100 / 3 / 8 / 30 | Guthaben |
 | `DUELL_MOD_CARD_DOWN` / `_CARD_SHARE` / `_PAUSE_STRIKES` / `_STRIKE_DAYS` / `_HEAVY_DOWN` / `_HEAVY_SHARE` / `_PAUSE_DAYS` / `_APPEAL_DAYS` / `_REPORTS_HIDE` | 8 / 0.6 / 2 / 30 / 20 / 0.75 / 14 / 183 / 0 (aus) | Stufen der Moderation |
 | `DUELL_MOD_SEVERE_CATS` | `minors` | Kategorien der KI-Nachpruefung (Namen aus W2: sexual, minors, hate, harassment, violence, weapons, …) fuer die sofortige Sperre; andere Funde mit Risiko 3 entfernen die Karte mit Strike |
+
+### Kartenstatistik (`lib/duell-stat.mjs`, Tests: `test/duell-stat.test.mjs`)
+Oeffentlich, CORS wie die uebrigen `/api/duell`-Routen, nie `Allow-Credentials`. Ausnahme nur fuer `POST`: Origin `null` (`file:`, iOS) bekommt `Access-Control-Allow-Origin: *`; ein Cookie wird dabei nicht gelesen.
+- `POST /api/duell/stat` `{i, e, w?, v?}` -> `204`, ungueltiger Body `400`, ueber 1 KB `413`, Rate-Grenze `429`. Nicht gezaehlt: `204` mit `X-Stat: same` (diese Stimme ist schon gespeichert, z. B. vom zweiten Geraet; kein Wechsel), `dup` (doppeltes `open`/`share`, 4. Wechsel des Tages), `full` (Limit, Speichergrenze), `login` (Vote ohne Konto) oder `unavailable` (Gate nicht erreichbar, kein `DUELL_STAT_SALT`); `X-Stat` steht in `Access-Control-Expose-Headers`.
+  `i` Karten-ID (`[a-z0-9-]{1,32}`, `own` fuer eigene Karten), `e` `share|open|vote`. `w` nur bei `share`: geaenderte Bereiche aus
+  `text, farbe, stil, sticker, foto, beat, stimme, regeln, figur, welt, idee` (wie `AREAS` in `apps/duell-web/src/daily.js`), unbekannte Eintraege werden ignoriert; nicht leer zaehlt zusaetzlich als `remix`.
+- `vote` (`v` = `1`, `-1`, `0` zum Zuruecknehmen) zaehlt nur mit verifiziertem bunsenbrenner-Konto: die Identitaet liest der Wrapper selbst ueber das Gate (`lib/auth.mjs`, Session-Cookie), nie aus einem Header des Clients.
+  Die aktuelle Stimme je (Konto, Karte) steht dauerhaft in `votes.json` als `{HMAC(DUELL_STAT_SALT, konto|i): 1|-1}`, ohne Kontonamen und IPs; ein `p` des Clients wird ignoriert.
+  `up`/`down` aendern sich nur um die Differenz alt -> neu, der Tages-Bucket bekommt genau diese Differenz (kann negativ sein), die Summe ueber alle Tage ist exakt.
+  Hoechstens drei Wechsel je Konto, Karte und Tag. Ohne `DUELL_STAT_SALT` keine Votes.
+  Bekannte Grenze: der Wechselzaehler liegt nur im Speicher (Tagessalz), nach einem Neustart beginnt er neu; die Stimme selbst bleibt erhalten, es entsteht also keine zweite.
+- `open` und `share` zaehlen einmal je Tag, Karte und Client (gehashte IP, sonst Konto). Ohne beides (Live ohne `DUELL_IP_HEADER`, kein Login) zaehlen sie unter einem engen Gesamtlimit fuer alle zusammen und ohne Dedupe: diese Zahlen sind grob.
+- Dedupe ueber ein HMAC aus Tagessalz (nur im Speicher, taeglich neu), Schluessel, Karte und Ereignis. Keine Geraete-ID, keine eigenen Cookies, keine IP und kein Konto auf der Platte.
+- `GET /api/duell/stat?days=30` (nur `7`, `30`, `90`, `365`, sonst `400`) -> `{days, cards:[{i, share, remix, open, up, down, w}]}`, Summe ueber die letzten `days` UTC-Tage
+  (bei `up`/`down` also die Aenderung der Stimmen im Zeitraum), jeder Wert unter 5 ist `null`, `w`-Eintraege unter 5 fehlen ganz (k-Anonymitaet), sortiert nach `share`, 60 s gecacht (auch neue Stimmen erscheinen erst nach Ablauf).
+- Fuer den Reiter "Statistik" auf `/duell/pruefen`: `readAdmin(days)` (gleiche Fenster) liefert dieselbe Form ohne k-Maske, nur Zaehler, nie Stimmen-HMACs. Route und Admin-Token gehoeren zu `/duell/pruefen`.
+- Ablage: Tages-Buckets `{"YYYY-MM-DD": {"<i>": {share, remix, open, up, down, w}}}`; Tage aelter als 90 werden zu Monatssummen `"YYYY-MM"` verdichtet
+  (je Monat hoechstens `DUELL_STAT_CARDS_MAX` Karten, die meistgenutzten bleiben; ein langer Zeitraum beginnt damit an einer Monatsgrenze), nach 400 Tagen geloescht.
+  Geschrieben atomar (tmp, fsync, rename) etwa 5 s nach der letzten Aenderung und beim Beenden. Eine unlesbare Datei wird als `stat.json.bad-<ms>` beiseitegelegt, nie ueberschrieben.
+
+| ENV | Default | Bedeutung |
+|-----|---------|-----------|
+| `DUELL_STAT_FILE` | neben `DUELL_AI_STATE_FILE` (Compose: `/var/lib/duell-ai/stat.json`), sonst leer = nur im Speicher | Statistikdatei |
+| `DUELL_STAT_SALT` | leer (keine Votes) | dauerhafter Schluessel der Stimmen-HMACs; geheim, nie ausgeben |
+| `DUELL_STAT_VOTES_FILE` | `votes.json` neben `DUELL_STAT_FILE` | aktuelle Stimmen |
+| `DUELL_STAT_VOTES_MAX` | 500000 | gespeicherte Stimmen hoechstens, danach `X-Stat: full` |
+| `DUELL_STAT_POST_PER_MIN` / `DUELL_STAT_GET_PER_MIN` | 60 / 30 | Aufrufe je Client und Minute |
+| `DUELL_STAT_ANON_REQ_PER_MIN` | 600 | Aufrufe aller Clients ohne bekannte IP zusammen, je Minute und Methode |
+| `DUELL_STAT_ANON_PER_MIN` / `DUELL_STAT_ANON_PER_DAY` | 20 / 1000 | gezaehlte `open`/`share` ohne Schluessel, alle zusammen |
+| `DUELL_STAT_CARDS_MAX` | 2000 | verschiedene Karten je Tag bzw. Monat, weitere zaehlen nicht |
 
 ## Notes
 
