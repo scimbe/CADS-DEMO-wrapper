@@ -206,6 +206,25 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
 | `DUELL_WEATHER_IP_PER_HOUR` / `DUELL_WEATHER_DAILY_MAX` | 30 / 1000 | Wetteranfragen je gehashter IP und Stunde / pro UTC-Tag |
 | `DUELL_IP_HEADER` / `DUELL_IP_SALT` | leer / zufaellig je Prozess | Kopfzeile mit der echten Client-IP, leer heisst keine Grenzen je IP hinter dem Tunnel; Salz der IP-Hashes |
 
+### Kartenstatistik (`lib/duell-stat.mjs`, Tests: `test/duell-stat.test.mjs`)
+Oeffentlich, ohne Login, CORS wie die uebrigen `/api/duell`-Routen.
+- `POST /api/duell/stat` `{i, e, w?, v?, p?}` -> `204`, ungueltiger Body `400`, ueber 1 KB `413`, mehr als `DUELL_STAT_PER_MIN` Aufrufe je Client und Minute `429`.
+  `i` Karten-ID (`[a-z0-9-]{1,32}`, `own` fuer eigene Karten), `e` `share|open|vote`. `w` nur bei `share`: geaenderte Bereiche aus
+  `text, sticker, farbe, stil, foto, figur, welt, regeln`; nicht leer zaehlt zusaetzlich als `remix`. `v` nur bei `vote`: `1`, `-1`, `0` (zuruecknehmen),
+  `p` die vorherige Stimme des Geraets; der Server nimmt `p` heraus und legt `v` hinein, Zaehler fallen nie unter 0.
+- Dedupe pro UTC-Tag ueber ein HMAC aus Tagessalz (nur im Speicher, taeglich neu), Client-Schluessel (gehashte IP), Karte und Ereignis:
+  `open` und `share` zaehlen einmal je Tag, Karte und Client, `vote` hoechstens drei Aenderungen. Weitere Aufrufe bekommen `204` und zaehlen nicht.
+  Keine Geraete-ID, keine Cookies, keine IP auf der Platte. Ohne bekannte Client-IP (siehe `DUELL_IP_HEADER`) gibt es kein Dedupe, nur eine gemeinsame Grenze.
+- `GET /api/duell/stat?days=30` (1-400) -> `{days, cards:[{i, share, remix, open, up, down, w}]}`, Summe ueber die letzten `days` UTC-Tage,
+  jeder Wert unter 5 ist `null` (k-Anonymitaet), sortiert nach `share`.
+- Ablage: Tages-Buckets `{"YYYY-MM-DD": {"<i>": {share, remix, open, up, down, w}}}`, 400 Tage, atomar (tmp + rename), etwa 5 s nach der letzten Aenderung und beim Beenden.
+
+| ENV | Default | Bedeutung |
+|-----|---------|-----------|
+| `DUELL_STAT_FILE` | neben `DUELL_AI_STATE_FILE` (Compose: `/var/lib/duell-ai/stat.json`), sonst leer = nur im Speicher | Statistikdatei |
+| `DUELL_STAT_PER_MIN` / `DUELL_STAT_ANON_PER_MIN` | 60 / 600 | Aufrufe je Client und Minute / gemeinsam fuer alle ohne bekannte IP |
+| `DUELL_STAT_CARDS_MAX` | 2000 | verschiedene Karten je Tag, weitere zaehlen nicht |
+
 ## Notes
 
 - Secrets (`.env`, `.pexels-key`, `.registry-token`) are NOT in this repo — provide out-of-band.
