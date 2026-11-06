@@ -458,6 +458,61 @@ test('Grenzen: hoechstens DUELL_DECK_PER_OWNER_DAY Registrierungen je Person und
   assert.equal(s.deck._cards.get(cid).at, T0, 'the time comes from the seal');
 });
 
+test('Statistik-Reiter: nur mit Token, Zeitfenster 7/30/90/365, ohne k-Maske, freie Karten mit Nutzung, Status, Daumen, Meldungen', async () => {
+  const s = setup(), h = await serve(s);
+  try {
+    const path = '/api/duell/admin/stat';
+    assert.equal((await fetch(h.base + path)).status, 401, 'admin only');
+    assert.equal((await fetch(h.base + path, { headers: { Authorization: 'Bearer wrong-token-0123456789' } })).status, 401);
+    assert.equal((await fetch(h.base + path + '?days=14', { headers: h.adm })).status, 400, 'only the four windows');
+    assert.equal((await fetch(h.base + path, { method: 'POST', headers: h.adm, body: '{}' })).status, 405);
+    let j = await (await fetch(h.base + path, { headers: h.adm })).json();
+    assert.equal(j.days, 30); assert.equal(j.stat, null, 'no source attached yet'); assert.deepEqual(j.free, []);
+
+    // free card: 3 uses on day 0, 2 more on day 40 -> 7 days: 2, 90 days: 5 (below k, still shown exactly: admin, counters only)
+    const card = await make(s, 'maker@example.org');
+    const first = await accounts(s, 3, { prefix: 'erst' });
+    for (const m of first) assert.equal(await use(h, s, m, card.ki), 204);
+    const later = await accounts(s, 2, { prefix: 'spaet', ageDays: 40 });
+    for (const m of later) await use(h, s, m, card.ki);
+    await thumb(h, s, 'spaet0@example.org', card.ki, -1);
+    await thumb(h, s, 'erst0@example.org', card.ki, 1);
+    s.deck.onReport(card.ki.h);
+    const seenDays = [];
+    s.deck.useStat({ readAdmin: (d) => { seenDays.push(d); return { days: d, cards: [{ i: 'kino', share: 1, remix: 1, open: 2, up: 0, down: 1, w: JSON.parse('{"farbe":1,"__proto__":9,"X":2}') }, { i: card.cid, share: 2, remix: 0, open: 7, up: null, down: null, w: {} }] }; } });
+    const get = async (d) => (await fetch(h.base + path + '?days=' + d, { headers: h.adm })).json();
+    j = await get(7);
+    assert.equal(j.k, 25);
+    assert.deepEqual(j.stat.cards, [{ i: 'kino', share: 1, remix: 1, open: 2, up: 0, down: 1, w: { farbe: 1 } }], 'unmasked, unknown areas dropped, free card joined below');
+    assert.equal(j.stat.masked, false);
+    const row = j.free[0];
+    assert.deepEqual([row.cid, row.st, row.use, row.useAll, row.k, row.up, row.down, row.reports, row.reportsAll, row.share, row.open], [card.cid, 'privat', 2, 5, false, 1, 1, 1, 1, 2, 7]);
+    assert.equal(row.t, card.doc.t);
+    assert.equal((await get(90)).free[0].use, 5);
+    assert.deepEqual(seenDays, [7, 90]);
+    for (const d of [30, 365]) assert.equal((await fetch(h.base + path + '?days=' + d, { headers: h.adm })).status, 200);
+    // status labels: block -> gesperrt
+    await h.post('/api/duell/deck/review/' + card.cid, { action: 'block' }, null, h.adm);
+    assert.equal((await get(30)).free[0].st, 'gesperrt');
+    // a source with only the public read(days) is used, but marked as masked; a throwing source does not break the tab
+    s.deck.useStat({ read: () => ({ cards: [{ i: 'kino', share: null, remix: null, open: null, up: null, down: null, w: {} }] }) });
+    assert.equal((await get(30)).stat.masked, true);
+    s.deck.useStat({ readAdmin: () => { throw new Error('x'); } });
+    assert.equal((await get(30)).stat, null);
+    // per-day counters survive a restart
+    s.deck.flush();
+    const again = setup({ dir: s.dir });
+    assert.equal(again.deck.statView(90).free[0].use, 5);
+    // the page carries the tab, and its one inline script still matches the CSP hash
+    const page = await fetch(h.base + '/duell/pruefen'), html = await page.text();
+    assert.match(html, /role="tab" id="ts"[^>]*>Statistik</);
+    const hash = page.headers.get('content-security-policy').match(/sha256-([A-Za-z0-9+/=]+)/)[1];
+    const { createHash } = await import('node:crypto');
+    assert.equal(createHash('sha256').update(html.match(/<script>([\s\S]*)<\/script>/)[1]).digest('base64'), hash);
+    assert.doesNotMatch(html, /innerHTML|insertAdjacentHTML|document\.write/, 'textContent only');
+  } finally { await h.close(); }
+});
+
 /** Probe of the W4 review: a creator with three cards used by the same two accounts (k = 2) -> ring on card A. */
 async function ringSetup(review) {
   const s = setup({ env: { DUELL_DECK_K: '2' }, review });
