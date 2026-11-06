@@ -119,6 +119,7 @@ test('Sockenpuppen-Lasttest: junge Konten, inaktive Konten, Ersteller, Wiederhol
     const puppets = await accounts(s, 40, { prefix: 'pup' });
     s.clock.t += 20 * DAY;
     for (const c of ringCards) for (const m of puppets) await use(h, s, m, c.ki);
+    await s.deck.tick();   // the timer looks at the creator's other cards (ring check across cards)
     for (const c of ringCards) {
       const x = s.deck._cards.get(c.cid);
       assert.equal(x.n, 40);
@@ -155,7 +156,8 @@ test('Fairer Weg: k Konten -> Guthaben, Kandidat, KI-Nachpruefung, Mensch nimmt 
     // a human cannot admit before the AI re-check
     let r = await h.post('/api/duell/deck/review/' + card.cid, { action: 'admit' }, null, h.adm);
     assert.equal(r.status, 409); assert.equal((await r.json()).error, 'ai-review-open');
-    // the reviewer view runs the batch; then the card waits for a human
+    // the timer runs the batch (the reviewer view never waits for the model); then the card waits for a human
+    await s.deck.tick();
     const view = await (await fetch(h.base + '/api/duell/deck/review', { headers: h.adm })).json();
     assert.deepEqual(seen, [card.doc.x]);
     assert.equal(view.queue[0].st, 'review'); assert.equal(view.queue[0].users, '25-99', 'a bucket, not a count');
@@ -183,6 +185,13 @@ test('Fairer Weg: k Konten -> Guthaben, Kandidat, KI-Nachpruefung, Mensch nimmt 
     assert.equal(me.credit.balance, 5);
     assert.deepEqual([me.credit.transferable, me.credit.purchasable, me.credit.payable], [false, false, false]);
     assert.equal(me.credit.abo.offered, false, 'subscription: interface only');
+    // after admission the same 25 accounts do not count again, and 50 accounts are no 100 (reach)
+    for (const m of users) await use(h, s, m, card.ki);
+    assert.equal(s.deck._cards.get(card.cid).n, 25, 'distinct accounts stay distinct after admission');
+    const more = await accounts(s, 25, { prefix: 'zweite' });
+    for (const m of more) await use(h, s, m, card.ki);
+    assert.equal(s.deck._cards.get(card.cid).n, 50);
+    assert.equal(s.credit.available(card.owner), 5, 'reach needs 100 distinct accounts');
   } finally { await h.close(); }
 });
 
@@ -326,8 +335,15 @@ test('Schwerer Verstoss: KI-Nachpruefung findet eine Kategorie aus DUELL_MOD_SEV
 });
 
 test('Meldungen: offene Meldung stoppt den Vorschlag, viele verstecken ohne Strike, Block der Meldung entfernt die Karte', async () => {
-  const s = setup({ env: { DUELL_DECK_REVIEW_REQUIRED: '0', DUELL_REPORT_PER_HOUR: '99' } }), h = await serve(s);
+  const s = setup({ env: { DUELL_DECK_REVIEW_REQUIRED: '0', DUELL_REPORT_PER_HOUR: '99', DUELL_MOD_REPORTS_HIDE: '5' } }), h = await serve(s);
   try {
+    // default: anonymous reports never hide (no account, no IP: five could be one person)
+    const d0 = setup({ env: { DUELL_REPORT_PER_HOUR: '99' } }), h0 = await serve(d0);
+    try {
+      const c0 = await make(d0, 'm0@example.org');
+      for (let i = 0; i < 8; i++) assert.equal((await h0.post('/api/duell/report', { reason: 'other', kind: 'karte', seal: c0.ki.s, optionHash: c0.ki.h })).status, 202);
+      assert.equal(d0.deck._cards.get(c0.cid).st, 'private'); assert.equal(d0.deck._cards.get(c0.cid).rep, 8);
+    } finally { await h0.close(); }
     const card = await make(s, 'm@example.org');
     const users = await accounts(s, 25, { prefix: 'g' });
     s.clock.t = T0 + 15 * DAY;
@@ -389,4 +405,52 @@ test('Pruefoberflaeche und Admin-Routen: nur mit Token, Seite ohne Fremdskript, 
   assert.equal(again.deck._cards.get(card.cid).o, card.owner, 'state survives a restart');
   const off = setup({ env: { DUELL_ADMIN_TOKEN: '' } }), h2 = await serve(off);
   try { assert.equal((await fetch(h2.base + '/api/duell/deck/review', { headers: { Authorization: 'Bearer ' + ADMIN } })).status, 503); } finally { await h2.close(); }
+});
+
+test('Schwere Daumen: geht es nach dem Verstecken weiter bis >= 20 und >= 75 %, wird das Konto pausiert', async () => {
+  const s = setup(), h = await serve(s);
+  try {
+    const card = await make(s, 'heavy@example.org');
+    const users = await accounts(s, 30, { prefix: 'hv' });
+    for (const m of users.slice(0, 8)) await thumb(h, s, m, card.ki, -1);
+    assert.equal(s.deck._cards.get(card.cid).st, 'hidden');
+    assert.equal(s.mod.status(card.owner).st, 'ok');
+    for (const m of users.slice(8, 20)) await thumb(h, s, m, card.ki, -1);
+    assert.equal(s.mod.status(card.owner).st, 'paused', 'one card, 20 accounts at 100 %');
+    assert.equal(s.mod.me(card.owner).notices.find((n) => n.type === 'pause').facts.heavy, true);
+  } finally { await h.close(); }
+});
+
+test('Widerspruch gegen eine entfernte Karte: aufgehoben -> Karte zurueck im Deck, Siegel nicht mehr widerrufen, Guthaben zurueck', async () => {
+  const s = setup({ env: { DUELL_DECK_REVIEW_REQUIRED: '0' } }), h = await serve(s);
+  try {
+    const card = await make(s, 'back@example.org');
+    const users = await accounts(s, 25, { prefix: 'bk' });
+    s.clock.t = T0 + 15 * DAY;
+    for (const m of users) await use(h, s, m, card.ki);
+    await h.post('/api/duell/deck/review/' + card.cid, { action: 'admit' }, null, h.adm);
+    await h.post('/api/duell/deck/review/' + card.cid, { action: 'block' }, null, h.adm);
+    assert.equal(s.credit.available(card.owner), 0);
+    const n = s.mod.me(card.owner).notices.find((x) => x.type === 'card-removed');
+    assert.equal((await h.post('/api/duell/mod/appeal', { nid: n.nid, text: 'Das ist meine eigene Figur.' }, 'back@example.org')).status, 202);
+    const view = await (await fetch(h.base + '/api/duell/deck/review', { headers: h.adm })).json();
+    assert.equal(view.removed[0].cid, card.cid, 'the reviewer sees removed cards');
+    assert.equal((await h.post('/api/duell/mod/' + s.mod.midOf(card.owner), { action: 'lift', nid: n.nid }, null, h.adm)).status, 200);
+    const j = await (await fetch(h.base + '/api/duell/deck')).json();
+    assert.deepEqual(j.cards.map((c) => c.cid), [card.cid]); assert.deepEqual(j.revoked, []);
+    assert.equal(s.credit.available(card.owner), 5, 'credit counts again');
+    for (const m of users) await use(h, s, m, card.ki);
+    assert.equal(s.deck._cards.get(card.cid).n, 25, 'nobody counts twice after the restore');
+  } finally { await h.close(); }
+});
+
+test('Grenzen: hoechstens DUELL_DECK_PER_OWNER_DAY Registrierungen je Person und Tag, Siegelzeit statt Angabe', async () => {
+  const s = setup({ env: { DUELL_DECK_PER_OWNER_DAY: '3' } });
+  for (let i = 0; i < 3; i++) await make(s, 'many@example.org', doc('Idee ' + i + ' ' + 'abcdefghij'[i]));
+  const owner = await keyOf(s, 'many@example.org'), d = doc('Noch eine');
+  const { ki, cid } = sealKarte(s.d.shared.sealer, SALT, d, owner, s.clock.t);
+  assert.equal(s.deck.register({ cid, owner, doc: { ...d, ki }, at: 0 }).error, 'owner-limit');
+  s.clock.t += DAY;
+  assert.equal(s.deck.register({ cid, owner, doc: { ...d, ki }, at: 0 }).ok, true);
+  assert.equal(s.deck._cards.get(cid).at, T0, 'the time comes from the seal');
 });
