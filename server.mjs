@@ -27,6 +27,7 @@ import { createDuell } from './lib/duell.mjs';
 import { createShortLinks } from './lib/shortlink.mjs';
 import { createDuellAi } from './lib/duell-ai.mjs';
 import { createDuellProfile } from './lib/duell-profile.mjs';
+import { createReports } from './lib/duell-report.mjs';
 import { createWeather } from './lib/duell-weather.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
@@ -34,6 +35,7 @@ import { shortDigest } from './lib/prompt-core.mjs';
 import { WASM_DIR, wasm, nowSec } from './lib/prompt-wasm.mjs';
 import { md2html } from './lib/md2html.mjs';
 import { serveMedia } from './lib/static-media.mjs';
+import { createCompressedFiles } from './lib/compress.mjs';
 import { UT_CSS, UT_DIR, UT_PAGE_HEADERS, untertitelBody } from './lib/untertitel-page.mjs';
 import { motionTrust, motionScript, MOTION_CSS } from './lib/motion.mjs';
 import { findChrome, withoutPdf } from './lib/pdf.mjs';
@@ -1048,12 +1050,15 @@ function handlePostStart(req, res, url) {
 const PB_STATIC = { 'prompt-builder.js': join(__dir, 'static', 'prompt-builder.js'), 'prompt-core.mjs': join(__dir, 'lib', 'prompt-core.mjs'), 'untertitel.js': join(__dir, 'static', 'untertitel.js'), 'untertitel-core.mjs': join(__dir, 'lib', 'untertitel-core.mjs'), 'diagram-browser.js': join(__dir, 'static', 'diagram-browser.js'), 'diagram-browser-core.mjs': join(__dir, 'lib', 'diagram-browser-core.mjs') };
 const GV_DIR = join(__dir, 'static', 'vendor', 'graphviz');
 const PB_MIME = { '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm' };
-function servePb(res, url) {
+const PB_FILES = createCompressedFiles();   // brotli/gzip + ETag from memory (lib/compress.mjs)
+async function servePb(req, res, url) {
   const name = url.pathname.slice('/pb/'.length);
   let file = PB_STATIC[name];
   if (!file && name.startsWith('wasm/')) { const w = name.slice(5); if (/^[A-Za-z0-9_]+\.(js|wasm)$/.test(w)) file = join(WASM_DIR, w); }
   if (!file || !existsSync(file)) { res.writeHead(404).end('nf'); return; }
-  res.writeHead(200, { 'Content-Type': PB_MIME[extname(file)], 'Cache-Control': url.searchParams.has('v') ? 'public, max-age=31536000, immutable' : 'no-cache' });
+  const headers = { 'Content-Type': PB_MIME[extname(file)], 'Cache-Control': url.searchParams.has('v') ? 'public, max-age=31536000, immutable' : 'no-cache' };
+  if (await PB_FILES.serve(req, res, file, headers)) return;
+  res.writeHead(200, headers);
   createReadStream(file).pipe(res);
 }
 const shortHash = (buf) => createHash('sha256').update(buf).digest('hex').slice(0, 12);
@@ -1068,9 +1073,10 @@ function builderVersions() {
 
 const INSTALLATIONS = createInstallations();
 const DUELL = createDuell({ llmEnv: ENV, root: __dir }); // public by design (no login), see lib/duell.mjs
-const SHORT = createShortLinks({ root: __dir, clientKey: DUELL.clientKey }); // public by design (no login), see lib/shortlink.mjs
+const SHORT = createShortLinks({ root: __dir, clientKey: DUELL.clientKey, metric: DUELL.shared.metric }); // public by design (no login), see lib/shortlink.mjs
 const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
-const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather() }); // AI actions with a free allowance, lib/duell-ai.mjs
+const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather() }); // AI actions and their pots, lib/duell-ai.mjs
+const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id) }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
 const DUELL_PROFILE = createDuellProfile({ auth: AUTH, shared: DUELL.shared }); // profile under "Mein Stil": account (16+) or sync code, lib/duell-profile.mjs
 // One failing request answers 500; it never takes the gallery (and everybody's runs) down with it.
 http.createServer((req, res) => route(req, res).catch((e) => {
@@ -1083,6 +1089,7 @@ async function route(req, res) {
   const p = url.pathname;
   if (await DUELL_AI.route(req, res, url)) return; // own limits and allowance, reads the login itself
   if (await DUELL_PROFILE.route(req, res, url)) return; // My Daily Idea profile, reads the login itself
+  if (await REPORTS.route(req, res, url)) return; // report, seal check (public); reviewer routes need DUELL_ADMIN_TOKEN
   if (await DUELL.route(req, res, url)) return; // Duell: config API, web game, assetlinks (public, own limits)
   if (await SHORT.route(req, res, url)) return; // short links of My Daily Idea (public, own limits)
   if (await AUTH.guard(req, res, url)) return;
@@ -1095,12 +1102,12 @@ async function route(req, res) {
   if (p === '/api/start') { if (req.method === 'POST') handlePostStart(req, res, url); else handleStart(req, res, url).catch(() => res.end()); return; }
   const tm = p.match(/^\/api\/template\/([a-z0-9-]+)$/);
   if (tm && req.method === 'GET') { handleTemplate(res, tm[1]); return; }
-  if (p.startsWith('/pb/') && req.method === 'GET') { servePb(res, url); return; }
+  if (p.startsWith('/pb/') && req.method === 'GET') { await servePb(req, res, url); return; }
   if (p === '/api/plan' && req.method === 'POST') { handlePlan(req, res, url); return; }
-  if (p.startsWith('/static/motion/') && (req.method === 'GET' || req.method === 'HEAD')) { serveMedia(req, res, join(__dir, 'static', 'motion'), p.slice('/static/motion/'.length)); return; }
-  if (p.startsWith('/static/vendor/graphviz/') && (req.method === 'GET' || req.method === 'HEAD')) { serveMedia(req, res, GV_DIR, p.slice('/static/vendor/graphviz/'.length)); return; }
-  if (p.startsWith('/static/vendor/untertitel/') && (req.method === 'GET' || req.method === 'HEAD')) { serveMedia(req, res, UT_DIR, p.slice('/static/vendor/untertitel/'.length), UT_PAGE_HEADERS); return; }
-  if (p === '/static/untertitel-whisper.worker.js' && req.method === 'GET') { res.writeHead(200, { 'Content-Type': PB_MIME['.js'], 'Cache-Control': 'no-cache', ...UT_PAGE_HEADERS }); createReadStream(join(__dir, 'static', 'untertitel-whisper.worker.js')).pipe(res); return; }
+  if (p.startsWith('/static/motion/') && (req.method === 'GET' || req.method === 'HEAD')) { await serveMedia(req, res, join(__dir, 'static', 'motion'), p.slice('/static/motion/'.length)); return; }
+  if (p.startsWith('/static/vendor/graphviz/') && (req.method === 'GET' || req.method === 'HEAD')) { await serveMedia(req, res, GV_DIR, p.slice('/static/vendor/graphviz/'.length)); return; }
+  if (p.startsWith('/static/vendor/untertitel/') && (req.method === 'GET' || req.method === 'HEAD')) { await serveMedia(req, res, UT_DIR, p.slice('/static/vendor/untertitel/'.length), UT_PAGE_HEADERS); return; }
+  if (p === '/static/untertitel-whisper.worker.js' && req.method === 'GET') { const f = join(__dir, 'static', 'untertitel-whisper.worker.js'), h = { 'Content-Type': PB_MIME['.js'], 'Cache-Control': 'no-cache', ...UT_PAGE_HEADERS }; if (!(await PB_FILES.serve(req, res, f, h))) res.writeHead(404).end('nf'); return; }
   const dm = p.match(/^\/d\/([a-z0-9_-]+)\/out\/(?:(r[0-9a-f]{10})\/)?(.+)$/);
   if (dm) { const base = resolveOut(dm[1], dm[2]); if (!base) { res.writeHead(404).end('nf'); return; } serveFile(res, join(base, dm[3].replace(/\.\./g, ''))); return; }
   if (p.startsWith('/assets/thumbs/')) { serveFile(res, join(__dir, 'thumbs', p.slice('/assets/thumbs/'.length).replace(/\.\./g, ''))); return; }

@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- connect-src 'self': the browser itself refuses to send anything to another host. The server repeats this as a header. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'self' 'wasm-unsafe-eval' blob:; worker-src 'self' blob:; connect-src 'self' blob:; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#1f2a44">
+<title>Fast Easy Protokoll</title>
+<style>
+/* Fast Easy Protokoll: sober business look, system fonts, works from 320 px. */
+:root { --ink: #1f2a44; --soft: #5b6478; --line: #d9dde6; --bg: #f5f6f9; --card: #fff; --acc: #2457d6; --rec: #d62d2d; --warn: #8a5a00; --warnbg: #fff5dc; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 720px; margin: 0 auto; padding: 16px 16px 48px; }
+header h1 { margin: 8px 0 0; font-size: 1.6rem; }
+.claim { margin: 2px 0 16px; color: var(--soft); }
+section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+h2 { font-size: 1.15rem; margin: 0 0 8px; }
+.facts { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 6px; }
+.field { display: grid; gap: 4px; margin: 12px 0; font-weight: 600; font-size: .95rem; }
+input[type=text], select, textarea { font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 8px; width: 100%; background: #fff; color: var(--ink); }
+textarea { resize: vertical; }
+.consent { border: 1px solid var(--line); border-left: 4px solid var(--acc); border-radius: 8px; padding: 12px; margin: 12px 0; background: #f8faff; }
+.say { margin: 0 0 8px; }
+.check { display: flex; gap: 8px; align-items: flex-start; font-weight: 600; }
+.check input { width: 22px; height: 22px; flex: none; margin-top: 1px; }
+.btn, .small { font: inherit; border-radius: 8px; border: 1px solid var(--acc); background: var(--acc); color: #fff; padding: 12px 16px; font-weight: 700; cursor: pointer; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.big { width: 100%; font-size: 1.05rem; padding: 14px; }
+.small { padding: 8px 12px; background: #fff; color: var(--acc); font-weight: 600; }
+.danger { color: var(--rec); border-color: var(--rec); background: #fff; }
+.link { background: none; border: 0; color: var(--acc); font: inherit; text-align: left; padding: 4px 0; cursor: pointer; flex: 1; }
+.row { display: flex; gap: 8px; margin: 12px 0; }
+.row > .btn { flex: 1; }
+.row.wrap { flex-wrap: wrap; }
+.note { color: var(--soft); font-size: .9rem; }
+.warn { background: var(--warnbg); color: var(--warn); border-radius: 8px; padding: 8px 10px; }
+.ok { color: #1d6b35; }
+progress, meter { width: 100%; height: 10px; }
+.live { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; padding: 10px 12px; border-radius: 10px; background: #fdeaea; color: var(--rec); }
+.live #clock { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 700; }
+.dot { width: 14px; height: 14px; border-radius: 50%; background: var(--rec); animation: pulse 1.2s ease-in-out infinite; }
+#rec.paused .live { background: #eef0f4; color: var(--soft); }
+#rec.paused .dot { background: var(--soft); animation: none; }
+@keyframes pulse { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+.stop { background: var(--rec); border-color: var(--rec); }
+.lines { list-style: none; padding: 0; margin: 12px 0; max-height: 45vh; overflow: auto; display: grid; gap: 6px; }
+.lines li { display: flex; gap: 8px; }
+.lines time { color: var(--soft); font-variant-numeric: tabular-nums; flex: none; }
+.protocol section.part { border: 0; border-radius: 0; padding: 0; background: none; }
+.row.wrap > .btn { flex: 1 1 30%; padding: 12px 8px; }
+.protocol h2 { font-size: 1.3rem; margin-bottom: 0; }
+.protocol .meta { color: var(--soft); margin-top: 2px; }
+.protocol h3 { font-size: 1rem; margin: 14px 0 4px; border-bottom: 1px solid var(--line); padding-bottom: 2px; }
+.protocol ul { margin: 0; padding-left: 20px; }
+.protocol .task b { color: var(--acc); }
+.protocol .task em { color: var(--soft); font-style: normal; }
+.protocol .src { color: var(--soft); font-size: .85rem; font-style: italic; margin-top: 14px; }
+.saved { list-style: none; padding: 0; display: grid; gap: 6px; }
+.saved li { display: flex; gap: 8px; align-items: center; border-bottom: 1px solid var(--line); }
+pre { white-space: pre-wrap; word-break: break-word; max-height: 30vh; overflow: auto; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-size: .85rem; }
+.foot { color: var(--soft); font-size: .8rem; margin-top: 16px; }
+#toast { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 560px; margin: 0 auto; background: var(--ink); color: #fff; border-radius: 10px; padding: 12px 14px; }
+
+</style>
+</head>
+<body>
+<main>
+  <header><h1 data-t="title"></h1><p class="claim" data-t="claim"></p></header>
+
+  <section id="intro">
+    <ul class="facts">
+      <li data-t="factAudio"></li>
+      <li data-t="factModel"></li>
+      <li data-t="factAi"></li>
+      <li data-t="factYours"></li>
+    </ul>
+    <p id="fit"></p>
+    <label class="field"><span data-t="model"></span>
+      <select id="model"><option value="tiny" data-t="modelTiny"></option><option value="base" data-t="modelBase"></option></select></label>
+    <label class="field"><span data-t="names"></span><input id="names" type="text" maxlength="400" autocomplete="off"></label>
+    <div class="consent">
+      <p class="say"><b data-t="sayHead"></b> <span data-t="say"></span></p>
+      <label class="check"><input id="consent" type="checkbox"> <span data-t="consent"></span></label>
+    </div>
+    <button id="start" class="btn big" type="button" data-t="start"></button>
+    <div id="load" hidden><progress id="loadbar" max="1" value="0"></progress><p id="loadtext" class="note"></p></div>
+    <div id="savedbox" hidden>
+      <h2 data-t="saved"></h2>
+      <ul id="saved" class="saved"></ul>
+      <button id="delall" class="small danger" type="button" data-t="deleteAll"></button>
+    </div>
+  </section>
+
+  <section id="rec" hidden>
+    <div class="live" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><b id="recstate" data-t="recording"></b><span id="clock">00:00</span></div>
+    <p class="note" id="recnames"></p>
+    <meter id="level" min="0" max="1" value="0" aria-hidden="true"></meter>
+    <p id="lag" class="warn" hidden></p>
+    <ol id="lines" class="lines" aria-live="polite"></ol>
+    <div class="row"><button id="pause" class="btn" type="button" data-t="pause"></button><button id="stop" class="btn stop" type="button" data-t="stop"></button></div>
+    <p class="note" data-t="recNote"></p>
+  </section>
+
+  <section id="review" hidden>
+    <h2 data-t="review"></h2>
+    <p id="finishing" class="note" data-t="finishing" hidden></p>
+    <label class="field"><span data-t="transcript"></span><textarea id="transcript" rows="10"></textarea></label>
+    <label class="field"><span data-t="names"></span><input id="rnames" type="text" maxlength="400" autocomplete="off"></label>
+    <div class="row"><button id="mklocal" class="btn" type="button" data-t="mkLocal"></button><button id="mkai" class="btn" type="button" data-t="mkAi"></button></div>
+    <div id="aiask" class="consent" hidden>
+      <p data-t="aiWhat"></p>
+      <p id="aisize" class="note"></p>
+      <details><summary data-t="aiShow"></summary><pre id="aipreview"></pre></details>
+      <label class="check"><input id="aiok" type="checkbox"> <span data-t="aiConsent"></span></label>
+      <button id="aisend" class="btn" type="button" data-t="aiSend"></button>
+    </div>
+    <button id="discard" class="small danger" type="button" data-t="discard"></button>
+  </section>
+
+  <section id="result" hidden>
+    <p id="note" class="warn" hidden></p>
+    <article id="protocol" class="protocol"></article>
+    <label class="check"><input id="withtext" type="checkbox"> <span data-t="withText"></span></label>
+    <div class="row wrap">
+      <button id="copy" class="btn" type="button" data-t="copy"></button>
+      <button id="download" class="btn" type="button" data-t="download"></button>
+      <button id="share" class="btn" type="button" data-t="share"></button>
+    </div>
+    <div class="row"><button id="again" class="small" type="button" data-t="again"></button><button id="del" class="small danger" type="button" data-t="delete"></button></div>
+  </section>
+  <p class="foot" data-t="foot"></p>
+</main>
+<div id="toast" role="alert" hidden></div>
+<script>
+window.ProtokollTexts={"de":{"title":"Fast Easy Protokoll","claim":"Meeting mitschreiben, Protokoll in einer Minute.","factAudio":"🎙️ Die Spracherkennung läuft auf diesem Gerät. Audio verlässt es nie und wird nicht gespeichert.","factModel":"⬇️ Das Sprachmodell kommt einmalig von unserer eigenen Domain und bleibt danach im Browser.","factAi":"✨ Die Zusammenfassung per KI ist freiwillig: nur Text, nur nach deinem Ja, auf unserem Server, ohne Speicherung.","factYours":"🗂️ Das Protokoll gehört dir: Es bleibt auf diesem Gerät, bis du es löschst.","fitOk":"Dieses Gerät schafft die Mitschrift. Einmalig etwa {mb} MB laden, am besten im WLAN.","fitSmall":"Dieses Gerät ist eher schwach: Es nimmt das kleine Modell (etwa {mb} MB). Die Erkennung ist dann ungenauer. Bitte deutlich sprechen und das Ergebnis gegenlesen.","fitWeak":"Ehrlich gesagt: Dieses Gerät hat zu wenig Speicher für die Erkennung. Nimm bitte einen Laptop oder ein neueres Handy.","fitBrowser":"Dieser Browser kann die Mitschrift nicht auf dem Gerät erledigen (ohne Mikrofon, WebAssembly oder isolierten Modus). Bitte aktuelles Chrome, Edge, Firefox oder Safari nutzen.","model":"Modell","modelTiny":"Klein (schnell, ungenauer)","modelBase":"Standard (genauer, braucht mehr Kraft)","names":"Wer ist dabei? (optional, mit Komma getrennt)","sayHead":"Vorher ansagen:","say":"„Ich schreibe mit, damit wir ein Protokoll haben. Der Ton bleibt auf meinem Gerät. Ist das für alle in Ordnung?“","consent":"Alle Anwesenden wissen, dass mitgeschrieben wird, und sind einverstanden.","needConsent":"Bitte erst bestätigen, dass alle Bescheid wissen.","start":"Mitschrift starten","loading":"Sprachmodell wird geladen (einmalig etwa {mb} MB) …","errOffline":"Kein Netz: Das Sprachmodell ist noch nicht auf diesem Gerät. Bitte einmal mit Internet starten.","errLoad":"Das Sprachmodell kam nicht an. Vielleicht sperrt das Firmennetz den Download. Bitte später oder in einem anderen Netz versuchen.","errDigest":"Das Sprachmodell kam beschädigt an und wird nicht benutzt. Bitte noch einmal versuchen.","errMic":"Kein Zugriff auf das Mikrofon. Bitte im Browser erlauben.","recording":"Aufnahme läuft","paused":"Pausiert","recNames":"Dabei: {n}","recNoNames":"Alle Anwesenden wissen Bescheid.","recNote":"Der Ton wird nur hier erkannt und sofort verworfen. Stopp geht jederzeit, Schließen der Seite beendet die Aufnahme.","lag":"Die Erkennung hängt {s} s hinterher. Nichts geht verloren, nach dem Stopp wird der Rest erkannt.","pause":"Pause","resume":"Weiter","stop":"■ Stopp","review":"Mitschrift prüfen","finishing":"Der Rest wird noch erkannt …","transcript":"Mitschrift (du kannst sie korrigieren)","mkLocal":"Protokoll auf dem Gerät","mkAi":"Mit KI zusammenfassen …","aiWhat":"Für die KI-Zusammenfassung geht nur der Text an unseren eigenen Server, kein Ton. E-Mail-Adressen, Telefonnummern, IBANs und Links werden vorher geschwärzt. Der Server speichert den Text nicht und schreibt ihn nicht ins Log.","aiSize":"{n} Zeichen Text","aiShow":"Genau diesen Text ansehen","aiConsent":"Ja, diesen Text einmalig zur Zusammenfassung senden.","needAiConsent":"Bitte erst zustimmen oder das Protokoll auf dem Gerät erstellen.","aiSend":"Senden und zusammenfassen","aiBusyNow":"… KI schreibt das Protokoll","ai_quota":"Deine freien KI-Zusammenfassungen sind aufgebraucht. Das Protokoll wurde auf dem Gerät erstellt.","ai_busy":"Die KI ist gerade ausgelastet. Das Protokoll wurde auf dem Gerät erstellt.","ai_blocked":"Die KI hat diesen Text abgelehnt. Das Protokoll wurde auf dem Gerät erstellt.","ai_local":"Die KI war nicht erreichbar. Das Protokoll wurde auf dem Gerät erstellt.","empty":"Die Mitschrift ist leer.","discard":"Verwerfen","confirmDiscard":"Mitschrift verwerfen? Sie ist danach weg.","withText":"Mitschrift beim Exportieren anhängen","copy":"Text kopieren","download":"Als Datei (.md)","share":"Teilen","copied":"Kopiert.","errCopy":"Kopieren ging nicht. Bitte „Als Datei“ nehmen.","again":"Neues Meeting","delete":"Löschen","deleteAll":"Alle Protokolle löschen","confirmDelete":"Dieses Protokoll mit Mitschrift löschen?","confirmDeleteAll":"Alle Protokolle auf diesem Gerät löschen?","deleted":"Gelöscht.","saved":"Meine Protokolle (nur auf diesem Gerät)","foot":"Spracherkennung: whisper.cpp (MIT) mit OpenAI-Whisper-Gewichten (MIT), ausgeliefert von dieser Domain."},"en":{"title":"Fast Easy Protokoll","claim":"Take meeting notes, get the minutes in a minute.","factAudio":"🎙️ Speech recognition runs on this device. Audio never leaves it and is not stored.","factModel":"⬇️ The speech model comes once from our own domain and then stays in the browser.","factAi":"✨ The AI summary is optional: text only, only after your yes, on our own server, nothing stored.","factYours":"🗂️ The minutes are yours: they stay on this device until you delete them.","fitOk":"This device can take notes. One-time download of about {mb} MB, Wi-Fi recommended.","fitSmall":"This device is on the weak side and uses the small model (about {mb} MB). Recognition is less accurate: speak clearly and check the result.","fitWeak":"Honestly: this device has too little memory for speech recognition. Please use a laptop or a newer phone.","fitBrowser":"This browser cannot take notes on the device (no microphone, WebAssembly or isolated mode). Please use a current Chrome, Edge, Firefox or Safari.","model":"Model","modelTiny":"Small (fast, less accurate)","modelBase":"Standard (more accurate, needs more power)","names":"Who is there? (optional, separated by commas)","sayHead":"Say it first:","say":"“I'm taking notes so we have minutes. The audio stays on my device. Is that okay for everyone?”","consent":"Everyone present knows notes are being taken and agrees.","needConsent":"Please confirm first that everyone knows.","start":"Start taking notes","loading":"Loading the speech model (one-time, about {mb} MB) …","errOffline":"No network: the speech model is not on this device yet. Please start once with internet.","errLoad":"The speech model did not arrive. The company network may block the download. Please try later or on another network.","errDigest":"The speech model arrived damaged and is not used. Please try again.","errMic":"No access to the microphone. Please allow it in the browser.","recording":"Recording","paused":"Paused","recNames":"Present: {n}","recNoNames":"Everyone present knows.","recNote":"The audio is recognised only here and dropped at once. Stop any time; closing the page ends the recording.","lag":"Recognition is {s} s behind. Nothing is lost, the rest is recognised after you stop.","pause":"Pause","resume":"Resume","stop":"■ Stop","review":"Check the notes","finishing":"Recognising the rest …","transcript":"Transcript (you can correct it)","mkLocal":"Minutes on this device","mkAi":"Summarise with AI …","aiWhat":"For the AI summary only the text goes to our own server, no audio. E-mail addresses, phone numbers, IBANs and links are blacked out first. The server neither stores the text nor writes it to a log.","aiSize":"{n} characters of text","aiShow":"See exactly this text","aiConsent":"Yes, send this text once to be summarised.","needAiConsent":"Please agree first, or make the minutes on this device.","aiSend":"Send and summarise","aiBusyNow":"… AI is writing the minutes","ai_quota":"Your free AI summaries are used up. The minutes were made on this device.","ai_busy":"The AI is busy right now. The minutes were made on this device.","ai_blocked":"The AI refused this text. The minutes were made on this device.","ai_local":"The AI could not be reached. The minutes were made on this device.","empty":"The transcript is empty.","discard":"Discard","confirmDiscard":"Discard the notes? They will be gone.","withText":"Attach the transcript when exporting","copy":"Copy text","download":"As a file (.md)","share":"Share","copied":"Copied.","errCopy":"Copying failed. Please use “As a file”.","again":"New meeting","delete":"Delete","deleteAll":"Delete all minutes","confirmDelete":"Delete these minutes with the transcript?","confirmDeleteAll":"Delete all minutes on this device?","deleted":"Deleted.","saved":"My minutes (on this device only)","foot":"Speech recognition: whisper.cpp (MIT) with OpenAI Whisper weights (MIT), served from this domain."}};
+</script>
+<script>
+/* Fast Easy Protokoll: the rules, without DOM. A meeting is written down on this device and turned into a short protocol.
+
+   Data flow (nothing else leaves the device):
+
+     microphone ──PCM──▶ resample 16 kHz ──▶ Chunker (cuts at pauses) ──▶ whisper.cpp in a Worker ──text──▶ transcript
+         │                                                                     ▲
+         └─ audio stays in memory and is dropped after each piece              model + runtime: own domain, HTTPS, cached
+     transcript ──▶ summary on the device (rules, always possible, also offline)
+               └──▶ only after an explicit "yes": redacted TEXT ──HTTPS──▶ /api/duell/ai kind "protokoll"
+                                                          (own local model, no cache, the text is not logged) ──▶ protocol JSON, checked here
+     protocol ──▶ this device's storage (delete any time) ──▶ text export, share sheet
+
+   Everything here is pure so node can test it; protokoll-page.js does the DOM, the microphone and the worker. */
+(function (root) {
+  "use strict";
+  var RATE = 16000;
+  // The same files and digests as the gallery's /d/untertitel (CADS-DEMO-wrapper static/vendor/untertitel/PROVENANCE.json):
+  // whisper.cpp v1.8.2 as wasm (@transcribe/shout 1.0.7, MIT) and the OpenAI Whisper weights (MIT), quantised by whisper.cpp.
+  var VENDOR = "/static/vendor/untertitel/";
+  var RUNTIME = { file: "shout.wasm.js", sha256: "e6aaa9c243013518393410d48a8930c9b98b17719baafb4dfd307a6ff9c45866", bytes: 1547886 };
+  var MODELS = {
+    tiny: { file: "ggml-tiny-q5_1.bin", sha256: "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7", bytes: 32152673 },
+    base: { file: "ggml-base-q5_1.bin", sha256: "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898", bytes: 59707625 }
+  };
+  var MAX_TEXT = 12000, MAX_NAMES = 12, MAX_NAME = 40, MAX_KEEP = 50;
+
+  // Which model this device can carry, or an honest no. dev: { wasm, worker, isolated, media, mem (GB, often missing), cores, mobile }
+  function pickModel(dev) {
+    if (!dev.wasm || !dev.worker || !dev.isolated || !dev.media) return { ok: false, why: "browser" };
+    if (typeof dev.mem === "number" && dev.mem < 2) return { ok: false, why: "weak" };
+    var cores = dev.cores || 2;
+    if ((typeof dev.mem === "number" && dev.mem < 4) || cores < 4 || (dev.mobile && cores < 6)) return { ok: true, model: "tiny", note: "small" };
+    return { ok: true, model: "base", note: "" };
+  }
+  function threads(dev) { return Math.min(dev.mobile ? 4 : 8, Math.max(1, (dev.cores || 2) - 1)); }
+
+  // Linear resampling to 16 kHz. Not studio quality, enough for speech recognition.
+  function resample(input, from) {
+    if (from === RATE) return Float32Array.from(input);
+    var ratio = from / RATE, n = Math.floor(input.length / ratio), out = new Float32Array(n);
+    for (var i = 0; i < n; i++) {
+      var x = i * ratio, a = Math.floor(x), b = Math.min(a + 1, input.length - 1), f = x - a;
+      out[i] = input[a] * (1 - f) + input[b] * f;
+    }
+    return out;
+  }
+  function rms(pcm, from, to) {
+    var s = 0, n = 0;
+    for (var i = Math.max(0, from); i < Math.min(to, pcm.length); i++) { s += pcm[i] * pcm[i]; n++; }
+    return n ? Math.sqrt(s / n) : 0;
+  }
+
+  // Collects 16 kHz audio and cuts it into pieces for the recogniser: at a pause once minSec are there, at the latest at maxSec.
+  // A piece without speech (quiet throughout) is dropped, so whisper never gets silence to invent text from.
+  function Chunker(o) {
+    o = o || {};
+    var minSec = o.minSec || 8, maxSec = o.maxSec || 25, pauseSec = o.pauseSec || 0.6, quiet = o.quiet || 0.012;
+    var buf = [], len = 0, at = 0;      // at: start of the buffered audio, in samples since the start
+    function flat() { var out = new Float32Array(len), p = 0; buf.forEach(function (b) { out.set(b, p); p += b.length; }); return out; }
+    function cut(n) {
+      var all = flat(), piece = all.slice(0, n), rest = all.slice(n), start = at;
+      buf = rest.length ? [rest] : []; len = rest.length; at += n;
+      return rms(piece, 0, piece.length) < quiet ? null : { pcm: piece, start: start / RATE, sec: piece.length / RATE };
+    }
+    return {
+      push: function (pcm) {
+        buf.push(pcm); len += pcm.length;
+        var out = [];
+        while (len >= maxSec * RATE) { var c = cut(maxSec * RATE); if (c) out.push(c); }
+        if (len >= minSec * RATE) {
+          var all = flat(), p = Math.floor(pauseSec * RATE);
+          if (rms(all, all.length - p, all.length) < quiet) { var d = cut(len); if (d) out.push(d); }
+        }
+        return out;
+      },
+      flush: function () { return len ? cut(len) : null; },
+      buffered: function () { return len / RATE; }
+    };
+  }
+
+  // whisper fills silence and noise with lines it learned from subtitles. These never belong in a protocol.
+  var NOISE = [/untertitel(ung)?\s+(im\s+auftrag\s+)?(des|der|von)\b/i, /^\s*(vielen\s+)?dank\s+f(ü|ue)r(s|'s)?\s+(das\s+)?zu(schauen|sehen|h(ö|oe)ren)/i,
+    /copyright\s+(wdr|zdf|ard|swr|ndr)/i, /amara\.org/i, /^\s*thanks?\s+(you\s+)?for\s+watching/i, /subtitles?\s+by\b/i];
+  function cleanSegment(s) {
+    var t = String(s == null ? "" : s).replace(/\[[^\]]*\]|\([^)]*\)|\*[^*]*\*|♪+/g, " ").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+    if (!/[\p{L}\p{N}]/u.test(t)) return "";
+    return NOISE.some(function (r) { return r.test(t); }) ? "" : t;
+  }
+  // A recogniser result (whisper.cpp: { transcription: [{ text }] } or plain text) -> one clean line, "" when nothing was said.
+  function resultText(r) {
+    var parts = typeof r === "string" ? [r] : (r && Array.isArray(r.transcription) ? r.transcription.map(function (x) { return x && x.text; }) : []);
+    return parts.map(cleanSegment).filter(Boolean).join(" ").trim();
+  }
+  function stamp(sec) { sec = Math.max(0, Math.floor(sec)); var m = Math.floor(sec / 60), s = sec % 60; return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s; }
+
+  // Names typed in before the start: besides what the AI reads from the text, the only way people get into the list.
+  function cleanNames(s) {
+    var seen = {};
+    return String(s == null ? "" : s).split(/[,;\n]+/).map(function (n) { return n.replace(/[^\p{L}\p{N} .'-]/gu, "").replace(/\s+/g, " ").trim().slice(0, MAX_NAME); })
+      .filter(function (n) { var k = n.toLowerCase(); if (!n || seen[k]) return false; seen[k] = 1; return true; }).slice(0, MAX_NAMES);
+  }
+
+  // Contact data and account numbers have no business in the text that leaves the device; the page shows what goes out.
+  function redact(text) {
+    return String(text)
+      .replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, "[E-Mail]")
+      .replace(/https?:\/\/\S+|www\.\S+/gi, "[Link]")
+      .replace(/\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){3,7}(?:\s?[A-Z0-9]{1,3})?\b/g, "[IBAN]")
+      .replace(/(?:\+|\b00)?\d[\d\s\/().-]{5,}\d/g, function (m) { return m.replace(/\D/g, "").length >= 7 ? "[Nummer]" : m; });
+  }
+  function transcriptText(segs) { return segs.map(function (s) { return s.x; }).join("\n"); }
+
+  // ---- summary on the device: plain rules, no model. Always available, also offline. ------------------------------
+  var CUES = {
+    de: { decision: /(beschlossen|beschließen|entschieden|entscheiden uns|einigen uns|geeinigt|vereinbart|machen wir so|abgestimmt)/i,
+      task: /(übernimmt|übernehme|kümmert sich|kümmere mich|erledigt|schickt|schicke|bereitet .+ vor|klärt|kläre|meldet sich|\bbis (montag|dienstag|mittwoch|donnerstag|freitag|morgen|nächste woche|ende|zum|\d))/i,
+      topic: /^(thema|punkt|top \d+|als nächstes|nächster punkt|zum thema|es geht um)\b[:\s]*/i,
+      due: /\bbis\s+((zum\s+)?\d{1,2}\.\s?\d{1,2}\.?(\d{2,4})?|montag|dienstag|mittwoch|donnerstag|freitag|morgen|übermorgen|nächste woche|ende der woche|monatsende)/i },
+    en: { decision: /\b(decided|we agree|agreed|let'?s go with|we will go with|settled on|voted)\b/i,
+      task: /\b(will (send|prepare|check|do|write|call|update)|takes care of|is going to|by (monday|tuesday|wednesday|thursday|friday|tomorrow|next week|end))\b/i,
+      topic: /^(topic|item|next( item| point)?|moving on to)\b[:\s]*/i,
+      due: /\bby\s+(\d{1,2}[./]\d{1,2}|monday|tuesday|wednesday|thursday|friday|tomorrow|next week|end of (the )?(week|month))\b/i }
+  };
+  function sentences(text) { return String(text).split(/(?<=[.!?])\s+|\n+/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 3; }); }
+  function short(s, n) { s = s.replace(/\s+/g, " ").trim(); var a = Array.from(s); return a.length > n ? a.slice(0, n - 1).join("") + "…" : s; }
+  function localSummary(segs, names, lang) {
+    var cue = CUES[lang] || CUES.de, decisions = [], tasks = [], topics = [];
+    var all = sentences(transcriptText(segs));
+    all.forEach(function (s) {
+      var low = s.toLowerCase(), who = "";
+      names.forEach(function (n) { if (!who && low.indexOf(n.toLowerCase()) >= 0) who = n; });
+      if (cue.topic.test(s)) topics.push(short(s.replace(cue.topic, ""), 120));
+      if (cue.decision.test(s)) decisions.push(short(s, 160));
+      else if (cue.task.test(s)) tasks.push({ who: who, what: short(s, 160), due: short((s.match(cue.due) || [""])[0], 40) });
+    });
+    if (!topics.length && all.length) topics.push(short(all[0], 120));
+    return check({ title: "", participants: names, topics: topics.slice(0, 8), decisions: decisions.slice(0, 8), tasks: tasks.slice(0, 10) }, "local");
+  }
+
+  // ---- the protocol: one shape from the AI and from the rules above. Everything is checked again here. ----------------
+  function str(v, n) { return typeof v === "string" ? short(v.replace(/[<>\u0000-\u001f\u007f]/g, " "), n) : ""; }
+  function check(o, source) {
+    if (!o || typeof o !== "object") o = {};
+    var list = function (a, max, n) { return (Array.isArray(a) ? a : []).map(function (x) { return str(x, n); }).filter(Boolean).slice(0, max); };
+    return {
+      title: str(o.title, 60), participants: list(o.participants, MAX_NAMES, MAX_NAME), topics: list(o.topics, 8, 120), decisions: list(o.decisions, 8, 160),
+      tasks: (Array.isArray(o.tasks) ? o.tasks : []).map(function (t) { return t && typeof t === "object" ? { who: str(t.who, 40), what: str(t.what, 160), due: str(t.due, 40) } : null; })
+        .filter(function (t) { return t && t.what; }).slice(0, 10),
+      source: source === "ai" ? "ai" : "local"
+    };
+  }
+  function isEmpty(p) { return !p || (!p.topics.length && !p.decisions.length && !p.tasks.length); }
+
+  var LABELS = {
+    de: { head: "Protokoll", length: "Dauer", people: "Teilnehmende", topics: "Themen", decisions: "Entscheidungen", tasks: "Aufgaben", open: "offen", due: "bis", transcript: "Mitschrift",
+      ai: "Zusammengefasst mit KI (eigener Server, ohne Speicherung). Bitte gegenlesen.", local: "Zusammengefasst auf dem Gerät nach einfachen Regeln. Bitte gegenlesen." },
+    en: { head: "Minutes", length: "Length", people: "Participants", topics: "Topics", decisions: "Decisions", tasks: "Action items", open: "open", due: "by", transcript: "Transcript",
+      ai: "Summarised with AI (own server, nothing stored). Please check.", local: "Summarised on this device with simple rules. Please check." }
+  };
+  function bullets(a, f) { return a.length ? a.map(function (x) { return "- " + f(x); }).join("\n") : "–"; }
+  // Plain text that reads well in a mail, a chat or a wiki (Markdown-compatible).
+  function toText(rec, lang, withTranscript) {
+    var L = LABELS[lang] || LABELS.de, p = rec.protocol || check({}, "local"), d = new Date(rec.at), out = [];
+    var date = isNaN(d) ? "" : d.toISOString().slice(0, 16).replace("T", " "), id = function (x) { return x; };
+    out.push("# " + (p.title || L.head) + (date ? " – " + date : ""), L.length + ": " + stamp(rec.sec || 0));
+    out.push("", "## " + L.people, bullets(p.participants, id));
+    out.push("", "## " + L.topics, bullets(p.topics, id));
+    out.push("", "## " + L.decisions, bullets(p.decisions, id));
+    out.push("", "## " + L.tasks, bullets(p.tasks, function (t) { return "[ ] " + (t.who || L.open) + ": " + t.what + (t.due ? " (" + L.due + " " + t.due.replace(/^(bis|by)\s+/i, "") + ")" : ""); }));
+    out.push("", "_" + L[p.source] + "_");
+    if (withTranscript && rec.segs && rec.segs.length) out.push("", "## " + L.transcript, rec.segs.map(function (s) { return "[" + stamp(s.t) + "] " + s.x; }).join("\n"));
+    return out.join("\n") + "\n";
+  }
+  // The short result that may travel in an app link (about 1100 characters there): no transcript, cut to fit.
+  function brief(rec, lang, max) {
+    var t = toText(rec, lang, false), a = Array.from(t); max = max || 900;
+    return a.length > max ? a.slice(0, max - 1).join("") + "…" : t;
+  }
+
+  // ---- this device's protocols. They belong to the person: kept until deleted, never synced. --------------------------
+  function keep(list, rec) { var l = (Array.isArray(list) ? list : []).filter(function (r) { return r && r.id !== rec.id; }); l.unshift(rec); return l.slice(0, MAX_KEEP); }
+  function drop(list, id) { return (Array.isArray(list) ? list : []).filter(function (r) { return r && r.id !== id; }); }
+
+  // What goes to the AI, and nothing more: redacted text, the names typed in and the consent.
+  function aiInput(segs, names) {
+    var text = redact(transcriptText(segs)), a = Array.from(text);
+    if (a.length > MAX_TEXT) text = a.slice(-MAX_TEXT).join("");
+    return { text: text, names: names.slice(0, MAX_NAMES), consent: true };
+  }
+  // The server's answer -> { how: result|quota|busy|blocked|local, protocol? }
+  function aiVerdict(status, json) {
+    if (status === 200 && json && Array.isArray(json.options) && json.options.length) {
+      var p = check(json.options[0], "ai");
+      return isEmpty(p) ? { how: "local" } : { how: "result", protocol: p };
+    }
+    if (status === 429 && json && json.error === "quota") return { how: "quota" };
+    if (status === 429) return { how: "busy" };
+    if (status === 422) return { how: "blocked" };
+    return { how: "local" };
+  }
+  // The small proof of work a new device shows once (the same rule as the app's ai.js and the server).
+  async function solve(device, bits, subtle) {
+    var enc = new TextEncoder();
+    for (var n = 0; ; n++) {
+      var h = new Uint8Array(await subtle.digest("SHA-256", enc.encode(device + ":" + n.toString(36)))), ok = true;
+      for (var i = 0, left = bits; left > 0 && ok; i++, left -= 8) ok = !(h[i] >> Math.max(0, 8 - left));
+      if (ok) return n.toString(36);
+    }
+  }
+
+  var api = { RATE: RATE, VENDOR: VENDOR, RUNTIME: RUNTIME, MODELS: MODELS, MAX_TEXT: MAX_TEXT, pickModel: pickModel, threads: threads, resample: resample, rms: rms, Chunker: Chunker,
+    cleanSegment: cleanSegment, resultText: resultText, stamp: stamp, cleanNames: cleanNames, redact: redact, transcriptText: transcriptText, localSummary: localSummary,
+    check: check, isEmpty: isEmpty, toText: toText, brief: brief, keep: keep, drop: drop, aiInput: aiInput, aiVerdict: aiVerdict, solve: solve, LABELS: LABELS };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.Protokoll = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+<script>
+/* Fast Easy Protokoll: the page. Consent first, a recording sign the whole time, stop at any moment. The audio goes from the
+   microphone through protokoll.js into the worker and is gone after each piece; only text is kept, on this device.
+   Everything people say is put into text nodes, never into HTML. */
+(function () {
+  "use strict";
+  var P = window.Protokoll, T = window.ProtokollTexts, test = window.ProtokollTest || null;
+  var STORE = "protokoll.v1", APP = "daily.v1", AI = "/api/duell/ai", AI_MS = 50000, STALL_MS = 20000, CACHE = "protokoll-v1";
+  var lang = /^en\b/i.test(new URLSearchParams(location.search).get("lang") || navigator.language || "") ? "en" : "de";
+  var t = function (k, v) { var s = (T[lang] || T.de)[k] || T.de[k] || k; return v ? s.replace(/\{(\w+)\}/g, function (_, n) { return v[n]; }) : s; };
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function btn(text, cls, fn) { var b = el("button", cls || "btn", text); b.type = "button"; b.addEventListener("click", fn); return b; }
+  function show(id) { ["intro", "rec", "review", "result"].forEach(function (s) { $(s).hidden = s !== id; }); window.scrollTo(0, 0); }
+  function toast(msg) { var b = $("toast"); b.textContent = msg; b.hidden = false; clearTimeout(toast.tm); toast.tm = setTimeout(function () { b.hidden = true; }, 3500); }
+
+  // ---- this device: what it can do --------------------------------------------------------------------------------
+  var dev = {
+    wasm: typeof WebAssembly === "object", worker: typeof Worker === "function", isolated: !!window.crossOriginIsolated,
+    media: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia), mem: navigator.deviceMemory, cores: navigator.hardwareConcurrency,
+    mobile: /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)
+  };
+  var fit = P.pickModel(dev), model = fit.ok ? fit.model : "tiny";
+
+  // ---- storage: own list, and the app's device id so the AI allowance is the same one ------------------------------
+  function readJson(key, def) { try { var v = JSON.parse(localStorage.getItem(key) || "null"); return v == null ? def : v; } catch (e) { return def; } }
+  function writeJson(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  function list() { return readJson(STORE, []); }
+  function appStore() { var s = readJson(APP, {}); return s && typeof s === "object" ? s : {}; }
+  function setApp(k, v) { var s = appStore(); s[k] = v; writeJson(APP, s); }
+  function device() {
+    var d = appStore().aiDev;
+    if (typeof d !== "string" || !/^[a-f0-9]{32}$/.test(d)) { var b = new Uint8Array(16); crypto.getRandomValues(b); d = Array.from(b, function (x) { return (x + 256).toString(16).slice(1); }).join(""); setApp("aiDev", d); }
+    return d;
+  }
+  async function proof() { var p = appStore().aiProof; if (typeof p !== "string") { p = await P.solve(device(), 16, crypto.subtle); setApp("aiProof", p); } return p; }
+
+  // ---- recogniser: whisper.cpp in a worker; model and runtime from this domain, checked and cached -----------------
+  async function sha256(buf) { return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", buf)), function (x) { return (x + 256).toString(16).slice(1); }).join(""); }
+  // One file: from the cache when it is there and intact, otherwise over HTTPS from this origin. A stalled download says so.
+  async function fetchChecked(f, onBytes) {
+    var url = P.VENDOR + f.file, cache = null;
+    try { cache = await caches.open(CACHE); } catch (e) {}
+    var hit = cache && await cache.match(url);
+    if (hit) { var hb = await hit.arrayBuffer(); if (await sha256(hb) === f.sha256) { onBytes(f.bytes); return new Blob([hb]); } await cache.delete(url); }
+    if (navigator.onLine === false) throw new Error("offline");
+    var ctl = new AbortController(), stall = setTimeout(function () { ctl.abort(); }, STALL_MS);
+    var res = await fetch(url, { signal: ctl.signal, credentials: "same-origin", cache: "no-store" });
+    if (!res.ok || !res.body) { clearTimeout(stall); throw new Error("http-" + res.status); }
+    var rd = res.body.getReader(), parts = [], got = 0;
+    for (;;) {
+      var r = await rd.read();
+      clearTimeout(stall); if (r.done) break;
+      stall = setTimeout(function () { ctl.abort(); }, STALL_MS);
+      parts.push(r.value); got += r.value.length; onBytes(got);
+    }
+    var buf = await new Blob(parts).arrayBuffer();
+    if (await sha256(buf) !== f.sha256) throw new Error("digest");
+    if (cache) try { await cache.put(url, new Response(buf.slice(0), { headers: { "Content-Type": "application/octet-stream" } })); } catch (e) {}
+    return new Blob([buf]);
+  }
+  function whisper(which) {
+    var w = null, waiting = {}, n = 0;
+    function answer(e) { var m = e.data, f = waiting[m.id]; if (!f) return; delete waiting[m.id]; f(m.type === "text" ? P.resultText(m.result) : ""); }
+    return {
+      load: async function (progress) {
+        var files = [P.RUNTIME, P.MODELS[which]], total = files[0].bytes + files[1].bytes, done = [0, 0];
+        var got = await Promise.all(files.map(function (f, i) { return fetchChecked(f, function (b) { done[i] = b; progress((done[0] + done[1]) / total); }); }));
+        w = new Worker("/duell/protokoll-worker.js", { type: "module" });
+        await new Promise(function (ok, no) {
+          w.onmessage = function (e) { var m = e.data; if (m.type === "ready") { w.onmessage = answer; ok(); } else if (m.type === "error") no(new Error(m.message)); };
+          w.onerror = function (e) { no(new Error(e.message || "worker")); };
+          w.postMessage({ type: "init", runtime: got[0], model: got[1], threads: P.threads(dev) });
+        });
+      },
+      transcribe: function (pcm) {
+        return new Promise(function (ok) { var id = ++n; waiting[id] = ok; w.postMessage({ type: "chunk", id: id, pcm: pcm, lang: lang }, [pcm.buffer]); });
+      },
+      close: function () { if (w) w.terminate(); w = null; }
+    };
+  }
+
+  // ---- the meeting ------------------------------------------------------------------------------------------------
+  var rec = null;    // { id, at, sec, names, segs, protocol }
+  var live = null;   // while the microphone is on
+  function newRec(names) { return { id: "p" + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36), at: Date.now(), sec: 0, names: names, segs: [], protocol: null }; }
+
+  async function start() {
+    if (!$("consent").checked) { toast(t("needConsent")); return; }
+    var names = P.cleanNames($("names").value), go = $("start");
+    var recog = test && test.recognizer ? test.recognizer : whisper(model);
+    go.disabled = true;
+    try {
+      $("load").hidden = false; $("loadbar").value = 0; $("loadtext").textContent = t("loading", { mb: Math.round((P.RUNTIME.bytes + P.MODELS[model].bytes) / 1e6) });
+      await recog.load(function (f) { $("loadbar").value = f; });
+    } catch (e) {
+      go.disabled = false; $("load").hidden = true;
+      toast(/offline/.test(e.message) ? t("errOffline") : /digest/.test(e.message) ? t("errDigest") : t("errLoad")); return;
+    }
+    var stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+    catch (e) { go.disabled = false; $("load").hidden = true; toast(t("errMic")); return; }
+    $("load").hidden = true; go.disabled = false;
+    rec = newRec(names);
+    var ctx = new (window.AudioContext || window.webkitAudioContext)(), src = ctx.createMediaStreamSource(stream);
+    var proc = ctx.createScriptProcessor(4096, 1, 1), mute = ctx.createGain(); mute.gain.value = 0;
+    var chunker = P.Chunker(test && test.tuning), queue = Promise.resolve(), lag = 0;
+    live = { stream: stream, ctx: ctx, recog: recog, paused: false, began: Date.now(), offset: 0, timer: 0, chunker: chunker, wake: null };
+    function feed(pieces) {
+      pieces.forEach(function (c) {
+        lag += c.sec; showLag(lag);
+        queue = queue.then(function () { return recog.transcribe(c.pcm); }).then(function (text) {
+          lag -= c.sec; showLag(lag);
+          if (text) { var s = { t: Math.round(c.start), x: text }; rec.segs.push(s); line(s); }
+        }, function () { lag -= c.sec; showLag(lag); });
+      });
+    }
+    live.feed = feed; live.queue = function () { return queue; };
+    proc.onaudioprocess = function (e) {
+      if (!live || live.paused) return;
+      var pcm = P.resample(e.inputBuffer.getChannelData(0), ctx.sampleRate);
+      $("level").value = Math.min(1, P.rms(pcm, 0, pcm.length) * 8);
+      feed(chunker.push(pcm));
+    };
+    src.connect(proc); proc.connect(mute); mute.connect(ctx.destination);
+    try { live.wake = await navigator.wakeLock.request("screen"); } catch (e) {}
+    $("lines").textContent = ""; $("lag").hidden = true;
+    $("recnames").textContent = names.length ? t("recNames", { n: names.join(", ") }) : t("recNoNames");
+    document.title = "● " + t("recording") + " – " + t("title");
+    live.timer = setInterval(tick, 500); tick();
+    show("rec");
+  }
+  function elapsed() { return live ? (live.offset + (live.paused ? 0 : (Date.now() - live.began))) / 1000 : 0; }
+  function tick() { if (live) $("clock").textContent = P.stamp(elapsed()); }
+  function showLag(s) { var b = $("lag"); b.hidden = s < 20; b.textContent = t("lag", { s: Math.round(s) }); }
+  function line(s) { var li = el("li"); li.appendChild(el("time", "", P.stamp(s.t))); li.appendChild(el("span", "", s.x)); $("lines").appendChild(li); li.scrollIntoView({ block: "nearest" }); }
+  function pause() {
+    if (!live) return;
+    var on = live.paused;
+    if (on) live.began = Date.now(); else live.offset += Date.now() - live.began;
+    live.paused = !on;
+    live.stream.getTracks().forEach(function (k) { k.enabled = on; });
+    $("pause").textContent = t(on ? "pause" : "resume"); $("rec").classList.toggle("paused", !on); $("recstate").textContent = t(on ? "recording" : "paused");
+  }
+  // Stop: the microphone is released at once (the browser's own sign goes out), then the last pieces are recognised.
+  async function stop() {
+    if (!live) return;
+    var l = live; rec.sec = Math.round(elapsed()); clearInterval(l.timer);
+    l.stream.getTracks().forEach(function (k) { k.stop(); }); try { await l.ctx.close(); } catch (e) {}
+    try { if (l.wake) l.wake.release(); } catch (e) {}
+    document.title = t("title");
+    var last = l.chunker.flush(); if (last) l.feed([last]);
+    live = null;
+    $("finishing").hidden = false; $("transcript").value = ""; $("transcript").disabled = true; show("review");
+    await l.queue();
+    if (l.recog.close) l.recog.close();
+    $("finishing").hidden = true; $("transcript").disabled = false;
+    $("transcript").value = rec.segs.map(function (s) { return s.x; }).join("\n");
+    $("rnames").value = rec.names.join(", ");
+    $("aiask").hidden = true; $("aiok").checked = false;
+  }
+  // Lines of the edited text keep their time stamps where they still line up, otherwise the last one.
+  function takeEdits() {
+    var lines = $("transcript").value.split(/\n+/).map(function (s) { return s.trim(); }).filter(Boolean), old = rec.segs;
+    rec.segs = lines.map(function (x, i) { return { t: old[i] ? old[i].t : (old.length ? old[old.length - 1].t : 0), x: x.slice(0, 2000) }; });
+    rec.names = P.cleanNames($("rnames").value);
+  }
+
+  // ---- protocol -----------------------------------------------------------------------------------------------------
+  function localProtocol(note) { takeEdits(); rec.protocol = P.localSummary(rec.segs, rec.names, lang); save(); result(note); }
+  function askAi() {
+    takeEdits();
+    if (!rec.segs.length) { toast(t("empty")); return; }
+    var input = P.aiInput(rec.segs, rec.names);
+    $("aisize").textContent = t("aiSize", { n: Array.from(input.text).length });
+    $("aipreview").textContent = input.text;
+    $("aiask").hidden = false; $("aiask").scrollIntoView({ block: "nearest" });
+  }
+  async function sendAi() {
+    if (!$("aiok").checked) { toast(t("needAiConsent")); return; }
+    var go = $("aisend"), how = "local", protocol = null;
+    go.disabled = true; go.textContent = t("aiBusyNow");
+    try {
+      if (navigator.onLine === false) throw new Error("offline");
+      var body = JSON.stringify({ kind: "protokoll", input: P.aiInput(rec.segs, rec.names), device: device(), proof: await proof(), lang: lang });
+      var ctl = new AbortController(), tm = setTimeout(function () { ctl.abort(); }, AI_MS);
+      try {
+        var res = await fetch(AI, { method: "POST", headers: { "Content-Type": "application/json" }, body: body, signal: ctl.signal, credentials: "same-origin", referrerPolicy: "no-referrer" });
+        var json = null; try { json = await res.json(); } catch (e) {}
+        if (json && json.meter) setApp("aiMeter", json.meter);
+        var v = P.aiVerdict(res.status, json); how = v.how; protocol = v.protocol || null;
+      } finally { clearTimeout(tm); }
+    } catch (e) { how = "local"; }
+    go.disabled = false; go.textContent = t("aiSend");
+    if (how === "result") { rec.protocol = protocol; save(); result(""); return; }
+    localProtocol(t("ai_" + how));
+  }
+  function save() { writeJson(STORE, P.keep(list(), rec)); }
+  function section(title, items, fmt) {
+    var s = el("section", "part"); s.appendChild(el("h3", "", title));
+    if (!items.length) { s.appendChild(el("p", "none", "–")); return s; }
+    var ul = el("ul"); items.forEach(function (x) { ul.appendChild(fmt(x)); }); s.appendChild(ul); return s;
+  }
+  function result(note) {
+    var p = rec.protocol, L = P.LABELS[lang], box = $("protocol"), li = function (x) { return el("li", "", x); };
+    box.textContent = "";
+    box.appendChild(el("h2", "", p.title || L.head));
+    box.appendChild(el("p", "meta", new Date(rec.at).toLocaleString(lang === "en" ? "en-GB" : "de-DE", { dateStyle: "medium", timeStyle: "short" }) + " · " + L.length + " " + P.stamp(rec.sec)));
+    box.appendChild(section(L.people, p.participants, li));
+    box.appendChild(section(L.topics, p.topics, li));
+    box.appendChild(section(L.decisions, p.decisions, li));
+    box.appendChild(section(L.tasks, p.tasks, function (x) {
+      var e = el("li", "task"); e.appendChild(el("b", "", x.who || L.open)); e.appendChild(el("span", "", " " + x.what)); if (x.due) e.appendChild(el("em", "", " · " + x.due)); return e;
+    }));
+    box.appendChild(el("p", "src", L[p.source]));
+    $("note").hidden = !note; $("note").textContent = note || "";
+    show("result");
+  }
+  function exportText() { return P.toText(rec, lang, $("withtext").checked); }
+  async function copy() { try { await navigator.clipboard.writeText(exportText()); toast(t("copied")); } catch (e) { toast(t("errCopy")); } }
+  function download() {
+    var a = el("a"); a.href = URL.createObjectURL(new Blob([exportText()], { type: "text/markdown;charset=utf-8" }));
+    a.download = "protokoll-" + new Date(rec.at).toISOString().slice(0, 10) + ".md"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+  }
+  async function share() {
+    if (!navigator.share) { copy(); return; }
+    try { await navigator.share({ title: rec.protocol.title || t("title"), text: exportText() }); } catch (e) {}
+  }
+  function remove(id) {
+    if (!confirm(t("confirmDelete"))) return;
+    writeJson(STORE, P.drop(list(), id)); if (rec && rec.id === id) rec = null;
+    toast(t("deleted")); fillList(); show("intro");
+  }
+  function removeAll() { if (!confirm(t("confirmDeleteAll"))) return; try { localStorage.removeItem(STORE); } catch (e) {} rec = null; toast(t("deleted")); fillList(); }
+
+  // ---- start screen -------------------------------------------------------------------------------------------------
+  function fillList() {
+    var l = list(), ul = $("saved"); ul.textContent = "";
+    $("savedbox").hidden = !l.length;
+    l.forEach(function (r) {
+      var li = el("li"), when = new Date(r.at).toLocaleString(lang === "en" ? "en-GB" : "de-DE", { dateStyle: "short", timeStyle: "short" });
+      li.appendChild(btn(((r.protocol && r.protocol.title) || t("title")) + " · " + when, "link", function () { rec = r; if (r.protocol) result(""); }));
+      li.appendChild(btn(t("delete"), "small danger", function () { remove(r.id); }));
+      ul.appendChild(li);
+    });
+  }
+  function intro() {
+    var f = $("fit"), mb = Math.round((P.RUNTIME.bytes + P.MODELS[model].bytes) / 1e6);
+    if (!fit.ok) { f.textContent = t(fit.why === "weak" ? "fitWeak" : "fitBrowser"); f.className = "warn"; $("start").disabled = true; }
+    else { f.textContent = t(model === "tiny" && fit.note === "small" ? "fitSmall" : "fitOk", { mb: mb }); f.className = fit.note ? "warn" : "ok"; }
+    $("model").value = model; $("model").disabled = !fit.ok;
+    fillList();
+  }
+
+  document.querySelectorAll("[data-t]").forEach(function (e) { e.textContent = t(e.dataset.t); });
+  document.documentElement.lang = lang; document.title = t("title");
+  $("model").addEventListener("change", function () { model = $("model").value === "base" ? "base" : "tiny"; intro(); });
+  $("start").addEventListener("click", start);
+  $("pause").addEventListener("click", pause);
+  $("stop").addEventListener("click", stop);
+  $("mklocal").addEventListener("click", function () { if (!$("transcript").value.trim()) { toast(t("empty")); return; } localProtocol(""); });
+  $("mkai").addEventListener("click", askAi);
+  $("aisend").addEventListener("click", sendAi);
+  $("discard").addEventListener("click", function () { if (confirm(t("confirmDiscard"))) { rec = null; fillList(); show("intro"); } });
+  $("copy").addEventListener("click", copy);
+  $("download").addEventListener("click", download);
+  $("share").addEventListener("click", share);
+  $("del").addEventListener("click", function () { if (rec) remove(rec.id); });
+  $("again").addEventListener("click", function () { rec = null; fillList(); show("intro"); });
+  $("delall").addEventListener("click", removeAll);
+  // Leaving the page ends the recording: nothing goes on unseen in the background of a closed tab.
+  window.addEventListener("pagehide", function () { if (live) live.stream.getTracks().forEach(function (k) { k.stop(); }); });
+  intro();
+  window.ProtokollDebug = { rec: function () { return rec; }, live: function () { return !!live; }, model: function () { return model; } };
+})();
+
+</script>
+</body>
+</html>

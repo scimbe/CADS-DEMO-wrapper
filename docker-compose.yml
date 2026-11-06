@@ -17,13 +17,28 @@ services:
       - LITELLM_BASE_URL=${LITELLM_BASE_URL:?shared litellm proxy base}
       - LITELLM_API_KEY=${LITELLM_API_KEY:?shared litellm proxy key}
       - LITELLM_DEFAULT_MODEL=${LITELLM_DEFAULT_MODEL:-local-qwen36-35b-a3b-coding}
-      # My Daily Idea, KI-Kontingent (siehe lib/duell-ai.mjs). Ohne DUELL_AI_SALT zaehlt es nur bis zum Neustart.
+      # My Daily Idea, KI-Toepfe (siehe lib/duell-ai.mjs, lib/duell-pots.mjs). Ohne DUELL_AI_SALT zaehlt es nur bis zum Neustart.
       - DUELL_AI_SALT=${DUELL_AI_SALT:-}
       - DUELL_AI_STATE_FILE=${DUELL_AI_STATE_FILE:-/var/lib/duell-ai/state.json}
-      - DUELL_AI_ABO_ALLOWLIST=${DUELL_AI_ABO_ALLOWLIST:-}
-      - DUELL_AI_FREE=${DUELL_AI_FREE:-3}
       - DUELL_AI_ENABLED=${DUELL_AI_ENABLED:-1}
-      - DUELL_AI_ABO_PER_DAY=${DUELL_AI_ABO_PER_DAY:-30}
+      - DUELL_AI_FREE_PER_WEEK=${DUELL_AI_FREE_PER_WEEK:-7}
+      - DUELL_AI_PRO_PER_MONTH=${DUELL_AI_PRO_PER_MONTH:-300}
+      - DUELL_AI_PRO_DEVICES=${DUELL_AI_PRO_DEVICES:-6}
+      - DUELL_AI_BIZ_PER_MONTH=${DUELL_AI_BIZ_PER_MONTH:-300}
+      - DUELL_AI_BIZ_RESERVED_PER_DAY=${DUELL_AI_BIZ_RESERVED_PER_DAY:-120}
+      - DUELL_PROTOKOLL_TRIAL_PER_MONTH=${DUELL_PROTOKOLL_TRIAL_PER_MONTH:-3}
+      # Pro/Business nur per Schluessel (node bin/duell-key.mjs), kein Kaufweg. Leer = niemand hat Pro/Business.
+      - DUELL_ENTITLEMENT_SECRET=${DUELL_ENTITLEMENT_SECRET:-}
+      - DUELL_ENTITLEMENTS=${DUELL_ENTITLEMENTS:-}
+      # KI-Siegel, Meldungen (Volume duell-ai), Review/Messung nur mit Token.
+      - DUELL_SEAL_SECRET=${DUELL_SEAL_SECRET:-}
+      - DUELL_REPORT_DIR=${DUELL_REPORT_DIR:-/var/lib/duell-ai/reports}
+      - DUELL_REPORT_KEEP_DAYS=${DUELL_REPORT_KEEP_DAYS:-30}
+      - DUELL_ADMIN_TOKEN=${DUELL_ADMIN_TOKEN:-}
+      # Warteschlange vor dem Modell (siehe lib/duell-queue.mjs). 1 = gemessen bester Wert, solange das Modell nicht buendelt.
+      - DUELL_LLM_PARALLEL=${DUELL_LLM_PARALLEL:-1}
+      - DUELL_QUEUE_MAX=${DUELL_QUEUE_MAX:-30}
+      - DUELL_QUEUE_HOLD_MS=${DUELL_QUEUE_HOLD_MS:-8000}
       - DUELL_AI_KEYS_MAX=${DUELL_AI_KEYS_MAX:-100000}
       - DUELL_AI_CACHE_TTL_S=${DUELL_AI_CACHE_TTL_S:-86400}
       - DUELL_AI_CACHE_MAX=${DUELL_AI_CACHE_MAX:-300}
