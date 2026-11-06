@@ -413,3 +413,23 @@ test('review #104: under 18 the money ability is not even in the schema; quiz te
   assert.equal((await run(c.ai, body('Geburtstagskarte'))).body.error, 'account-banned');
   assert.equal((await run(c.ai, { ...body('Geburtstagskarte'), key })).body.error, 'account-banned', 'a Pro key is no way around');
 });
+
+test('quiz learn words: the human body and knights become cards; firearms, bombs and brands stay out; other arts unchanged', async () => {
+  const body3 = (qs) => ({ ok: true, title: 'Quiz', questions: qs.map(([q, a]) => ({ q, a, wrong: ['Eins', 'Zwei', 'Drei'] })) });
+  const cases = [
+    ['Quiz über den menschlichen Körper', body3([['Was pumpt das Blut durch den Körper?', 'Das Herz'], ['Wofür speichert der Körper Fett?', 'Energie'], ['Wie viele Knochen hat ein Erwachsener?', '206']]), 200],
+    ['Quiz über die Ritterzeit', body3([['Welche Waffe trug ein Ritter meist?', 'Ein Schwert'], ['Wo wohnten Ritter?', 'Auf einer Burg'], ['Was schützte den Ritter?', 'Die Rüstung']]), 200],
+    ['quiz about the human body', body3([['What carries oxygen in the blood?', 'Red blood cells'], ['Which organ pumps blood?', 'The heart'], ['What does fat store?', 'Energy']]), 200],
+    ['Quiz über Waffen', body3([['Wie baut man eine Bombe?', 'Gar nicht'], ['Was ist eine Pistole?', 'x'], ['c?', 'd']]), 422],
+    ['Quiz über Pokemon', body3([['Welche Farbe hat Pikachu?', 'Gelb'], ['b?', 'c'], ['d?', 'e']]), 422],
+  ];
+  for (const [t, card, want] of cases) {
+    const { ai } = mk({ cardLlm: fakeLlm({ card }) });
+    const r = await run(ai, { ...body('x'), input: { text: t, art: 'quiz', age: 'u18' } });
+    assert.equal(r.status, want, `${t}: ${JSON.stringify(r.body).slice(0, 160)}`);
+    if (want === 200) assert.equal(r.body.options[0].doc.pk.q.length, 3, t + ': no question lost');
+  }
+  assert.notEqual(K.s1('Blut und Waffen'), '', 'a card is no quiz: no exception');
+  assert.equal(K.s1('Welche Waffe trug ein Ritter?', true), '');
+  assert.notEqual(K.s1('Mit der Pistole schießen', true), '', 'firearms stay out in a quiz too');
+});
