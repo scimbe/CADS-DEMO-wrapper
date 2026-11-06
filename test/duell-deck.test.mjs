@@ -21,7 +21,7 @@ const T0 = Date.UTC(2026, 10, 1, 12);
 function setup({ env = {}, review, dir = mkdtempSync(join(tmpdir(), 'duell-deck-')) } = {}) {
   const clock = { t: T0 };
   const now = () => clock.t, log = () => {};
-  const E = { DUELL_SEAL_SECRET: 'seal', DUELL_AI_SALT: 'ai', DUELL_DECK_SALT: SALT, DUELL_ADMIN_TOKEN: ADMIN, DUELL_DECK_TICK_MS: '0', ...env };
+  const E = { DUELL_SEAL_SECRET: 'seal', DUELL_AI_SALT: 'ai', DUELL_DECK_SALT: SALT, DUELL_ADMIN_TOKEN: ADMIN, DUELL_DECK_TICK_MS: '0', DUELL_DECK_EPHEMERAL: '1', ...env };
   const d = createDuell({ env: E, salt: 's', log, llm: async () => '{}', now });
   const auth = { mode: 'gate', identify: async (req) => ({ email: (req && req.headers['x-mail']) || null }) };
   const ai = createDuellAi({ env: E, shared: d.shared, auth, log, llm: async () => '{}', now });
@@ -511,4 +511,110 @@ test('Statistik-Reiter: nur mit Token, Zeitfenster 7/30/90/365, ohne k-Maske, fr
     assert.equal(createHash('sha256').update(html.match(/<script>([\s\S]*)<\/script>/)[1]).digest('base64'), hash);
     assert.doesNotMatch(html, /innerHTML|insertAdjacentHTML|document\.write/, 'textContent only');
   } finally { await h.close(); }
+});
+
+/** Probe of the W4 review: a creator with three cards used by the same two accounts (k = 2) -> ring on card A. */
+async function ringSetup(review) {
+  const s = setup({ env: { DUELL_DECK_K: '2' }, review });
+  const owner = await keyOf(s, 'creator@example.org');
+  const ids = [];
+  for (const x of ['Alpha Beta Gamma Delta Epsilon Zeta', 'Rot Gruen Blau Gelb Lila Orange Weiss', 'Hund Katze Maus Pferd Esel Kuh Schaf']) {
+    const d = { x, s: 'neon', t: x.split(' ')[0] }, { ki, cid } = sealKarte(s.d.shared.sealer, SALT, d, owner, s.clock.t);
+    s.deck.register({ cid, owner, doc: { ...d, ki }, at: s.clock.t }); ids.push(cid);
+  }
+  const keys = [await keyOf(s, 'r0@example.org'), await keyOf(s, 'r1@example.org')];
+  for (let i = 0; i < 3; i++) { for (const k of keys) s.deck.seen(k); s.clock.t += DAY; }
+  s.clock.t += 15 * DAY;
+  const C = s.deck._cards;
+  for (const id of ids.slice(0, 2)) for (const k of keys) s.deck.count(k, id, C.get(id));
+  const before = s.credit.available(owner);
+  for (const k of keys) s.deck.count(k, ids[2], C.get(ids[2]));
+  await s.deck.tick();
+  return { s, owner, ids, keys, before };
+}
+
+test('Review W4 HOLD 1: was die Ring-Pruefung zuruecknimmt, kommt durch Wiederherstellen nicht zurueck; ein Block schon', async () => {
+  const { s, owner, ids, before } = await ringSetup();
+  assert.equal(before, 4); assert.ok(s.deck._cards.get(ids[0]).ring, 'ring on A');
+  const afterRing = s.credit.available(owner);
+  assert.equal(afterRing, 0, 'the ring took back what A and B earned');
+  assert.equal(s.deck.decide(ids[0], 'block').status, 200);
+  assert.equal(s.deck.decide(ids[0], 'restore').status, 200);
+  assert.equal(s.credit.available(owner), 0, 'restore does not give back the ring revocation (was 2 before the fix)');
+  // a block of a clean card still comes back on restore
+  const t = await make(s, 'clean@example.org'), more = await accounts(s, 25, { prefix: 'cl', active: 3 });
+  s.clock.t += 15 * DAY;
+  for (const m of more) s.deck.count(await keyOf(s, m), t.cid, s.deck._cards.get(t.cid));
+  const got = s.credit.available(t.owner);
+  assert.ok(got > 0);
+  s.deck.decide(t.cid, 'block'); assert.equal(s.credit.available(t.owner), 0);
+  s.deck.decide(t.cid, 'restore'); assert.equal(s.credit.available(t.owner), got, 'block revocation is given back');
+  // the reason is kept on disk
+  s.credit.flush();
+  const again = createCredit({ env: s.E, now: () => s.clock.t, log: () => {}, file: join(s.dir, 'credit.json') });
+  again.unrevoke(ids[0]); again.unrevoke(ids[1]);
+  assert.equal(again.available(owner), 0, 'ring revocation survives a restart');
+});
+
+test('Review W4 HOLD 2: Strikes zaehlen nur im Fenster DUELL_MOD_STRIKE_DAYS, auch bei automatischer Entfernung', async () => {
+  const s = setup(), v = await keyOf(s, 'victim@example.org'), w = await keyOf(s, 'w@example.org'), x = await keyOf(s, 'x@example.org');
+  s.mod.cardHidden(v, 'c'.repeat(22), { why: 'thumbs', down: 8, share: 0.7 });
+  assert.equal(s.mod.status(v).st, 'ok');
+  s.clock.t += 200 * DAY;
+  s.mod.cardRemoved(v, 'd'.repeat(22), { why: 'ai-recheck' }, true);
+  assert.equal(s.mod.status(v).st, 'ok', 'a strike from day 0 does not pause on day 200 (paused before the fix)');
+  // two automatic removals inside the window pause; only those strikes are used up
+  s.mod.cardRemoved(w, 'e'.repeat(22), { why: 'ai-recheck' }, true);
+  s.clock.t += 10 * DAY;
+  s.mod.cardRemoved(w, 'f'.repeat(22), { why: 'ai-recheck' }, true);
+  assert.equal(s.mod.status(w).st, 'paused');
+  assert.deepEqual(s.mod.me(w).notices.find((n) => n.type === 'pause').facts.cards, ['e'.repeat(22), 'f'.repeat(22)]);
+  // mixed: hidden then removed, 31 days apart -> no pause
+  s.mod.cardHidden(x, 'g'.repeat(22), { why: 'thumbs', down: 8, share: 0.7 });
+  s.clock.t += 31 * DAY;
+  s.mod.cardRemoved(x, 'h'.repeat(22), { why: 'ai-recheck' }, true);
+  assert.equal(s.mod.status(x).st, 'ok');
+  assert.equal(s.mod._accounts.get(x).strikes.length, 1, 'the old strike is dropped, not kept as used');
+});
+
+test('Review W4 NIT: Ring-Verdacht (flag) -> Aufnehmen erzwingt KI-Nachpruefung, Deck-Guthaben erst nach Ende des Verdachts; Publikums-Hinweis', async () => {
+  const seen = [];
+  const { s, owner, ids, keys } = await ringSetup(async (d) => { seen.push(d.t); return { risk: 0, cats: [] }; });
+  const C = s.deck._cards, a = C.get(ids[0]);
+  assert.equal(a.st, 'flag');
+  const view = s.deck.reviewView().queue.find((r) => r.cid === ids[0]);
+  assert.ok(view.pool && view.pool.share >= 0.6 && view.pool.same === true, 'audience overlap shown to the reviewer');
+  let r = s.deck.decide(ids[0], 'admit');
+  assert.equal(r.status, 202); assert.equal(r.body.st, 'candidate'); assert.equal(s.deck._deck().list.length, 0, 'not in the deck yet');
+  await s.deck.tick();
+  assert.ok(seen.includes('Alpha'), 'AI re-check ran'); assert.equal(a.st, 'review');
+  const bal = s.credit.available(owner);
+  r = s.deck.decide(ids[0], 'admit');
+  assert.equal(r.status, 200); assert.equal(a.st, 'deck');
+  assert.equal(s.credit.available(owner), bal, 'no deck credit while the ring suspicion stands');
+  assert.equal(a.ms.deckHeld, 1);
+  // the suspicion ends: many other accounts use only A -> share below 60 % -> the held deck credit is booked
+  const fans = await accounts(s, 6, { prefix: 'nurA', active: 3 });
+  for (const m of fans) s.deck.count(await keyOf(s, m), ids[0], a);
+  await s.deck.tick();
+  assert.equal(a.ring, undefined);
+  assert.equal(s.credit.available(owner), bal + 3, 'deck +3 once the suspicion is gone');
+  assert.equal(a.ms.deckHeld, undefined);
+  assert.ok(keys.length === 2);
+});
+
+test('Review W4 NIT: ohne DUELL_DECK_SALT oder DUELL_DECK_SIGN_KEY startet ein Deck mit Datei nicht (fail closed)', async () => {
+  const { generateKeyPairSync } = await import('node:crypto');
+  const dir = mkdtempSync(join(tmpdir(), 'duell-deck-strict-')), file = join(dir, 'deck.json');
+  const ed = generateKeyPairSync('ed25519').privateKey.export({ format: 'der', type: 'pkcs8' }).toString('base64');
+  const x = generateKeyPairSync('x25519').privateKey.export({ format: 'der', type: 'pkcs8' }).toString('base64');
+  const base = { DUELL_SEAL_SECRET: 'seal', DUELL_DECK_TICK_MS: '0' }, log = () => {};
+  const mk = (env, f = file) => createDeck({ env: { ...base, ...env }, shared: null, who: async () => null, log, file: f });
+  assert.throws(() => mk({ DUELL_DECK_SIGN_KEY: ed }), /DUELL_DECK_SALT missing/);
+  assert.throws(() => mk({ DUELL_DECK_SALT: 's' }), /DUELL_DECK_SIGN_KEY missing/);
+  assert.throws(() => mk({ DUELL_DECK_SALT: 's', DUELL_DECK_SIGN_KEY: 'nonsense' }), /PKCS8/);
+  assert.throws(() => mk({ DUELL_DECK_SALT: 's', DUELL_DECK_SIGN_KEY: x }), /no Ed25519/);
+  const ok = mk({ DUELL_DECK_SALT: 's', DUELL_DECK_SIGN_KEY: ed }); ok.stop();
+  mk({ DUELL_DECK_EPHEMERAL: '1' }).stop();
+  mk({}, '').stop();   // in memory only: logs, starts
 });
