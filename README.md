@@ -152,7 +152,9 @@ Code: `lib/duell-profile.mjs`, Tests: `test/duell-profile.test.mjs`. Freiwillig;
 - `POST /api/duell/profile/get|put|delete` `{via: account|code, code?, rev, profile, age16?, fresh?}`. `put` mit veralteter `rev` -> `409`.
 - `via: account`: bunsenbrenner-Login (Gate-Cookie, nur gleiche Herkunft). Das erste Speichern verlangt `age16: true`
   (Selbstauskunft „16 oder älter“, Art. 8 DSGVO); der Tag der Angabe wird gespeichert. Unter 16 gibt es den Sync-Code.
-- `via: code`: 128-Bit-Zufallscode, auf dem Gerät erzeugt; kein Konto, keine E-Mail. Wer den Code hat, hat das Profil.
+- `via: code`: 128-Bit-Zufallscode, auf dem Gerät erzeugt; keine E-Mail. Wer den Code hat, hat das Profil. Ein **neues** Code-Profil
+  legt nur an, wer angemeldet ist (`403 code-needs-login`, z. B. Eltern für ihr Kind; das Konto wird nicht gespeichert). Mit einem
+  vorhandenen Code abgleichen geht ohne Konto (weitere Geräte, Android-Hülle).
 - Gespeichert: Spitzname, Emoji, Farben, Sticker-Set, Wandbilder außer Fotowerken (`k: photo` wird verworfen) samt Merken-Link `f`
   (nur das `c=`-Fragment der Karte, wie in einem geteilten Link), gemerkte Karten, beim Code die KI-Geräte-ID. Dateiname ist ein HMAC; keine E-Mail, keine IP, kein Code auf der Platte.
 - Löschen entfernt die Daten sofort und lässt nur `{r, gone: true}` zurück, damit ein zweites Gerät das Profil nicht neu hochlädt.
@@ -164,6 +166,10 @@ Code: `lib/duell-profile.mjs`, Tests: `test/duell-profile.test.mjs`. Freiwillig;
 | `DUELL_PROFILE_SALT` | leer (aus, `503`) | HMAC-Salz für die Dateinamen, mindestens 16 Zeichen, fest über Neustarts. Ohne ihn bleibt der Speicher aus; ein neues Salz macht alle bestehenden Profile unerreichbar |
 | `DUELL_PROFILE_TTL_DAYS` | 400 | Löschfrist für ungenutzte Profile |
 | `DUELL_PROFILE_MAX` / `DUELL_PROFILE_NEW_PER_HOUR` / `DUELL_PROFILE_IP_NEW_PER_HOUR` / `DUELL_PROFILE_IP_NEW_PER_DAY` / `DUELL_PROFILE_WRITES_PER_HOUR` | 20000 / 60 / 5 / 20 / 240 | Grenzen; die Grenzen je IP greifen nur mit `DUELL_IP_HEADER` hinter einem Proxy |
+| `DUELL_PROFILE_ACCOUNT_NEW_PER_DAY` | 5 | neue Sync-Code-Profile je Konto und Tag (gezählt nur im Speicher, als HMAC) |
+| `DUELL_PROFILE_READS_PER_HOUR` / `DUELL_PROFILE_DELETES_PER_HOUR` | 240 / 10 | Abrufe und Löschungen je Profil |
+| `DUELL_PROFILE_MAX_PROFILE_BYTES` | 131072 (128 KB) | Größe je Profil, darüber `413 profile-too-large` |
+| `DUELL_PROFILE_MAX_BYTES` | 1073741824 (1 GB) | Gesamtgröße; erreicht: nichts Neues und kein Wachsen (`429 full`), Lesen, Verkleinern und Löschen gehen weiter |
 
 ### KI-Aktionen, Toepfe, Siegel und Melden (My Daily Idea)
 Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell-report.mjs`; Tests: `test/duell-ai.test.mjs`, `test/duell-ai-kinds.test.mjs`, `test/duell-queue.test.mjs`, `test/duell-seal.test.mjs`, `test/duell-report.test.mjs`. Gleiches Modell und gleiche Warteschlange wie `/api/duell/config`.

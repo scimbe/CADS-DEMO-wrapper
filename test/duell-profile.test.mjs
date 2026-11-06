@@ -12,7 +12,8 @@ const CODE = 'c0ffee'.padEnd(32, '0'), CODE2 = 'b'.repeat(32), DEV = 'd'.repeat(
 const TH = 'data:image/jpeg;base64,' + 'A'.repeat(200);
 const dir = () => mkdtempSync(join(tmpdir(), 'duell-profile-'));
 const gate = (email, error) => ({ mode: 'gate', identify: async () => (error ? { error: true } : { email }), loginUrl: (r) => 'https://bunsenbrenner.org/gate/start?return=' + encodeURIComponent(r) });
-const mk = ({ env = {}, auth = gate(null), now } = {}) => {
+const R = {};   // a request: the stub gate does not look at it
+const mk = ({ env = {}, auth = gate('eltern@example.org'), now } = {}) => {
   const d = createDuell({ env: {}, salt: 's', log: () => {} });
   return createDuellProfile({ env: { DUELL_PROFILE_DIR: dir(), DUELL_PROFILE_SALT: 'test-salt-0123456789', ...env }, auth, shared: d.shared, log: () => {}, ...(now ? { now } : {}) });
 };
@@ -52,12 +53,12 @@ test('cleanProfile: Fotos, fremde Felder, Kontaktdaten und kaputte Werte fallen 
 test('Sync-Code: anlegen, lesen, Revision, Loeschen; auf der Platte nur HMAC-Dateiname, kein Code', async () => {
   const s = mk();
   assert.deepEqual((await s.handle('get', { via: 'code', code: CODE })).body, { profile: null, rev: 0, via: 'code' });
-  const put = await s.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE });
+  const put = await s.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE }, R);
   assert.equal(put.status, 200); assert.equal(put.body.rev, 1);
   const got = (await s.handle('get', { via: 'code', code: CODE })).body;
   assert.equal(got.rev, 1); assert.equal(got.profile.me.nick, 'Mira'); assert.equal(got.profile.wall.length, 1); assert.deepEqual(got.profile.ai, { dev: DEV, proof: '1a' });
   assert.deepEqual((await s.handle('get', { via: 'code', code: CODE2 })).body.profile, null, 'another code sees nothing');
-  const stale = await s.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE });
+  const stale = await s.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE }, R);
   assert.equal(stale.status, 409); assert.equal(stale.body.rev, 1);
   const files = readdirSync(s.cfg.dir);
   assert.equal(files.length, 1); assert.match(files[0], /^s[a-f0-9]{32}\.json$/);
@@ -68,15 +69,15 @@ test('Sync-Code: anlegen, lesen, Revision, Loeschen; auf der Platte nur HMAC-Dat
   const marker = readFileSync(join(s.cfg.dir, files[0]), 'utf8');
   assert.deepEqual(JSON.parse(marker), { r: 2, gone: true }, 'deleting removes the data at once, only an empty marker stays');
   assert.deepEqual((await s.handle('get', { via: 'code', code: CODE })).body, { profile: null, rev: 2, via: 'code', gone: true });
-  assert.equal((await s.handle('put', { via: 'code', code: CODE, rev: 2, profile: PROFILE })).status, 410, 'a device that was linked does not upload it again');
-  assert.equal((await s.handle('put', { via: 'code', code: CODE, rev: 2, profile: PROFILE, fresh: true })).body.rev, 3, 'linking anew starts it again');
+  assert.equal((await s.handle('put', { via: 'code', code: CODE, rev: 2, profile: PROFILE }, R)).status, 410, 'a device that was linked does not upload it again');
+  assert.equal((await s.handle('put', { via: 'code', code: CODE, rev: 2, profile: PROFILE, fresh: true }, R)).body.rev, 3, 'linking anew starts it again');
   for (const bad of [{ via: 'code' }, { via: 'code', code: 'XYZ' }, { via: 'nope' }, null, []]) assert.equal((await s.handle('get', bad)).status, 400, JSON.stringify(bad));
 });
 
 test('Konto: nur angemeldet, erstes Speichern nur mit 16+, Tag der Angabe bleibt, keine E-Mail auf der Platte', async () => {
   const off = createDuellProfile({ env: { DUELL_PROFILE_DIR: dir(), DUELL_PROFILE_SALT: 'test-salt-0123456789' }, auth: { mode: 'off' }, shared: {}, log: () => {} });
   assert.equal((await off.handle('get', { via: 'account' }, {})).body.error, 'login-off');
-  const anon = mk();
+  const anon = mk({ auth: gate(null) });
   const r = await anon.handle('get', { via: 'account' }, {});
   assert.equal(r.status, 401); assert.match(r.body.login_url, /return=%2Fduell$/);
   assert.equal((await mk({ auth: gate(null, true) }).handle('get', { via: 'account' }, {})).status, 503);
@@ -98,17 +99,17 @@ test('Konto: nur angemeldet, erstes Speichern nur mit 16+, Tag der Angabe bleibt
 });
 
 test('Grenzen: neue Profile je IP und Stunde, Schreibrate, Obergrenze, ohne Verzeichnis 503', async () => {
-  const s = mk({ env: { DUELL_PROFILE_IP_NEW_PER_HOUR: '2', DUELL_PROFILE_WRITES_PER_HOUR: '3' } });
+  const s = mk({ env: { DUELL_PROFILE_IP_NEW_PER_HOUR: '2', DUELL_PROFILE_WRITES_PER_HOUR: '3', DUELL_PROFILE_ACCOUNT_NEW_PER_DAY: '99' } });
   const code = (i) => String(i).padStart(32, '0');
-  assert.equal((await s.handle('put', { via: 'code', code: code(1), rev: 0, profile: {} }, null, 'ip')).status, 200);
-  assert.equal((await s.handle('put', { via: 'code', code: code(2), rev: 0, profile: {} }, null, 'ip')).status, 200);
-  assert.equal((await s.handle('put', { via: 'code', code: code(3), rev: 0, profile: {} }, null, 'ip')).body.error, 'new-limit');
-  assert.equal((await s.handle('put', { via: 'code', code: code(3), rev: 0, profile: {} }, null, 'other')).status, 200);
-  for (let r = 1; r < 3; r++) assert.equal((await s.handle('put', { via: 'code', code: code(1), rev: r, profile: {} }, null, 'ip')).status, 200, 'updates are no new profiles');
-  assert.equal((await s.handle('put', { via: 'code', code: code(1), rev: 3, profile: {} }, null, 'ip')).body.error, 'rate-limited');
+  assert.equal((await s.handle('put', { via: 'code', code: code(1), rev: 0, profile: {} }, R, 'ip')).status, 200);
+  assert.equal((await s.handle('put', { via: 'code', code: code(2), rev: 0, profile: {} }, R, 'ip')).status, 200);
+  assert.equal((await s.handle('put', { via: 'code', code: code(3), rev: 0, profile: {} }, R, 'ip')).body.error, 'new-limit');
+  assert.equal((await s.handle('put', { via: 'code', code: code(3), rev: 0, profile: {} }, R, 'other')).status, 200);
+  for (let r = 1; r < 3; r++) assert.equal((await s.handle('put', { via: 'code', code: code(1), rev: r, profile: {} }, R, 'ip')).status, 200, 'updates are no new profiles');
+  assert.equal((await s.handle('put', { via: 'code', code: code(1), rev: 3, profile: {} }, R, 'ip')).body.error, 'rate-limited');
   const full = mk({ env: { DUELL_PROFILE_MAX: '1' } });
-  await full.handle('put', { via: 'code', code: code(1), rev: 0, profile: {} });
-  assert.equal((await full.handle('put', { via: 'code', code: code(2), rev: 0, profile: {} })).body.error, 'full');
+  await full.handle('put', { via: 'code', code: code(1), rev: 0, profile: {} }, R);
+  assert.equal((await full.handle('put', { via: 'code', code: code(2), rev: 0, profile: {} }, R)).body.error, 'full');
   const none = createDuellProfile({ env: {}, auth: gate(null), shared: {}, log: () => {} });
   assert.equal((await none.handle('get', { via: 'code', code: CODE })).status, 503);
 });
@@ -117,8 +118,8 @@ test('Ablauf: ungenutzte Profile werden nach der Frist geloescht, Lesen haelt si
   let t = Date.parse('2026-11-03T10:00:00Z');
   const d = dir(), env = { DUELL_PROFILE_DIR: d, DUELL_PROFILE_TTL_DAYS: '10' };
   const s = mk({ env, now: () => t });
-  await s.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE });
-  await s.handle('put', { via: 'code', code: CODE2, rev: 0, profile: PROFILE });
+  await s.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE }, R);
+  await s.handle('put', { via: 'code', code: CODE2, rev: 0, profile: PROFILE }, R);
   const old = new Date(t - 11 * 86400000);
   for (const f of readdirSync(d)) utimesSync(join(d, f), old, old);
   await s.handle('get', { via: 'code', code: CODE2 }); // read before the hourly sweep: CODE2 stays
@@ -158,20 +159,20 @@ test('Ohne festes Salz (mind. 16 Zeichen) kein Speicher: 503, alles bleibt auf d
   for (const salt of ['', 'kurz']) {
     const d = dir(), s = mk({ env: { DUELL_PROFILE_DIR: d, DUELL_PROFILE_SALT: salt } });
     assert.equal(s.enabled(), false);
-    assert.equal((await s.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE })).status, 503);
+    assert.equal((await s.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE }, R)).status, 503);
     assert.deepEqual(readdirSync(d), []);
   }
 });
 
 test('Neue Profile je IP: hoechstens DUELL_PROFILE_IP_NEW_PER_DAY am Tag, auch ueber Stunden verteilt', async () => {
   let t = Date.parse('2026-11-06T00:00:00Z');
-  const s = mk({ env: { DUELL_PROFILE_IP_NEW_PER_HOUR: '2', DUELL_PROFILE_IP_NEW_PER_DAY: '3' }, now: () => t });
-  const put = (i) => s.handle('put', { via: 'code', code: i.toString(16).padStart(32, '0'), rev: 0, profile: PROFILE }, null, 'ip1');
+  const s = mk({ env: { DUELL_PROFILE_IP_NEW_PER_HOUR: '2', DUELL_PROFILE_IP_NEW_PER_DAY: '3', DUELL_PROFILE_ACCOUNT_NEW_PER_DAY: '99' }, now: () => t });
+  const put = (i) => s.handle('put', { via: 'code', code: i.toString(16).padStart(32, '0'), rev: 0, profile: PROFILE }, R, 'ip1');
   assert.equal((await put(1)).status, 200); assert.equal((await put(2)).status, 200);
   assert.equal((await put(3)).body.error, 'new-limit', 'hour');
   t += 3600001; assert.equal((await put(4)).status, 200);
   t += 3600001; assert.equal((await put(5)).body.error, 'new-limit', 'day');
-  assert.equal((await s.handle('put', { via: 'code', code: 'e'.repeat(32), rev: 0, profile: PROFILE }, null, 'ip2')).status, 200, 'another IP');
+  assert.equal((await s.handle('put', { via: 'code', code: 'e'.repeat(32), rev: 0, profile: PROFILE }, R, 'ip2')).status, 200, 'another IP');
   t += 86400001; assert.equal((await put(6)).status, 200, 'next day');
 });
 
@@ -182,4 +183,69 @@ test('Abgebrochener Schreibvorgang: <key>.json.tmp verschwindet nach einer Stund
   const old = new Date(t - 2 * 3600000); utimesSync(tmp, old, old); utimesSync(other, old, old);
   mk({ env: { DUELL_PROFILE_DIR: d }, now: () => t });
   assert.equal(existsSync(tmp), false); assert.equal(existsSync(other), true);
+});
+
+test('Neuer Sync-Code nur angemeldet; ein bestehender laeuft ohne Konto weiter (anderes Geraet, Android)', async () => {
+  const d = dir(), env = { DUELL_PROFILE_DIR: d };
+  const anon = mk({ env, auth: gate(null) }), parent = mk({ env, auth: gate('Eltern@Example.org') });
+  const r = await anon.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE }, R);
+  assert.equal(r.status, 403); assert.equal(r.body.error, 'code-needs-login'); assert.match(r.body.login_url, /return=%2Fduell$/);
+  assert.deepEqual(readdirSync(d), [], 'nothing stored');
+  assert.equal((await mk({ env, auth: gate(null, true) }).handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE }, R)).status, 503, 'gate down: no new profile');
+  assert.equal((await parent.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE }, R)).body.rev, 1, 'signed in: started');
+  assert.ok(!readFileSync(join(d, readdirSync(d)[0]), 'utf8').toLowerCase().includes('eltern'), 'the starting account is not stored');
+  // the child's devices: no account
+  const anon2 = mk({ env, auth: gate(null) });
+  assert.equal((await anon2.handle('get', { via: 'code', code: CODE })).body.profile.me.nick, 'Mira');
+  assert.equal((await anon2.handle('put', { via: 'code', code: CODE, rev: 1, profile: PROFILE }, R)).body.rev, 2, 'syncing an existing code needs no account');
+  assert.equal((await anon2.handle('delete', { via: 'code', code: CODE })).status, 200);
+  assert.equal((await anon2.handle('put', { via: 'code', code: CODE, rev: 3, profile: PROFILE, fresh: true }, R)).body.error, 'code-needs-login', 'starting a deleted one again is new');
+  const off = createDuellProfile({ env: { DUELL_PROFILE_DIR: dir(), DUELL_PROFILE_SALT: 'test-salt-0123456789' }, auth: { mode: 'off' }, shared: {}, log: () => {} });
+  assert.equal((await off.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE }, R)).body.error, 'code-needs-login', 'login off: no new codes either');
+});
+
+test('Neue Sync-Codes je Konto und Tag begrenzt (statt IP)', async () => {
+  let t = Date.parse('2026-11-06T00:00:00Z');
+  const s = mk({ env: { DUELL_PROFILE_ACCOUNT_NEW_PER_DAY: '2' }, now: () => t });
+  const put = (i) => s.handle('put', { via: 'code', code: i.toString(16).padStart(32, '0'), rev: 0, profile: {} }, R);
+  assert.equal((await put(1)).status, 200); assert.equal((await put(2)).status, 200);
+  assert.equal((await put(3)).body.error, 'new-limit');
+  assert.equal((await mk({ env: { DUELL_PROFILE_DIR: s.cfg.dir }, auth: gate('b@x.de'), now: () => t }).handle('put', { via: 'code', code: 'e'.repeat(32), rev: 0, profile: {} }, R)).status, 200, 'another account');
+  t += 86400001; assert.equal((await put(4)).status, 200, 'next day');
+});
+
+test('Groesse: je Profil hoechstens DUELL_PROFILE_MAX_PROFILE_BYTES, gesamt DUELL_PROFILE_MAX_BYTES fail-closed, Lesen bleibt', async () => {
+  const big = { ...PROFILE, wall: Array.from({ length: 6 }, (_, i) => ({ id: 'own', ts: i + 1, k: 'card', th: 'data:image/jpeg;base64,' + 'A'.repeat(29000) })) };
+  const s = mk();
+  const r = await s.handle('put', { via: 'code', code: CODE, rev: 0, profile: big }, R);
+  assert.equal(r.status, 413); assert.equal(r.body.error, 'profile-too-large'); assert.equal(r.body.max, 128 * 1024);
+  assert.deepEqual(readdirSync(s.cfg.dir), []);
+  const ok4 = { ...big, wall: big.wall.slice(0, 4) };
+  assert.equal((await s.handle('put', { via: 'code', code: CODE, rev: 0, profile: ok4 }, R)).status, 200, 'what the app sends (thumbs + links up to 100 000) fits');
+  // total: room for about one such profile
+  const one = statSync(join(s.cfg.dir, readdirSync(s.cfg.dir)[0])).size;
+  const t = mk({ env: { DUELL_PROFILE_MAX_BYTES: String(one + 1000) } });
+  assert.equal((await t.handle('put', { via: 'code', code: CODE, rev: 0, profile: ok4 }, R)).status, 200);
+  const full = await t.handle('put', { via: 'code', code: CODE2, rev: 0, profile: ok4 }, R);
+  assert.equal(full.status, 429); assert.equal(full.body.error, 'full', 'nothing new once full');
+  assert.equal((await t.handle('put', { via: 'code', code: CODE, rev: 1, profile: { ...ok4, wall: ok4.wall.concat([{ id: 'own', ts: 9, k: 'card', th: 'data:image/jpeg;base64,' + 'A'.repeat(2000) }]) } }, R)).body.error, 'full', 'nor growing');
+  assert.equal((await t.handle('get', { via: 'code', code: CODE })).body.profile.wall.length, 4, 'what is there stays readable');
+  assert.equal((await t.handle('put', { via: 'code', code: CODE, rev: 1, profile: { ...ok4, wall: ok4.wall.slice(0, 1) } }, R)).status, 200, 'shrinking works');
+  assert.ok(t._bytes() < one, 'the count follows: ' + t._bytes());
+  assert.equal((await t.handle('put', { via: 'code', code: CODE2, rev: 0, profile: ok4 }, R)).body.error, 'full', 'still no room for a whole second one');
+  assert.equal((await t.handle('delete', { via: 'code', code: CODE })).status, 200, 'deleting works when full');
+  assert.equal((await t.handle('put', { via: 'code', code: CODE2, rev: 0, profile: ok4 }, R)).status, 200, 'room again');
+  assert.equal(mk({ env: { DUELL_PROFILE_DIR: t.cfg.dir } })._bytes(), readdirSync(t.cfg.dir).reduce((n, f) => n + statSync(join(t.cfg.dir, f)).size, 0), 'counted again at start');
+});
+
+test('Abrufe und Loeschungen je Profil begrenzt', async () => {
+  let t = Date.parse('2026-11-06T00:00:00Z');
+  const s = mk({ env: { DUELL_PROFILE_READS_PER_HOUR: '3', DUELL_PROFILE_DELETES_PER_HOUR: '2' }, now: () => t });
+  for (let i = 0; i < 3; i++) assert.equal((await s.handle('get', { via: 'code', code: CODE })).status, 200);
+  const r = await s.handle('get', { via: 'code', code: CODE });
+  assert.equal(r.status, 429); assert.equal(r.body.error, 'rate-limited');
+  assert.equal((await s.handle('get', { via: 'code', code: CODE2 })).status, 200, 'another code');
+  for (let i = 0; i < 2; i++) assert.equal((await s.handle('delete', { via: 'code', code: CODE })).status, 200);
+  assert.equal((await s.handle('delete', { via: 'code', code: CODE })).status, 429);
+  t += 3600001; assert.equal((await s.handle('get', { via: 'code', code: CODE })).status, 200, 'an hour later');
 });
