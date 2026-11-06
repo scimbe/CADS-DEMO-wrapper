@@ -360,3 +360,11 @@ test('W4 hooks: seen on every request, moderation pause is 403 (crisis help firs
   assert.equal((await run(ai, body('Ich will nicht mehr leben'))).body.why, 'crisis', 'help is never paused');
   assert.ok(log.filter((x) => x[0] === 'seen').length >= 5);
 });
+
+test('live finding: beat tracks are no text for S1 (x-x-x is no "xxx"), a whole sound card goes through', async () => {
+  const llm = fakeLlm({ card: { ok: true, title: 'Party Beat', bpm: 130, fx: 'chip', kick: 'x---x---x---x---', snare: '----x-------x---', hat: 'x-x-x-x-x-x-x-x-', bass: 'xxx-----xxx-----', hook: ['Hände hoch, wir feiern heut', 'Tanzen, bis der Wecker läut'] } });
+  const { ai } = mk({ cardLlm: llm });
+  const r = await run(ai, { ...body('x'), input: { text: 'Fröhlicher Geburtstagsbeat für meine Schwester', art: 'sound', age: 'u18' } });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.options[0].doc.p.b, 'xxx-----xxx-----');
+});
