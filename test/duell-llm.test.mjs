@@ -152,3 +152,40 @@ test('the log has no prompt and no answer text', async () => {
   assert.ok(lines.length);
   assert.ok(!lines.join('\n').match(/GEHEIM/));
 });
+
+test('budget holds under parallel calls: the worst case is reserved before the answer comes', async () => {
+  let release;
+  const gate = new Promise((ok) => { release = ok; });
+  const f = async () => { await gate; return ok({ content: [{ type: 'text', text: '{"x":"y"}' }], stop_reason: 'end_turn', usage: { input_tokens: 0, output_tokens: 2000 } }); };
+  const llm = createLlm({ env: { ANTHROPIC_API_KEY: 'k', DUELL_CARD_BUDGET_USD: '0.0035' }, fetchImpl: f, log: quiet });
+  const all = Array.from({ length: 10 }, () => llm.generate({ system: SYS, user: 'u', maxTokens: 2000 }).then(() => 'ok', (e) => e.code));
+  release();
+  const got = await Promise.all(all);
+  assert.equal(got.filter((x) => x === 'ok').length, 3);
+  assert.equal(got.filter((x) => x === 'budget').length, 7);
+  assert.ok(llm.budget().usd <= 0.0035);
+  assert.equal(llm.budget().heldUsd, 0);
+});
+
+test('a paid model without a price row is not configured; an alias gets its row by DUELL_CARD_PRICE_AS and no sampling parameters', async () => {
+  let body;
+  const f = async (u, init) => { body = JSON.parse(init.body); return ok({ choices: [{ message: { content: '{"x":"a"}' }, finish_reason: 'stop' }], usage: { prompt_tokens: 10, completion_tokens: 2 } }); };
+  assert.equal(createLlm({ env: { ANTHROPIC_API_KEY: 'k', DUELL_CARD_MODEL: 'claude-sonnet-5-5' }, log: quiet }).configured, false);
+  assert.equal(createLlm({ env: { DUELL_CARD_PROVIDER: 'litellm', DUELL_CARD_MODEL: 'haiku-cards' }, llmEnv: { LITELLM_BASE_URL: 'http://l' }, log: quiet }).configured, false);
+  const alias = createLlm({ env: { DUELL_CARD_PROVIDER: 'litellm', DUELL_CARD_MODEL: 'haiku-cards', DUELL_CARD_PRICE_AS: 'claude-haiku-5-5' }, llmEnv: { LITELLM_BASE_URL: 'http://l' }, fetchImpl: f, log: quiet });
+  assert.equal(alias.configured, true);
+  const r = await alias.generate({ system: SYS, user: 'u' });
+  assert.equal(body.temperature, undefined);
+  assert.equal(body.chat_template_kwargs, undefined);
+  assert.ok(r.usd > 0, 'priced by its row');
+  assert.equal(inWindow('22-6', Date.now(), 'Mars/Olympus'), false, 'unknown time zone = closed, no throw');
+});
+
+test('a call that times out is booked at its worst case; an HTTP error is not', async () => {
+  const slow = createLlm({ env: { ANTHROPIC_API_KEY: 'k' }, fetchImpl: (u, i) => new Promise((_, no) => i.signal.addEventListener('abort', () => no(new Error('aborted')))), log: quiet });
+  await assert.rejects(slow.generate({ system: SYS, user: 'u', timeoutMs: 20 }), /aborted/);
+  assert.ok(slow.budget().usd > 0);
+  const bad = createLlm({ env: { ANTHROPIC_API_KEY: 'k' }, fetchImpl: async () => ({ ok: false, status: 400, json: async () => ({}) }), log: quiet });
+  await assert.rejects(bad.generate({ system: SYS, user: 'u' }), /llm-http-400/);
+  assert.equal(bad.budget().usd, 0);
+});
