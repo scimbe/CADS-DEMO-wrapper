@@ -89,6 +89,9 @@ test('Siegel-Vertrag: ki {k,s,h,o} haelt, jede Aenderung bricht es, o ist je Kar
   assert.equal(s.deck.register({ cid: sealed.cid, owner, doc: full }).ok, true);
   assert.equal(typeof s.d.shared.deck.register, 'function', 'W2 reaches the deck over shared');
   assert.equal(s.d.shared.deck.check(full).cid, sealed.cid);
+  const viaShared = s.d.shared.deck.sealKarte(d1, owner, T0);
+  assert.deepEqual(viaShared, sealed, 'shared.deck.sealKarte(doc, potKey, at) is the same seal');
+  assert.deepEqual(s.mod.cfg.severe, ['minors'], 'W2 category names');
 });
 
 test('Sockenpuppen-Lasttest: junge Konten, inaktive Konten, Ersteller, Wiederholung, zu schnell, ohne Login, Ring – Schwelle nie erreicht', async () => {

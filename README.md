@@ -227,7 +227,7 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
 | `DUELL_DECK_REVIEW_REQUIRED` | 1 | `0`: ein Mensch darf ohne KI-Nachpruefung entscheiden |
 | `DUELL_CREDIT_USE` / `_REACH` / `_REACH_AT` / `_DECK` / `_CARD_CAP` / `_YEAR_CAP` | 2 / 3 / 100 / 3 / 8 / 30 | Guthaben |
 | `DUELL_MOD_CARD_DOWN` / `_CARD_SHARE` / `_PAUSE_STRIKES` / `_STRIKE_DAYS` / `_HEAVY_DOWN` / `_HEAVY_SHARE` / `_PAUSE_DAYS` / `_APPEAL_DAYS` / `_REPORTS_HIDE` | 8 / 0.6 / 2 / 30 / 20 / 0.75 / 14 / 183 / 0 (aus) | Stufen der Moderation |
-| `DUELL_MOD_SEVERE_CATS` | `minors,csam,terror` | Kategorien der KI-Nachpruefung fuer die sofortige Sperre |
+| `DUELL_MOD_SEVERE_CATS` | `minors` | Kategorien der KI-Nachpruefung (Namen aus W2: sexual, minors, hate, harassment, violence, weapons, …) fuer die sofortige Sperre; andere Funde mit Risiko 3 entfernen die Karte mit Strike |
 
 ## Notes
 
