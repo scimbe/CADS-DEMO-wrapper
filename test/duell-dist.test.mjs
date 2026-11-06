@@ -33,6 +33,12 @@ test('dist: the checked-in game page has every part it names, each with its SRI 
   assert.deepEqual(distProblems(DIST), []);
 });
 
+test('dist/business (Daily Business at /duell/business/), when present: every part it names, each with its SRI hash', () => {
+  const biz = join(DIST, 'business');
+  if (!existsSync(join(biz, 'index.html'))) return;   // not checked in; the deploy brings it with dist/ (README)
+  assert.deepEqual(distProblems(biz), []);
+});
+
 test('dist check: only index.html copied, a changed part, a missing manifest are each caught; an old one-file page passes', () => {
   const dir = mkdtempSync(join(tmpdir(), 'duell-dist-')); mkdirSync(join(dir, 'parts'));
   const body = 'window.Arcade={};', hash = 'sha384-' + createHash('sha384').update(body).digest('base64');
