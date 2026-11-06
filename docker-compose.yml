@@ -37,6 +37,9 @@ services:
       - DUELL_REPORT_DIR=${DUELL_REPORT_DIR:-/var/lib/duell-ai/reports}
       - DUELL_REPORT_KEEP_DAYS=${DUELL_REPORT_KEEP_DAYS:-30}
       - DUELL_ADMIN_TOKEN=${DUELL_ADMIN_TOKEN:-}
+      # Freie Karten: Deck, Guthaben, Moderation (lib/duell-deck.mjs, -credit, -mod). Dateien neben DUELL_AI_STATE_FILE.
+      - DUELL_DECK_SALT=${DUELL_DECK_SALT:-}
+      - DUELL_DECK_SIGN_KEY=${DUELL_DECK_SIGN_KEY:-}
       # Warteschlange vor dem Modell (siehe lib/duell-queue.mjs). 1 = gemessen bester Wert, solange das Modell nicht buendelt.
       - DUELL_LLM_PARALLEL=${DUELL_LLM_PARALLEL:-1}
       - DUELL_QUEUE_MAX=${DUELL_QUEUE_MAX:-30}
