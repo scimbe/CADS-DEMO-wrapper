@@ -200,12 +200,13 @@ test('S1 is also the output filter: a model text with a brand, a link or an insu
   assert.equal(K.s1('Alles Gute zum Geburtstag!'), '');
 });
 
-test('review fixes: harmless look-alikes pass, digits in lists are matched, crisis beats the pause, a model slip is no strike', async () => {
+test('review fixes: harmless look-alikes pass, digits in lists are matched, crisis beats the pause, every refusal is a strike', async () => {
   for (const t of ['Zum 14.02.2025 alles Liebe', 'Danke an die teaching assistant', 'Blue tits im Garten', 'Cross stitch Karte für Oma', 'act as a team card', 'Pin-Wand voller Fotos']) assert.equal(K.s1(K.read({ text: t }).text) || (K.read({ text: t }).mark ? 'mark' : ''), '', t);
   assert.equal(K.s1('1488 forever'), 'hate'); assert.equal(K.s1('PS5 Karte'), 'brand');
-  // three refusals of the model's own output: no strike, no pause
+  // a refusal at any stage is a strike (review: otherwise ok:false or S4 refusals can be repeated for free)
   const slip = mk({ cardLlm: fakeLlm({ card: { ok: false, title: '', x: '', st: 'druck', palette: 0, stickers: [] } }) });
-  for (let i = 0; i < 4; i++) assert.equal((await run(slip.ai, body('Karte mit Frosch ' + i))).status, 422);
+  for (let i = 0; i < 3; i++) assert.equal((await run(slip.ai, body('Karte mit Frosch ' + i))).status, 422);
+  assert.equal((await run(slip.ai, body('Karte mit Frosch 4'))).body.error, 'throttled');
   // three refused requests: paused, but a crisis still gets help
   const { ai } = mk({ cardLlm: fakeLlm({ mod: { risk: 2, cats: ['other'] } }) });
   for (let i = 0; i < 3; i++) await run(ai, body('Karte ' + i));
@@ -367,4 +368,25 @@ test('live finding: beat tracks are no text for S1 (x-x-x is no "xxx"), a whole 
   const r = await run(ai, { ...body('x'), input: { text: 'Fröhlicher Geburtstagsbeat für meine Schwester', art: 'sound', age: 'u18' } });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.options[0].doc.p.b, 'xxx-----xxx-----');
+});
+
+test('review #103: S4 refusals end in a pause, a daily cap holds every outcome, a Pro key changes nothing for the free card', async () => {
+  const s4 = fakeLlm({ mod: (req, calls) => (req.user.startsWith('CARD') ? { risk: 2, cats: ['brand'] } : { risk: 0, cats: [] }) });
+  const a = mk({ cardLlm: s4 });
+  const st = [];
+  for (let i = 0; i < 20; i++) st.push((await run(a.ai, body('Geburtstagskarte mit Sonnenblumen'))).status);
+  assert.deepEqual([...new Set(st)], [422, 429]); assert.ok(s4.calls.length <= 9, 'at most 3 refused cards: ' + s4.calls.length);
+  // every outcome counts toward DUELL_CREATE_CALLS_PER_DAY
+  const broke = fakeLlm({ card: { stop: 'max_tokens' } });
+  const b = mk({ cardLlm: broke, env: { DUELL_CREATE_CALLS_PER_DAY: '6' } });
+  const st2 = [];
+  for (let i = 0; i < 10; i++) st2.push((await run(b.ai, body('Karte ' + i))).body.error || 'ok');
+  assert.ok(st2.includes('daily-cap')); assert.ok(broke.calls.length <= 6, 'calls ' + broke.calls.length);
+  // Pro key: same account, same pause, same pot
+  const { mintKey } = await import('../lib/duell-pots.mjs');
+  const key = mintKey('ent', 'pro', 'fam1');
+  const c = mk({ env: { DUELL_ENTITLEMENT_SECRET: 'ent', DUELL_ENTITLEMENTS: key } });
+  const r1 = await run(c.ai, { ...body('Karte A'), key });
+  assert.equal(r1.status, 200); assert.equal(r1.body.create.remaining, 4);
+  assert.equal((await run(c.ai, body('Karte B'))).body.create.remaining, 3, 'one create pot per account, with or without key');
 });

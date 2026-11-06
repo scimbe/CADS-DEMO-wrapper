@@ -1,7 +1,7 @@
 {
   "repo": "scimbe/CADS-agent-marketplace",
   "path": "apps/duell-web/src",
-  "commit": "bdc7b42fc1047926c1d9db48336b101920c615fa",
+  "commit": "1d73712d105d7498fec68c5aa50b4d1cda32fb31",
   "files": {
     "core.js": {
       "sha256": "4adaf6f15052fab709f6bbdfb5c680acc64a0a15a6f2957f1026ed44f131774e"
@@ -28,7 +28,7 @@
       "sha256": "2b7d5050462fc975014c03b2f47aacf76315b4aaa010f9cb73f9e9b57b7b8959"
     },
     "texts.json": {
-      "sha256": "619dfa16b0e7c8e0c77c5e30b5d7861dba7b456508cdd60c9e2668a2b7e10bae"
+      "sha256": "81ca17b5ea3e1e5f380005d1c55e6806137a0a464f3d34ff90148fa65b206dea"
     },
     "turn.json": {
       "sha256": "58e2850e2e82533c616a4770b807001bc0fed5b93e7e9ec4f848f6cee50e07ce"
