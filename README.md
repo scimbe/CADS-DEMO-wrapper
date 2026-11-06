@@ -206,6 +206,28 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
 | `DUELL_WEATHER_IP_PER_HOUR` / `DUELL_WEATHER_DAILY_MAX` | 30 / 1000 | Wetteranfragen je gehashter IP und Stunde / pro UTC-Tag |
 | `DUELL_IP_HEADER` / `DUELL_IP_SALT` | leer / zufaellig je Prozess | Kopfzeile mit der echten Client-IP, leer heisst keine Grenzen je IP hinter dem Tunnel; Salz der IP-Hashes |
 
+### Freie Karten: Deck, Guthaben, Melden (`lib/duell-deck.mjs`, `lib/duell-credit.mjs`, `lib/duell-mod.mjs`, Tests: `test/duell-deck.test.mjs`)
+
+- **Siegel (Vertrag mit W2, `lib/duell-karte.mjs`):** `doc.ki = { k: "karte", s, h, o }`. `o` = HMAC(`DUELL_DECK_SALT`, Pot-Schluessel + Karte), je Karte anders. Gesiegelt ist `{ card, o }`, Karten-ID `cid = h[0..22)`. W2 ruft beim „Uebernehmen“ `shared.deck.register({ cid, owner, doc, at })`, vor dem Erzeugen `shared.mod.canCreate(key)`, fuer Karten ueber die 5 freien hinaus `shared.credit.available/spend/refund`, und stellt `shared.cardReview(doc) -> { risk, cats }` (Nachpruefung) bereit.
+- **Messung:** `POST /api/duell/deck/use` `{ ki, ev: "start" }` -> `{ t }`, `{ ev: "done", t }` zaehlt fruehestens 20 s spaeter. Nur Konten (Login), je Konto und Karte einmal (HMAC), nicht der Ersteller, Konto zuerst gesehen vor >= 7 Tagen und an >= 3 Tagen aktiv, nicht eingeschraenkt, <= 10 gezaehlte Nutzungen je Tag. Keine IP noetig. Unter k = 25 wird nichts ausgewertet, niemand sieht eine Zahl (Pruefende einen Bereich). Ring-Pruefung (>= 60 % der Konten zaehlen auch fuer zwei weitere Karten derselben Person) und Dubletten (Fingerabdruck, >= 0,8) verhindern Guthaben und Vorschlag.
+- **Deck:** Schwelle (k Konten, Karte >= 14 Tage, keine offene Meldung, <= 3 Vorschlaege je Person und Monat) -> Kandidat -> KI-Nachpruefung (stuendlich im Stapel) -> Mensch unter `/duell/pruefen` (Token `DUELL_ADMIN_TOKEN`, nur im Tab). `GET /api/duell/deck` `{ v, at, kid, cards: [{ cid, doc }], revoked, sig }` mit Ed25519 (`GET /api/duell/deck/key`), nur Daten, ETag je Version. Die Tagesrotation nimmt keine Deck-Karte.
+- **Guthaben:** fest, einmal je Karte(-Familie) und Grund: `use` +2 (k Konten), `reach` +3 (100 Konten), `deck` +3; Deckel 8 je Karte, 30 je Jahr. Nicht kaufbar, nicht uebertragbar, nicht auszahlbar; ein „block“ nimmt es zurueck. Abo ab 18 nur als Schnittstelle (`aboStatus`), Anbieter und Preis offen.
+- **Melden und Sperren:** `POST /api/duell/deck/vote` `{ ki, v, t }` (nur wer die Karte geoeffnet hat, nur berechtigte Konten). Stufe 1 Karte raus aus Deck und Suche bei >= 8 Konten und >= 60 % Daumen runter (oder 5 offenen Meldungen, ohne Strike); Stufe 2 Konto pausiert bei 2 solchen Karten in 30 Tagen oder einer mit >= 20 und >= 75 %, endet nach 14 Tagen; Stufe 3 endgueltige Sperre nur durch einen Menschen; Stufe 4 sofort bei Kategorien aus `DUELL_MOD_SEVERE_CATS` oder „Sperren, schwer“. Jede Stufe hinterlaesst eine Begruendung (DSA Art. 17), `POST /api/duell/mod/me`, Widerspruch 183 Tage `POST /api/duell/mod/appeal` (Art. 20), Entscheidung `POST /api/duell/mod/<mid>`.
+
+| Variable | Default | Zweck |
+|---|---|---|
+| `DUELL_DECK_SALT` | zufaellig je Start | Schluessel der Ersteller-Tags und Konto-HMACs; ohne festen Wert gelten Zaehlung und Registrierung nur bis zum Neustart |
+| `DUELL_DECK_SIGN_KEY` | neu je Start | Ed25519, PKCS8 DER base64 (`node -e "const {generateKeyPairSync}=require('crypto');console.log(generateKeyPairSync('ed25519').privateKey.export({format:'der',type:'pkcs8'}).toString('base64'))"`) |
+| `DUELL_DECK_FILE` / `DUELL_CREDIT_FILE` / `DUELL_MOD_FILE` | neben `DUELL_AI_STATE_FILE` | `deck.json`, `credit.json`, `mod.json` |
+| `DUELL_DECK_K` / `DUELL_DECK_CARD_MIN_DAYS` | 25 / 14 | Konten bis zur Auswertung / Mindestalter der Karte |
+| `DUELL_DECK_ACCOUNT_MIN_DAYS` / `DUELL_DECK_ACCOUNT_ACTIVE_DAYS` | 7 / 3 | Konto zuerst gesehen vor / an so vielen Tagen aktiv |
+| `DUELL_DECK_USE_MIN_S` / `DUELL_DECK_VOTE_MIN_S` / `DUELL_DECK_COUNT_PER_DAY` | 20 / 10 / 10 | Mindestdauer einer Nutzung / vor einem Daumen / gezaehlte Nutzungen je Konto und Tag |
+| `DUELL_DECK_RING_SHARE` / `DUELL_DECK_DUP_SIM` / `DUELL_DECK_CAND_PER_MONTH` | 0.6 / 0.8 / 3 | Ring-Anteil / Dubletten-Aehnlichkeit / Vorschlaege je Person und Monat |
+| `DUELL_DECK_REVIEW_REQUIRED` | 1 | `0`: ein Mensch darf ohne KI-Nachpruefung entscheiden |
+| `DUELL_CREDIT_USE` / `_REACH` / `_REACH_AT` / `_DECK` / `_CARD_CAP` / `_YEAR_CAP` | 2 / 3 / 100 / 3 / 8 / 30 | Guthaben |
+| `DUELL_MOD_CARD_DOWN` / `_CARD_SHARE` / `_PAUSE_STRIKES` / `_STRIKE_DAYS` / `_HEAVY_DOWN` / `_HEAVY_SHARE` / `_PAUSE_DAYS` / `_APPEAL_DAYS` / `_REPORTS_HIDE` | 8 / 0.6 / 2 / 30 / 20 / 0.75 / 14 / 183 / 5 | Stufen der Moderation |
+| `DUELL_MOD_SEVERE_CATS` | `minors,csam,terror` | Kategorien der KI-Nachpruefung fuer die sofortige Sperre |
+
 ## Notes
 
 - Secrets (`.env`, `.pexels-key`, `.registry-token`) are NOT in this repo — provide out-of-band.
