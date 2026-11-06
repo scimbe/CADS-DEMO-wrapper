@@ -194,6 +194,11 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
   Ausgabe), S2 (Klassifikator auf der Eingabe), S3 (Erzeugung mit gecachtem Praefix und festem Schema je Art), S4 (Klassifikator auf der
   fertigen Karte), S5 (Siegel `karte`). Nach `DUELL_CREATE_BLOCKS_PER_DAY` Ablehnungen am Tag `429 throttled`. `sanitizeDoc` der App liegt als
   gepruefte Kopie in `lib/vendor/duell-web` (`node bin/vendor-duell-web.mjs <app>/src`), Golden-Set `test/fixtures/karte-golden.json`.
+  Arten: `card`, `meme`, `game` (Zahlen und Seed vom Server), `sound` (16er-Beat + Hook), `quiz` (3-5 Fragen, Link <= 1200) und
+  `faehigkeit`: eine vorhandene Kartenart (Termin, Geld einsammeln, Duell, Live-Kanal, Kartentisch ...). Der Faehigkeiten-Katalog
+  wird aus `ideas.json` der App erzeugt (`CAPS`, ohne Arcade und gesperrte Karten), steht im gecachten Praefix, das Modell waehlt nur
+  eine ID daraus; der Server prueft Allowlist und Rechte (Geld einsammeln erst ab 18). Live-Abnahme je Art 20 Beschreibungen:
+  `node bin/duell-karte-golden.mjs [--arts game,quiz] [--golden] --out r.json` (gueltig, Link <= 1200, passt inhaltlich).
 
 | ENV | Default | Bedeutung |
 |-----|---------|-----------|
