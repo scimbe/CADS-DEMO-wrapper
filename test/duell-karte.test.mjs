@@ -224,3 +224,81 @@ test('first card counts once per account, also after a discard brought the pot b
   const other = mk({ email: 'mo@example.org', env: { DUELL_CREATE_NEW_PER_HOUR: '0' } });
   assert.equal((await run(other.ai, body('Karte mit Frosch'))).body.error, 'new-limit');
 });
+
+// ---- W3: game, sound, quiz and the abilities of the existing cards ------------------------------------------------
+import { CAPS, CAP_IDS, PHYSIK, capCheck, textsOf, ARTS } from '../lib/duell-karte.mjs';
+import { WELT } from '../lib/duell-ai.mjs';
+
+test('W3 ability catalog: built from the app catalog, no arcade, no gated card, money only from 18, one table for the flight', () => {
+  const ideas = App.D.IDEAS;
+  assert.ok(CAPS.length >= 50);
+  for (const c of CAPS) { const i = App.D.byId(c.id); assert.ok(i, c.id); assert.notEqual(i.kind, 'arcade'); }
+  assert.ok(!CAP_IDS.some((id) => (App.D.GATED || []).some((g) => g.id === id)));
+  for (const want of ['zug-termin', 'zug-sammeln', 'zug-quiz', 'duell-ssp', 'tisch-doko', 'plan-04']) assert.ok(CAP_IDS.includes(want), want);
+  assert.deepEqual(CAPS.filter((c) => c.adult).map((c) => c.id), ['zug-sammeln']);
+  assert.ok(ideas.filter((i) => i.turn).every((i) => CAP_IDS.includes(i.id)), 'every turn card of the app is an ability');
+  assert.deepEqual(PHYSIK, WELT.physik, 'the flight deltas are the AI kind welt\'s');
+  assert.ok(CARD_SYSTEM[1].text.includes('zug-termin (termin)'), 'the catalog sits in the cached prefix');
+  assert.deepEqual(ARTS, ['card', 'meme', 'game', 'sound', 'quiz', 'faehigkeit']);
+});
+
+test('W3 compose: every art becomes a doc the app keeps as it is, numbers and seed from the server, links fit', () => {
+  const text = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
+  const out = {
+    game: compose('game', { ok: true, title: 'Tiefsee', emoji: '🐠', theme: 'ocean', motif: 'bubbles', level: 'hard', route: [{ physik: 'ruhig', thema: 'ocean', emoji: '🐟' }, { physik: 'sturm', thema: 'night', emoji: '⚡' }, { physik: 'schnell', thema: 'ocean', emoji: '🐳' }], gravity: 99999 }, 5, text),
+    sound: compose('sound', { ok: true, title: 'Sleepy', bpm: 80, fx: 'echo', kick: 'x-------x-------', snare: '----x-------x---', hat: '--x---x---x---x-', bass: 'kaputt', hook: ['Close your eyes', 'The moon is near'] }, 5, text),
+    quiz: compose('quiz', { ok: true, title: 'Planeten', questions: [1, 2, 3, 4].map((n) => ({ q: 'Frage ' + n + '?', a: 'Antwort ' + n, wrong: ['A', 'B', 'C'] })) }, 5, text),
+    faehigkeit: compose('faehigkeit', { ok: true, cap: 'zug-termin', title: 'Grillabend', sub: 'Alle stimmen ab.', word: '' }, 5, text),
+  };
+  for (const [art, d] of Object.entries(out)) {
+    assert.ok(d, art);
+    assert.deepEqual(App.D.sanitizeDoc(d), d, art + ': the app changes nothing');
+    assert.ok([...linkOf(d)].length <= LINK_MAX, art);
+  }
+  assert.deepEqual(out.game.g.params, { gravity: 2300, jump: 480, gap: 110, speed: 190 }, 'level hard, not the model\'s number');
+  assert.equal(out.game.g.seed, 5); assert.equal(out.game.g.route.length, 3); assert.deepEqual(out.game.g.route[1].d, { speed: 30, gap: -15 }, 'WELT.physik.sturm in the app\'s own keys');
+  assert.equal(out.sound.p.b, '----------------', 'a broken track becomes a rest'); assert.deepEqual(out.sound.ly, ['Close your eyes', 'The moon is near']);
+  assert.equal(out.quiz.g, 'quiz'); assert.equal(out.quiz.pk.q.length, 4); assert.deepEqual(out.quiz.pk.q[0], ['Frage 1?', 'Antwort 1', 'A', 'B', 'C']);
+  assert.equal(out.faehigkeit.i, 'zug-termin'); assert.equal(out.faehigkeit.t, 'Grillabend'); assert.equal(out.faehigkeit.seed, 5);
+  assert.equal(compose('faehigkeit', { ok: true, cap: 'arcade-puck', title: 'x', sub: '', word: '' }, 1, text), null, 'no ability outside the catalog');
+  assert.equal(compose('game', { ok: true, title: 'x', emoji: '🐠', theme: 'ocean', motif: 'none', level: 'easy', route: [] }, 1, text), null, 'a route has 3 sections');
+  assert.equal(compose('quiz', { ok: true, title: 'x', questions: [{ q: 'a?', a: 'b', wrong: ['b', 'c'] }] }, 1, text), null, 'too few questions');
+  assert.match(textsOf(out.quiz), /Frage 1\? \/ Antwort 1/, 'S4 sees every question and answer');
+});
+
+test('W3 rights: money only from 18; a chosen ability outside the allowlist is refused before the card exists', async () => {
+  const money = fakeLlm({ card: { ok: true, cap: 'zug-sammeln', title: 'Klassenfahrt', sub: 'Jeder zahlt seinen Teil.', word: '' } });
+  const young = mk({ cardLlm: money });
+  const r = await run(young.ai, { ...body('x'), input: { text: 'Geld für die Klassenfahrt einsammeln', art: 'faehigkeit', age: 'u18' } });
+  assert.equal(r.status, 422, JSON.stringify(r.body)); assert.equal(r.body.create.remaining, 5);
+  const adult = mk({ cardLlm: fakeLlm({ card: { ok: true, cap: 'zug-sammeln', title: 'Klassenfahrt', sub: 'Jeder zahlt seinen Teil.', word: '' } }) });
+  const r2 = await run(adult.ai, { ...body('x'), input: { text: 'Geld für die Klassenfahrt einsammeln', art: 'faehigkeit', age: 'a18' } });
+  assert.equal(r2.status, 200, JSON.stringify(r2.body)); assert.equal(r2.body.options[0].doc.i, 'zug-sammeln');
+  assert.equal(capCheck({ i: 'nicht-da' }, { age: 'a18' }), 'cap-unknown');
+  const gen = adult.cardLlm.calls[1];
+  assert.equal(gen.schema, SCHEMAS.faehigkeit); assert.deepEqual(gen.schema.properties.cap.enum, CAP_IDS, 'the model chooses only ids of the catalog');
+});
+
+test('shared filter: "night" is no slur prefix, the slur still is; a pet that looks offended is no insult', async () => {
+  const { isBlocked } = await import('../lib/duell.mjs');
+  assert.equal(isBlocked('good night card'), false); assert.equal(isBlocked('nightmare before christmas'), false);
+  assert.equal(isBlocked('n1gg3r'), true); assert.equal(isBlocked('niggas'), true);
+  assert.equal(K.s1('Mein Hund schaut beleidigt, weil es kein Leckerli gab'), '');
+  assert.equal(K.s1('Karte die meine Schwester beleidigt'), 'unkind');
+  const a = fx('karte-arts.json').arts;
+  for (const [art, list] of Object.entries(a)) {
+    assert.equal(list.length, 20, art);
+    for (const c of list) assert.equal(screen(c.t, art), '', `${art}: ${c.t}`);
+  }
+});
+
+test('the live runner\'s fit check: a wanted stem, emoji, theme or ability counts, anything else does not', async () => {
+  const { fits } = await import('../bin/duell-karte-golden.mjs');
+  const text = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
+  const card = compose('card', { ok: true, title: 'Sonnenblumen-Tag', x: 'Alles Gute!', st: 'herz', palette: 0, stickers: ['🌻'] }, 1, text);
+  assert.equal(fits(card, ['geburtstag', '🌻']), true); assert.equal(fits(card, ['weltraum']), false);
+  const cap = compose('faehigkeit', { ok: true, cap: 'zug-termin', title: 'Grillabend', sub: '', word: '' }, 1, text);
+  assert.equal(fits(cap, ['zug-termin']), true);
+  const game = compose('game', { ok: true, title: 'Tief', emoji: '🐠', theme: 'ocean', motif: 'none', level: 'easy', route: [{ physik: 'ruhig', thema: 'ocean', emoji: '🐟' }, { physik: 'sturm', thema: 'night', emoji: '⚡' }, { physik: 'normal', thema: 'ocean', emoji: '🐳' }] }, 1, text);
+  assert.equal(fits(game, ['sturm']), true); assert.equal(fits(game, ['lava']), false);
+});
