@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { mkdtempSync, readdirSync, readFileSync, statSync, utimesSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDuell } from '../lib/duell.mjs';
@@ -14,7 +14,7 @@ const dir = () => mkdtempSync(join(tmpdir(), 'duell-profile-'));
 const gate = (email, error) => ({ mode: 'gate', identify: async () => (error ? { error: true } : { email }), loginUrl: (r) => 'https://bunsenbrenner.org/gate/start?return=' + encodeURIComponent(r) });
 const mk = ({ env = {}, auth = gate(null), now } = {}) => {
   const d = createDuell({ env: {}, salt: 's', log: () => {} });
-  return createDuellProfile({ env: { DUELL_PROFILE_DIR: dir(), DUELL_PROFILE_SALT: 'x', ...env }, auth, shared: d.shared, log: () => {}, ...(now ? { now } : {}) });
+  return createDuellProfile({ env: { DUELL_PROFILE_DIR: dir(), DUELL_PROFILE_SALT: 'test-salt-0123456789', ...env }, auth, shared: d.shared, log: () => {}, ...(now ? { now } : {}) });
 };
 const PROFILE = {
   me: { nick: 'Mira', emoji: '🐸', colors: ['#FFD400', '#ff3b1d'], set: 'tiere' },
@@ -74,7 +74,7 @@ test('Sync-Code: anlegen, lesen, Revision, Loeschen; auf der Platte nur HMAC-Dat
 });
 
 test('Konto: nur angemeldet, erstes Speichern nur mit 16+, Tag der Angabe bleibt, keine E-Mail auf der Platte', async () => {
-  const off = createDuellProfile({ env: { DUELL_PROFILE_DIR: dir() }, auth: { mode: 'off' }, shared: {}, log: () => {} });
+  const off = createDuellProfile({ env: { DUELL_PROFILE_DIR: dir(), DUELL_PROFILE_SALT: 'test-salt-0123456789' }, auth: { mode: 'off' }, shared: {}, log: () => {} });
   assert.equal((await off.handle('get', { via: 'account' }, {})).body.error, 'login-off');
   const anon = mk();
   const r = await anon.handle('get', { via: 'account' }, {});
@@ -152,4 +152,34 @@ test('HTTP: POST mit JSON, CORS wie die anderen Duell-Routen, Groessengrenze, ke
     assert.equal(acc.status, 200); assert.equal((await acc.json()).via, 'account');
     assert.equal((await post('/api/duell/profile/delete', { via: 'code', code: CODE })).status, 200);
   } finally { srv.close(); srv.closeAllConnections(); }
+});
+
+test('Ohne festes Salz (mind. 16 Zeichen) kein Speicher: 503, alles bleibt auf dem Geraet', async () => {
+  for (const salt of ['', 'kurz']) {
+    const d = dir(), s = mk({ env: { DUELL_PROFILE_DIR: d, DUELL_PROFILE_SALT: salt } });
+    assert.equal(s.enabled(), false);
+    assert.equal((await s.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE })).status, 503);
+    assert.deepEqual(readdirSync(d), []);
+  }
+});
+
+test('Neue Profile je IP: hoechstens DUELL_PROFILE_IP_NEW_PER_DAY am Tag, auch ueber Stunden verteilt', async () => {
+  let t = Date.parse('2026-11-06T00:00:00Z');
+  const s = mk({ env: { DUELL_PROFILE_IP_NEW_PER_HOUR: '2', DUELL_PROFILE_IP_NEW_PER_DAY: '3' }, now: () => t });
+  const put = (i) => s.handle('put', { via: 'code', code: i.toString(16).padStart(32, '0'), rev: 0, profile: PROFILE }, null, 'ip1');
+  assert.equal((await put(1)).status, 200); assert.equal((await put(2)).status, 200);
+  assert.equal((await put(3)).body.error, 'new-limit', 'hour');
+  t += 3600001; assert.equal((await put(4)).status, 200);
+  t += 3600001; assert.equal((await put(5)).body.error, 'new-limit', 'day');
+  assert.equal((await s.handle('put', { via: 'code', code: 'e'.repeat(32), rev: 0, profile: PROFILE }, null, 'ip2')).status, 200, 'another IP');
+  t += 86400001; assert.equal((await put(6)).status, 200, 'next day');
+});
+
+test('Abgebrochener Schreibvorgang: <key>.json.tmp verschwindet nach einer Stunde, andere Dateien bleiben', async () => {
+  let t = Date.parse('2026-11-06T00:00:00Z');
+  const d = dir(), tmp = join(d, 's' + 'a'.repeat(32) + '.json.tmp'), other = join(d, 'notes.txt');
+  writeFileSync(tmp, '{}'); writeFileSync(other, 'x');
+  const old = new Date(t - 2 * 3600000); utimesSync(tmp, old, old); utimesSync(other, old, old);
+  mk({ env: { DUELL_PROFILE_DIR: d }, now: () => t });
+  assert.equal(existsSync(tmp), false); assert.equal(existsSync(other), true);
 });

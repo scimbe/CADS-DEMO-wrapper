@@ -153,17 +153,17 @@ Code: `lib/duell-profile.mjs`, Tests: `test/duell-profile.test.mjs`. Freiwillig;
 - `via: account`: bunsenbrenner-Login (Gate-Cookie, nur gleiche Herkunft). Das erste Speichern verlangt `age16: true`
   (Selbstauskunft „16 oder älter“, Art. 8 DSGVO); der Tag der Angabe wird gespeichert. Unter 16 gibt es den Sync-Code.
 - `via: code`: 128-Bit-Zufallscode, auf dem Gerät erzeugt; kein Konto, keine E-Mail. Wer den Code hat, hat das Profil.
-- Gespeichert: Spitzname, Emoji, Farben, Sticker-Set, Wandbilder außer Fotowerken (`k: photo` wird verworfen), gemerkte Karten,
-  beim Code die KI-Geräte-ID. Dateiname ist ein HMAC; keine E-Mail, keine IP, kein Code auf der Platte.
+- Gespeichert: Spitzname, Emoji, Farben, Sticker-Set, Wandbilder außer Fotowerken (`k: photo` wird verworfen) samt Merken-Link `f`
+  (nur das `c=`-Fragment der Karte, wie in einem geteilten Link), gemerkte Karten, beim Code die KI-Geräte-ID. Dateiname ist ein HMAC; keine E-Mail, keine IP, kein Code auf der Platte.
 - Löschen entfernt die Daten sofort und lässt nur `{r, gone: true}` zurück, damit ein zweites Gerät das Profil nicht neu hochlädt.
   Ungenutzte Profile werden nach `DUELL_PROFILE_TTL_DAYS` gelöscht.
 
 | Variable | Default | Bedeutung |
 |---|---|---|
 | `DUELL_PROFILE_DIR` | leer (aus, `503`) | Verzeichnis im Volume |
-| `DUELL_PROFILE_SALT` | zufällig je Start | HMAC-Salz für die Dateinamen; ohne festen Wert sind Profile nach einem Neustart unerreichbar |
+| `DUELL_PROFILE_SALT` | leer (aus, `503`) | HMAC-Salz für die Dateinamen, mindestens 16 Zeichen, fest über Neustarts. Ohne ihn bleibt der Speicher aus; ein neues Salz macht alle bestehenden Profile unerreichbar |
 | `DUELL_PROFILE_TTL_DAYS` | 400 | Löschfrist für ungenutzte Profile |
-| `DUELL_PROFILE_MAX` / `DUELL_PROFILE_NEW_PER_HOUR` / `DUELL_PROFILE_IP_NEW_PER_HOUR` / `DUELL_PROFILE_WRITES_PER_HOUR` | 20000 / 60 / 5 / 240 | Grenzen |
+| `DUELL_PROFILE_MAX` / `DUELL_PROFILE_NEW_PER_HOUR` / `DUELL_PROFILE_IP_NEW_PER_HOUR` / `DUELL_PROFILE_IP_NEW_PER_DAY` / `DUELL_PROFILE_WRITES_PER_HOUR` | 20000 / 60 / 5 / 20 / 240 | Grenzen; die Grenzen je IP greifen nur mit `DUELL_IP_HEADER` hinter einem Proxy |
 
 ### KI-Aktionen, Toepfe, Siegel und Melden (My Daily Idea)
 Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell-report.mjs`; Tests: `test/duell-ai.test.mjs`, `test/duell-ai-kinds.test.mjs`, `test/duell-queue.test.mjs`, `test/duell-seal.test.mjs`, `test/duell-report.test.mjs`. Gleiches Modell und gleiche Warteschlange wie `/api/duell/config`.

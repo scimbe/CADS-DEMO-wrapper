@@ -71,8 +71,8 @@ services:
       - SHORT_MAX_LIVE=${SHORT_MAX_LIVE:-100000}
       - SHORT_BASE=${SHORT_BASE:-https://bunsenbrenner.org}
       - SHORT_PUBLIC_BASE=${SHORT_PUBLIC_BASE:-https://demos-34a13a96.bunsenbrenner.org}
-      # My Daily Idea, Profil unter "Mein Stil" (siehe lib/duell-profile.mjs). Ohne DUELL_PROFILE_SALT findet nach
-      # einem Neustart niemand sein Profil wieder; ohne DUELL_PROFILE_DIR antworten die Routen 503 und alles bleibt lokal.
+      # My Daily Idea, Profil unter "Mein Stil" (siehe lib/duell-profile.mjs). Ohne DUELL_PROFILE_SALT (fest, mind. 16 Zeichen)
+      # oder ohne DUELL_PROFILE_DIR antworten die Routen 503 und alles bleibt lokal. Das Salz nie wechseln: sonst sind alle Profile weg.
       - DUELL_PROFILE_DIR=/data/duell-profile
       - DUELL_PROFILE_SALT=${DUELL_PROFILE_SALT:-}
       - DUELL_PROFILE_TTL_DAYS=${DUELL_PROFILE_TTL_DAYS:-400}
