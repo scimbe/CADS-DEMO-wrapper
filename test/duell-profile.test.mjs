@@ -238,14 +238,52 @@ test('Groesse: je Profil hoechstens DUELL_PROFILE_MAX_PROFILE_BYTES, gesamt DUEL
   assert.equal(mk({ env: { DUELL_PROFILE_DIR: t.cfg.dir } })._bytes(), readdirSync(t.cfg.dir).reduce((n, f) => n + statSync(join(t.cfg.dir, f)).size, 0), 'counted again at start');
 });
 
-test('Abrufe und Loeschungen je Profil begrenzt', async () => {
+test('Abrufe und Loeschungen je Profil begrenzt; unbekannte Codes zaehlen nicht', async () => {
   let t = Date.parse('2026-11-06T00:00:00Z');
   const s = mk({ env: { DUELL_PROFILE_READS_PER_HOUR: '3', DUELL_PROFILE_DELETES_PER_HOUR: '2' }, now: () => t });
+  await s.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE }, R);
   for (let i = 0; i < 3; i++) assert.equal((await s.handle('get', { via: 'code', code: CODE })).status, 200);
   const r = await s.handle('get', { via: 'code', code: CODE });
   assert.equal(r.status, 429); assert.equal(r.body.error, 'rate-limited');
-  assert.equal((await s.handle('get', { via: 'code', code: CODE2 })).status, 200, 'another code');
+  for (let i = 0; i < 5; i++) assert.equal((await s.handle('get', { via: 'code', code: CODE2 })).status, 200, 'a code without profile: nothing to protect, nothing counted');
   for (let i = 0; i < 2; i++) assert.equal((await s.handle('delete', { via: 'code', code: CODE })).status, 200);
   assert.equal((await s.handle('delete', { via: 'code', code: CODE })).status, 429);
   t += 3600001; assert.equal((await s.handle('get', { via: 'code', code: CODE })).status, 200, 'an hour later');
+});
+
+test('Grenzen halten auch nach mehr als 5000 fremden Kennungen (Aufraeumen wirft den gezaehlten Schluessel nie raus)', async () => {
+  const t = Date.parse('2026-11-06T00:00:00Z');
+  const s = mk({ env: { DUELL_PROFILE_READS_PER_HOUR: '3', DUELL_PROFILE_DELETES_PER_HOUR: '2', DUELL_PROFILE_WRITES_PER_HOUR: '3', DUELL_PROFILE_MAX: '99999', DUELL_PROFILE_NEW_PER_HOUR: '99999', DUELL_PROFILE_ACCOUNT_NEW_PER_DAY: '99999' }, now: () => t });
+  await s.handle('put', { via: 'code', code: CODE, rev: 0, profile: {} }, R);
+  // 5001 random codes read without account, then 5001 profiles written by other keys: both maps go past 5000
+  for (let i = 0; i < 5001; i++) await s.handle('get', { via: 'code', code: (i + 1).toString(16).padStart(32, 'f') });
+  for (let i = 0; i < 5001; i++) await s.handle('put', { via: 'code', code: (i + 1).toString(16).padStart(32, 'e'), rev: 0, profile: {} }, R);
+  let ok = 0; for (let i = 0; i < 10; i++) if ((await s.handle('get', { via: 'code', code: CODE })).status === 200) ok++;
+  assert.equal(ok, 3, 'reads still limited');
+  let del = 0; for (let i = 0; i < 10; i++) if ((await s.handle('delete', { via: 'code', code: CODE })).status === 200) del++;
+  assert.equal(del, 2, 'deletes still limited');
+  const w = mk({ env: { DUELL_PROFILE_WRITES_PER_HOUR: '2', DUELL_PROFILE_MAX: '99999', DUELL_PROFILE_NEW_PER_HOUR: '99999', DUELL_PROFILE_ACCOUNT_NEW_PER_DAY: '99999' }, now: () => t });
+  await w.handle('put', { via: 'code', code: CODE, rev: 0, profile: {} }, R);
+  for (let i = 0; i < 5001; i++) await w.handle('put', { via: 'code', code: (i + 1).toString(16).padStart(32, 'e'), rev: 0, profile: {} }, R);
+  assert.equal((await w.handle('put', { via: 'code', code: CODE, rev: 1, profile: {} }, R)).status, 200);
+  assert.equal((await w.handle('put', { via: 'code', code: CODE, rev: 2, profile: {} }, R)).body.error, 'rate-limited', 'writes still limited');
+  // the per-account day limit, past 5000 other accounts
+  const one = createDuellProfile({ env: { DUELL_PROFILE_DIR: dir(), DUELL_PROFILE_SALT: 'test-salt-0123456789', DUELL_PROFILE_ACCOUNT_NEW_PER_DAY: '2', DUELL_PROFILE_MAX: '99999', DUELL_PROFILE_NEW_PER_HOUR: '99999' },
+    auth: { mode: 'gate', identify: async (req) => ({ email: req.email }), loginUrl: () => '' }, shared: createDuell({ env: {}, salt: 's', log: () => {} }).shared, log: () => {}, now: () => t });
+  const put = (email, i) => one.handle('put', { via: 'code', code: i.toString(16).padStart(32, '0'), rev: 0, profile: {} }, { email });
+  assert.equal((await put('me@x.de', 1)).status, 200);
+  for (let i = 0; i < 5001; i++) await put('u' + i + '@x.de', 100 + i);
+  assert.equal((await put('me@x.de', 2)).status, 200);
+  assert.equal((await put('me@x.de', 3)).body.error, 'new-limit', 'still 2 a day for me');
+});
+
+test('Zwei gleichzeitige put mit demselben neuen Code: einer legt an, der andere bekommt 409', async () => {
+  let release; const gateWait = new Promise((r) => (release = r));
+  const s = createDuellProfile({ env: { DUELL_PROFILE_DIR: dir(), DUELL_PROFILE_SALT: 'test-salt-0123456789' },
+    auth: { mode: 'gate', identify: async () => { await gateWait; return { email: 'e@x.de' }; }, loginUrl: () => '' }, shared: createDuell({ env: {}, salt: 's', log: () => {} }).shared, log: () => {} });
+  const a = s.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE }, R), b = s.handle('put', { via: 'code', code: CODE, rev: 0, profile: PROFILE }, R);
+  release();
+  const r = (await Promise.all([a, b])).map((x) => x.status).sort();
+  assert.deepEqual(r, [200, 409]);
+  assert.equal(s._count(), 1, 'one profile counted');
 });
