@@ -1085,6 +1085,7 @@ const DECK = createDeck({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDI
 Object.assign(DUELL.shared, { credit: CREDIT, mod: MOD });
 const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id), onCard: DECK }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
 const STATS = createStats({ shared: DUELL.shared, auth: AUTH }); // card statistics, thumbs up/down; votes only with a verified account (lib/duell-stat.mjs)
+DECK.useStat(STATS); // the Statistik tab on /duell/pruefen reads STATS.readAdmin (no k mask, admin token only)
 // Deck, credit, moderation and statistics write debounced; 'exit' writes what is pending however the process ends (signal or another handler).
 process.on('exit', () => { for (const s of [DECK, CREDIT, MOD, STATS]) try { s.flush(); } catch { /* one failing store does not stop the others */ } });
 for (const sig of ['SIGTERM', 'SIGINT']) process.once(sig, () => process.exit(0));
