@@ -186,6 +186,11 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
 - Ohne Konto zaehlt ein HMAC einer zufaelligen Geraete-ID; wer die App-Daten loescht, hat einen neuen Free-Topf, gedeckelt ueber IP-Limit, Tagesgrenze und neue Geraete je Stunde.
   Gespeichert werden nur HMACs und Zaehler, keine IP, keine E-Mail, keine Eingaben. Fotos und Audio bleiben auf dem Geraet.
 - Durchsatz messen: `LITELLM_BASE_URL=... LITELLM_KEY_FILE=~/.config/cads/litellm-test.key node bin/duell-bench.mjs --par 1,2,3,4 --n 8`.
+- Freie Karte, Modell-Schicht (`lib/duell-llm.mjs`): Adapter `anthropic` (Standard, `claude-haiku-5-5`, Cache 1 h), `ollama` (nur im
+  Nachtfenster und nur mit geladenem Modell, kein pull, kein `num_ctx`/`keep_alive`) und `litellm`. ENV: `DUELL_CARD_PROVIDER`, `DUELL_CARD_MODEL`,
+  `ANTHROPIC_API_KEY` oder `DUELL_ANTHROPIC_KEY_FILE`, `DUELL_OLLAMA_BASE_URL`, `DUELL_OLLAMA_WINDOW` (z. B. `22-6`, leer = nie), `DUELL_CARD_BUDGET_USD`
+  (Tagesbudget, Standard 2), `DUELL_CARD_BUDGET_FILE`, `DUELL_CARD_PRICE_AS` (Preiszeile fuer einen LiteLLM-Alias). Cache-Abnahme:
+  `DUELL_ANTHROPIC_KEY_FILE=... node bin/duell-cache-check.mjs --n 20` (Trefferquote ab dem 2. Aufruf >= 90 %).
 
 | ENV | Default | Bedeutung |
 |-----|---------|-----------|
