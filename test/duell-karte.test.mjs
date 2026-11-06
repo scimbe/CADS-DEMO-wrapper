@@ -199,3 +199,28 @@ test('S1 is also the output filter: a model text with a brand, a link or an insu
   assert.equal(K.s1('Du bist so hässlich'), 'unkind');
   assert.equal(K.s1('Alles Gute zum Geburtstag!'), '');
 });
+
+test('review fixes: harmless look-alikes pass, digits in lists are matched, crisis beats the pause, a model slip is no strike', async () => {
+  for (const t of ['Zum 14.02.2025 alles Liebe', 'Danke an die teaching assistant', 'Blue tits im Garten', 'Cross stitch Karte für Oma', 'act as a team card', 'Pin-Wand voller Fotos']) assert.equal(K.s1(K.read({ text: t }).text) || (K.read({ text: t }).mark ? 'mark' : ''), '', t);
+  assert.equal(K.s1('1488 forever'), 'hate'); assert.equal(K.s1('PS5 Karte'), 'brand');
+  // three refusals of the model's own output: no strike, no pause
+  const slip = mk({ cardLlm: fakeLlm({ card: { ok: false, title: '', x: '', st: 'druck', palette: 0, stickers: [] } }) });
+  for (let i = 0; i < 4; i++) assert.equal((await run(slip.ai, body('Karte mit Frosch ' + i))).status, 422);
+  // three refused requests: paused, but a crisis still gets help
+  const { ai } = mk({ cardLlm: fakeLlm({ mod: { risk: 2, cats: ['other'] } }) });
+  for (let i = 0; i < 3; i++) await run(ai, body('Karte ' + i));
+  assert.equal((await run(ai, body('Karte mit Frosch'))).body.error, 'throttled');
+  const help = await run(ai, body('Ich will nicht mehr leben'));
+  assert.equal(help.body.why, 'crisis');
+});
+
+test('first card counts once per account, also after a discard brought the pot back to 0 used', async () => {
+  const { ai } = mk({ env: { DUELL_CREATE_NEW_PER_HOUR: '1' } });
+  const r = await run(ai, body('Karte mit Frosch'));
+  assert.equal(r.status, 200);
+  const p = await ai.who({}, { device: DEV });
+  ai.close(p, r.body.receipt, 'discard');
+  assert.equal((await run(ai, body('Noch ein Frosch'))).status, 200, 'not a new creator again');
+  const other = mk({ email: 'mo@example.org', env: { DUELL_CREATE_NEW_PER_HOUR: '0' } });
+  assert.equal((await run(other.ai, body('Karte mit Frosch'))).body.error, 'new-limit');
+});
