@@ -1077,7 +1077,7 @@ const SHORT = createShortLinks({ root: __dir, clientKey: DUELL.clientKey, metric
 const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
 const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather() }); // AI actions and their pots, lib/duell-ai.mjs
 const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id) }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
-const STATS = createStats({ shared: DUELL.shared }); // card statistics, thumbs up/down (public, own limits, lib/duell-stat.mjs)
+const STATS = createStats({ shared: DUELL.shared, auth: AUTH }); // card statistics, thumbs up/down; votes only with a verified account (lib/duell-stat.mjs)
 // The statistics write with a debounce: write the last seconds before the process ends.
 for (const sig of ['SIGTERM', 'SIGINT']) process.once(sig, () => { STATS.flush(); process.exit(0); });
 // One failing request answers 500; it never takes the gallery (and everybody's runs) down with it.
@@ -1091,7 +1091,7 @@ async function route(req, res) {
   const p = url.pathname;
   if (await DUELL_AI.route(req, res, url)) return; // own limits and allowance, reads the login itself
   if (await REPORTS.route(req, res, url)) return; // report, seal check (public); reviewer routes need DUELL_ADMIN_TOKEN
-  if (await STATS.route(req, res, url)) return; // card statistics (public, no login, k-anonymous read)
+  if (await STATS.route(req, res, url)) return; // card statistics (public, k-anonymous read; a vote counts only with a verified account)
   if (await DUELL.route(req, res, url)) return; // Duell: config API, web game, assetlinks (public, own limits)
   if (await SHORT.route(req, res, url)) return; // short links of My Daily Idea (public, own limits)
   if (await AUTH.guard(req, res, url)) return;
