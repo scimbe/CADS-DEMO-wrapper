@@ -29,6 +29,7 @@ import { createDuellAi } from './lib/duell-ai.mjs';
 import { createDuellProfile } from './lib/duell-profile.mjs';
 import { createReports } from './lib/duell-report.mjs';
 import { createWeather } from './lib/duell-weather.mjs';
+import { createStats } from './lib/duell-stat.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
@@ -1078,6 +1079,9 @@ const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.ty
 const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather() }); // AI actions and their pots, lib/duell-ai.mjs
 const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id) }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
 const DUELL_PROFILE = createDuellProfile({ auth: AUTH, shared: DUELL.shared }); // profile under "Mein Stil": account (16+) or sync code, lib/duell-profile.mjs
+const STATS = createStats({ shared: DUELL.shared, auth: AUTH }); // card statistics, thumbs up/down; votes only with a verified account (lib/duell-stat.mjs)
+// The statistics write with a debounce: write the last seconds before the process ends.
+for (const sig of ['SIGTERM', 'SIGINT']) process.once(sig, () => { STATS.flush(); process.exit(0); });
 // One failing request answers 500; it never takes the gallery (and everybody's runs) down with it.
 http.createServer((req, res) => route(req, res).catch((e) => {
   console.log(JSON.stringify({ event: 'request-error', path: String(req.url).split('?')[0].slice(0, 120), error: String(e && e.message || e).slice(0, 200) }));
@@ -1090,6 +1094,7 @@ async function route(req, res) {
   if (await DUELL_AI.route(req, res, url)) return; // own limits and allowance, reads the login itself
   if (await DUELL_PROFILE.route(req, res, url)) return; // My Daily Idea profile, reads the login itself
   if (await REPORTS.route(req, res, url)) return; // report, seal check (public); reviewer routes need DUELL_ADMIN_TOKEN
+  if (await STATS.route(req, res, url)) return; // card statistics (public, k-anonymous read; a vote counts only with a verified account)
   if (await DUELL.route(req, res, url)) return; // Duell: config API, web game, assetlinks (public, own limits)
   if (await SHORT.route(req, res, url)) return; // short links of My Daily Idea (public, own limits)
   if (await AUTH.guard(req, res, url)) return;
