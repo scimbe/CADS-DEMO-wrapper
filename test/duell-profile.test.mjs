@@ -23,6 +23,15 @@ const PROFILE = {
   ai: { dev: DEV, proof: '1a' },
 };
 
+test('cleanProfile: Merken-Link f bleibt (nur c=-Fragment bis 1200 Zeichen), alles andere in f faellt weg', () => {
+  const w = (f) => cleanProfile({ wall: [{ id: 'own', ts: 5, k: 'card', th: TH, f }] }).wall[0];
+  assert.equal(w('c=eyJrIjoiY2FyZCJ9').f, 'c=eyJrIjoiY2FyZCJ9', 'kept');
+  assert.equal(w('c=' + 'A'.repeat(1198)).f.length, 1200);
+  for (const bad of ['c=' + 'A'.repeat(1199), 'i=quiz-chaos', 'c=a b', 'c=<x>', 'https://x/#c=aa', 5, null]) assert.equal(w(bad).f, undefined, String(bad).slice(0, 20));
+  assert.deepEqual(Object.keys(w('c=aa')).sort(), ['f', 'id', 'k', 'th', 'ts']);
+  assert.equal(cleanProfile({ wall: [{ id: 'own', ts: 5, k: 'photo', th: TH, f: 'c=aa' }] }).wall.length, 0, 'a photo work with a link stays out too');
+});
+
 test('cleanProfile: Fotos, fremde Felder, Kontaktdaten und kaputte Werte fallen weg', () => {
   const p = cleanProfile({ ...PROFILE, email: 'x@y.de', ip: '1.2.3.4', me: { ...PROFILE.me, extra: 1 } }, 'code');
   assert.deepEqual(Object.keys(p).sort(), ['ai', 'me', 'saved', 'v', 'wall']);
