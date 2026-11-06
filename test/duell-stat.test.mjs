@@ -24,7 +24,7 @@ const ud = (s, i = 'k') => [raw(s, '2026-11-06', i).up, raw(s, '2026-11-06', i).
 const plain = (o) => JSON.parse(JSON.stringify(o));
 
 test('Zaehlung: open, share, remix mit Bereichen; Abfrage ab 5 sichtbar, darunter null', () => {
-  const { s } = mk();
+  const { s, at } = mk();
   for (let n = 0; n < 5; n++) {
     s.record(parseEvent({ i: 'karte-1', e: 'open' }), { client: 'c' + n });
     s.record(parseEvent({ i: 'karte-1', e: 'share', w: ['text', 'beat', 'text', 'unbekannt'] }), { client: 'c' + n });
@@ -33,6 +33,7 @@ test('Zaehlung: open, share, remix mit Bereichen; Abfrage ab 5 sichtbar, darunte
   assert.deepEqual(plain(raw(s, '2026-11-06', 'karte-1')), { share: 9, remix: 5, open: 5, up: 0, down: 0, w: { text: 5, beat: 5 } });
   assert.deepEqual(one(s, 'karte-1'), { i: 'karte-1', share: 9, remix: 5, open: 5, up: null, down: null, w: { text: 5, beat: 5 } });
   s.record(parseEvent({ i: 'own', e: 'share', w: ['idee'] }), { client: 'c0' });
+  at(T0 + 61000);                                                              // public read is cached for 60 s
   assert.deepEqual(one(s, 'own'), { i: 'own', share: null, remix: null, open: null, up: null, down: null, w: {} });   // w keys below k are left out
 });
 
@@ -81,7 +82,7 @@ test('Vote: Differenz alt -> neu, +1 -> -1 -> 0 exakt auch ueber mehrere Tage', 
   assert.equal(vote(1), 'ok');                                                 // day 1: +1
   at(T0 + 86400000); assert.equal(vote(-1), 'ok');                             // day 2: -1
   at(T0 + 2 * 86400000); assert.equal(vote(0), 'ok');                          // day 3: 0
-  assert.equal(vote(0), 'dup');                                                // no change: not an event
+  assert.equal(vote(0), 'same');                                                // no change: not an event
   const day = (d) => plain(raw(s, d, 'k'));
   assert.deepEqual([day('2026-11-06').up, day('2026-11-06').down], [6, 0]);
   assert.deepEqual([day('2026-11-07').up, day('2026-11-07').down], [-1, 1]);
@@ -106,15 +107,15 @@ test('Angriff: Konto ohne Vorstimme mit v:0 bzw. v:-1 entfernt keine fremde Stim
   const { s, at } = mk();
   for (let n = 0; n < 5; n++) assert.equal(s.record(parseEvent({ i: 'k', e: 'vote', v: 1 }), { account: `u${n}@x.de` }), 'ok');
   const evil = { account: 'evil@x.de' };
-  for (let n = 0; n < 10; n++) assert.equal(s.record(parseEvent({ i: 'k', e: 'vote', v: 0, p: 1 }), evil), 'dup');
+  for (let n = 0; n < 10; n++) assert.equal(s.record(parseEvent({ i: 'k', e: 'vote', v: 0, p: 1 }), evil), 'same');
   assert.deepEqual(ud(s), [5, 0]);
   assert.equal(s.record(parseEvent({ i: 'k', e: 'vote', v: -1, p: 1 }), evil), 'ok');
   assert.deepEqual(ud(s), [5, 1]);                                             // its own down vote, nothing taken from up
   at(T0 + 86400000);
-  assert.equal(s.record(parseEvent({ i: 'k', e: 'vote', v: 0, p: 1 }), { account: 'new@x.de' }), 'dup');
+  assert.equal(s.record(parseEvent({ i: 'k', e: 'vote', v: 0, p: 1 }), { account: 'new@x.de' }), 'same');
   assert.deepEqual(summarize(s._buckets(), '2026-11-07', 7).cards[0].up, 5);
   // the same account cannot add a second +1
-  assert.equal(s.record(parseEvent({ i: 'k', e: 'vote', v: 1 }), { account: 'u0@x.de' }), 'dup');
+  assert.equal(s.record(parseEvent({ i: 'k', e: 'vote', v: 1 }), { account: 'u0@x.de' }), 'same');
 });
 
 test('ohne DUELL_STAT_SALT oder bei Gate-Ausfall keine Votes', () => {
@@ -186,7 +187,7 @@ test('Persistenz: atomar, Roundtrip, unlesbare Datei wird als .bad-<ts> gesicher
     assert.doesNotMatch(vtext, /@|x\.de|u[0-4]|"k"/);
     const b = mk({ file });
     assert.equal(one(b.s, 'k').up, 5);
-    assert.equal(b.s.record(parseEvent({ i: 'k', e: 'vote', v: 1 }), { account: 'u0@x.de' }), 'dup');   // the vote survived the restart
+    assert.equal(b.s.record(parseEvent({ i: 'k', e: 'vote', v: 1 }), { account: 'u0@x.de' }), 'same');   // the vote survived the restart
     assert.equal(b.s.record(parseEvent({ i: 'k', e: 'vote', v: 0 }), { account: 'u0@x.de' }), 'ok');
     assert.equal(b.s._buckets()['2026-11-06'].k.up, 4);
     b.at(T0 + 400 * 86400000);
@@ -207,13 +208,30 @@ test('Persistenz: atomar, Roundtrip, unlesbare Datei wird als .bad-<ts> gesicher
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('GET-Ergebnis wird 60 s gecacht', () => {
+test('GET-Ergebnis wird 60 s gecacht, auch ueber neue Stimmen hinweg; readAdmin ohne Cache', () => {
   const { s, at } = mk();
-  for (let n = 0; n < 5; n++) s.record(parseEvent({ i: 'k', e: 'open' }), { client: 'c' + n });
+  for (let n = 0; n < 5; n++) s.record(parseEvent({ i: 'k', e: 'vote', v: 1 }), { account: `u${n}@x.de` });
   const r1 = s.read(30);
-  assert.strictEqual(s.read(30), r1);
+  assert.equal(r1.cards[0].up, 5);
+  assert.equal(s.record(parseEvent({ i: 'k', e: 'vote', v: 1 }), { account: 'u5@x.de' }), 'ok');
+  at(T0 + 59000);
+  assert.strictEqual(s.read(30), r1);                                          // the new vote does not show yet
+  assert.equal(s.read(30).cards[0].up, 5);
+  assert.equal(s.readAdmin(30).cards[0].up, 6);                                // reviewer view: at once
   at(T0 + 61000);
-  assert.notStrictEqual(s.read(30), r1);
+  assert.equal(s.read(30).cards[0].up, 6);
+});
+
+test('X-Stat same: gespeicherte Stimme erneut (zweites Geraet) ist kein Wechsel', () => {
+  const { s } = mk();
+  const vote = (v) => s.record(parseEvent({ i: 'k', e: 'vote', v }), { account: 'a@x.de' });
+  assert.equal(vote(1), 'ok');
+  for (let n = 0; n < 5; n++) assert.equal(vote(1), 'same');                  // second device sends the same vote
+  assert.deepEqual(ud(s), [1, 0]);
+  assert.deepEqual([vote(-1), vote(1)], ['ok', 'ok']);                         // changes 2 and 3 still possible
+  assert.equal(vote(1), 'same');
+  assert.equal(vote(-1), 'dup');                                               // 4th change
+  assert.deepEqual(ud(s), [1, 0]);
 });
 
 test('readAdmin: ohne k-Maske, nur feste Fenster, nur Zaehler', () => {
@@ -279,6 +297,7 @@ test('HTTP: 204, 400, 413, Vote nur mit Konto (X-Stat: login), GET mit days, COR
     const me = { cookie: 'ct_gate_session=ok-me', ip: '203.0.113.50' };
     const xs = []; for (const v of [-1, 1, -1, 1]) xs.push((await post({ i: 'k', e: 'vote', v }, me)).headers.get('x-stat'));
     assert.deepEqual(xs, [null, null, null, 'dup']);
+    assert.equal((await post({ i: 'k', e: 'vote', v: -1 }, me)).headers.get('x-stat'), 'same');   // stored already: same, not dup
     assert.deepEqual([stats._buckets()['2026-11-06'].k.up, stats._buckets()['2026-11-06'].k.down], [5, 1]);
     const g = await fetch(base + '?days=7', { headers: { origin: 'https://appassets.androidplatform.net', 'x-forwarded-for': '198.51.100.9' } });
     assert.equal(g.status, 200);
