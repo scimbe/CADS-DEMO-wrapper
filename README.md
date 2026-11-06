@@ -109,6 +109,7 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
   Ein fertiges, aber nie abgeholtes Ticket wird beim Verfall abgebucht, ein nie gestartetes kostet nichts.
 - `GET /duell` liefert `apps/duell-web/dist/index.html` (Platzhalter bis zum Marketplace-PR; Pfad per `DUELL_WEB_FILE`).
 - `GET /duell/parts/<name>.<hash>.js` liefert die Teildateien daneben (`dist/parts/`, selten genutzter Code, den die Seite nachlaedt); beim Ausrollen den ganzen Ordner `dist/` kopieren, nicht nur `index.html`.
+- `GET /duell/business/` (auch ohne Schrägstrich) liefert Daily Business, den Business-Build derselben App (`node scripts/build.js --flavor business` -> `dist/business/index.html`), `GET /duell/business/parts/<name>.<hash>.js` seine eigenen Teile aus `dist/business/parts/`. Gleiche Kompression, ETag und Cache-Regeln wie `/duell`; fehlt der Build, antwortet die Route `404 duell: no business build`. Beim Ausrollen `dist/business/` mit `parts/` kopieren.
 - `GET /.well-known/assetlinks.json` fuer `org.bunsenbrenner.cads` (wirkt nur auf dem Host des App-Links, siehe unten).
 
 | ENV | Default | Bedeutung |
@@ -128,6 +129,7 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | `DUELL_IP_SALT` | zufaellig je Start | Salz fuer den IP-Hash |
 | `DUELL_CORS_ORIGINS` | `https://appassets.androidplatform.net` | erlaubte Herkunft (kommagetrennt); andere Browser-Herkuenfte bekommen `403` |
 | `DUELL_WEB_FILE` | `apps/duell-web/dist/index.html` | Spieldatei fuer `/duell` |
+| `DUELL_BIZ_FILE` | `business/index.html` neben `DUELL_WEB_FILE` | Seite fuer `/duell/business/` |
 | `DUELL_ASSETLINKS_SHA256` / `DUELL_ANDROID_PACKAGE` | Release-Fingerabdruck / `org.bunsenbrenner.cads` | Inhalt der assetlinks.json |
 
 ### Kurzlinks (`lib/shortlink.mjs`, Tests: `test/shortlink.test.mjs`)
