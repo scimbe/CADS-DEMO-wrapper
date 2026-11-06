@@ -563,3 +563,15 @@ test('Review W4 NIT: ohne DUELL_DECK_SALT oder DUELL_DECK_SIGN_KEY startet ein D
   mk({ DUELL_DECK_EPHEMERAL: '1' }).stop();
   mk({}, '').stop();   // in memory only: logs, starts
 });
+
+test('Review W4 Nachpruefung: Ring nimmt nur das Guthaben der einen Karte, alte Block-Ruecknahmen ohne Grund kommen zurueck', async () => {
+  const s = setup(), c = s.credit, key = 'aKeyForTests1234', root = 'R'.repeat(22), vari = 'V'.repeat(22);
+  c.award(key, vari, 'use', root);
+  assert.equal(c.available(key), 2);
+  assert.equal(c.revoke(root, 'ring'), 0, 'a ring on the root leaves the variant\'s own credit');
+  assert.equal(c.revoke(root, 'block'), 2, 'a block of the root takes the cluster');
+  assert.equal(c.unrevoke(root), 2);
+  // an entry revoked before reasons existed (no xw) counts as a block
+  c.revoke(root, 'block'); delete c._book.get(key).e[0].xw;
+  assert.equal(c.unrevoke(root), 2);
+});
