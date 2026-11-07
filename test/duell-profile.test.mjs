@@ -292,6 +292,10 @@ test('free card 16+ check: true only after this account\'s 16+ statement in its 
   const s = mk();
   assert.equal(s.age16('eltern@example.org'), false, 'no profile yet');
   assert.equal((await s.handle('put', { via: 'account', rev: 0, profile: PROFILE }, R)).status, 403, 'no statement, no profile');
+  // forged statements: only the boolean true counts; a "c" or "age16" inside the profile itself is no statement
+  for (const age16 of ['true', 1, 'yes', {}, [true]]) assert.equal((await s.handle('put', { via: 'account', rev: 0, profile: PROFILE, age16 }, R)).status, 403, JSON.stringify(age16));
+  assert.equal((await s.handle('put', { via: 'account', rev: 0, profile: { ...PROFILE, c: '2020-01-01', age16: true } }, R)).status, 403, 'statement inside the profile');
+  assert.equal(s.age16('eltern@example.org'), false, 'nothing forged was stored');
   assert.equal((await s.handle('put', { via: 'account', rev: 0, profile: PROFILE, age16: true }, R)).status, 200);
   assert.equal(s.age16('Eltern@Example.org'), true, 'the statement counts, case of the address does not matter');
   assert.equal(s.age16('kind@example.org'), false, 'another account');
