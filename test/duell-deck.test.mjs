@@ -331,7 +331,7 @@ test('Melden und Sperren von Ende zu Ende: Daumen runter -> Karte raus und vorge
   } finally { await h.close(); }
 });
 
-test('Schwerer Verstoss: KI-Nachpruefung findet eine Kategorie aus DUELL_MOD_SEVERE_CATS -> Karte weg, Konto vorgelegt (nicht gesperrt), Mensch sperrt; Risiko 2 nur zurueck', async () => {
+test('Schwerer Verstoss: KI-Nachpruefung findet eine Kategorie aus DUELL_MOD_SEVERE_CATS -> Karte vorlaeufig gesperrt, Konto vorgelegt (nicht gesperrt), Mensch bestaetigt (Strike) und sperrt; Risiko 2 nur zurueck', async () => {
   const s = setup({ review: async (d) => (d.x.includes('schlimm') ? { risk: 3, cats: ['minors'] } : { risk: 2, cats: ['violence'] }) }), h = await serve(s);
   try {
     const bad = await make(s, 'x@example.org', doc('schlimm schlimm'));
@@ -340,24 +340,28 @@ test('Schwerer Verstoss: KI-Nachpruefung findet eine Kategorie aus DUELL_MOD_SEV
     s.clock.t = T0 + 15 * DAY;
     for (const c of [bad, meh]) for (const m of users) await use(h, s, m, c.ki);
     await s.deck.tick();
-    assert.equal(s.deck._cards.get(bad.cid).st, 'removed');
+    assert.equal(s.deck._cards.get(bad.cid).st, 'held', 'provisional: before a human');
+    assert.equal((await (await fetch(h.base + '/api/duell/deck/status?c=' + bad.cid)).json()).st, 'blocked', 'no access while held');
     assert.equal(s.mod.status(bad.owner).st, 'ok', 'the AI never blocks an account');
-    assert.equal(s.credit.available(bad.owner), 0, 'credit taken back');
-    const rm = s.mod.me(bad.owner).notices.find((n) => n.type === 'card-removed');
-    assert.deepEqual(rm.facts.cats, ['minors']); assert.equal(rm.facts.severe, true); assert.deepEqual(rm.redress, ['appeal', 'court']);
+    const held = s.mod.me(bad.owner).notices.find((n) => n.type === 'card-held');
+    assert.deepEqual(held.facts.cats, ['minors']); assert.equal(held.facts.provisional, true); assert.deepEqual(held.redress, ['appeal', 'court']);
     const q = await (await fetch(h.base + '/api/duell/mod', { headers: h.adm })).json();
     const acc = q.accounts.find((a) => a.mid === s.mod.midOf(bad.owner));
-    assert.equal(acc.review.why, 'severe'); assert.deepEqual(acc.review.cats, ['minors']); assert.equal(acc.st, 'ok');
-    // the human decides: final block, with its own statement of reasons; the flag is gone
+    assert.equal(acc.review.why, 'severe'); assert.equal(acc.st, 'ok');
+    const view = await (await fetch(h.base + '/api/duell/deck/review', { headers: h.adm })).json();
+    assert.ok(view.held.some((x) => x.cid === bad.cid), 'held cards are on the review page');
+    // the human confirms: blocked for good with a rule ground, a strike with its own notice; then a final block
+    assert.equal((await h.post('/api/duell/deck/review/' + bad.cid, { action: 'confirm', ground: 'sex' }, null, h.adm)).status, 200);
+    assert.equal(s.deck._cards.get(bad.cid).st, 'removed');
+    assert.equal(s.credit.available(bad.owner), 0, 'credit taken back');
+    const st = s.mod.me(bad.owner).notices.find((n) => n.type === 'strike');
+    assert.equal(st.facts.src, 'confirmed'); assert.equal(st.facts.ground, 'sex'); assert.equal(st.automated.decided, false); assert.ok(st.facts.lapses);
     assert.equal((await h.post('/api/duell/mod/' + acc.mid, { action: 'ban', note: 'geprueft' }, null, h.adm)).status, 200);
     assert.equal(s.mod.status(bad.owner).st, 'banned');
-    const ban = s.mod.me(bad.owner).notices.find((n) => n.type === 'ban');
-    assert.equal(ban.automated.decided, false); assert.deepEqual(ban.redress, ['appeal', 'court']);
-    assert.equal(s.mod._accounts.get(bad.owner).review, undefined);
     assert.equal(s.deck._cards.get(meh.cid).st, 'private'); assert.equal(s.mod.status(meh.owner).st, 'ok');
     // "Kein Befund" clears a flag without a sanction
     const z = await keyOf(s, 'z@example.org');
-    s.mod.cardRemoved(z, 'z'.repeat(22), { why: 'ai-recheck', severe: true, cats: ['minors'] }, true);
+    s.mod.flag(z, 'severe', { cards: ['z'.repeat(22)] });
     assert.equal((await h.post('/api/duell/mod/' + s.mod.midOf(z), { action: 'dismiss' }, null, h.adm)).status, 200);
     assert.equal(s.mod.status(z).st, 'ok'); assert.equal(s.mod._accounts.get(z).review, undefined);
     assert.equal((await h.post('/api/duell/mod/' + s.mod.midOf(z), { action: 'dismiss' }, null, h.adm)).status, 409);
@@ -557,26 +561,47 @@ test('Review W4 HOLD 1: was die Ring-Pruefung zuruecknimmt, kommt durch Wiederhe
   assert.equal(again.available(owner), 0, 'ring revocation survives a restart');
 });
 
-test('Review W4 HOLD 2: Strikes zaehlen nur im Fenster DUELL_MOD_STRIKE_DAYS und legen das Konto nur vor, Daumen sind keine Strikes', async () => {
+test('Strikes: zwei vorlaeufige Sperren im Fenster = ein Strike, bestaetigte Sperre = Strike; gestuft Hinweis -> Pause -> Vorlage; Verfall nach DUELL_MOD_STRIKE_DAYS; Widerspruch und Freigabe nehmen ihn weg; Daumen sind keine Strikes', async () => {
   const s = setup(), v = await keyOf(s, 'victim@example.org'), w = await keyOf(s, 'w@example.org'), x = await keyOf(s, 'x@example.org');
-  s.mod.cardHidden(v, 'c'.repeat(22), { why: 'thumbs', down: 8, share: 0.7 });
-  assert.equal(s.mod._accounts.get(v).strikes.length, 0, 'thumbs: no strike');
-  s.clock.t += 200 * DAY;
-  s.mod.cardRemoved(v, 'd'.repeat(22), { why: 'ai-recheck' }, true);
-  assert.equal(s.mod._accounts.get(v).review, undefined);
-  // two automatic removals inside the window put the account before a human; its state stays ok
-  s.mod.cardRemoved(w, 'e'.repeat(22), { why: 'ai-recheck' }, true);
+  const C = (ch) => ch.repeat(22);
+  s.mod.cardHidden(v, C('c'), { why: 'thumbs', down: 8, share: 0.7 });
+  assert.equal(s.mod.strikes(v), 0, 'thumbs: no strike');
+  // two holds inside 30 days: one strike (a notice, automatic); 31 days apart: none
+  s.mod.cardHeld(w, C('e'), { why: 'reports', accounts: 3 });
+  assert.equal(s.mod.strikes(w), 0, 'one hold: no strike yet');
   s.clock.t += 10 * DAY;
-  s.mod.cardRemoved(w, 'f'.repeat(22), { why: 'ai-recheck' }, true);
-  assert.equal(s.mod.status(w).st, 'ok');
-  assert.deepEqual(s.mod._accounts.get(w).review.cards, ['e'.repeat(22), 'f'.repeat(22)]);
-  assert.ok(!s.mod.me(w).notices.some((n) => n.type === 'pause' || n.type === 'ban'));
-  // 31 days apart -> no flag
-  s.mod.cardRemoved(x, 'g'.repeat(22), { why: 'ai-recheck' }, true);
+  s.mod.cardHeld(w, C('f'), { why: 'reports', accounts: 3 });
+  assert.equal(s.mod.strikes(w), 1);
+  const sn = s.mod.me(w).notices.find((n) => n.type === 'strike');
+  assert.deepEqual(sn.facts.cards, [C('e'), C('f')]); assert.equal(sn.facts.src, 'holds'); assert.equal(sn.automated.decided, true);
+  assert.equal(s.mod.status(w).st, 'ok', '1 strike: a notice only');
+  s.mod.cardHeld(x, C('g'), { why: 'reports' });
   s.clock.t += 31 * DAY;
-  s.mod.cardRemoved(x, 'h'.repeat(22), { why: 'ai-recheck' }, true);
-  assert.equal(s.mod._accounts.get(x).review, undefined);
-  assert.equal(s.mod._accounts.get(x).strikes.length, 1, 'the old strike is dropped, not kept as used');
+  s.mod.cardHeld(x, C('h'), { why: 'reports' });
+  assert.equal(s.mod.strikes(x), 0, 'holds 31 days apart make no strike');
+  // graded: a confirmed block is the 2nd live strike -> creating paused; the 3rd -> before a human for a final block, not banned
+  const g = await keyOf(s, 'g@example.org');
+  s.mod.cardRemoved(g, C('i'), { by: 'human', ground: 'hate' });
+  assert.equal(s.mod.strikes(g), 1); assert.equal(s.mod.status(g).st, 'ok');
+  s.clock.t += DAY;
+  s.mod.cardRemoved(g, C('j'), { by: 'human', ground: 'harm' });
+  assert.equal(s.mod.status(g).st, 'paused'); assert.equal(s.mod.canCreate(g).error, 'account-paused');
+  const pause = s.mod.me(g).notices.find((n) => n.type === 'pause');
+  assert.equal(pause.facts.strikes, 2); assert.deepEqual(pause.redress, ['appeal', 'court']);
+  s.clock.t += DAY;
+  s.mod.cardRemoved(g, C('k'), { by: 'human', ground: 'harm' });
+  assert.equal(s.mod._accounts.get(g).review.why, 'strikes'); assert.notEqual(s.mod.status(g).st, 'banned', 'final block only by a human');
+  // a successful complaint takes its strike away
+  const third = s.mod.me(g).notices.filter((n) => n.type === 'strike').at(-1);
+  assert.equal(s.mod.appeal(g, third.nid, 'Die Karte war ein Zitat aus dem Unterricht.').status, 202);
+  assert.equal(s.mod.decide(s.mod.midOf(g), 'lift', third.nid).status, 200);
+  assert.equal(s.mod.strikes(g), 2);
+  // strikes lapse: 30 days after the first two, nothing is left and the pause is over
+  s.clock.t += 31 * DAY;
+  assert.equal(s.mod.strikes(g), 0); assert.equal(s.mod.status(g).st, 'ok');
+  // a released hold counts no more, and its strike goes
+  s.mod.cardReleased(w, C('f'));
+  assert.equal(s.mod.strikes(w), 0);
 });
 
 test('Review W4 NIT: Ring-Verdacht (flag) -> Aufnehmen erzwingt KI-Nachpruefung, Deck-Guthaben erst nach Ende des Verdachts; Publikums-Hinweis', async () => {
@@ -631,4 +656,78 @@ test('Review W4 Nachpruefung: Ring nimmt nur das Guthaben der einen Karte, alte 
   // an entry revoked before reasons existed (no xw) counts as a block
   c.revoke(root, 'block'); delete c._book.get(key).e[0].xw;
   assert.equal(c.unrevoke(root), 2);
+});
+
+test('Widerruf geteilter freier Karten: Status no-store, Meldungen verschiedener Konten sperren vorlaeufig, anonyme nicht, Daumen nie; Admin gibt frei oder sperrt mit Regelgrund; nie uebernommene Karten auch', async () => {
+  const s = setup(), h = await serve(s);
+  const status = async (cid) => { const r = await fetch(h.base + '/api/duell/deck/status?c=' + cid); return { st: (await r.json()).st, cache: r.headers.get('cache-control'), cors: r.headers.get('access-control-allow-origin') }; };
+  const report = (card, mail) => h.post('/api/duell/report', { reason: 'harm', kind: 'karte', seal: card.ki.s, optionHash: card.ki.h }, mail);
+  const settle = () => new Promise((r) => setTimeout(r, 30));
+  try {
+    const card = await make(s, 'maker@example.org', doc('Geteilte Karte mit Wolken und Sternen'));
+    let st = await status(card.cid);
+    assert.deepEqual(st, { st: 'ok', cache: 'no-store', cors: '*' });
+    assert.equal((await fetch(h.base + '/api/duell/deck/status?c=kurz')).status, 400);
+    // thumbs alone never block, however many
+    const users = await accounts(s, 30, { prefix: 'w' });
+    for (const m of users) await thumb(h, s, m, card.ki, -1);
+    assert.equal((await status(card.cid)).st, 'ok', 'thumbs sort and hide, they never revoke');
+    assert.equal(s.mod.strikes(card.owner), 0);
+    // anonymous reports: to the reviewer, no hold
+    for (let i = 0; i < 5; i++) assert.equal((await report(card)).status, 202);
+    await settle();
+    assert.equal((await status(card.cid)).st, 'ok');
+    // two accounts, and the creator itself: no hold; the third distinct account: held, blocked for every link
+    await report(card, 'r1@example.org'); await report(card, 'r1@example.org'); await report(card, 'maker@example.org'); await report(card, 'r2@example.org');
+    await settle();
+    assert.equal((await status(card.cid)).st, 'ok', 'two distinct accounts are not enough');
+    await report(card, 'r3@example.org'); await settle();
+    assert.equal(s.deck._cards.get(card.cid).st, 'held');
+    assert.equal((await status(card.cid)).st, 'blocked');
+    const held = s.mod.me(card.owner).notices.find((n) => n.type === 'card-held');
+    assert.equal(held.facts.why, 'reports'); assert.equal(held.facts.accounts, 3); assert.equal(held.facts.provisional, true);
+    // the human finds nothing: released, no strike
+    assert.equal((await h.post('/api/duell/deck/review/' + card.cid, { action: 'release' }, null, h.adm)).status, 200);
+    assert.equal((await status(card.cid)).st, 'ok'); assert.equal(s.mod.strikes(card.owner), 0);
+    // the window: reports older than DUELL_DECK_REPORT_DAYS fall out
+    await report(card, 'r4@example.org'); await report(card, 'r5@example.org'); await settle();
+    s.clock.t += 8 * DAY;
+    await report(card, 'r6@example.org'); await settle();
+    assert.equal((await status(card.cid)).st, 'ok', 'old reports fall out of the window');
+    // at any time: the human blocks with a rule ground -> blocked for good, a strike for the creator
+    assert.equal((await h.post('/api/duell/deck/review/' + card.cid, { action: 'block', ground: 'private' })).status, 401);
+    assert.equal((await h.post('/api/duell/deck/review/' + card.cid, { action: 'block', ground: 'private' }, null, h.adm)).status, 200);
+    assert.equal((await status(card.cid)).st, 'blocked');
+    const sn = s.mod.me(card.owner).notices.find((n) => n.type === 'strike');
+    assert.equal(sn.facts.ground, 'private'); assert.equal(s.mod.strikes(card.owner), 1);
+    // a successful complaint against the block: the card opens again, the strike is gone
+    const rm = s.mod.me(card.owner).notices.find((n) => n.type === 'card-removed');
+    assert.equal(s.mod.appeal(card.owner, rm.nid, 'Das ist eine Wetterkarte.').status, 202);
+    assert.equal(s.mod.decide(s.mod.midOf(card.owner), 'lift', rm.nid).status, 200);
+    assert.equal((await status(card.cid)).st, 'ok'); assert.equal(s.mod.strikes(card.owner), 0);
+    // a sealed card nobody registered: reports still hold it, without an owner and without strikes
+    const owner = await keyOf(s, 'never@example.org');
+    const d = doc('Nie uebernommene Karte mit Regenbogen'), { ki, cid } = sealKarte(s.d.shared.sealer, SALT, d, owner, s.clock.t);
+    for (const m of ['n1@example.org', 'n2@example.org', 'n3@example.org']) await report({ ki }, m);
+    await settle();
+    assert.equal((await status(cid)).st, 'blocked');
+    assert.equal(s.mod.strikes(owner), 0);
+  } finally { await h.close(); }
+});
+
+test('Speicherdauer: Melde-Kennung eines Kontos hoechstens DUELL_DECK_REPORT_DAYS, Strikes und vorlaeufige Sperren hoechstens DUELL_MOD_STRIKE_DAYS (Datenschutzseite)', async () => {
+  const s = setup(), h = await serve(s);
+  try {
+    const card = await make(s, 'keep@example.org', doc('Karte fuer die Speicherdauer mit Monden'));
+    await h.post('/api/duell/report', { reason: 'harm', kind: 'karte', seal: card.ki.s, optionHash: card.ki.h }, 'k1@example.org');
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(Object.keys(s.deck._cards.get(card.cid).rA).length, 1);
+    s.clock.t += 8 * DAY; await s.deck.tick();
+    assert.equal(Object.keys(s.deck._cards.get(card.cid).rA).length, 0, 'gone after 7 days');
+    const k = card.owner;
+    s.mod.cardHeld(k, 'q'.repeat(22), { why: 'reports' }); s.mod.cardHeld(k, 'r'.repeat(22), { why: 'reports' });
+    assert.equal(s.mod.strikes(k), 1); assert.equal(s.mod._accounts.get(k).holds.length, 2);
+    s.clock.t += 31 * DAY; await s.deck.tick();
+    assert.equal(s.mod._accounts.get(k).strikes.length, 0); assert.equal(s.mod._accounts.get(k).holds.length, 0, 'gone after 30 days');
+  } finally { await h.close(); }
 });
