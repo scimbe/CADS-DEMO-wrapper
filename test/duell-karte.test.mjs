@@ -226,6 +226,151 @@ test('first card counts once per account, also after a discard brought the pot b
   assert.equal((await run(other.ai, body('Karte mit Frosch'))).body.error, 'new-limit');
 });
 
+// ---- W3: game, sound, quiz and the abilities of the existing cards ------------------------------------------------
+import { CAPS, CAP_IDS, PHYSIK, capCheck, textsOf, ARTS } from '../lib/duell-karte.mjs';
+import { WELT } from '../lib/duell-ai.mjs';
+
+test('W3 ability catalog: built from the app catalog, no arcade, no gated card, money only from 18, one table for the flight', () => {
+  const ideas = App.D.IDEAS;
+  assert.ok(CAPS.length >= 50);
+  for (const c of CAPS) { const i = App.D.byId(c.id); assert.ok(i, c.id); assert.notEqual(i.kind, 'arcade'); }
+  assert.ok(!CAP_IDS.some((id) => (App.D.GATED || []).some((g) => g.id === id)));
+  for (const want of ['zug-termin', 'zug-sammeln', 'zug-quiz', 'duell-ssp', 'rap-agenten', 'auktion-quatsch']) assert.ok(CAP_IDS.includes(want), want);
+  assert.deepEqual(CAPS.filter((c) => c.adult).map((c) => c.id), ['zug-sammeln']);
+  assert.ok(ideas.filter((i) => i.turn).every((i) => CAP_IDS.includes(i.id)), 'every turn card of the app is an ability');
+  assert.deepEqual(PHYSIK, WELT.physik, 'the flight deltas are the AI kind welt\'s');
+  assert.ok(CARD_SYSTEM[1].text.includes('zug-termin (termin)'), 'the catalog sits in the cached prefix');
+  assert.deepEqual(ARTS, ['card', 'meme', 'game', 'sound', 'quiz', 'faehigkeit']);
+});
+
+test('W3 compose: every art becomes a doc the app keeps as it is, numbers and seed from the server, links fit', () => {
+  const text = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
+  const out = {
+    game: compose('game', { ok: true, title: 'Tiefsee', emoji: '🐠', theme: 'ocean', motif: 'bubbles', level: 'hard', route: [{ physik: 'ruhig', thema: 'ocean', emoji: '🐟' }, { physik: 'sturm', thema: 'night', emoji: '⚡' }, { physik: 'schnell', thema: 'ocean', emoji: '🐳' }], gravity: 99999 }, 5, text),
+    sound: compose('sound', { ok: true, title: 'Sleepy', bpm: 80, fx: 'echo', kick: 'x-------x-------', snare: '----x-------x---', hat: '--x---x---x---x-', bass: 'kaputt', hook: ['Close your eyes', 'The moon is near'] }, 5, text),
+    quiz: compose('quiz', { ok: true, title: 'Planeten', questions: [1, 2, 3, 4].map((n) => ({ q: 'Frage ' + n + '?', a: 'Antwort ' + n, wrong: ['A', 'B', 'C'] })) }, 5, text),
+    faehigkeit: compose('faehigkeit', { ok: true, cap: 'zug-termin', title: 'Grillabend', sub: 'Alle stimmen ab.', word: '' }, 5, text),
+  };
+  for (const [art, d] of Object.entries(out)) {
+    assert.ok(d, art);
+    assert.deepEqual(App.D.sanitizeDoc(d), d, art + ': the app changes nothing');
+    assert.ok([...linkOf(d)].length <= LINK_MAX, art);
+  }
+  assert.deepEqual(out.game.g.params, { gravity: 2300, jump: 480, gap: 110, speed: 190 }, 'level hard, not the model\'s number');
+  assert.equal(out.game.g.seed, 5); assert.equal(out.game.g.route.length, 3); assert.deepEqual(out.game.g.route[1].d, { speed: 30, gap: -15 }, 'WELT.physik.sturm in the app\'s own keys');
+  assert.equal(out.sound.p.b, '----------------', 'a broken track becomes a rest'); assert.deepEqual(out.sound.ly, ['Close your eyes', 'The moon is near']);
+  assert.equal(out.quiz.g, 'quiz'); assert.equal(out.quiz.pk.q.length, 4); assert.deepEqual(out.quiz.pk.q[0], ['Frage 1?', 'Antwort 1', 'A', 'B', 'C']);
+  assert.equal(out.faehigkeit.i, 'zug-termin'); assert.equal(out.faehigkeit.t, 'Grillabend'); assert.equal(out.faehigkeit.seed, 5);
+  assert.equal(compose('faehigkeit', { ok: true, cap: 'arcade-puck', title: 'x', sub: '', word: '' }, 1, text), null, 'no ability outside the catalog');
+  assert.equal(compose('game', { ok: true, title: 'x', emoji: '🐠', theme: 'ocean', motif: 'none', level: 'easy', route: [] }, 1, text), null, 'a route has 3 sections');
+  assert.equal(compose('quiz', { ok: true, title: 'x', questions: [{ q: 'a?', a: 'b', wrong: ['b', 'c'] }] }, 1, text), null, 'too few questions');
+  assert.match(textsOf(out.quiz), /Frage 1\? \/ Antwort 1/, 'S4 sees every question and answer');
+});
+
+test('W3 rights: money only from 18; a chosen ability outside the allowlist is refused before the card exists', async () => {
+  const money = fakeLlm({ card: { ok: true, cap: 'zug-sammeln', title: 'Klassenfahrt', sub: 'Jeder zahlt seinen Teil.', word: '' } });
+  const young = mk({ cardLlm: money });
+  const r = await run(young.ai, { ...body('x'), input: { text: 'Geld für die Klassenfahrt einsammeln', art: 'faehigkeit', age: 'u18' } });
+  assert.equal(r.status, 403, JSON.stringify(r.body)); assert.equal(r.body.error, 'age'); assert.equal(r.body.create.remaining, 5);
+  const adult = mk({ cardLlm: fakeLlm({ card: { ok: true, cap: 'zug-sammeln', title: 'Klassenfahrt', sub: 'Jeder zahlt seinen Teil.', word: '' } }) });
+  const r2 = await run(adult.ai, { ...body('x'), input: { text: 'Geld für die Klassenfahrt einsammeln', art: 'faehigkeit', age: 'a18' } });
+  assert.equal(r2.status, 200, JSON.stringify(r2.body)); assert.equal(r2.body.options[0].doc.i, 'zug-sammeln');
+  assert.equal(capCheck({ i: 'nicht-da' }, { age: 'a18' }), 'cap-unknown');
+  const gen = adult.cardLlm.calls[1];
+  assert.equal(gen.schema, SCHEMAS.faehigkeit); assert.deepEqual(gen.schema.properties.cap.enum, CAP_IDS, 'the model chooses only ids of the catalog');
+});
+
+test('shared filter: "night" is no slur prefix, the slur still is; a pet that looks offended is no insult', async () => {
+  const { isBlocked } = await import('../lib/duell.mjs');
+  assert.equal(isBlocked('good night card'), false); assert.equal(isBlocked('nightmare before christmas'), false);
+  assert.equal(isBlocked('n1gg3r'), true); assert.equal(isBlocked('niggas'), true);
+  assert.equal(K.s1('Mein Hund schaut beleidigt, weil es kein Leckerli gab'), '');
+  assert.equal(K.s1('Karte die meine Schwester beleidigt'), 'unkind');
+  const a = fx('karte-arts.json').arts;
+  for (const [art, list] of Object.entries(a)) {
+    assert.equal(list.length, 20, art);
+    for (const c of list) assert.equal(screen(c.t, art), '', `${art}: ${c.t}`);
+  }
+});
+
+test('the live runner\'s fit check: a wanted stem, emoji, theme or ability counts, anything else does not', async () => {
+  const { fits } = await import('../bin/duell-karte-golden.mjs');
+  const text = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
+  const card = compose('card', { ok: true, title: 'Sonnenblumen-Tag', x: 'Alles Gute!', st: 'herz', palette: 0, stickers: ['🌻'] }, 1, text);
+  assert.equal(fits(card, ['geburtstag', '🌻']), true); assert.equal(fits(card, ['weltraum']), false);
+  const cap = compose('faehigkeit', { ok: true, cap: 'zug-termin', title: 'Grillabend', sub: '', word: '' }, 1, text);
+  assert.equal(fits(cap, ['zug-termin']), true);
+  const game = compose('game', { ok: true, title: 'Tief', emoji: '🐠', theme: 'ocean', motif: 'none', level: 'easy', route: [{ physik: 'ruhig', thema: 'ocean', emoji: '🐟' }, { physik: 'sturm', thema: 'night', emoji: '⚡' }, { physik: 'normal', thema: 'ocean', emoji: '🐳' }] }, 1, text);
+  assert.equal(fits(game, ['sturm']), true); assert.equal(fits(game, ['lava']), false);
+});
+
+test('W3 review: slur spellings around "nigh" stay blocked; tables, live rooms and crypto channels are no ability; a miscounted beat is mended', async () => {
+  const { isBlocked } = await import('../lib/duell.mjs');
+  for (const t of ['niggha', 'nighger', 'nigher', 'nighga', 'nigghr', 'nighgers', 'nigha']) assert.equal(isBlocked(t), true, t);
+  assert.equal(isBlocked('good night'), false); assert.equal(isBlocked('nightmare'), false);
+  assert.ok(!CAP_IDS.some((id) => /^tisch-|^kanal-/.test(id)), 'no table, no crypto channel');
+  assert.ok(CAPS.every((c) => ['turn', 'duel'].includes(c.kind)));
+  assert.equal(K.s1('Mein Bruder ist beleidigt, weil ich ihn beleidige'), 'unkind');
+  const text = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
+  const s = compose('sound', { ok: true, title: 'Beat', bpm: 120, fx: 'chip', kick: 'x---x---x---x', snare: '----x-------x-------', hat: 'xoxoxoxoxoxoxoxo', bass: '', hook: ['eins zwei', 'drei vier'] }, 1, text);
+  assert.deepEqual(s.p, { k: 'x---x---x---x---', s: '----x-------x---', h: 'x-x-x-x-x-x-x-x-', b: '----------------' });
+});
+
+test('W3 review: a money ability for someone under 18 is a 403 age and a strike; the age band is in the user turn, not the prefix', async () => {
+  const llm = fakeLlm({ card: { ok: true, cap: 'zug-sammeln', title: 'Fahrt', sub: '', word: '' } });
+  const { ai } = mk({ cardLlm: llm });
+  // (the schema for under 18 has no money ability; a model that picks it anyway is refused, and that is a strike)
+  for (let i = 0; i < 3; i++) {
+    const r = await run(ai, { ...body('x'), input: { text: 'Geld einsammeln ' + i, art: 'faehigkeit', age: 'u18' } });
+    assert.equal(r.status, 403); assert.equal(r.body.error, 'age');
+  }
+  assert.equal((await run(ai, { ...body('x'), input: { text: 'Geld einsammeln', art: 'faehigkeit', age: 'u18' } })).body.error, 'throttled');
+  assert.match(llm.calls[1].user, /Age: under 18/);
+  assert.ok(!CARD_SYSTEM.some((b) => /under 18, never/.test(b.text)));
+});
+
+test('W4 hooks: seen on every request, moderation pause is 403 (crisis help first), sealKarte and register on accept, credit after the pot', async () => {
+  const log = [];
+  const deckHooks = {
+    seen: (k) => log.push(['seen', k]),
+    sealKarte: (doc, key, at) => ({ ki: { k: 'karte', s: 's2.karte.x.' + 'S'.repeat(32), h: 'H'.repeat(43), o: 'O'.repeat(22) }, cid: 'C'.repeat(22) }),
+    register: (r) => log.push(['register', r.cid, r.owner, r.doc.ki.o]),
+  };
+  let bal = 1;
+  const creditHooks = { available: () => bal, spend: (k, n) => { if (bal < n) return false; bal -= n; log.push(['spend']); return true; }, refund: (k, n) => { bal += n; log.push(['refund']); } };
+  let paused = false;
+  const modHooks = { canCreate: () => (paused ? { ok: false, error: 'account-paused', until: '2026-11-08', notice: 'n-1' } : { ok: true }) };
+  const { ai, d } = mk({ env: { DUELL_CREATE_FREE: '1' } });
+  Object.assign(d.shared, { deck: deckHooks, credit: creditHooks, mod: modHooks });
+  assert.equal(typeof d.shared.cardReview, 'function', 'call B for the deck review');
+  const r1 = await run(ai, body('Karte mit Frosch'));
+  assert.equal(r1.status, 200, JSON.stringify(r1.body));
+  assert.equal(r1.body.options[0].ki.o, 'O'.repeat(22)); assert.equal(r1.body.seals[0], r1.body.options[0].ki.s);
+  const p = await ai.who({}, { device: DEV });
+  ai.close(p, r1.body.receipt, 'accept');
+  assert.deepEqual(log.find((x) => x[0] === 'register'), ['register', 'C'.repeat(22), p.key, 'O'.repeat(22)]);
+  // pot of 1 is empty now: the next card is paid from credit, and a discard gives the credit back
+  const r2 = await run(ai, body('Noch ein Frosch'));
+  assert.equal(r2.status, 200, JSON.stringify(r2.body)); assert.equal(r2.body.credit, true); assert.equal(bal, 0);
+  const back = ai.close(p, r2.body.receipt, 'discard');
+  assert.equal(back.body.credit, true); assert.equal(bal, 1);
+  assert.equal((await run(ai, body('Karte 3'))).status, 200);
+  assert.equal((await run(ai, body('Karte 4'))).body.error, 'quota', 'no pot, no credit');
+  paused = true;
+  const pz = await run(ai, body('Karte mit Frosch'));
+  assert.equal(pz.status, 403); assert.equal(pz.body.error, 'account-paused'); assert.equal(pz.body.notice, 'n-1');
+  assert.equal((await run(ai, body('Ich will nicht mehr leben'))).body.why, 'crisis', 'help is never paused');
+  assert.ok(log.filter((x) => x[0] === 'seen').length >= 5);
+});
+
+test('live finding: beat tracks are no text for S1 (x-x-x is no "xxx"), a whole sound card goes through', async () => {
+  const llm = fakeLlm({ card: { ok: true, title: 'Party Beat', bpm: 130, fx: 'chip', kick: 'x---x---x---x---', snare: '----x-------x---', hat: 'x-x-x-x-x-x-x-x-', bass: 'xxx-----xxx-----', hook: ['Hände hoch, wir feiern heut', 'Tanzen, bis der Wecker läut'] } });
+  const { ai } = mk({ cardLlm: llm });
+  const r = await run(ai, { ...body('x'), input: { text: 'Fröhlicher Geburtstagsbeat für meine Schwester', art: 'sound', age: 'u18' } });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.options[0].doc.p.b, 'xxx-----xxx-----');
+});
+
 test('review #103: S4 refusals end in a pause, a daily cap holds every outcome, a Pro key changes nothing for the free card', async () => {
   const s4 = fakeLlm({ mod: (req, calls) => (req.user.startsWith('CARD') ? { risk: 2, cats: ['brand'] } : { risk: 0, cats: [] }) });
   const a = mk({ cardLlm: s4 });
@@ -245,4 +390,26 @@ test('review #103: S4 refusals end in a pause, a daily cap holds every outcome, 
   const r1 = await run(c.ai, { ...body('Karte A'), key });
   assert.equal(r1.status, 200); assert.equal(r1.body.create.remaining, 4);
   assert.equal((await run(c.ai, body('Karte B'))).body.create.remaining, 3, 'one create pot per account, with or without key');
+});
+
+test('review #104: under 18 the money ability is not even in the schema; quiz texts pass S1 before the card; no live duel; a Pro key does not lift a ban', async () => {
+  const { schemaFor } = await import('../lib/duell-karte.mjs');
+  assert.ok(!schemaFor({ art: 'faehigkeit', age: 'u18' }).properties.cap.enum.includes('zug-sammeln'));
+  assert.ok(schemaFor({ art: 'faehigkeit', age: 'a18' }).properties.cap.enum.includes('zug-sammeln'));
+  assert.ok(!CAP_IDS.some((id) => App.D.byId(id).live), 'no live duel');
+  const llm = fakeLlm({ card: { ok: true, cap: 'zug-wette', title: 'Wette', sub: '', word: '' } });
+  const { ai } = mk({ cardLlm: llm });
+  await run(ai, { ...body('x'), input: { text: 'Eine Wette mit meiner Schwester', art: 'faehigkeit', age: 'u18' } });
+  assert.equal(llm.calls[1].schema, schemaFor({ art: 'faehigkeit', age: 'u18' }));
+  const quiz = fakeLlm({ card: { ok: true, title: 'Quiz', questions: [{ q: 'Wer ist Pikachu?', a: 'Ein Pokemon', wrong: ['A', 'B', 'C'] }, { q: 'b?', a: 'c', wrong: ['d', 'e', 'f'] }, { q: 'g?', a: 'h', wrong: ['i', 'j', 'k'] }] } });
+  const q = mk({ cardLlm: quiz });
+  const r = await run(q.ai, { ...body('x'), input: { text: 'Quiz über Tiere', art: 'quiz', age: 'u18' } });
+  assert.equal(r.status, 422); assert.equal(quiz.calls.length, 2, 'refused before call B');
+  const { mintKey } = await import('../lib/duell-pots.mjs');
+  const key = mintKey('ent', 'pro', 'fam1'), banned = new Set();
+  const c = mk({ env: { DUELL_ENTITLEMENT_SECRET: 'ent', DUELL_ENTITLEMENTS: key } });
+  c.d.shared.mod = { canCreate: (k) => (banned.has(k) ? { ok: false, error: 'account-banned' } : { ok: true }) };
+  banned.add((await c.ai.who({}, { device: DEV })).key);
+  assert.equal((await run(c.ai, body('Geburtstagskarte'))).body.error, 'account-banned');
+  assert.equal((await run(c.ai, { ...body('Geburtstagskarte'), key })).body.error, 'account-banned', 'a Pro key is no way around');
 });
