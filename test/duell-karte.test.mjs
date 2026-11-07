@@ -468,3 +468,15 @@ test('Pruefstand: Kontext statt Wortliste - Klassenfahrt, Blutspende und ein Ler
   const sys = CARD_SYSTEM.map((b) => b.text).join('\n');
   assert.match(sys, /Hanukkah/); assert.match(sys, /dodging cannonballs/);
 });
+
+test('S3 in einer Schleife (max_tokens): ein zweiter Versuch, beide zaehlen; zweimal Schleife ist eine kaputte Antwort', async () => {
+  let n = 0;
+  const once = fakeLlm({ card: () => (n++ === 0 ? { stop: 'max_tokens' } : { ok: true, title: 'Montag besiegt', x: 'Heute gewinnst du gegen den Montag.', st: 'herz', palette: 0, stickers: ['✨'] }) });
+  const a = mk({ cardLlm: once });
+  const r = await run(a.ai, body('Beat ueber den Montag'));
+  assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(once.calls.filter((c) => c.system !== MOD_SYSTEM).length, 2);
+  const loop = fakeLlm({ card: { stop: 'max_tokens' } });
+  const b = mk({ cardLlm: loop });
+  const r2 = await run(b.ai, body('Beat ueber den Montag'));
+  assert.notEqual(r2.status, 200); assert.equal(loop.calls.filter((c) => c.system !== MOD_SYSTEM).length, 2, 'nicht oefter als zweimal');
+});
