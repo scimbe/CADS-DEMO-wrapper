@@ -189,3 +189,13 @@ test('a call that times out is booked at its worst case; an HTTP error is not', 
   await assert.rejects(bad.generate({ system: SYS, user: 'u' }), /llm-http-400/);
   assert.equal(bad.budget().usd, 0);
 });
+
+test('budget fails closed: an unreadable budget file stops paid calls; default limit 5 USD a day', async () => {
+  const { writeFileSync: wf } = await import('node:fs');
+  const dir = mkdtempSync(join(tmpdir(), 'llm-broken-')), file = join(dir, 'b.json');
+  wf(file, '{kaputt');
+  const f = async () => ok({ content: [{ type: 'text', text: '{"x":"y"}' }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } });
+  const llm = createLlm({ env: { ANTHROPIC_API_KEY: 'k', DUELL_CARD_BUDGET_FILE: file }, fetchImpl: f, log: quiet });
+  await assert.rejects(llm.generate({ system: SYS, user: 'u' }), (e) => e.code === 'budget');
+  assert.equal(createLlm({ env: { ANTHROPIC_API_KEY: 'k' }, fetchImpl: f, log: quiet }).budget().limitUsd, 5);
+});

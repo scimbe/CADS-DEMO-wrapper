@@ -50,22 +50,32 @@ function fakeLlm({ card, mod } = {}) {
   };
 }
 const auth = (email) => ({ mode: 'gate', identify: async () => ({ email }) });
-function mk({ email = 'lea@example.org', cardLlm = fakeLlm(), env = {}, now } = {}) {
+function mk({ email = 'lea@example.org', cardLlm = fakeLlm(), env = {}, now, age16 = (m) => !!m } = {}) {
   const d = createDuell({ env: { DUELL_DAILY_MAX: '200', DUELL_SEAL_SECRET: 'seal' }, salt: 's', log: () => {}, llm: async () => '{}', now });
+  if (age16) d.shared.age16 = age16;   // lib/duell-profile.mjs: the account's 16+ statement on the server
   const ai = createDuellAi({ env: { DUELL_AI_SALT: 'x', DUELL_AI_PROOF_BITS: '0', ...env }, llm: async () => '{}', cardLlm, shared: d.shared, auth: auth(email), log: () => {}, now });
   return { d, ai, cardLlm };
 }
 const body = (text, extra = {}) => ({ kind: 'karte', input: { text, art: 'card', age: 'u18', ...extra }, device: DEV, lang: 'de' });
 const run = async (ai, b) => ai.act(b, await ai.who({}, b), null);
 
-test('S0: without login 401, without 16+ 403, both before any model call', async () => {
+test('S0: without login 401; 16+ only from the account\'s profile on the server (403), fail closed without profiles (503); kill switch', async () => {
   const anon = mk({ email: null });
   const r = await run(anon.ai, body('Geburtstagskarte mit Sonnenblumen'));
   assert.equal(r.status, 401); assert.equal(r.body.error, 'login');
-  const young = mk();
-  const r2 = await run(young.ai, body('Geburtstagskarte mit Sonnenblumen', { age: 'u16' }));
-  assert.equal(r2.status, 403); assert.equal(r2.body.error, 'age');
-  assert.equal(anon.cardLlm.calls.length + young.cardLlm.calls.length, 0);
+  // the request says 18+, the profile has no 16+ statement: refused, the request's own word counts for nothing
+  const young = mk({ age16: () => false });
+  const r2 = await run(young.ai, body('Geburtstagskarte mit Sonnenblumen', { age: 'a18' }));
+  assert.equal(r2.status, 403); assert.equal(r2.body.error, 'age16');
+  const nostore = mk({ age16: () => null });
+  const r3 = await run(nostore.ai, body('Geburtstagskarte mit Sonnenblumen'));
+  assert.equal(r3.status, 503); assert.equal(r3.body.error, 'age-check-off');
+  const none = mk({ age16: null });
+  assert.equal((await run(none.ai, body('Geburtstagskarte'))).body.error, 'age-check-off', 'no profile module at all: closed');
+  const off = mk({ env: { DUELL_KARTE_OFF: '1' } });
+  const r4 = await run(off.ai, body('Geburtstagskarte mit Sonnenblumen'));
+  assert.equal(r4.status, 503); assert.equal(r4.body.error, 'karte-off');
+  assert.equal(anon.cardLlm.calls.length + young.cardLlm.calls.length + nostore.cardLlm.calls.length + off.cardLlm.calls.length, 0);
 });
 
 test('S2 -> S3 -> S4 -> S5: a sealed card that the app accepts as it is, fits a link, and comes from the cached prefix', async () => {
