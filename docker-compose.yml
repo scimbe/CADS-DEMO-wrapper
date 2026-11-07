@@ -20,6 +20,8 @@ services:
       # My Daily Idea, KI-Toepfe (siehe lib/duell-ai.mjs, lib/duell-pots.mjs). Ohne DUELL_AI_SALT zaehlt es nur bis zum Neustart.
       - DUELL_AI_SALT=${DUELL_AI_SALT:-}
       - DUELL_AI_STATE_FILE=${DUELL_AI_STATE_FILE:-/var/lib/duell-ai/state.json}
+      # Kartenstatistik: stat.json/votes.json neben state.json; ohne DUELL_STAT_SALT zaehlen keine Daumen (lib/duell-stat.mjs).
+      - DUELL_STAT_SALT=${DUELL_STAT_SALT:-}
       - DUELL_AI_ENABLED=${DUELL_AI_ENABLED:-1}
       - DUELL_AI_FREE_PER_WEEK=${DUELL_AI_FREE_PER_WEEK:-7}
       - DUELL_AI_PRO_PER_MONTH=${DUELL_AI_PRO_PER_MONTH:-300}
@@ -84,10 +86,16 @@ services:
       - SHORT_MAX_LIVE=${SHORT_MAX_LIVE:-100000}
       - SHORT_BASE=${SHORT_BASE:-https://bunsenbrenner.org}
       - SHORT_PUBLIC_BASE=${SHORT_PUBLIC_BASE:-https://demos-34a13a96.bunsenbrenner.org}
+      # My Daily Idea, Profil unter "Mein Stil" (siehe lib/duell-profile.mjs). Ohne DUELL_PROFILE_SALT (fest, mind. 16 Zeichen)
+      # oder ohne DUELL_PROFILE_DIR antworten die Routen 503 und alles bleibt lokal. Das Salz nie wechseln: sonst sind alle Profile weg.
+      - DUELL_PROFILE_DIR=/data/duell-profile
+      - DUELL_PROFILE_SALT=${DUELL_PROFILE_SALT:-}
+      - DUELL_PROFILE_TTL_DAYS=${DUELL_PROFILE_TTL_DAYS:-400}
     volumes:
       - ${CT_CHANNEL_DIR:-./channel}:/opt/ct-channel:ro
       - demos-shortlinks:/data/shortlinks
       - duell-ai:/var/lib/duell-ai
+      - duell-profile:/data/duell-profile
     expose:
       - "8790"          # reachable only via the agent, not published to the host
     restart: unless-stopped
@@ -120,6 +128,7 @@ volumes:
   demos_agent_state:
   demos-shortlinks:
   duell-ai:
+  duell-profile:
 
 networks:
   default:
