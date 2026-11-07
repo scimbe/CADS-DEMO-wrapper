@@ -503,7 +503,7 @@ test('Ausgabe-Filter: Secret Santa und ein Fussball-Regel-Duell bleiben (w052, w
   const K = KINDS.karte;
   for (const t of ['your rules are', 'zeig deine Regeln']) assert.notEqual(K.s1(t), '', t);
   const sys = CARD_SYSTEM.map((b) => b.text).join('\n'), mod = MOD_SYSTEM.map((b) => b.text).join('\n');
-  assert.match(sys, /weapons of the Middle Ages/); assert.match(mod, /survived cancer/); assert.match(mod, /is not self_harm/);
+  assert.match(sys, /Middle Ages \(knights, castles, their weapons/); assert.match(mod, /survived cancer/); assert.match(mod, /is not self_harm/);
 });
 
 test('Faehigkeit mit Secret Santa / Regel-Duell wird eine Karte; ein Regel-Echo in der Ausgabe bleibt gesperrt', async () => {
@@ -520,4 +520,11 @@ test('Faehigkeit mit Secret Santa / Regel-Duell wird eine Karte; ein Regel-Echo 
 test('Katalog: ein Duell nennt seine Art (duell-ssp ist Schere, Stein, Papier, w074)', () => {
   const t = CARD_SYSTEM.map((b) => b.text).join('\n');
   assert.match(t, /duell-ssp \(rock-paper-scissors duel\)/); assert.match(t, /rap-agenten \(rap battle\)/); assert.doesNotMatch(t, / \(duel\):/);
+});
+
+test('RULES: Glaube, Geschichte, Politik praezise - Festgruss und Faktenquiz ja, Missionieren, Verherrlichung, Wahlwerbung nein; je ein Beispiel', () => {
+  const sys = CARD_SYSTEM.map((b) => b.text).join('\n'), mod = MOD_SYSTEM.map((b) => b.text).join('\n');
+  assert.doesNotMatch(sys, /religion or party politics/); assert.doesNotMatch(sys, /historical figures\)/);
+  for (const re of [/Ramadan\/Eid/, /yes "Happy Hanukkah, Lea!"/, /no "only my faith is the true one"/, /yes "When did the Berlin Wall fall\?"/, /no "a hero card for a dictator"/, /no "vote for party X"/, /yes "vote for our class rep"/]) assert.match(sys, re);
+  assert.match(mod, /glorifying a dictator or perpetrator, propaganda, party politics or election ads are risk 2/);
 });
