@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDuell } from '../lib/duell.mjs';
 import { createDuellAi, KINDS, screenInput } from '../lib/duell-ai.mjs';
-import { App, CARD_STICKERS, CARD_SYSTEM, LINK_MAX, MOD_SYSTEM, SCHEMAS, compose, linkOf, placeStickers, s1 as s1raw } from '../lib/duell-karte.mjs';
+import { App, CARD_STICKERS, CARD_SYSTEM, cardUser, LINK_MAX, MOD_SYSTEM, SCHEMAS, compose, linkOf, placeStickers, s1 as s1raw } from '../lib/duell-karte.mjs';
 import { FILES } from '../bin/vendor-duell-web.mjs';
 
 const fx = (f) => JSON.parse(readFileSync(fileURLToPath(new URL('./fixtures/' + f, import.meta.url)), 'utf8'));
@@ -479,4 +479,11 @@ test('S3 in einer Schleife (max_tokens): ein zweiter Versuch, beide zaehlen; zwe
   const b = mk({ cardLlm: loop });
   const r2 = await run(b.ai, body('Beat ueber den Montag'));
   assert.notEqual(r2.status, 200); assert.equal(loop.calls.filter((c) => c.system !== MOD_SYSTEM).length, 2, 'nicht oefter als zweimal');
+});
+
+test('unter 18: Geld sammeln wird ein Plan ohne Geld statt einer Ablehnung (w051); das Schema laesst zug-sammeln nicht zu', () => {
+  const u = cardUser({ art: 'faehigkeit', age: 'u18', lang: 'de', text: 'Geld sammeln fuer das Geschenk' });
+  assert.match(u, /without money \(geschenk-finder/); assert.match(u, /never with ok false/);
+  assert.doesNotMatch(cardUser({ art: 'faehigkeit', age: 'a18', lang: 'de', text: 'x' }), /without money/);
+  assert.ok(!SCHEMAS.faehigkeit_u18.properties.cap.enum.includes('zug-sammeln'));
 });
