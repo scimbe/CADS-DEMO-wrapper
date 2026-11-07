@@ -433,3 +433,10 @@ test('quiz learn words: the human body and knights become cards; firearms, bombs
   assert.equal(K.s1('Welche Waffe trug ein Ritter?', true), '');
   assert.notEqual(K.s1('Mit der Pistole schießen', true), '', 'firearms stay out in a quiz too');
 });
+
+test('stickers sit on the edge of the card, never in the middle where the text is (local acceptance)', () => {
+  for (let seed = 1; seed < 50; seed++) for (const s of placeStickers(['🌻', '🐱', '🎂', '💛', '✨'], seed)) {
+    assert.ok(Math.abs(s.x - 0.5) > 0.3 || Math.abs(s.y - 0.5) > 0.3, `seed ${seed}: ${s.x},${s.y}`);
+    assert.ok(s.x > 0 && s.x < 1 && s.y > 0 && s.y < 1);
+  }
+});
