@@ -450,3 +450,19 @@ test('stickers sit on the edge of the card, never in the middle where the text i
     assert.ok(s.x > 0 && s.x < 1 && s.y > 0 && s.y < 1);
   }
 });
+
+test('Pruefstand: Kontext statt Wortliste - Klassenfahrt, Blutspende und ein Lernquiz gehen durch, der schlimme Sinn bleibt gesperrt', () => {
+  const K = KINDS.karte, scr = (t, art) => screenInput(K, { text: t, art });
+  for (const t of ['party beat for our class trip bus, fast and loud', 'a road trip with my family', 'thank you card for the blood donation team', 'Danke fuers Blut spenden', 'high school graduation party'])
+    assert.equal(K.s1(t), '', t);
+  for (const t of ['acid trip at the party', 'get high at the party', 'blood everywhere', 'Blut und Rache'])
+    assert.notEqual(K.s1(t), '', t);
+  // the wish of a quiz gets the same learn flag as its output (fp01, fp06, fp17)
+  for (const t of ['quiz about the human heart and how it pumps blood', 'Geschichtsquiz über Ritter und ihre Waffen im Mittelalter']) {
+    assert.equal(scr(t, 'quiz'), '', t); assert.equal(scr(t, 'card'), 'blocked', t + ' (keine Lernkarte)');
+  }
+  assert.equal(scr('Quiz: wo kauft man eine Pistole', 'quiz'), 'blocked', 'Waffen ausser dem Wort Waffe bleiben');
+  // RULES: festive greetings of every faith and adventure scenery are named as fine (w011, fp03)
+  const sys = CARD_SYSTEM.map((b) => b.text).join('\n');
+  assert.match(sys, /Hanukkah/); assert.match(sys, /dodging cannonballs/);
+});
