@@ -200,6 +200,11 @@
 "text": {
 "de": {
 "things": "Kekse",
+"fly": "Was fliegt über die Karte?",
+"shp": "Keks|Stern|Herz|Blitz|Ring|Tropfen|Münze",
+"rdy": "Bereit? Tippen zum Start.",
+"rdy_go": "▶ Los",
+"cell": "Reihe {r}, Spalte {c}",
 "first": "Spieler 1",
 "second": "Spieler 2",
 "yes": "Ja, stimmt",
@@ -815,6 +820,11 @@
 },
 "en": {
 "things": "cookies",
+"fly": "What flies across the card?",
+"shp": "Cookie|Star|Heart|Bolt|Ring|Drop|Coin",
+"rdy": "Ready? Tap to start.",
+"rdy_go": "▶ Go",
+"cell": "Row {r}, column {c}",
 "first": "Player 1",
 "second": "Player 2",
 "yes": "Yes, it did",
