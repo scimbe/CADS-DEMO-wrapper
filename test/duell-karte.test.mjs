@@ -413,3 +413,10 @@ test('review #104: under 18 the money ability is not even in the schema; quiz te
   assert.equal((await run(c.ai, body('Geburtstagskarte'))).body.error, 'account-banned');
   assert.equal((await run(c.ai, { ...body('Geburtstagskarte'), key })).body.error, 'account-banned', 'a Pro key is no way around');
 });
+
+test('stickers sit on the edge of the card, never in the middle where the text is (local acceptance)', () => {
+  for (let seed = 1; seed < 50; seed++) for (const s of placeStickers(['🌻', '🐱', '🎂', '💛', '✨'], seed)) {
+    assert.ok(Math.abs(s.x - 0.5) > 0.3 || Math.abs(s.y - 0.5) > 0.3, `seed ${seed}: ${s.x},${s.y}`);
+    assert.ok(s.x > 0 && s.x < 1 && s.y > 0 && s.y < 1);
+  }
+});
