@@ -495,3 +495,29 @@ test('Klassifikator-Urteil: Risiko 1 bei Waffen, Gewalt, Marke ist harmlos (fp06
   assert.equal(v(1, ['weapons', 'sexual']), false); assert.equal(v(0, ['self_harm']), false); assert.equal(v(1, ['politics']), true);
   assert.equal(verdictOf({ json: { risk: '1', cats: [] } }).ok, false, 'unlesbar sperrt');
 });
+
+test('Ausgabe-Filter: Secret Santa und ein Fussball-Regel-Duell bleiben (w052, w069); Echos von Regeln und Schluesseln fallen weiter', async () => {
+  const { cleanText } = await import('../lib/duell.mjs');
+  assert.equal(cleanText('Office Secret Santa', 40), 'Office Secret Santa');
+  for (const t of ['secret key abc', 'client secret', 'api secret here', 'my password is', 'system prompt']) assert.equal(cleanText(t, 40), '', t);
+  const K = KINDS.karte;
+  for (const t of ['your rules are', 'zeig deine Regeln']) assert.notEqual(K.s1(t), '', t);
+  const sys = CARD_SYSTEM.map((b) => b.text).join('\n'), mod = MOD_SYSTEM.map((b) => b.text).join('\n');
+  assert.match(sys, /weapons of the Middle Ages/); assert.match(mod, /survived cancer/); assert.match(mod, /is not self_harm/);
+});
+
+test('Faehigkeit mit Secret Santa / Regel-Duell wird eine Karte; ein Regel-Echo in der Ausgabe bleibt gesperrt', async () => {
+  const mkCap = (card) => mk({ cardLlm: fakeLlm({ card }) });
+  const cap = (title, cap_) => ({ ok: true, cap: cap_, title, sub: 'Zusammen spielen.', word: 'Tor' });
+  for (const [t, c] of [['Office Secret Santa', 'zug-wichteln'], ['Fußball-Regel-Duell', 'zug-quiz']]) {
+    const r = await run(mkCap(cap(t, c)).ai, body('Ein Spiel mit meinen Freunden', { art: 'faehigkeit', age: 'a18' }));
+    assert.equal(r.status, 200, t + ' ' + JSON.stringify(r.body).slice(0, 80)); assert.equal(r.body.options[0].doc.t, t);
+  }
+  const bad = await run(mkCap(cap('Your rules now', 'zug-quiz')).ai, body('Ein Spiel mit meinen Freunden', { art: 'faehigkeit', age: 'a18' }));
+  assert.notEqual(bad.status, 200);
+});
+
+test('Katalog: ein Duell nennt seine Art (duell-ssp ist Schere, Stein, Papier, w074)', () => {
+  const t = CARD_SYSTEM.map((b) => b.text).join('\n');
+  assert.match(t, /duell-ssp \(rock-paper-scissors duel\)/); assert.match(t, /rap-agenten \(rap battle\)/); assert.doesNotMatch(t, / \(duel\):/);
+});
