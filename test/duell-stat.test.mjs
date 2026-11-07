@@ -265,7 +265,7 @@ async function serve(statEnv = {}) {
     return { status: m ? 200 : 401, headers: new Headers(m ? { 'x-gate-email': `${m[1]}@x.de` } : {}) };
   };
   const auth = createAuth({ env: { DEMO_AUTH_MODE: 'gate', DEMO_GATE_HOST: 'demos.test' }, fetchImpl: gate, log: quiet });
-  const stats = createStats({ env: { DUELL_STAT_FILE: '', DUELL_STAT_SALT: SALT, ...statEnv }, shared: duell.shared, auth, log: quiet });
+  const stats = createStats({ env: { DUELL_STAT_FILE: '', DUELL_STAT_SALT: SALT, ...statEnv }, shared: duell.shared, auth, log: quiet, now: () => T0 });   // fixed clock: the HTTP tests read the bucket of 2026-11-06
   const srv = http.createServer(async (req, res) => { if (!(await stats.route(req, res, new URL(req.url, 'http://x')))) res.writeHead(404).end(); });
   await new Promise((r) => srv.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${srv.address().port}/api/duell/stat`;

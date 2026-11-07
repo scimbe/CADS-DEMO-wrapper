@@ -147,6 +147,30 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | `SHORT_MAX_LIVE` | 100000 | Obergrenze gespeicherter Eintraege |
 | `SHORT_BASE` / `SHORT_PUBLIC_BASE` | `https://bunsenbrenner.org` / Galerie-Host | sichtbarer Link / Host fuer Bilder und `og:url` |
 
+### Profil unter „Mein Stil“ (My Daily Idea)
+Code: `lib/duell-profile.mjs`, Tests: `test/duell-profile.test.mjs`. Freiwillig; ohne Anmeldung bleibt alles auf dem Gerät.
+- `POST /api/duell/profile/get|put|delete` `{via: account|code, code?, rev, profile, age16?, fresh?}`. `put` mit veralteter `rev` -> `409`.
+- `via: account`: bunsenbrenner-Login (Gate-Cookie, nur gleiche Herkunft). Das erste Speichern verlangt `age16: true`
+  (Selbstauskunft „16 oder älter“, Art. 8 DSGVO); der Tag der Angabe wird gespeichert. Unter 16 gibt es den Sync-Code.
+- `via: code`: 128-Bit-Zufallscode, auf dem Gerät erzeugt; keine E-Mail. Wer den Code hat, hat das Profil. Ein **neues** Code-Profil
+  legt nur an, wer angemeldet ist (`403 code-needs-login`, z. B. Eltern für ihr Kind; das Konto wird nicht gespeichert). Mit einem
+  vorhandenen Code abgleichen geht ohne Konto (weitere Geräte, Android-Hülle).
+- Gespeichert: Spitzname, Emoji, Farben, Sticker-Set, Wandbilder außer Fotowerken (`k: photo` wird verworfen) samt Merken-Link `f`
+  (nur das `c=`-Fragment der Karte, wie in einem geteilten Link), gemerkte Karten, beim Code die KI-Geräte-ID. Dateiname ist ein HMAC; keine E-Mail, keine IP, kein Code auf der Platte.
+- Löschen entfernt die Daten sofort und lässt nur `{r, gone: true}` zurück, damit ein zweites Gerät das Profil nicht neu hochlädt.
+  Ungenutzte Profile werden nach `DUELL_PROFILE_TTL_DAYS` gelöscht.
+
+| Variable | Default | Bedeutung |
+|---|---|---|
+| `DUELL_PROFILE_DIR` | leer (aus, `503`) | Verzeichnis im Volume |
+| `DUELL_PROFILE_SALT` | leer (aus, `503`) | HMAC-Salz für die Dateinamen, mindestens 16 Zeichen, fest über Neustarts. Ohne ihn bleibt der Speicher aus; ein neues Salz macht alle bestehenden Profile unerreichbar |
+| `DUELL_PROFILE_TTL_DAYS` | 400 | Löschfrist für ungenutzte Profile |
+| `DUELL_PROFILE_MAX` / `DUELL_PROFILE_NEW_PER_HOUR` / `DUELL_PROFILE_IP_NEW_PER_HOUR` / `DUELL_PROFILE_IP_NEW_PER_DAY` / `DUELL_PROFILE_WRITES_PER_HOUR` | 20000 / 60 / 5 / 20 / 240 | Grenzen; die Grenzen je IP greifen nur mit `DUELL_IP_HEADER` hinter einem Proxy |
+| `DUELL_PROFILE_ACCOUNT_NEW_PER_DAY` | 5 | neue Sync-Code-Profile je Konto und Tag (gezählt nur im Speicher, als HMAC) |
+| `DUELL_PROFILE_READS_PER_HOUR` / `DUELL_PROFILE_DELETES_PER_HOUR` | 240 / 10 | Abrufe und Löschungen je Profil |
+| `DUELL_PROFILE_MAX_PROFILE_BYTES` | 131072 (128 KB) | Größe je Profil, darüber `413 profile-too-large` |
+| `DUELL_PROFILE_MAX_BYTES` | 1073741824 (1 GB) | Gesamtgröße; erreicht: nichts Neues und kein Wachsen (`429 full`), Lesen, Verkleinern und Löschen gehen weiter |
+
 ### KI-Aktionen, Toepfe, Siegel und Melden (My Daily Idea)
 Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell-report.mjs`; Tests: `test/duell-ai.test.mjs`, `test/duell-ai-kinds.test.mjs`, `test/duell-queue.test.mjs`, `test/duell-seal.test.mjs`, `test/duell-report.test.mjs`. Gleiches Modell und gleiche Warteschlange wie `/api/duell/config`.
 - `POST /api/duell/ai` `{kind: wish|line|meme|lyrics|protokoll|plan|liste|quiz|welt|text, input, device, key?, proof?, lang, queue?}` -> `{kind, options, seals, hashes, cost, receipt?, meter}`;
@@ -186,6 +210,16 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
 - Ohne Konto zaehlt ein HMAC einer zufaelligen Geraete-ID; wer die App-Daten loescht, hat einen neuen Free-Topf, gedeckelt ueber IP-Limit, Tagesgrenze und neue Geraete je Stunde.
   Gespeichert werden nur HMACs und Zaehler, keine IP, keine E-Mail, keine Eingaben. Fotos und Audio bleiben auf dem Geraet.
 - Durchsatz messen: `LITELLM_BASE_URL=... LITELLM_KEY_FILE=~/.config/cads/litellm-test.key node bin/duell-bench.mjs --par 1,2,3,4 --n 8`.
+- Freie Karte, Modell-Schicht (`lib/duell-llm.mjs`): Adapter `anthropic` (Standard, `claude-haiku-5-5`, Cache 1 h), `ollama` (nur im
+  Nachtfenster und nur mit geladenem Modell, kein pull, kein `num_ctx`/`keep_alive`) und `litellm`. ENV: `DUELL_CARD_PROVIDER`, `DUELL_CARD_MODEL`,
+  `ANTHROPIC_API_KEY` oder `DUELL_ANTHROPIC_KEY_FILE`, `DUELL_OLLAMA_BASE_URL`, `DUELL_OLLAMA_WINDOW` (z. B. `22-6`, leer = nie), `DUELL_CARD_BUDGET_USD`
+  (Tagesbudget, Standard 2), `DUELL_CARD_BUDGET_FILE`, `DUELL_CARD_PRICE_AS` (Preiszeile fuer einen LiteLLM-Alias). Cache-Abnahme:
+  `DUELL_ANTHROPIC_KEY_FILE=... node bin/duell-cache-check.mjs --n 20` (Trefferquote ab dem 2. Aufruf >= 90 %).
+- Freie Karte, KI-Art `karte` (`lib/duell-karte.mjs`): nur mit Konto (sonst `401 login`), Alter 16+ als Selbstauskunft des Profils
+  (`403 age`), eigener Topf `create` mit `DUELL_CREATE_FREE` (5) Karten, kostet 1 je Karte. Stufen S1 (Wortregeln ohne Modell, auch auf der
+  Ausgabe), S2 (Klassifikator auf der Eingabe), S3 (Erzeugung mit gecachtem Praefix und festem Schema je Art), S4 (Klassifikator auf der
+  fertigen Karte), S5 (Siegel `karte`). Nach `DUELL_CREATE_BLOCKS_PER_DAY` Ablehnungen am Tag `429 throttled`. `sanitizeDoc` der App liegt als
+  gepruefte Kopie in `lib/vendor/duell-web` (`node bin/vendor-duell-web.mjs <app>/src`), Golden-Set `test/fixtures/karte-golden.json`.
 
 | ENV | Default | Bedeutung |
 |-----|---------|-----------|

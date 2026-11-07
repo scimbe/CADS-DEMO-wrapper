@@ -1,0 +1,40 @@
+{
+  "repo": "scimbe/CADS-agent-marketplace",
+  "path": "apps/duell-web/src",
+  "commit": "0e949d6e191b67f0a4f601e52c783f5601facf91",
+  "files": {
+    "core.js": {
+      "sha256": "4adaf6f15052fab709f6bbdfb5c680acc64a0a15a6f2957f1026ed44f131774e"
+    },
+    "daily.js": {
+      "sha256": "97f95547abfa4c8b1d7a89f4fb9d560b8b0b686a25790fd71c49d3ba7925f265"
+    },
+    "duel.js": {
+      "sha256": "2b2847861acea4c243eefa53e8a67c3c8e3c9dbd4a7a3de4ad31f17462125e93"
+    },
+    "duel.json": {
+      "sha256": "bf7452bc3960a465f06b3ce7bde51e5f88ee1d14f654b0490c63bb7c2f69d04e"
+    },
+    "engine.js": {
+      "sha256": "989ae07a24561ccb8e670bf7e3d9ed689f21dd4be667cc065553efad45192953"
+    },
+    "ideas.json": {
+      "sha256": "cc8428b250376153e0d4467fa4607772ab15a97def1802cd6a11576fd6e98979"
+    },
+    "quest.js": {
+      "sha256": "1f628675b3946e6beedb0deaf69cfccf89b09a5763878b043b74b38641373e78"
+    },
+    "quizpack.js": {
+      "sha256": "2b7d5050462fc975014c03b2f47aacf76315b4aaa010f9cb73f9e9b57b7b8959"
+    },
+    "texts.json": {
+      "sha256": "56dd58a860a77d164a3a403b4e59c66d01a192bc8ecd2d9959088b24f1042f2b"
+    },
+    "turn.json": {
+      "sha256": "58e2850e2e82533c616a4770b807001bc0fed5b93e7e9ec4f848f6cee50e07ce"
+    },
+    "turns.js": {
+      "sha256": "afb35fd9c3e3eb7f29d50af488763a0013180eb699cb062c892adbc830cd63fc"
+    }
+  }
+}
