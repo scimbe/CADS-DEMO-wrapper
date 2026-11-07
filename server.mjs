@@ -26,6 +26,7 @@ import { DEFAULT_REGISTRY_URL, REFUSAL, loadVerifiedManifest, readTrustRoot } fr
 import { createDuell } from './lib/duell.mjs';
 import { createShortLinks } from './lib/shortlink.mjs';
 import { createDuellAi } from './lib/duell-ai.mjs';
+import { createDuellProfile } from './lib/duell-profile.mjs';
 import { createReports } from './lib/duell-report.mjs';
 import { createDeck } from './lib/duell-deck.mjs';
 import { createCredit } from './lib/duell-credit.mjs';
@@ -1084,6 +1085,7 @@ const CREDIT = createCredit(), MOD = createMod();
 const DECK = createDeck({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDIT, mod: MOD });
 Object.assign(DUELL.shared, { credit: CREDIT, mod: MOD });
 const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id), onCard: DECK }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
+const DUELL_PROFILE = createDuellProfile({ auth: AUTH, shared: DUELL.shared }); // profile under "Mein Stil": account (16+) or sync code, lib/duell-profile.mjs
 const STATS = createStats({ shared: DUELL.shared, auth: AUTH }); // card statistics, thumbs up/down; votes only with a verified account (lib/duell-stat.mjs)
 // Deck, credit, moderation and statistics write debounced; 'exit' writes what is pending however the process ends (signal or another handler).
 process.on('exit', () => { for (const s of [DECK, CREDIT, MOD, STATS]) try { s.flush(); } catch { /* one failing store does not stop the others */ } });
@@ -1098,6 +1100,7 @@ async function route(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
   if (await DUELL_AI.route(req, res, url)) return; // own limits and allowance, reads the login itself
+  if (await DUELL_PROFILE.route(req, res, url)) return; // My Daily Idea profile, reads the login itself
   if (await REPORTS.route(req, res, url)) return; // report, seal check (public); reviewer routes need DUELL_ADMIN_TOKEN
   if (await DECK.route(req, res, url)) return; // community deck (public), use/thumbs/credit/appeal (login), review (DUELL_ADMIN_TOKEN)
   if (await STATS.route(req, res, url)) return; // card statistics (public, k-anonymous read; a vote counts only with a verified account)
