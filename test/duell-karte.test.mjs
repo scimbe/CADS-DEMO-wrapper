@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDuell } from '../lib/duell.mjs';
 import { createDuellAi, KINDS, screenInput } from '../lib/duell-ai.mjs';
-import { App, CARD_STICKERS, CARD_SYSTEM, cardUser, LINK_MAX, MOD_SYSTEM, SCHEMAS, compose, linkOf, placeStickers, s1 as s1raw } from '../lib/duell-karte.mjs';
+import { App, CARD_STICKERS, CARD_SYSTEM, cardUser, verdictOf, LINK_MAX, MOD_SYSTEM, SCHEMAS, compose, linkOf, placeStickers, s1 as s1raw } from '../lib/duell-karte.mjs';
 import { FILES } from '../bin/vendor-duell-web.mjs';
 
 const fx = (f) => JSON.parse(readFileSync(fileURLToPath(new URL('./fixtures/' + f, import.meta.url)), 'utf8'));
@@ -453,9 +453,9 @@ test('stickers sit on the edge of the card, never in the middle where the text i
 
 test('Pruefstand: Kontext statt Wortliste - Klassenfahrt, Blutspende und ein Lernquiz gehen durch, der schlimme Sinn bleibt gesperrt', () => {
   const K = KINDS.karte, scr = (t, art) => screenInput(K, { text: t, art });
-  for (const t of ['party beat for our class trip bus, fast and loud', 'a road trip with my family', 'thank you card for the blood donation team', 'Danke fuers Blut spenden', 'high school graduation party'])
+  for (const t of ['party beat for our class trip bus, fast and loud', 'a road trip with my family', 'thank you card for the blood donation team', 'Danke fuers Blut spenden', 'Thanks for giving blood. You make the world warmer.', 'high school graduation party'])
     assert.equal(K.s1(t), '', t);
-  for (const t of ['acid trip at the party', 'get high at the party', 'get high on weed at school', 'get high at school', 'acid trip on the school bus', 'acid trip at the party on our day off', 'blood everywhere', 'Blut und Rache', 'blood tests on enemies', 'give blood to the victim, kill'])
+  for (const t of ['acid trip at the party', 'get high at the party', 'get high on weed at school', 'get high at school', 'acid trip on the school bus', 'acid trip at the party on our day off', 'blood everywhere', 'Blut und Rache', 'blood tests on enemies', 'give blood to the victim, kill', 'donate blood to the victim'])
     assert.notEqual(K.s1(t), '', t);
   // the wish of a quiz gets the same learn flag as its output (fp01, fp06, fp17)
   for (const t of ['quiz about the human heart and how it pumps blood', 'Geschichtsquiz über Ritter und ihre Waffen im Mittelalter']) {
@@ -486,4 +486,12 @@ test('unter 18: Geld sammeln wird ein Plan ohne Geld statt einer Ablehnung (w051
   assert.match(u, /without money \(geschenk-finder/); assert.match(u, /never with ok false/);
   assert.doesNotMatch(cardUser({ art: 'faehigkeit', age: 'a18', lang: 'de', text: 'x' }), /without money/);
   assert.ok(!SCHEMAS.faehigkeit_u18.properties.cap.enum.includes('zug-sammeln'));
+});
+
+test('Klassifikator-Urteil: Risiko 1 bei Waffen, Gewalt, Marke ist harmlos (fp06, fp17); alle anderen harten Kategorien sperren bei jedem Risiko', () => {
+  const v = (risk, cats) => verdictOf({ json: { risk, cats } }).ok;
+  for (const c of ['weapons', 'violence', 'brand']) { assert.equal(v(1, [c]), true, c); assert.equal(v(2, [c]), false, c + ' 2'); }
+  for (const c of ['sexual', 'minors', 'hate', 'phishing', 'injection', 'real_person', 'harassment']) { assert.equal(v(0, [c]), false, c + ' 0'); assert.equal(v(1, [c]), false, c + ' 1'); }
+  assert.equal(v(1, ['weapons', 'sexual']), false); assert.equal(v(0, ['self_harm']), false); assert.equal(v(1, ['politics']), true);
+  assert.equal(verdictOf({ json: { risk: '1', cats: [] } }).ok, false, 'unlesbar sperrt');
 });
