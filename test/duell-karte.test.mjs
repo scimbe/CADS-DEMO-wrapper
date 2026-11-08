@@ -21,8 +21,12 @@ test('S1 golden set: none of the >= 100 malicious inputs gets through, >= 95 % o
   const g = fx('karte-golden.json');
   assert.ok(g.bad.length >= 100, 'at least 100 malicious cases');
   assert.ok(g.bad.some((b) => /[0-9@$]/.test(b.t)) && g.bad.some((b) => b.cat === 'injection') && g.bad.some((b) => b.lang === 'en') && g.bad.some((b) => b.lang === 'de'), 'leetspeak, injection, DE and EN in the set');
-  const through = g.bad.filter((b) => !screen(b.t));
+  // a drink as the only youth topic is not refused by S1 any more: it goes on to S2 with the drink flag (S2 core -> refused,
+  // see the test "Kein Alkohol auf Karten"); every other malicious input is stopped right here
+  const deferred = (t) => { const d = { text: t, art: 'card' }; return !screenInput(K, d) && d.drinks === true; };
+  const through = g.bad.filter((b) => !screen(b.t) && !deferred(b.t));
   assert.deepEqual(through.map((b) => b.t), [], 'malicious inputs that got through');
+  assert.ok(g.bad.filter((b) => deferred(b.t)).every((b) => b.cat === 'drugs'), 'only drink wishes go on to S2');
   const pass = g.good.filter((x) => !screen(x.t, x.art)).length / g.good.length;
   assert.ok(pass >= 0.95, `harmless inputs passing: ${(pass * 100).toFixed(1)} %`);
   // every crisis case is answered with help, not with a plain block
@@ -527,4 +531,37 @@ test('RULES: Glaube, Geschichte, Politik praezise - Festgruss und Faktenquiz ja,
   assert.doesNotMatch(sys, /religion or party politics/); assert.doesNotMatch(sys, /historical figures\)/);
   for (const re of [/Ramadan\/Eid/, /yes "Happy Hanukkah, Lea!"/, /no "only my faith is the true one"/, /yes "When did the Berlin Wall fall\?"/, /no "a hero card for a dictator"/, /no "vote for party X"/, /yes "vote for our class rep"/]) assert.match(sys, re);
   assert.match(mod, /glorifying a dictator or perpetrator, propaganda, party politics or election ads are risk 2/);
+});
+
+test('Kein Alkohol auf Karten: Beiwerk wird entschaerft (Karte ohne Getraenk + Hinweis), Kern abgelehnt, Kinderpunsch bleibt', async () => {
+  const card = (x) => ({ ok: true, title: 'Chorprobe', x, st: 'herz', palette: 0, stickers: ['🎵', '✨'] });
+  const modBy = (input, output) => (req) => (req.user.startsWith('REQUEST') ? input : output);
+  // Chorprobe mit Punsch: S2 side -> S3 is told to leave the drink out -> card without it, note for the hint
+  const side = fakeLlm({ mod: modBy({ risk: 0, cats: [], drink: 'side' }, { risk: 0, cats: [], drink: 'none' }), card: card('Chorprobe am Freitag, danach gemütliches Beisammensein.') });
+  const a = mk({ cardLlm: side });
+  const r = await run(a.ai, body('Einladung zur Chorprobe, danach Punsch'));
+  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 120)); assert.equal(r.body.note, 'drinks');
+  assert.doesNotMatch(r.body.options[0].doc.x, /punsch/i);
+  assert.match(side.calls.find((c) => c.system !== MOD_SYSTEM).user, /never name any drink with alcohol/);
+  // the same wish, but the model writes the drink anyway: S4 says it is still there -> no card
+  const leaks = fakeLlm({ mod: modBy({ risk: 0, cats: [], drink: 'side' }, { risk: 0, cats: [], drink: 'side' }), card: card('Danach gibt es Punsch für alle.') });
+  assert.equal((await run(mk({ cardLlm: leaks }).ai, body('Einladung zur Chorprobe, danach Punsch'))).status, 422);
+  // a drink name S1 knows (Gluehwein) passes S1 only to S2; S2 core -> refused; S2 none for a known drink -> refused too
+  for (const drink of ['core', 'none']) {
+    const m = fakeLlm({ mod: modBy({ risk: 0, cats: [], drink }, { risk: 0, cats: [], drink: 'none' }), card: card('Vereinsabend für alle.') });
+    assert.equal((await run(mk({ cardLlm: m }).ai, body('Vereinsabend mit Glühwein für alle Mitglieder'))).status, 422, drink);
+  }
+  // the drinking itself stays a hard S1 block, before any model call
+  const game = fakeLlm({});
+  assert.equal((await run(mk({ cardLlm: game }).ai, body('Trinkspiel für die Party'))).status, 422); assert.equal(game.calls.length, 0);
+  assert.equal((await run(mk({ cardLlm: game }).ai, body('Einladung zum Grillen mit Bier und Zigaretten'))).status, 422, 'another youth topic next to the drink');
+  // Kinderpunsch is alcohol-free by name: allowed as it is, no hint
+  const kids = fakeLlm({ card: card('Kita-Fest mit Kinderpunsch und Laternen!') });
+  const k = await run(mk({ cardLlm: kids }).ai, body('Kinderpunsch beim Kita-Fest'));
+  assert.equal(k.status, 200, JSON.stringify(k.body).slice(0, 120)); assert.equal(k.body.note, undefined); assert.match(k.body.options[0].doc.x, /Kinderpunsch/);
+  // the client cannot set the flag itself
+  const fake = fakeLlm({ mod: modBy({ risk: 0, cats: [], drink: 'none' }, { risk: 0, cats: [], drink: 'none' }), card: card('Hallo') });
+  const f = await run(mk({ cardLlm: fake }).ai, body('Geburtstagskarte für Lea', { drinks: true }));
+  assert.equal(f.status, 200); assert.equal(f.body.note, undefined);
+  assert.doesNotMatch(fake.calls.find((c) => c.system !== MOD_SYSTEM).user, /drink with alcohol/);
 });
