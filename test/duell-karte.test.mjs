@@ -765,7 +765,7 @@ test('Grenzen der Art: ein Duell ist zu zweit (Turnier -> people:2, w089), keine
   assert.equal(r.status, 200); assert.ok(r.body.note.includes('async'), JSON.stringify(r.body.note));
   r = await go('duell-ssp', 'Schere, Stein, Papier gegen meinen Mitbewohner');
   assert.equal(r.status, 200); assert.deepEqual(r.body.note, ['duel'], 'a plain duel only says that it shows its own game');
-  assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /duell-ssp \(rock-paper-scissors duel\)[^\n]*\[up to 2 people\]/);
+  assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /duell-ssp \(rock-paper-scissors duel\)[^\n]*\[an agent duel: each person's agent plays; up to 2 people\]/);
 });
 
 test('Katalog: keine Live-Faehigkeit versprochen; bei einer Grenze die naechste Faehigkeit mit ok true und eigenem Thema (w066, w089)', () => {
@@ -784,4 +784,22 @@ test('Sammel-Karte ab 18: S4 phishing bei Risiko 1 ist ihre Aufgabe (fp09); unte
   const duel = await run(mk({ cardLlm: fakeLlm({ card: { ok: true, cap: 'duell-ssp', title: 'Kissenschlacht', sub: 'Wer gewinnt?', word: '' } }) }).ai, body('Kissenschlacht zwischen den Agenten', { art: 'faehigkeit', age: 'a18' }));
   assert.equal(duel.status, 200); assert.ok(duel.body.note.includes('duel'), JSON.stringify(duel.body.note));
   assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /A rap battle or a duel teases the topic/);
+});
+
+test('Agent als Gegenueber ist eine harte Anforderung (w067): eine Abstimmung bekommt einen neuen Versuch mit dem Hinweis auf ein Agenten-Duell, nie zwei', async () => {
+  const { wantsAgent, CAP_LIMITS } = await import('../lib/duell-karte.mjs');
+  for (const t of ['Live mit einem ct-agent chatten, der mir Witze erzählt', 'Rap-Battle zwischen unseren Agenten', 'Quiz gegen die KI', 'a bot that tells jokes']) assert.equal(wantsAgent(t), true, t);
+  for (const t of ['Karte für meine Agentin Lisa', 'Reiseagentur Gutschein', 'Geheimagent-Party', 'Abstimmung für die Klassenfahrt']) assert.equal(wantsAgent(t), false, t);
+  assert.equal(CAP_LIMITS['rap-agenten'].agent, true);
+  let n = 0;
+  const cards = [{ ok: true, cap: 'zug-stimme', title: 'Witze-Abend', sub: 'Stimm ab.', word: '' }, { ok: true, cap: 'rap-agenten', title: 'Witze-Battle', sub: 'Dein Agent reimt.', word: '' }];
+  const llm = fakeLlm({ card: () => cards[Math.min(n++, 1)] });
+  const r = await run(mk({ cardLlm: llm }).ai, body('Live mit einem ct-agent chatten, der mir Witze erzählt', { art: 'faehigkeit', age: 'a18' }));
+  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 100)); assert.equal(r.body.options[0].doc.i, 'rap-agenten');
+  assert.ok(r.body.note.includes('async'), JSON.stringify(r.body.note));
+  const gens = llm.calls.filter((c) => c.system !== MOD_SYSTEM && c.user.startsWith('Card type'));
+  assert.equal(gens.length, 2); assert.match(gens[1].user, /choose an agent duel/);
+  const stuck = fakeLlm({ card: cards[0] });
+  assert.notEqual((await run(mk({ cardLlm: stuck }).ai, body('Live mit einem ct-agent chatten, der mir Witze erzählt', { art: 'faehigkeit', age: 'a18' }))).status, 200, 'no vote for an agent wish');
+  assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /rap-agenten \(rap battle\)[^\n]*an agent duel: each person's agent plays/);
 });
