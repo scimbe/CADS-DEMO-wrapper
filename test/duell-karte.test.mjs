@@ -753,3 +753,17 @@ test('Zu langer Text: ein Versuch mit dem Laengenhinweis statt einer abgeschnitt
   const gens = llm.calls.filter((c) => c.system !== MOD_SYSTEM);
   assert.equal(gens.length, 2); assert.match(gens[1].user, /too long \(bottom at most \d+ characters\)/);
 });
+
+test('Grenzen der Art: ein Duell ist zu zweit (Turnier -> people:2, w089), keine Faehigkeit spielt live (Echtzeit -> async, w074)', async () => {
+  const { CAP_LIMITS, peopleAsked } = await import('../lib/duell-karte.mjs');
+  assert.equal(CAP_LIMITS['duell-ssp'].people, 2); assert.equal(peopleAsked('Ein Turnier mit meinen Freunden'), 4);
+  const cap = (c) => ({ ok: true, cap: c, title: 'Duell', sub: 'Dein Agent gegen meinen.', word: '' });
+  const go = async (c, text) => run(mk({ cardLlm: fakeLlm({ card: cap(c) }) }).ai, body(text, { art: 'faehigkeit', age: 'a18' }));
+  let r = await go('duell-ssp', 'ein Schere-Stein-Papier-Turnier mit meinen Freunden');
+  assert.equal(r.status, 200); assert.ok(r.body.note.includes('people:2'), JSON.stringify(r.body.note));
+  r = await go('duell-ssp', 'Schere, Stein, Papier in Echtzeit gegen meinen Mitbewohner');
+  assert.equal(r.status, 200); assert.ok(r.body.note.includes('async'), JSON.stringify(r.body.note));
+  r = await go('duell-ssp', 'Schere, Stein, Papier gegen meinen Mitbewohner');
+  assert.equal(r.status, 200); assert.equal(r.body.note, undefined);
+  assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /duell-ssp \(rock-paper-scissors duel\)[^\n]*\[up to 2 people\]/);
+});
