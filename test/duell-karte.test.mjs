@@ -418,7 +418,8 @@ test('review #104: under 18 the money ability is not even in the schema; quiz te
   const quiz = fakeLlm({ card: { ok: true, title: 'Quiz', questions: [{ q: 'Wer ist Pikachu?', a: 'Ein Pokemon', wrong: ['A', 'B', 'C'] }, { q: 'b?', a: 'c', wrong: ['d', 'e', 'f'] }, { q: 'g?', a: 'h', wrong: ['i', 'j', 'k'] }] } });
   const q = mk({ cardLlm: quiz });
   const r = await run(q.ai, { ...body('x'), input: { text: 'Quiz über Tiere', art: 'quiz', age: 'u18' } });
-  assert.equal(r.status, 422); assert.equal(quiz.calls.length, 2, 'refused before call B');
+  // the brand in the output is refused before call B (the S4 classifier); one more try of S3 for a slip is allowed
+  assert.equal(r.status, 422); assert.equal(quiz.calls.filter((c) => c.system === MOD_SYSTEM && c.user.startsWith('CARD')).length, 0, 'refused before call B'); assert.equal(quiz.calls.length, 3);
   const { mintKey } = await import('../lib/duell-pots.mjs');
   const key = mintKey('ent', 'pro', 'fam1'), banned = new Set();
   const c = mk({ env: { DUELL_ENTITLEMENT_SECRET: 'ent', DUELL_ENTITLEMENTS: key } });
@@ -564,4 +565,31 @@ test('Kein Alkohol auf Karten: Beiwerk wird entschaerft (Karte ohne Getraenk + H
   const f = await run(mk({ cardLlm: fake }).ai, body('Geburtstagskarte für Lea', { drinks: true }));
   assert.equal(f.status, 200); assert.equal(f.body.note, undefined);
   assert.doesNotMatch(fake.calls.find((c) => c.system !== MOD_SYSTEM).user, /drink with alcohol/);
+});
+
+test('Ausrutscher des Modells: ein Wort in der Ausgabe gibt einen zweiten Versuch mit der Kategorie; zweimal ist Ablehnung', async () => {
+  let n = 0;
+  const kids = (x) => ({ ok: true, title: 'Laternenfest', x, st: 'herz', palette: 0, stickers: ['🌟'] });
+  const slip = fakeLlm({ card: () => (n++ === 0 ? kids('Kita-Fest mit Bier und Laternen!') : kids('Kita-Fest mit Kinderpunsch und Laternen!')) });
+  const r = await run(mk({ cardLlm: slip }).ai, body('Kinderpunsch beim Kita-Fest'));
+  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 100)); assert.match(r.body.options[0].doc.x, /Kinderpunsch/);
+  const gens = slip.calls.filter((c) => c.system !== MOD_SYSTEM);
+  assert.equal(gens.length, 2); assert.match(gens[1].user, /not allowed on this card \(youth\)/);
+  const twice = fakeLlm({ card: kids('Kita-Fest mit Bier und Laternen!') });
+  assert.equal((await run(mk({ cardLlm: twice }).ai, body('Kinderpunsch beim Kita-Fest'))).status, 422);
+  assert.equal(twice.calls.filter((c) => c.system !== MOD_SYSTEM).length, 2, 'not more than one more try');
+  // S2 saw a hard category: no second try
+  const hard = fakeLlm({ mod: { risk: 2, cats: ['sexual'], drink: 'none' }, card: kids('x') });
+  await run(mk({ cardLlm: hard }).ai, body('Kinderpunsch beim Kita-Fest'));
+  assert.equal(hard.calls.filter((c) => c.system !== MOD_SYSTEM).length, 0);
+});
+
+test('Link: docUrl kuerzt still, fits() misst, ob Titel, Hash und alle Fragen zurueckkommen (w041)', async () => {
+  const { fits, compose } = await import('../lib/duell-karte.mjs');
+  const q = (i) => ({ q: 'Frage Nummer ' + i + ' über die Planeten unseres Sonnensystems und ihre Monde?', a: 'Antwort ' + i + ' Jupiter', wrong: ['Mars ' + i, 'Venus ' + i, 'Saturn ' + i] });
+  const doc = compose('quiz', { ok: true, title: 'Großes Planetenquiz', questions: Array.from({ length: 10 }, (_, i) => q(i)) }, 7, (v, max) => (typeof v === 'string' ? v.slice(0, max) : ''));
+  assert.ok(doc && doc.pk.q.length >= 3 && doc.pk.q.length < 10); assert.equal(fits(doc), true);
+  const url = App.D.docUrl({ ...doc, ki: { k: 'karte', s: 's2.karte.' + 'z'.repeat(9) + '.' + 'A'.repeat(32), h: 'A'.repeat(43), o: 'B'.repeat(22) } });
+  const back = App.D.parseRoute(url.slice(url.indexOf('#'))).doc;
+  assert.equal(back.t, doc.t); assert.ok(back.ki.h); assert.equal(back.pk.q.length, doc.pk.q.length);
 });
