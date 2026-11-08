@@ -714,3 +714,16 @@ test('S5 Passung: Grenzen aus den App-Daten im Katalog; Liste nach dem Wunsch, e
   r = await go(cap('raum-streichen', 'Filmabend', 'Streicht, bis ein Film übrig bleibt'), 'Was machen wir heute Abend, Film oder Brettspiel?');
   assert.equal(r.status, 200); assert.equal(r.body.options[0].doc.seed, CAP_LIMITS['raum-streichen'].lists[1].seed);
 });
+
+test('S5: "welchen Film" auf einer festen Liste -> ein neuer Versuch mit dem Hinweis auf eigene Eintraege, nie zwei', async () => {
+  let n = 0;
+  const cards = [{ ok: true, cap: 'raum-streichen', title: 'Welcher Film heute?', sub: 'Abwechselnd streichen.', word: '' }, { ok: true, cap: 'zug-einig', title: 'Filmabend', sub: 'Jeder ordnet fünf Filme.', word: '' }];
+  const llm = fakeLlm({ card: () => cards[Math.min(n++, 1)] });
+  const r = await run(mk({ cardLlm: llm }).ai, body('Wir können uns nicht einigen, welchen Film wir heute schauen', { art: 'faehigkeit', age: 'a18' }));
+  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 100)); assert.equal(r.body.options[0].doc.i, 'zug-einig');
+  const gens = llm.calls.filter((c) => c.system !== MOD_SYSTEM && c.user.startsWith('Card type'));
+  assert.equal(gens.length, 2); assert.match(gens[1].user, /use an ability where people type their own entries/);
+  const stuck = fakeLlm({ card: cards[0] });
+  assert.notEqual((await run(mk({ cardLlm: stuck }).ai, body('Wir können uns nicht einigen, welchen Film wir heute schauen', { art: 'faehigkeit', age: 'a18' }))).status, 200);
+  assert.ok(stuck.calls.filter((c) => c.system !== MOD_SYSTEM && c.user.startsWith('Card type')).length <= 2);
+});
