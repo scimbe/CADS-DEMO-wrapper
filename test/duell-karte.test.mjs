@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDuell } from '../lib/duell.mjs';
 import { createDuellAi, KINDS, screenInput } from '../lib/duell-ai.mjs';
-import { App, CARD_STICKERS, CARD_SYSTEM, cardUser, verdictOf, LINK_MAX, MOD_SYSTEM, SCHEMAS, compose, linkOf, placeStickers, s1 as s1raw } from '../lib/duell-karte.mjs';
+import { App, CARD_STICKERS, CARD_SYSTEM, UNPROVEN, cardUser, verdictOf, LINK_MAX, MOD_SYSTEM, SCHEMAS, compose, linkOf, placeStickers, s1 as s1raw } from '../lib/duell-karte.mjs';
 import { FILES } from '../bin/vendor-duell-web.mjs';
 
 const fx = (f) => JSON.parse(readFileSync(fileURLToPath(new URL('./fixtures/' + f, import.meta.url)), 'utf8'));
@@ -251,7 +251,8 @@ test('W3 ability catalog: built from the app catalog, no arcade, no gated card, 
   assert.ok(!CAP_IDS.some((id) => (App.D.GATED || []).some((g) => g.id === id)));
   for (const want of ['zug-termin', 'zug-sammeln', 'zug-quiz', 'duell-ssp', 'rap-agenten', 'auktion-quatsch']) assert.ok(CAP_IDS.includes(want), want);
   assert.deepEqual(CAPS.filter((c) => c.adult).map((c) => c.id), ['zug-sammeln']);
-  assert.ok(ideas.filter((i) => i.turn).every((i) => CAP_IDS.includes(i.id)), 'every turn card of the app is an ability');
+  // every turn card of the app is an ability, except the ones whose flow is not proven yet (UNPROVEN)
+  assert.ok(ideas.filter((i) => i.turn && !UNPROVEN.has(i.id)).every((i) => CAP_IDS.includes(i.id)), 'every turn card of the app is an ability');
   assert.deepEqual(PHYSIK, WELT.physik, 'the flight deltas are the AI kind welt\'s');
   assert.ok(CARD_SYSTEM[1].text.includes('zug-termin (termin)'), 'the catalog sits in the cached prefix');
   assert.deepEqual(ARTS, ['card', 'meme', 'game', 'sound', 'quiz', 'faehigkeit']);
@@ -615,4 +616,10 @@ test('Ritterquiz (fp06): historische Waffen und Vergangenheit sind Fakten; Anlei
   for (const t of ['Welche Waffe war eine lange Stangenwaffe mit einer Spitze am Ende?', 'Welche Waffe war ein langer Stoßspeer, den Ritter zu Pferd benutzten?', 'Mit welcher Hiebwaffe kämpften Ritter?']) assert.equal(K.s1(t, true), '', t);
   for (const t of ['Wie baut man eine Waffe für die Schule?', 'Wo versteckt man eine Waffe?', 'Welche Schusswaffe kam später?', 'how to make a weapon at home']) assert.notEqual(K.s1(t, true), '', t);
   for (const t of ['Welche Waffe war ein langer Stoßspeer?', 'Mit welcher Waffe kämpften Ritter?']) assert.equal(K.s1(t, false), 'weapons', 'without the learn flag a weapon stays a weapon: ' + t);
+});
+
+test('Faehigkeiten: nur bewiesene Ablaeufe - zug-lob, zug-reaktion, raum-papagei bietet die freie Karte nicht an', async () => {
+  const { CAP_IDS } = await import('../lib/duell-karte.mjs');
+  for (const id of UNPROVEN) { assert.ok(!CAP_IDS.includes(id), id); assert.ok(!SCHEMAS.faehigkeit.properties.cap.enum.includes(id), id); assert.ok(App.D.byId(id), id + ' bleibt eine Katalogkarte'); }
+  assert.doesNotMatch(CARD_SYSTEM.map((b) => b.text).join('\n'), /zug-lob|zug-reaktion|raum-papagei/);
 });
