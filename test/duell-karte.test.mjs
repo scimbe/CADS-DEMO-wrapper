@@ -642,3 +642,12 @@ test('Privatpersonen: Vorname und voller Name allein ja; voller Name mit Adresse
   assert.match(mod, /dass Tim aus der 7a immer allein in der Pause sitzt"<\/data> -> \{"risk":2,"cats":\["harassment"\]/);
   assert.match(mod, /Exposing or making fun of a named private person is harassment, also without a single rude word/);
 });
+
+test('Link, den parseRoute nicht lesen kann: fits() ist false, nie ein Absturz (w046, Erste-Hilfe-Quiz, war 503)', async () => {
+  const { fits, compose } = await import('../lib/duell-karte.mjs');
+  const card = {"ok": true, "title": "First Aid: Bleeding", "questions": [{"q": "What is the first thing to do with a bleeding wound?", "a": "Press firmly on it with a clean cloth", "wrong": ["Wash it with a hot shower", "Wait and see if it stops", "Pull any object out of it"]}, {"q": "Someone is bleeding heavily. Who do you call first?", "a": "The emergency number 112 (or 911 in the US)", "wrong": ["A friend, they will know what to do", "Nobody, it always stops by itself", "The weather service"]}, {"q": "An object is stuck in a deep wound. What should you do?", "a": "Leave it in place and keep it still", "wrong": ["Pull it out quickly", "Wiggle it loose gently", "Pour water into the wound"]}, {"q": "How can you help slow bleeding in an arm or leg?", "a": "Raise the limb above heart level", "wrong": ["Lower the limb below the body", "Keep moving it a lot", "Hold it under very cold water only"]}, {"q": "When should a tourniquet be used?", "a": "Only as a last resort for severe limb bleeding", "wrong": ["For every small cut or scratch", "Before trying any pressure at all", "To cover up a bruise"]}]};
+  const doc = compose('quiz', card, 7, (v, max) => (typeof v === 'string' ? v.slice(0, max) : ''));
+  assert.ok(doc, 'a card, not a crash'); assert.ok(doc.pk.q.length >= 3); assert.equal(fits(doc), true);
+  const big = { ...doc, pk: { ...doc.pk, q: Array.from({ length: 40 }, (_, i) => doc.pk.q[i % doc.pk.q.length]) } };
+  assert.doesNotThrow(() => fits(big)); assert.equal(fits(big), false);
+});
