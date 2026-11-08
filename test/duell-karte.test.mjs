@@ -764,7 +764,7 @@ test('Grenzen der Art: ein Duell ist zu zweit (Turnier -> people:2, w089), keine
   r = await go('duell-ssp', 'Schere, Stein, Papier in Echtzeit gegen meinen Mitbewohner');
   assert.equal(r.status, 200); assert.ok(r.body.note.includes('async'), JSON.stringify(r.body.note));
   r = await go('duell-ssp', 'Schere, Stein, Papier gegen meinen Mitbewohner');
-  assert.equal(r.status, 200); assert.equal(r.body.note, undefined);
+  assert.equal(r.status, 200); assert.deepEqual(r.body.note, ['duel'], 'a plain duel only says that it shows its own game');
   assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /duell-ssp \(rock-paper-scissors duel\)[^\n]*\[up to 2 people\]/);
 });
 
@@ -772,4 +772,16 @@ test('Katalog: keine Live-Faehigkeit versprochen; bei einer Grenze die naechste 
   const sys = CARD_SYSTEM.map((b) => b.text).join('\n');
   assert.doesNotMatch(sys, /a live channel, a card table/);
   assert.match(sys, /none is live/); assert.match(sys, /Never answer ok false only because of a limit/); assert.match(sys, /a pillow fight stays a pillow fight in the title/);
+});
+
+test('Sammel-Karte ab 18: S4 phishing bei Risiko 1 ist ihre Aufgabe (fp09); unter 18 und andere Kategorien bleiben gesperrt; Duell sagt, dass es sein eigenes Spiel zeigt', async () => {
+  const card = { ok: true, cap: 'zug-sammeln', title: 'Geschenk für die Lehrerin', sub: 'Jeder legt seinen Anteil dazu.', word: '' };
+  const modBy = (out) => (req) => (req.user.startsWith('REQUEST') ? { risk: 0, cats: [], drink: 'none' } : out);
+  const go = async (out, age = 'a18') => run(mk({ cardLlm: fakeLlm({ card, mod: modBy(out) }) }).ai, body('Geld einsammeln für das Geschenk der Lehrerin', { art: 'faehigkeit', age }));
+  assert.equal((await go({ risk: 1, cats: ['phishing'], drink: 'none' })).status, 200);
+  assert.equal((await go({ risk: 2, cats: ['phishing'], drink: 'none' })).status, 422);
+  assert.equal((await go({ risk: 1, cats: ['phishing', 'harassment'], drink: 'none' })).status, 422);
+  const duel = await run(mk({ cardLlm: fakeLlm({ card: { ok: true, cap: 'duell-ssp', title: 'Kissenschlacht', sub: 'Wer gewinnt?', word: '' } }) }).ai, body('Kissenschlacht zwischen den Agenten', { art: 'faehigkeit', age: 'a18' }));
+  assert.equal(duel.status, 200); assert.ok(duel.body.note.includes('duel'), JSON.stringify(duel.body.note));
+  assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /A rap battle or a duel teases the topic/);
 });
