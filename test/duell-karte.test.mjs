@@ -630,3 +630,15 @@ test('MOD_RULES: Vorname eines Kollegen ist keine reale Person (w005); Prominent
   assert.match(mod, /first name of a friend, a colleague, a neighbour or family member is never real_person/);
   assert.match(mod, /Taylor Swift[^\n]*real_person/);
 });
+
+test('Privatpersonen: Vorname und voller Name allein ja; voller Name mit Adresse, Schule/Klasse oder Arbeitgeber ist Doxxing; Bloßstellen ohne Schimpfwort ist harassment', () => {
+  const K = KINDS.karte, sc = (t) => screenInput(K, { text: t, art: 'card' });
+  for (const t of ['Für Heinz', 'Geburtstagskarte für Lisa Meier', 'Abschied für meinen Kollegen Heinz Becker', 'Liebe Grüße aus der Gartenstraße 5', 'Herzlichen Glückwunsch, Klasse 10b!', 'Klassenfahrt der 8b mit Lisa', 'Party bei Emma, Ahornweg 3'])
+    assert.equal(sc(t), '', t);
+  for (const t of ['Lisa Meier wohnt in der Gartenstraße 5 in Köln', 'Lisa Meier aus der 8b am Goethe-Gymnasium', 'Max Schulz, Lindenweg 12', 'Jonas Krüger aus der Klasse 9a', 'Tim Becker works at the bakery on Main road'])
+    { assert.equal(sc(t), 'blocked', t); assert.equal(K.s1(t), 'doxxing', t); }
+  for (const t of ['Lisa Meier, Telefon 0170 1234567', 'Lisa Meier, Insta @lisa.meier08']) assert.equal(sc(t), 'blocked', t);
+  const mod = MOD_SYSTEM.map((b) => b.text).join('\n');
+  assert.match(mod, /dass Tim aus der 7a immer allein in der Pause sitzt"<\/data> -> \{"risk":2,"cats":\["harassment"\]/);
+  assert.match(mod, /Exposing or making fun of a named private person is harassment, also without a single rude word/);
+});
