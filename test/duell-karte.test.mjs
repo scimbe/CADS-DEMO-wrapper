@@ -803,3 +803,11 @@ test('Agent als Gegenueber ist eine harte Anforderung (w067): eine Abstimmung be
   assert.notEqual((await run(mk({ cardLlm: stuck }).ai, body('Live mit einem ct-agent chatten, der mir Witze erzählt', { art: 'faehigkeit', age: 'a18' }))).status, 200, 'no vote for an agent wish');
   assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /rap-agenten \(rap battle\)[^\n]*an agent duel: each person's agent plays/);
 });
+
+test('Kurze Eintraege fuer einen Wunsch nach Saetzen: ehrlicher Hinweis chars:N (w065 Advent 20 Zeichen)', async () => {
+  const card = { ok: true, cap: 'zug-advent', title: 'Advent für Mia', sub: 'Jeden Tag eine Tür.', word: '' };
+  const r = await run(mk({ cardLlm: fakeLlm({ card }) }).ai, body('Adventskalender für meine Tochter, jeden Tag ein Satz von mir', { art: 'faehigkeit', age: 'a18' }));
+  assert.equal(r.status, 200); assert.ok(r.body.note.includes('chars:20'), JSON.stringify(r.body.note));
+  const r2 = await run(mk({ cardLlm: fakeLlm({ card }) }).ai, body('Adventskalender für meine Tochter', { art: 'faehigkeit', age: 'a18' }));
+  assert.equal(r2.body.note, undefined);
+});
