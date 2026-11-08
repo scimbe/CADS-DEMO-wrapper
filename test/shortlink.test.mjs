@@ -109,6 +109,42 @@ test('expiry: after 90 days the content is gone from disk and the page is friend
   h.close();
 });
 
+test('lifetime: 24 hours until somebody else opens it, then 90 days; the creator opening it does not count; nothing about the creator on disk', async () => {
+  let t = Date.UTC(2026, 10, 8), who = 'maker';
+  const d = dir();
+  const s = mk({ SHORT_DATA_DIR: d }, { now: () => t, clientKey: () => who });
+  const h = await serve(s);
+  // made at "Fertig", never opened: gone after a day
+  const lone = s.create({ f: F, k: 'card' }, 'maker');
+  assert.equal(lone.status, 201); assert.equal(lone.body.exp, t + DAY, 'the app is told the honest 24 hours');
+  assert.equal(s._state.links.get(lone.body.id).p, 1);
+  // made and opened by somebody else (page or app shell): 90 days from that open
+  const a = s.create({ f: F, k: 'card' }, 'maker'), b = s.create({ f: 'i=quiz-chaos' }, 'maker');
+  t += 3 * 3600000;
+  assert.equal((await fetch(`${h.base}/s/${a.body.id}`)).status, 200);
+  assert.equal(s._state.links.get(a.body.id).p, 1, 'the creator looking at their own link: still pending');
+  assert.equal((await fetch(`${h.base}/s/${a.body.id}`, { method: 'HEAD' })).status, 200);
+  who = 'friend';
+  assert.equal(s._state.links.get(a.body.id).p, 1, 'a HEAD of a link checker does not count');
+  const page = await fetch(`${h.base}/s/${a.body.id}`); assert.equal(page.status, 200);
+  assert.equal(s._state.links.get(a.body.id).exp, t + 90 * DAY); assert.equal(s._state.links.get(a.body.id).p, undefined);
+  const api = await (await fetch(`${h.base}/api/s/${b.body.id}`)).json();
+  assert.equal(api.exp, t + 90 * DAY, 'the app shells open it through the API: counts the same');
+  // a day after "Fertig": the lone link is gone, the opened ones stay
+  t = Date.UTC(2026, 10, 8) + DAY;
+  assert.equal((await fetch(`${h.base}/s/${lone.body.id}`)).status, 410);
+  assert.equal((await fetch(`${h.base}/s/${a.body.id}`)).status, 200);
+  t += 80 * DAY;
+  assert.equal((await fetch(`${h.base}/api/s/${b.body.id}`)).status, 200, 'still there after 81 days');
+  // after a restart: the opened state is on disk, the creator is not
+  const raw = readFileSync(s._file(), 'utf8');
+  assert.ok(!/maker|friend/.test(raw), 'no client key on disk');
+  const again = mk({ SHORT_DATA_DIR: d }, { now: () => t });
+  assert.equal(again._state.links.get(a.body.id).exp, Date.UTC(2026, 10, 8) + 3 * 3600000 + 90 * DAY);
+  assert.equal(again._state.links.get(a.body.id).p, undefined);
+  h.close();
+});
+
 test('delete: only with the token, content leaves the disk at once, repeated delete says gone', async () => {
   const s = mk(); const h = await serve(s);
   const { id, token } = await (await post(h.base, { f: F })).json();
@@ -222,9 +258,10 @@ test('guessing: too many unknown ids block that client, also for ids that exist;
 });
 
 test('api: app shells get the fragment for an id', async () => {
-  const s = mk(); const h = await serve(s);
+  const t = Date.UTC(2026, 10, 8), s = mk({}, { now: () => t }); const h = await serve(s);
   const { id, exp } = await (await post(h.base, { f: F })).json();
-  assert.deepEqual(await (await fetch(`${h.base}/api/s/${id}`)).json(), { f: F, exp });
+  assert.equal(exp, t + DAY, 'not opened yet: 24 hours');
+  assert.deepEqual(await (await fetch(`${h.base}/api/s/${id}`)).json(), { f: F, exp: t + 90 * DAY }, 'opened by an app shell: 90 days');
   assert.equal((await fetch(`${h.base}/api/s/22222222`)).status, 404);
   h.close();
 });
