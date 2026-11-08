@@ -623,3 +623,10 @@ test('Faehigkeiten: nur bewiesene Ablaeufe - zug-lob, zug-reaktion, raum-papagei
   for (const id of UNPROVEN) { assert.ok(!CAP_IDS.includes(id), id); assert.ok(!SCHEMAS.faehigkeit.properties.cap.enum.includes(id), id); assert.ok(App.D.byId(id), id + ' bleibt eine Katalogkarte'); }
   assert.doesNotMatch(CARD_SYSTEM.map((b) => b.text).join('\n'), /zug-lob|zug-reaktion|raum-papagei/);
 });
+
+test('MOD_RULES: Vorname eines Kollegen ist keine reale Person (w005); Prominente bleiben real_person', () => {
+  const mod = MOD_SYSTEM.map((b) => b.text).join('\n');
+  assert.match(mod, /meines Kollegen Heinz"<\/data> -> \{"risk":1,"cats":\[\],"drink":"none"\}/);
+  assert.match(mod, /first name of a friend, a colleague, a neighbour or family member is never real_person/);
+  assert.match(mod, /Taylor Swift[^\n]*real_person/);
+});
