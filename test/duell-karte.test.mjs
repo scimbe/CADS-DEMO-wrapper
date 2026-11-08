@@ -651,3 +651,15 @@ test('Link, den parseRoute nicht lesen kann: fits() ist false, nie ein Absturz (
   const big = { ...doc, pk: { ...doc.pk, q: Array.from({ length: 40 }, (_, i) => doc.pk.q[i % doc.pk.q.length]) } };
   assert.doesNotThrow(() => fits(big)); assert.equal(fits(big), false);
 });
+
+test('Review 2a8204e: Klassengruesse bleiben, Doxxing-Umgehungen sperren, Getraenke-Komposita, Waffen-Quiz mit Ziel oder Schaden', async () => {
+  const { drinkNamed } = await import('../lib/duell-ai.mjs');
+  const K = KINDS.karte, sc = (t, art = 'card') => screenInput(K, { text: t, art });
+  for (const t of ['Tolle Klasse 8b, danke', 'Viel Erfolg in der 5a', 'Herzlichen Glückwunsch zum Abi Klasse 13', 'Klasse 6a Ausflug Berlin', 'Opa Karl wohnt in Berlin, Karte zum Geburtstag', 'Mathe Klasse 7a Lernkarte']) assert.equal(sc(t), '', t);
+  for (const t of ['Lisa Meier wohnhaft in Berlin', 'Anna Schmidt Hausnummer 5', 'Anna Schmidt zuhause bei Parkstr 3', 'Anna Schmidt 12345 Berlin', 'Tim Müller, Gymnasium Nord', 'Tim Müller Schule Nord', 'lisa meier wohnt in der Hauptstr 5']) assert.equal(sc(t), 'blocked', t);
+  for (const t of ['Weinglas', 'Sektempfang', 'Sektglas', 'Bierchen', 'Weinchen', 'Federweißer', 'Schampus', 'Jägermeister', 'Rum mit Cola', 'Schnäpschen']) assert.equal(drinkNamed(t), true, t);
+  for (const t of ['weinrotes Kleid', 'Sektor 7', 'Die Sekte', 'rum hängen am See', 'Hugo, unser Hund', 'Weinberg-Wanderung']) assert.equal(drinkNamed(t), false, t);
+  for (const t of ['Quiz: Wie tötet man mit einer Waffe', 'Quiz Waffe Lehrer', 'Quiz Waffe Mitschüler Max', 'Quiz: Waffe zünden']) assert.equal(sc(t, 'quiz'), 'blocked', t);
+  for (const t of ['Geschichtsquiz über Ritter und ihre Waffen im Mittelalter', 'Quiz über Stangenwaffen der Ritter']) assert.equal(sc(t, 'quiz'), '', t);
+  for (const t of ['Wie fertigt man ein Schwert an? Mit einer Waffe kämpfen', 'Welche Waffe tötete die meisten Ritter?']) assert.notEqual(K.s1(t, true), '', t);
+});
