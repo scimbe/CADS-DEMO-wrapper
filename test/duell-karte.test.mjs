@@ -593,3 +593,26 @@ test('Link: docUrl kuerzt still, fits() misst, ob Titel, Hash und alle Fragen zu
   const back = App.D.parseRoute(url.slice(url.indexOf('#'))).doc;
   assert.equal(back.t, doc.t); assert.ok(back.ki.h); assert.equal(back.pk.q.length, doc.pk.q.length);
 });
+
+test('Getraenk auf der fertigen Karte: feste Wortpruefung statt Klassifikator-"side" (fp22 drinks afterwards, fp23 Kinderpunsch)', async () => {
+  const { drinkNamed } = await import('../lib/duell-ai.mjs');
+  for (const t of ['Danach gibt es Punsch', 'Glühwein am Abend', 'Sekt zum Anstoßen', 'mulled wine for all', 'Apfelwein im Garten', 'Eierlikör-Torte']) assert.equal(drinkNamed(t), true, t);
+  for (const t of ['Join us for a cosy winter evening, with drinks afterwards!', 'Heißer Kinderpunsch, bunte Laternen', 'Ein Schwein im Weinberg', 'Wir weinen vor Lachen', 'Login und Margin', 'We met at school', 'the punchline', 'Ingwer-Tee', 'Getränke danach']) assert.equal(drinkNamed(t), false, t);
+  // "alkoholfreier Sekt" still names Sekt: ambiguous drinks are left out (coordinator, 08.11.)
+  assert.equal(drinkNamed('alkoholfreier Sekt'), true);
+  const card = (x) => ({ ok: true, title: 'Winterabend', x, st: 'herz', palette: 0, stickers: ['❄️'] });
+  // the classifier calls the neutral wording "side": the card stays, no drink is named
+  const side = fakeLlm({ mod: (req) => (req.user.startsWith('REQUEST') ? { risk: 0, cats: [], drink: 'side' } : { risk: 0, cats: [], drink: 'side' }), card: card('Cosy winter evening at our club, with drinks afterwards!') });
+  const r = await run(mk({ cardLlm: side }).ai, body('invitation to our club winter evening with mulled wine'));
+  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 100)); assert.equal(r.body.note, 'drinks');
+  // core on the card, or a drink named: no card
+  const core = fakeLlm({ mod: (req) => (req.user.startsWith('REQUEST') ? { risk: 0, cats: [], drink: 'side' } : { risk: 0, cats: [], drink: 'core' }), card: card('Cosy winter evening at our club!') });
+  assert.equal((await run(mk({ cardLlm: core }).ai, body('invitation to our club winter evening with mulled wine'))).status, 422);
+});
+
+test('Ritterquiz (fp06): historische Waffen und Vergangenheit sind Fakten; Anleitung, Verstecken und moderne Waffen bleiben gesperrt', () => {
+  const K = KINDS.karte;
+  for (const t of ['Welche Waffe war eine lange Stangenwaffe mit einer Spitze am Ende?', 'Welche Waffe war ein langer Stoßspeer, den Ritter zu Pferd benutzten?', 'Mit welcher Hiebwaffe kämpften Ritter?']) assert.equal(K.s1(t, true), '', t);
+  for (const t of ['Wie baut man eine Waffe für die Schule?', 'Wo versteckt man eine Waffe?', 'Welche Schusswaffe kam später?', 'how to make a weapon at home']) assert.notEqual(K.s1(t, true), '', t);
+  for (const t of ['Welche Waffe war ein langer Stoßspeer?', 'Mit welcher Waffe kämpften Ritter?']) assert.equal(K.s1(t, false), 'weapons', 'without the learn flag a weapon stays a weapon: ' + t);
+});
