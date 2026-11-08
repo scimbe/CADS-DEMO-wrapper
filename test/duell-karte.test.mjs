@@ -727,3 +727,16 @@ test('S5: "welchen Film" auf einer festen Liste -> ein neuer Versuch mit dem Hin
   assert.notEqual((await run(mk({ cardLlm: stuck }).ai, body('Wir können uns nicht einigen, welchen Film wir heute schauen', { art: 'faehigkeit', age: 'a18' }))).status, 200);
   assert.ok(stuck.calls.filter((c) => c.system !== MOD_SYSTEM && c.user.startsWith('Card type')).length <= 2);
 });
+
+test('Ehrliche Hinweise der App selbst: Geld erst ab 18 (w051), die App schreibt niemandem selbst (w068)', async () => {
+  const cap = (c, title) => ({ ok: true, cap: c, title, sub: 'Zusammen planen.', word: '' });
+  const go = async (card, text, age) => run(mk({ cardLlm: fakeLlm({ card }) }).ai, body(text, { art: 'faehigkeit', age }));
+  let r = await go(cap('geschenk-finder', 'Geschenk für Frau Berg'), 'Geld sammeln für das Geschenk unserer Klassenlehrerin', 'u18');
+  assert.equal(r.status, 200); assert.ok(r.body.note.includes('money18'), JSON.stringify(r.body.note));
+  r = await go(cap('zug-sammeln', 'Geschenk-Kasse'), 'Geld sammeln für das Geschenk unserer Klassenlehrerin', 'a18');
+  assert.equal(r.status, 200); assert.ok(!(r.body.note || []).includes('money18'));
+  r = await go(cap('zug-termin', 'Party-Einladung'), 'my AI agent should text my friends directly and invite them to my party', 'a18');
+  assert.equal(r.status, 200); assert.ok(r.body.note.includes('nosend'), JSON.stringify(r.body.note));
+  r = await go(cap('zug-termin', 'Grillen'), 'Grillen bei mir nächsten Samstag', 'a18');
+  assert.equal(r.status, 200); assert.equal(r.body.note, undefined);
+});
