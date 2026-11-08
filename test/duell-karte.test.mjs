@@ -811,3 +811,27 @@ test('Kurze Eintraege fuer einen Wunsch nach Saetzen: ehrlicher Hinweis chars:N 
   const r2 = await run(mk({ cardLlm: fakeLlm({ card }) }).ai, body('Adventskalender für meine Tochter', { art: 'faehigkeit', age: 'a18' }));
   assert.equal(r2.body.note, undefined);
 });
+
+test('Art Spiel: ein genanntes Spiel, das kein Flug ist, wird nie still ein Flugspiel - notyet mit Katalogkarten, kein Aufruf, keine Buchung, kein Strike', async () => {
+  const G = SCHEMAS.game.properties, R = G.route.items.properties;
+  const step = { physik: R.physik.enum[0], thema: R.thema.enum[0], emoji: R.emoji.enum[0] };
+  const fly = { ok: true, title: 'Eisflug', emoji: G.emoji.enum[0], theme: G.theme.enum[0], motif: G.motif.enum[0], level: G.level.enum[0], route: [step, step, step] };
+  for (const [text, name] of [['Erstelle ein Dart Spiel', 'Dart'], ['Schach gegen meinen Bruder', 'Schach'], ['Bowling mit Freunden', 'Bowling'], ['Doppelkopf-Runde mit der Familie', 'Kartenspiel']]) {
+    const llm = fakeLlm({ card: fly });
+    const { ai } = mk({ cardLlm: llm });
+    const before = (await run(ai, { kind: 'status', device: DEV })).body;
+    const r = await run(ai, body(text, { art: 'game' }));
+    assert.equal(r.status, 200, text); assert.deepEqual(r.body.options, []); assert.deepEqual(r.body.notyet, { what: 'game', name }, text);
+    assert.equal(llm.calls.length, 0, 'no model call: ' + text); assert.equal(r.body.receipt, undefined, 'nothing booked: ' + text);
+    for (let i = 0; i < 4; i++) await run(ai, body(text, { art: 'game' }));
+    assert.equal((await run(ai, body(text, { art: 'game' }))).status, 200, 'no strikes, no pause: ' + text);
+  }
+  const doko = await run(mk({ cardLlm: fakeLlm({ card: fly }) }).ai, body('Doppelkopf-Runde mit der Familie', { art: 'game' }));
+  assert.ok(doko.body.catalog.includes('tisch-doko'), JSON.stringify(doko.body.catalog));
+  // flying, or nothing named: the flying game as before
+  for (const text of ['Pinguin fliegt über Eis', 'Ein Drache über der Burg', 'Ein Flugspiel mit Dartpfeilen']) {
+    const llm = fakeLlm({ card: fly });
+    const r = await run(mk({ cardLlm: llm }).ai, body(text, { art: 'game' }));
+    assert.equal(r.status, 200, text); assert.equal(r.body.options.length, 1, text); assert.equal(r.body.notyet, undefined, text);
+  }
+});
