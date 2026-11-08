@@ -767,3 +767,9 @@ test('Grenzen der Art: ein Duell ist zu zweit (Turnier -> people:2, w089), keine
   assert.equal(r.status, 200); assert.equal(r.body.note, undefined);
   assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /duell-ssp \(rock-paper-scissors duel\)[^\n]*\[up to 2 people\]/);
 });
+
+test('Katalog: keine Live-Faehigkeit versprochen; bei einer Grenze die naechste Faehigkeit mit ok true und eigenem Thema (w066, w089)', () => {
+  const sys = CARD_SYSTEM.map((b) => b.text).join('\n');
+  assert.doesNotMatch(sys, /a live channel, a card table/);
+  assert.match(sys, /none is live/); assert.match(sys, /Never answer ok false only because of a limit/); assert.match(sys, /a pillow fight stays a pillow fight in the title/);
+});
