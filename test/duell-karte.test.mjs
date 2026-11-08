@@ -740,3 +740,16 @@ test('Ehrliche Hinweise der App selbst: Geld erst ab 18 (w051), die App schreibt
   r = await go(cap('zug-termin', 'Grillen'), 'Grillen bei mir nächsten Samstag', 'a18');
   assert.equal(r.status, 200); assert.equal(r.body.note, undefined);
 });
+
+test('Zu langer Text: ein Versuch mit dem Laengenhinweis statt einer abgeschnittenen Pointe (w029); Meme-Grenze aus der App', async () => {
+  const { MEME_MAX } = await import('../lib/duell-karte.mjs');
+  assert.equal(MEME_MAX, App.D.sanitizeDoc({ k: 'photo', x: 'x'.repeat(99), y: 'y', st: 'meme', col: ['#111111', '#ffd400'], sk: [], by: [] }).x.length);
+  let n = 0;
+  const long = { ok: true, title: 'Wifi Down', top: 'Wifi dies at dinner', bottom: 'Suddenly everyone has opinions about everything', st: 'meme' };
+  const short = { ok: true, title: 'Wifi Down', top: 'Wifi dies at dinner', bottom: 'Suddenly we all talk', st: 'meme' };
+  const llm = fakeLlm({ card: () => (n++ === 0 ? long : short) });
+  const r = await run(mk({ cardLlm: llm }).ai, body('when the wifi is down the whole family talks', { art: 'meme' }));
+  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 80)); assert.equal(r.body.options[0].doc.y, 'Suddenly we all talk');
+  const gens = llm.calls.filter((c) => c.system !== MOD_SYSTEM);
+  assert.equal(gens.length, 2); assert.match(gens[1].user, /too long \(bottom at most \d+ characters\)/);
+});
