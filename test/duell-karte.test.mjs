@@ -542,7 +542,7 @@ test('Kein Alkohol auf Karten: Beiwerk wird entschaerft (Karte ohne Getraenk + H
   const side = fakeLlm({ mod: modBy({ risk: 0, cats: [], drink: 'side' }, { risk: 0, cats: [], drink: 'none' }), card: card('Chorprobe am Freitag, danach gemütliches Beisammensein.') });
   const a = mk({ cardLlm: side });
   const r = await run(a.ai, body('Einladung zur Chorprobe, danach Punsch'));
-  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 120)); assert.equal(r.body.note, 'drinks');
+  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 120)); assert.deepEqual(r.body.note, ['drinks']);
   assert.doesNotMatch(r.body.options[0].doc.x, /punsch/i);
   assert.match(side.calls.find((c) => c.system !== MOD_SYSTEM).user, /never name any drink with alcohol/);
   // the same wish, but the model writes the drink anyway: S4 says it is still there -> no card
@@ -605,7 +605,7 @@ test('Getraenk auf der fertigen Karte: feste Wortpruefung statt Klassifikator-"s
   // the classifier calls the neutral wording "side": the card stays, no drink is named
   const side = fakeLlm({ mod: (req) => (req.user.startsWith('REQUEST') ? { risk: 0, cats: [], drink: 'side' } : { risk: 0, cats: [], drink: 'side' }), card: card('Cosy winter evening at our club, with drinks afterwards!') });
   const r = await run(mk({ cardLlm: side }).ai, body('invitation to our club winter evening with mulled wine'));
-  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 100)); assert.equal(r.body.note, 'drinks');
+  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 100)); assert.deepEqual(r.body.note, ['drinks']);
   // core on the card, or a drink named: no card
   const core = fakeLlm({ mod: (req) => (req.user.startsWith('REQUEST') ? { risk: 0, cats: [], drink: 'side' } : { risk: 0, cats: [], drink: 'core' }), card: card('Cosy winter evening at our club!') });
   assert.equal((await run(mk({ cardLlm: core }).ai, body('invitation to our club winter evening with mulled wine'))).status, 422);
@@ -662,4 +662,55 @@ test('Review 2a8204e: Klassengruesse bleiben, Doxxing-Umgehungen sperren, Getrae
   for (const t of ['Quiz: Wie tötet man mit einer Waffe', 'Quiz Waffe Lehrer', 'Quiz Waffe Mitschüler Max', 'Quiz: Waffe zünden']) assert.equal(sc(t, 'quiz'), 'blocked', t);
   for (const t of ['Geschichtsquiz über Ritter und ihre Waffen im Mittelalter', 'Quiz über Stangenwaffen der Ritter']) assert.equal(sc(t, 'quiz'), '', t);
   for (const t of ['Wie fertigt man ein Schwert an? Mit einer Waffe kämpfen', 'Welche Waffe tötete die meisten Ritter?']) assert.notEqual(K.s1(t, true), '', t);
+});
+
+test('S3 sagt ok:false trotz harmlosem S2: ein Versuch mit dem Hinweis, Ergebnis gleich streng geprueft; bei hartem S2 kein Versuch', async () => {
+  let n = 0;
+  const game = { ok: true, title: 'Wolkenflug', emoji: '🚀', theme: 'day', motif: 'none', level: 'normal', route: [] };
+  const no = { ok: false, title: '', emoji: '🚀', theme: 'day', motif: 'none', level: 'normal', route: [] };
+  const flaky = fakeLlm({ card: () => (n++ === 0 ? no : game) });
+  const r = await run(mk({ cardLlm: flaky }).ai, body('Flugspiel durch die Wolken', { art: 'game' }));
+  const gens = flaky.calls.filter((c) => c.system !== MOD_SYSTEM);
+  assert.equal(gens.length, 2); assert.match(gens[1].user, /found this wish allowed under the rules/);
+  assert.notEqual(r.status, 422, 'the second answer is used: ' + JSON.stringify(r.body).slice(0, 80));
+  const always = fakeLlm({ card: no });
+  assert.equal((await run(mk({ cardLlm: always }).ai, body('Flugspiel durch die Wolken', { art: 'game' }))).status, 422);
+  const hard = fakeLlm({ mod: { risk: 1, cats: ['sexual'], drink: 'none' }, card: no });
+  await run(mk({ cardLlm: hard }).ai, body('Flugspiel durch die Wolken', { art: 'game' }));
+  assert.equal(hard.calls.filter((c) => c.system !== MOD_SYSTEM).length, 0, 'S2 hard category: no card call at all');
+  const sys = CARD_SYSTEM.map((b) => b.text).join('\n'), mod = MOD_SYSTEM.map((b) => b.text).join('\n');
+  assert.match(sys, /Medicine: learning facts about medicines/); assert.match(mod, /Pharmakologie: Wirkstoffe und Nebenwirkungen"<\/data> -> \{"risk":0/); assert.match(mod, /Tabletten machen high[^\n]*"risk":3/);
+});
+
+test('S5 Passung: Grenzen aus den App-Daten im Katalog; Liste nach dem Wunsch, ehrlicher Hinweis, kein Text, der mehr verspricht (Holdout 2)', async () => {
+  const { CAP_LIMITS, TERMIN, daysAsked, peopleAsked } = await import('../lib/duell-karte.mjs');
+  // derived, not copied: the date picker of src/turn-ui.js, the moves of src/turns.js, the fixed lists
+  assert.ok(TERMIN.days >= 7 && TERMIN.picks >= 2, JSON.stringify(TERMIN));
+  assert.equal(CAP_LIMITS['zug-termin'].days, TERMIN.days); assert.equal(CAP_LIMITS['zug-reihum'].people, 4);
+  assert.equal(CAP_LIMITS['zug-wichteln'].people, 12); assert.equal(CAP_LIMITS['zug-advent'].entries.max, 20);
+  assert.equal(CAP_LIMITS['raum-streichen'].lists.length, 2);
+  const sys = CARD_SYSTEM.map((b) => b.text).join('\n');
+  assert.match(sys, /zug-termin \(termin\)[^\n]*dates only within the next 14 days/); assert.match(sys, /zug-reihum \(reihum\)[^\n]*up to 4 people/);
+  assert.match(sys, /raum-streichen \(streichen\)[^\n]*one fixed list, either Pizza[^\n]* or Film/);
+  const now = Date.UTC(2026, 10, 8, 9);
+  assert.equal(daysAsked('Termin im Dezember', now) > 14, true); assert.equal(daysAsked('nächsten Samstag', now), 0);
+  assert.equal(peopleAsked('die ganze Klasse soll unterschreiben'), 20); assert.equal(peopleAsked('für Mia und Ben'), 0);
+  const cap = (c, title, sub) => ({ ok: true, cap: c, title, sub, word: '' });
+  const go = async (card, text) => run(mk({ cardLlm: fakeLlm({ card }), now: () => now }).ai, body(text, { art: 'faehigkeit', age: 'a18' }));
+  // Termin im Dezember: card made, honest note, the text names no December
+  let r = await go(cap('zug-termin', 'Termin finden', 'Wann können alle?'), 'Termin für unser Treffen im Dezember finden');
+  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 100)); assert.deepEqual(r.body.note, ['days:14']);
+  // the model promises December anyway: the app's own catalog texts instead, the note stays
+  r = await go(cap('zug-termin', 'Dezember-Treffen', 'Wir finden einen Tag im Dezember'), 'Termin für unser Treffen im Dezember finden');
+  assert.equal(r.status, 200); assert.doesNotMatch(r.body.options[0].doc.t + ' ' + (r.body.options[0].doc.s || ''), /dezember/i); assert.deepEqual(r.body.note, ['days:14']);
+  // the whole class signs: up to 4, said
+  r = await go(cap('zug-reihum', 'Klassenkarte', 'Alle unterschreiben'), 'die ganze Klasse soll für unsere Lehrerin unterschreiben');
+  assert.equal(r.status, 200); assert.deepEqual(r.body.note, ['people:4']);
+  // Streichen: the wish is about food, the model promised a film -> food list, catalog texts, no film on the card
+  r = await go(cap('raum-streichen', 'Filmabend', 'Streicht, bis ein Film übrig bleibt'), 'Was essen wir heute Abend? Wir streichen reihum');
+  assert.equal(r.status, 200); const d = r.body.options[0].doc;
+  assert.doesNotMatch(d.t + ' ' + (d.s || ''), /film/i); assert.equal(d.seed % 2, CAP_LIMITS['raum-streichen'].lists[0].seed % 2, 'the food list');
+  // a film evening gets the list with the film on it
+  r = await go(cap('raum-streichen', 'Filmabend', 'Streicht, bis ein Film übrig bleibt'), 'Was machen wir heute Abend, Film oder Brettspiel?');
+  assert.equal(r.status, 200); assert.equal(r.body.options[0].doc.seed, CAP_LIMITS['raum-streichen'].lists[1].seed);
 });
