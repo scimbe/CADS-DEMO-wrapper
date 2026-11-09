@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { createPublicKey, verify as edVerify } from 'node:crypto';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync as readF, writeFileSync as writeF } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDuell } from '../lib/duell.mjs';
@@ -621,28 +621,30 @@ test('Strikes: zwei vorlaeufige Sperren im Fenster = ein Strike, bestaetigte Spe
   const C = (ch) => ch.repeat(22);
   s.mod.cardHidden(v, C('c'), { why: 'thumbs', down: 8, share: 0.7 });
   assert.equal(s.mod.strikes(v), 0, 'thumbs: no strike');
-  // two holds inside 30 days: one strike (a notice, automatic); 31 days apart: none
+  // two holds inside 30 days: no strike by themselves (review #102), the account goes to a human on /duell/pruefen
   s.mod.cardHeld(w, C('e'), { why: 'reports', accounts: 3 });
-  assert.equal(s.mod.strikes(w), 0, 'one hold: no strike yet');
+  assert.equal(s.mod.strikes(w), 0, 'one hold: no strike');
   s.clock.t += 10 * DAY;
   s.mod.cardHeld(w, C('f'), { why: 'reports', accounts: 3 });
-  assert.equal(s.mod.strikes(w), 1);
-  const sn = s.mod.me(w).notices.find((n) => n.type === 'strike');
-  assert.deepEqual(sn.facts.cards, [C('e'), C('f')]); assert.equal(sn.facts.src, 'holds'); assert.equal(sn.automated.decided, true);
-  assert.equal(s.mod.status(w).st, 'ok', '1 strike: a notice only');
+  assert.equal(s.mod.strikes(w), 0, 'two holds: still no strike, never automatic');
+  assert.equal(s.mod._accounts.get(w).review.why, 'holds'); assert.deepEqual(s.mod._accounts.get(w).review.cards, [C('e'), C('f')]);
+  assert.equal(s.mod.status(w).st, 'ok');
   s.mod.cardHeld(x, C('g'), { why: 'reports' });
   s.clock.t += 31 * DAY;
   s.mod.cardHeld(x, C('h'), { why: 'reports' });
   assert.equal(s.mod.strikes(x), 0, 'holds 31 days apart make no strike');
-  // graded: a confirmed block is the 2nd live strike -> creating paused; the 3rd -> before a human for a final block, not banned
+  // graded: the 2nd live strike flags the account for a human, who may pause (never automatic, review #102); the 3rd -> before
+  // a human for a final block, not banned
   const g = await keyOf(s, 'g@example.org');
   s.mod.cardRemoved(g, C('i'), { by: 'human', ground: 'hate' });
   assert.equal(s.mod.strikes(g), 1); assert.equal(s.mod.status(g).st, 'ok');
   s.clock.t += DAY;
   s.mod.cardRemoved(g, C('j'), { by: 'human', ground: 'harm' });
+  assert.equal(s.mod.status(g).st, 'ok', 'no automatic pause'); assert.equal(s.mod._accounts.get(g).review.why, 'pause-due');
+  assert.equal(s.mod.decide(s.mod.midOf(g), 'pause', null, 'zwei bestaetigte Verstoesse').status, 200);
   assert.equal(s.mod.status(g).st, 'paused'); assert.equal(s.mod.canCreate(g).error, 'account-paused');
   const pause = s.mod.me(g).notices.find((n) => n.type === 'pause');
-  assert.equal(pause.facts.strikes, 2); assert.deepEqual(pause.redress, ['appeal', 'court']);
+  assert.equal(pause.facts.by, 'human'); assert.equal(pause.automated.decided, false); assert.deepEqual(pause.redress, ['appeal', 'court']);
   s.clock.t += DAY;
   s.mod.cardRemoved(g, C('k'), { by: 'human', ground: 'harm' });
   assert.equal(s.mod._accounts.get(g).review.why, 'strikes'); assert.notEqual(s.mod.status(g).st, 'banned', 'final block only by a human');
@@ -719,6 +721,8 @@ test('Widerruf geteilter freier Karten: Status no-store, Meldungen verschiedener
   const report = (card, mail) => h.post('/api/duell/report', { reason: 'harm', kind: 'karte', seal: card.ki.s, optionHash: card.ki.h }, mail);
   const settle = () => new Promise((r) => setTimeout(r, 30));
   try {
+    // reporters who count are eligible like a thumb (old enough, active); fresh second accounts never hold a card (review #102)
+    const [r1, r2, r3] = await accounts(s, 3, { prefix: 'rep', active: 3 });
     const card = await make(s, 'maker@example.org', doc('Geteilte Karte mit Wolken und Sternen'));
     let st = await status(card.cid);
     assert.deepEqual(st, { st: 'ok', cache: 'no-store', cors: '*' });
@@ -733,10 +737,10 @@ test('Widerruf geteilter freier Karten: Status no-store, Meldungen verschiedener
     await settle();
     assert.equal((await status(card.cid)).st, 'ok');
     // two accounts, and the creator itself: no hold; the third distinct account: held, blocked for every link
-    await report(card, 'r1@example.org'); await report(card, 'r1@example.org'); await report(card, 'maker@example.org'); await report(card, 'r2@example.org');
+    await report(card, r1); await report(card, r1); await report(card, 'maker@example.org'); await report(card, r2);
     await settle();
     assert.equal((await status(card.cid)).st, 'ok', 'two distinct accounts are not enough');
-    await report(card, 'r3@example.org'); await settle();
+    await report(card, r3); await settle();
     assert.equal(s.deck._cards.get(card.cid).st, 'held');
     assert.equal((await status(card.cid)).st, 'blocked');
     const held = s.mod.me(card.owner).notices.find((n) => n.type === 'card-held');
@@ -763,7 +767,7 @@ test('Widerruf geteilter freier Karten: Status no-store, Meldungen verschiedener
     // a sealed card nobody registered: reports still hold it, without an owner and without strikes
     const owner = await keyOf(s, 'never@example.org');
     const d = doc('Nie uebernommene Karte mit Regenbogen'), { ki, cid } = sealKarte(s.d.shared.sealer, SALT, d, owner, s.clock.t);
-    for (const m of ['n1@example.org', 'n2@example.org', 'n3@example.org']) await report({ ki }, m);
+    for (const m of [r1, r2, r3]) await report({ ki }, m);   // eligible reporters (review #102)
     await settle();
     assert.equal((await status(cid)).st, 'blocked');
     assert.equal(s.mod.strikes(owner), 0);
@@ -773,16 +777,69 @@ test('Widerruf geteilter freier Karten: Status no-store, Meldungen verschiedener
 test('Speicherdauer: Melde-Kennung eines Kontos hoechstens DUELL_DECK_REPORT_DAYS, Strikes und vorlaeufige Sperren hoechstens DUELL_MOD_STRIKE_DAYS (Datenschutzseite)', async () => {
   const s = setup(), h = await serve(s);
   try {
+    const [k1] = await accounts(s, 1, { prefix: 'keep-rep', active: 3 });
     const card = await make(s, 'keep@example.org', doc('Karte fuer die Speicherdauer mit Monden'));
-    await h.post('/api/duell/report', { reason: 'harm', kind: 'karte', seal: card.ki.s, optionHash: card.ki.h }, 'k1@example.org');
+    await h.post('/api/duell/report', { reason: 'harm', kind: 'karte', seal: card.ki.s, optionHash: card.ki.h }, k1);
     await new Promise((r) => setTimeout(r, 30));
     assert.equal(Object.keys(s.deck._cards.get(card.cid).rA).length, 1);
     s.clock.t += 8 * DAY; await s.deck.tick();
     assert.equal(Object.keys(s.deck._cards.get(card.cid).rA).length, 0, 'gone after 7 days');
     const k = card.owner;
     s.mod.cardHeld(k, 'q'.repeat(22), { why: 'reports' }); s.mod.cardHeld(k, 'r'.repeat(22), { why: 'reports' });
-    assert.equal(s.mod.strikes(k), 1); assert.equal(s.mod._accounts.get(k).holds.length, 2);
+    assert.equal(s.mod.strikes(k), 0, 'holds are no strike'); assert.equal(s.mod._accounts.get(k).holds.length, 2);
     s.clock.t += 31 * DAY; await s.deck.tick();
     assert.equal(s.mod._accounts.get(k).strikes.length, 0); assert.equal(s.mod._accounts.get(k).holds.length, 0, 'gone after 30 days');
   } finally { await h.close(); }
+});
+
+test('Review #102: frische Zweitkonten halten keine Karte (Brigading), ihre Meldungen gehen nur an den Pruefer; geeignete Konten wie beim Daumen', async () => {
+  const s = setup(), h = await serve(s);
+  const report = (card, mail) => h.post('/api/duell/report', { reason: 'harm', kind: 'karte', seal: card.ki.s, optionHash: card.ki.h }, mail);
+  try {
+    const card = await make(s, 'target@example.org', doc('Karte, die jemand wegmelden will'));
+    for (const m of ['neu1@example.org', 'neu2@example.org', 'neu3@example.org', 'neu4@example.org']) await report(card, m);
+    await new Promise((r) => setTimeout(r, 30));
+    const c = s.deck._cards.get(card.cid);
+    assert.notEqual(c.st, 'held', 'four fresh accounts: no hold'); assert.equal(Object.keys(c.rA || {}).length, 0, 'none of them counts');
+    assert.ok(c.rep >= 4, 'every report still reaches the reviewer'); assert.equal(s.mod.strikes(card.owner), 0);
+  } finally { await h.close(); }
+});
+
+test('Review #102: kaputte deck.json, mod.json, credit.json werden gesichert und nie ueberschrieben; solange gibt es keinen Status, keine neue Karte, kein Guthaben (fail-closed)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'duell-deck-corrupt-'));
+  for (const f of ['deck.json', 'mod.json', 'credit.json']) writeF(join(dir, f), '{"v":1,"cards":{ kaputt');
+  const s = setup({ dir }), h = await serve(s);
+  try {
+    assert.equal(s.deck.broken(), true); assert.equal(s.mod.broken(), true); assert.equal(s.credit.broken(), true);
+    for (const f of ['deck.json', 'mod.json', 'credit.json']) assert.ok(readdirSync(dir).some((x) => x.startsWith(f + '.corrupt-')), 'kept aside: ' + f);
+    const r = await fetch(h.base + '/api/duell/deck/status?c=' + 'a'.repeat(22));
+    assert.equal(r.status, 503, 'no status that would let a card be shown');
+    assert.equal((await fetch(h.base + '/api/duell/deck')).status, 503);
+    const k = await keyOf(s, 'someone@example.org');
+    assert.deepEqual(s.mod.canCreate(k), { ok: false, error: 'mod-unavailable' }); assert.equal(s.mod.inGood(k), false);
+    assert.equal(s.credit.available(k), 0); assert.equal(s.credit.spend(k, 1), false);
+    s.mod.flag(k, 'test'); s.mod.flush && s.mod.flush(); s.deck.flush && s.deck.flush(); s.credit.flush();
+    for (const f of ['deck.json', 'mod.json', 'credit.json']) assert.equal(readF(join(dir, f), 'utf8'), '{"v":1,"cards":{ kaputt', 'never overwritten: ' + f);
+  } finally { await h.close(); }
+});
+
+test('Review #102: Beschwerde- und Notiztexte werden nach der Widerspruchsfrist und der Entscheidung geloescht, der Hinweis bleibt, solange der Schritt laeuft', async () => {
+  const s = setup(), k = await keyOf(s, 'texte@example.org'), C = (ch) => ch.repeat(22);
+  s.mod.cardRemoved(k, C('t'), { by: 'human', ground: 'harm', note: 'interne Notiz des Pruefers' });
+  const rm = s.mod.me(k).notices.find((n) => n.type === 'card-removed');
+  assert.equal(s.mod.appeal(k, rm.nid, 'Das war ein Zitat aus dem Unterricht.').status, 202);
+  assert.equal(s.mod.decide(s.mod.midOf(k), 'uphold', rm.nid, 'bleibt so').status, 200);
+  const days = s.mod.cfg.appealDays;
+  s.clock.t += (days - 1) * DAY; s.mod.status(k);
+  assert.ok(s.mod._accounts.get(k).n.some((n) => n.appeal && n.appeal.text), 'inside the complaint period the text stays');
+  s.clock.t += 2 * DAY; s.mod.status(k);
+  const left = s.mod._accounts.get(k).n;
+  assert.ok(!left.some((n) => (n.appeal && (n.appeal.text || n.appeal.note)) || (n.facts && n.facts.note)), 'texts gone after the period and the decision');
+  // an open complaint keeps its text until a human decides
+  const k2 = await keyOf(s, 'offen@example.org');
+  s.mod.cardRemoved(k2, C('u'), { by: 'human', ground: 'harm' });
+  const n2 = s.mod.me(k2).notices.find((n) => n.type === 'card-removed');
+  s.mod.appeal(k2, n2.nid, 'Bitte noch einmal ansehen.');
+  s.clock.t += (days + 5) * DAY; s.mod.status(k2);
+  assert.ok(s.mod._accounts.get(k2).n.some((n) => n.appeal && n.appeal.text), 'open complaint: text stays');
 });
