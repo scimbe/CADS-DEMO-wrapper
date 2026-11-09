@@ -141,7 +141,8 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | Variable | Default | Bedeutung |
 |---|---|---|
 | `SHORT_DATA_DIR` | leer (aus) | Verzeichnis im Volume |
-| `SHORT_TTL_DAYS` | 90 | Lebensdauer |
+| `SHORT_TTL_DAYS` | 90 | Lebensdauer ab dem ersten Öffnen durch jemand anderen |
+| `SHORT_PENDING_HOURS` | 24 | Lebensdauer eines Links, den noch niemand geöffnet hat (die App legt ihn bei „Fertig“ an) |
 | `SHORT_IP_PER_HOUR` / `SHORT_DAILY_MAX` | 20 / 2000 | neue Links je gehashter IP und Stunde / pro UTC-Tag |
 | `SHORT_MISS_PER_HOUR` | 60 | unbekannte IDs je gehashter IP und Stunde, danach `429` (braucht `DUELL_IP_HEADER`, sonst ist die IP unbekannt) |
 | `SHORT_MAX_LIVE` | 100000 | Obergrenze gespeicherter Eintraege |
