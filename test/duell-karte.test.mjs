@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDuell } from '../lib/duell.mjs';
 import { createDuellAi, KINDS, screenInput } from '../lib/duell-ai.mjs';
-import { App, CARD_STICKERS, CARD_SYSTEM, UNPROVEN, cardUser, verdictOf, LINK_MAX, MOD_SYSTEM, SCHEMAS, compose, linkOf, placeStickers, s1 as s1raw } from '../lib/duell-karte.mjs';
+import { App, makeKarteKind, CARD_STICKERS, CARD_SYSTEM, UNPROVEN, cardUser, verdictOf, LINK_MAX, MOD_SYSTEM, SCHEMAS, compose, linkOf, placeStickers, s1 as s1raw } from '../lib/duell-karte.mjs';
 import { FILES } from '../bin/vendor-duell-web.mjs';
 
 const fx = (f) => JSON.parse(readFileSync(fileURLToPath(new URL('./fixtures/' + f, import.meta.url)), 'utf8'));
@@ -54,10 +54,11 @@ function fakeLlm({ card, mod } = {}) {
   };
 }
 const auth = (email) => ({ mode: 'gate', identify: async () => ({ email }) });
-function mk({ email = 'lea@example.org', cardLlm = fakeLlm(), env = {}, now, age16 = (m) => !!m } = {}) {
+function mk({ email = 'lea@example.org', cardLlm = fakeLlm(), env = {}, now, age16 = (m) => !!m, age18 = () => false, log = () => {} } = {}) {
   const d = createDuell({ env: { DUELL_DAILY_MAX: '200', DUELL_SEAL_SECRET: 'seal' }, salt: 's', log: () => {}, llm: async () => '{}', now });
   if (age16) d.shared.age16 = age16;   // lib/duell-profile.mjs: the account's 16+ statement on the server
-  const ai = createDuellAi({ env: { DUELL_AI_SALT: 'x', DUELL_AI_PROOF_BITS: '0', ...env }, llm: async () => '{}', cardLlm, shared: d.shared, auth: auth(email), log: () => {}, now });
+  if (age18) d.shared.age18 = age18;   // and its 18+ statement: the only source of age a18 (never the request)
+  const ai = createDuellAi({ env: { DUELL_AI_SALT: 'x', DUELL_AI_PROOF_BITS: '0', ...env }, llm: async () => '{}', cardLlm, shared: d.shared, auth: auth(email), log, now });
   return { d, ai, cardLlm };
 }
 const body = (text, extra = {}) => ({ kind: 'karte', input: { text, art: 'card', age: 'u18', ...extra }, device: DEV, lang: 'de' });
@@ -287,7 +288,7 @@ test('W3 rights: money only from 18; a chosen ability outside the allowlist is r
   const young = mk({ cardLlm: money });
   const r = await run(young.ai, { ...body('x'), input: { text: 'Geld für die Klassenfahrt einsammeln', art: 'faehigkeit', age: 'u18' } });
   assert.equal(r.status, 403, JSON.stringify(r.body)); assert.equal(r.body.error, 'age'); assert.equal(r.body.create.remaining, 5);
-  const adult = mk({ cardLlm: fakeLlm({ card: { ok: true, cap: 'zug-sammeln', title: 'Klassenfahrt', sub: 'Jeder zahlt seinen Teil.', word: '' } }) });
+  const adult = mk({ cardLlm: fakeLlm({ card: { ok: true, cap: 'zug-sammeln', title: 'Klassenfahrt', sub: 'Jeder zahlt seinen Teil.', word: '' } }), age18: () => true });
   const r2 = await run(adult.ai, { ...body('x'), input: { text: 'Geld für die Klassenfahrt einsammeln', art: 'faehigkeit', age: 'a18' } });
   assert.equal(r2.status, 200, JSON.stringify(r2.body)); assert.equal(r2.body.options[0].doc.i, 'zug-sammeln');
   assert.equal(capCheck({ i: 'nicht-da' }, { age: 'a18' }), 'cap-unknown');
@@ -349,7 +350,7 @@ test('W4 hooks: seen on every request, moderation pause is 403 (crisis help firs
   const deckHooks = {
     seen: (k) => log.push(['seen', k]),
     sealKarte: (doc, key, at) => ({ ki: { k: 'karte', s: 's2.karte.x.' + 'S'.repeat(32), h: 'H'.repeat(43), o: 'O'.repeat(22) }, cid: 'C'.repeat(22) }),
-    register: (r) => log.push(['register', r.cid, r.owner, r.doc.ki.o]),
+    register: (r) => { log.push(['register', r.cid, r.owner, r.doc.ki.o]); return { ok: true, cid: r.cid }; },
   };
   let bal = 1;
   const creditHooks = { available: () => bal, spend: (k, n) => { if (bal < n) return false; bal -= n; log.push(['spend']); return true; }, refund: (k, n) => { bal += n; log.push(['refund']); } };
@@ -730,7 +731,7 @@ test('S5: "welchen Film" auf einer festen Liste -> ein neuer Versuch mit dem Hin
 
 test('Ehrliche Hinweise der App selbst: Geld erst ab 18 (w051), die App schreibt niemandem selbst (w068)', async () => {
   const cap = (c, title) => ({ ok: true, cap: c, title, sub: 'Zusammen planen.', word: '' });
-  const go = async (card, text, age) => run(mk({ cardLlm: fakeLlm({ card }) }).ai, body(text, { art: 'faehigkeit', age }));
+  const go = async (card, text, age) => run(mk({ cardLlm: fakeLlm({ card }), age18: () => age === 'a18' }).ai, body(text, { art: 'faehigkeit', age }));
   let r = await go(cap('geschenk-finder', 'Geschenk für Frau Berg'), 'Geld sammeln für das Geschenk unserer Klassenlehrerin', 'u18');
   assert.equal(r.status, 200); assert.ok(r.body.note.includes('money18'), JSON.stringify(r.body.note));
   r = await go(cap('zug-sammeln', 'Geschenk-Kasse'), 'Geld sammeln für das Geschenk unserer Klassenlehrerin', 'a18');
@@ -777,11 +778,11 @@ test('Katalog: keine Live-Faehigkeit versprochen; bei einer Grenze die naechste 
 test('Sammel-Karte ab 18: S4 phishing bei Risiko 1 ist ihre Aufgabe (fp09); unter 18 und andere Kategorien bleiben gesperrt; Duell sagt, dass es sein eigenes Spiel zeigt', async () => {
   const card = { ok: true, cap: 'zug-sammeln', title: 'Geschenk für die Lehrerin', sub: 'Jeder legt seinen Anteil dazu.', word: '' };
   const modBy = (out) => (req) => (req.user.startsWith('REQUEST') ? { risk: 0, cats: [], drink: 'none' } : out);
-  const go = async (out, age = 'a18') => run(mk({ cardLlm: fakeLlm({ card, mod: modBy(out) }) }).ai, body('Geld einsammeln für das Geschenk der Lehrerin', { art: 'faehigkeit', age }));
+  const go = async (out, age = 'a18') => run(mk({ cardLlm: fakeLlm({ card, mod: modBy(out) }), age18: () => age === 'a18' }).ai, body('Geld einsammeln für das Geschenk der Lehrerin', { art: 'faehigkeit', age }));
   assert.equal((await go({ risk: 1, cats: ['phishing'], drink: 'none' })).status, 200);
   assert.equal((await go({ risk: 2, cats: ['phishing'], drink: 'none' })).status, 422);
   assert.equal((await go({ risk: 1, cats: ['phishing', 'harassment'], drink: 'none' })).status, 422);
-  const duel = await run(mk({ cardLlm: fakeLlm({ card: { ok: true, cap: 'duell-ssp', title: 'Kissenschlacht', sub: 'Wer gewinnt?', word: '' } }) }).ai, body('Kissenschlacht zwischen den Agenten', { art: 'faehigkeit', age: 'a18' }));
+  const duel = await run(mk({ cardLlm: fakeLlm({ card: { ok: true, cap: 'duell-ssp', title: 'Kissenschlacht', sub: 'Wer gewinnt?', word: '' } }), age18: () => true }).ai, body('Kissenschlacht zwischen den Agenten', { art: 'faehigkeit', age: 'a18' }));
   assert.equal(duel.status, 200); assert.ok(duel.body.note.includes('duel'), JSON.stringify(duel.body.note));
   assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /A rap battle or a duel teases the topic/);
 });
@@ -816,12 +817,13 @@ test('Art Spiel: ein genanntes Spiel, das kein Flug ist, wird nie still ein Flug
   const G = SCHEMAS.game.properties, R = G.route.items.properties;
   const step = { physik: R.physik.enum[0], thema: R.thema.enum[0], emoji: R.emoji.enum[0] };
   const fly = { ok: true, title: 'Eisflug', emoji: G.emoji.enum[0], theme: G.theme.enum[0], motif: G.motif.enum[0], level: G.level.enum[0], route: [step, step, step] };
-  for (const [text, name] of [['Erstelle ein Dart Spiel', 'Dart'], ['Schach gegen meinen Bruder', 'Schach'], ['Bowling mit Freunden', 'Bowling'], ['Doppelkopf-Runde mit der Familie', 'Kartenspiel']]) {
+  // (Dart is reachable through its feature since #183, see the matching test; Doppelkopf is the feature cardgame, not yet)
+  for (const [text, name, what] of [['Schach gegen meinen Bruder', 'Schach', 'game'], ['Bowling mit Freunden', 'Bowling', 'game'], ['Doppelkopf-Runde mit der Familie', 'Kartenspiel', 'feature']]) {
     const llm = fakeLlm({ card: fly });
     const { ai } = mk({ cardLlm: llm });
     const before = (await run(ai, { kind: 'status', device: DEV })).body;
     const r = await run(ai, body(text, { art: 'game' }));
-    assert.equal(r.status, 200, text); assert.deepEqual(r.body.options, []); assert.deepEqual(r.body.notyet, { what: 'game', name }, text);
+    assert.equal(r.status, 200, text); assert.deepEqual(r.body.options, []); assert.deepEqual(r.body.notyet, { what, name }, text);
     assert.equal(llm.calls.length, 0, 'no model call: ' + text); assert.equal(r.body.receipt, undefined, 'nothing booked: ' + text);
     for (let i = 0; i < 4; i++) await run(ai, body(text, { art: 'game' }));
     assert.equal((await run(ai, body(text, { art: 'game' }))).status, 200, 'no strikes, no pause: ' + text);
@@ -834,4 +836,98 @@ test('Art Spiel: ein genanntes Spiel, das kein Flug ist, wird nie still ein Flug
     const r = await run(mk({ cardLlm: llm }).ai, body(text, { art: 'game' }));
     assert.equal(r.status, 200, text); assert.equal(r.body.options.length, 1, text); assert.equal(r.body.notyet, undefined, text);
   }
+});
+
+test('Merkmal-Matching: jede Faehigkeit hat Merkmale aus den App-Daten; das Modell waehlt nur unter passenden; keine passt -> noch nicht, aehnlich; Versprechen-Pruefung', async () => {
+  const { CAP_FEATURES, FEATURES, CAPS, needsOf, candidatesFor, catalogWith } = await import('../lib/duell-karte.mjs');
+  // completeness: a new catalog card without a feature fails here
+  for (const c of CAPS) { assert.ok((CAP_FEATURES[c.id] || []).length > 0, 'no feature: ' + c.id); for (const f of CAP_FEATURES[c.id]) assert.ok(FEATURES.includes(f), c.id + ': ' + f); }
+  assert.deepEqual(CAP_FEATURES['spiel-dart'], ['dart']); assert.ok(CAP_FEATURES['zug-einig'].includes('vote.own')); assert.ok(!CAP_FEATURES['zug-kreis'].includes('vote.own'));
+  assert.deepEqual(candidatesFor(needsOf('Abstimmung, wohin unser Klassenausflug geht'), 'a18').filter((id) => !CAP_FEATURES[id].includes('vote.own')), []);
+  assert.deepEqual(catalogWith('voice.fx'), ['stimme-verzerren']); assert.ok(catalogWith('cardgame').includes('tisch-doko'));
+  const gens = (llm) => llm.calls.filter((c) => c.system !== MOD_SYSTEM && c.user.startsWith('Card type'));
+  // Dart (#183) through its feature: art game becomes the ability, the model may only choose spiel-dart
+  const dart = fakeLlm({ card: { ok: true, cap: 'spiel-dart', title: 'Dart-Abend', sub: 'Wer trifft die Mitte?', word: '' } });
+  let r = await run(mk({ cardLlm: dart }).ai, body('Erstelle ein Dart Spiel', { art: 'game', age: 'a18' }));
+  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 100)); assert.equal(r.body.options[0].doc.i, 'spiel-dart');
+  assert.deepEqual(gens(dart)[0].schema.properties.cap.enum, ['spiel-dart']);
+  // a vote on own options: only abilities with own entries in the schema
+  const vote = fakeLlm({ card: { ok: true, cap: 'zug-einig', title: 'Ausflugsziel', sub: 'Jeder ordnet fünf Ziele.', word: 'Ziele' } });
+  r = await run(mk({ cardLlm: vote }).ai, body('Abstimmung, wohin unser Klassenausflug geht', { art: 'faehigkeit', age: 'a18' }));
+  assert.equal(r.status, 200); assert.ok(gens(vote)[0].schema.properties.cap.enum.every((id) => CAP_FEATURES[id].includes('vote.own')));
+  // nothing covers it: not yet, similar ...; no model call, nothing booked; the voice card (#181) and the card table as similar
+  for (const [text, catalog] of [['Einladung zur Party, alle sollen zu- oder absagen', null], ['meine Stimme verzerren wie ein Roboter', 'stimme-verzerren'], ['Doppelkopf-Runde mit der Familie', 'tisch-doko']]) {
+    const llm = fakeLlm({});
+    const n = await run(mk({ cardLlm: llm }).ai, body(text, { art: 'faehigkeit', age: 'a18' }));
+    assert.equal(n.status, 200, text); assert.deepEqual(n.body.options, []); assert.equal(n.body.notyet.what, 'feature', text);
+    assert.equal(llm.calls.length, 0, text); assert.equal(n.body.receipt, undefined, text);
+    if (catalog) assert.ok(n.body.catalog.includes(catalog), text + ' ' + JSON.stringify(n.body.catalog));
+  }
+  // no hard need: every ability as before
+  const free = fakeLlm({ card: { ok: true, cap: 'zug-kennst', title: 'Kennst du mich?', sub: 'Fünf Fragen.', word: '' } });
+  await run(mk({ cardLlm: free }).ai, body('Wie gut kennt ihr mich?', { art: 'faehigkeit', age: 'a18' }));
+  assert.ok(gens(free)[0].schema.properties.cap.enum.length > 40);
+  // promises: a text that asks for replies on a card that cannot take them, "everyone adds" to the owner's wish list
+  for (const [cap, sub] of [['zug-einig', 'Sagt bis Freitag zu oder ab!'], ['zug-wunschzettel', 'Alle tragen ein, was sie sich wünschen.']]) {
+    const p = await run(mk({ cardLlm: fakeLlm({ card: { ok: true, cap, title: 'Unsere Runde', sub, word: '' } }) }).ai, body('Wie gut kennt ihr mich?', { art: 'faehigkeit', age: 'a18' }));
+    assert.equal(p.status, 200, cap); assert.notEqual(p.body.options[0].doc.s, sub, cap + ': the catalog text instead of the promise');
+  }
+});
+
+test('Review Umbau Punkt 4: Alter a18 nur aus dem Serverprofil, fail-closed; age im Request zaehlt nie', async () => {
+  const card = { ok: true, cap: 'zug-sammeln', title: 'Klassenfahrt', sub: 'Jeder zahlt seinen Teil.', word: '' };
+  const wish = body('Geld für die Klassenfahrt einsammeln', { art: 'faehigkeit', age: 'a18', adult: true });
+  // a18 in the body, no 18+ statement on the server: under 18 -> no zug-sammeln (403 age), nothing charged
+  for (const age18 of [() => false, () => null, () => { throw new Error('store down'); }, null]) {
+    const r = await run(mk({ cardLlm: fakeLlm({ card }), age18 }).ai, wish);
+    assert.equal(r.status, 403, JSON.stringify(r.body)); assert.equal(r.body.error, 'age'); assert.equal(r.body.create.remaining, 5);
+  }
+  // the statement on the server, body says u18: the server's statement counts
+  const ok = await run(mk({ cardLlm: fakeLlm({ card }), age18: (m) => m === 'lea@example.org' }).ai, body('Geld für die Klassenfahrt einsammeln', { art: 'faehigkeit', age: 'u18' }));
+  assert.equal(ok.status, 200, JSON.stringify(ok.body)); assert.equal(ok.body.options[0].doc.i, 'zug-sammeln');
+  // read() never takes the age from the request
+  assert.equal(makeKarteKind({ redactContact: (t) => t, hasContact: () => false }).read({ text: 'Hallo du', age: 'a18' }).age, 'u18');
+});
+
+test('Review Umbau Punkt 5: Annehmen hinter einem Pro-Schluessel registriert fuer das Login-Konto (p.acct), das Ergebnis steht im Log; Gutschrift zurueck aufs Konto', async () => {
+  const { mintKey } = await import('../lib/duell-pots.mjs');
+  const key = mintKey('ent', 'pro', 'fam1'), lines = [], reg = [], refunds = [];
+  let answer = { ok: true, cid: 'C'.repeat(22) };
+  const c = mk({ env: { DUELL_ENTITLEMENT_SECRET: 'ent', DUELL_ENTITLEMENTS: key, DUELL_CREATE_FREE: '1' }, log: (o) => lines.push(o) });
+  let bal = 1;
+  Object.assign(c.d.shared, {
+    deck: { seen: () => {}, sealKarte: () => ({ ki: { k: 'karte', s: 's2.karte.x.' + 'S'.repeat(32), h: 'H'.repeat(43), o: 'O'.repeat(22) }, cid: 'C'.repeat(22) }), register: (r) => { reg.push(r.owner); return answer; } },
+    credit: { available: () => bal, spend: (k, n) => { if (bal < n) return false; bal -= n; return true; }, refund: (k, n) => { refunds.push(k); bal += n; } },
+  });
+  const p = await c.ai.who({}, { device: DEV, key });
+  assert.ok(p.acct && p.key !== p.acct, 'a Pro key in front of the account');
+  const r1 = await run(c.ai, { ...body('Karte A'), key });
+  assert.equal(r1.status, 200, JSON.stringify(r1.body));
+  c.ai.close(p, r1.body.receipt, 'accept');
+  assert.deepEqual(reg, [p.acct], 'registered for the account the card was sealed for, not the Pro key');
+  assert.deepEqual(lines.filter((o) => o.event === 'duell-deck-register'), [{ event: 'duell-deck-register', ok: true }]);
+  // pot of 1 used: the next card is paid from credit; a discard gives it back to the account
+  const r2 = await run(c.ai, { ...body('Karte B'), key });
+  assert.equal(r2.body.credit, true, 'pot of 1 used: paid from credit');
+  c.ai.close(p, r2.body.receipt, 'discard');
+  assert.deepEqual(refunds, [p.acct], 'credit back to the account it came from');
+  // a refused register is logged with its reason and costs nothing (the card could never be shown from a link)
+  answer = { ok: false, error: 'owner-limit' };
+  const r3 = await run(c.ai, { ...body('Karte C'), key });
+  assert.equal(r3.status, 200, JSON.stringify(r3.body));
+  const acc = c.ai.close(p, r3.body.receipt, 'accept');
+  assert.equal(acc.body.registered, false); assert.equal(acc.body.refunded, 1); assert.equal(acc.body.credit, true);
+  assert.deepEqual(refunds, [p.acct, p.acct]);
+  assert.deepEqual(lines.filter((o) => o.event === 'duell-deck-register').at(-1), { event: 'duell-deck-register', ok: false, error: 'owner-limit' });
+  assert.equal(c.ai.close(p, r3.body.receipt, 'accept').body.already, true, 'the receipt is closed: no second refund');
+});
+
+test('Review Umbau: cap ausserhalb der passenden Faehigkeiten wird nach der Antwort abgelehnt (cap-match); Zusage-Versprechen ohne Fehlalarm', async () => {
+  assert.equal(capCheck({ i: 'zug-termin' }, { age: 'u18', cands: ['zug-wunschzettel'] }), 'cap-match');
+  assert.equal(capCheck({ i: 'zug-wunschzettel' }, { age: 'u18', cands: ['zug-wunschzettel'] }), '');
+  assert.equal(capCheck({ i: 'zug-termin' }, { age: 'u18' }), '', 'without matching data unchanged');
+  const { PROMISES } = await import('../lib/duell-karte.mjs');
+  const rsvp = PROMISES.find((x) => x.any.includes('rsvp')).re;
+  for (const t of ['Sagt, was ihr zu Weihnachten wollt', 'Antworte ehrlich auf die Fragen', 'Sag mal, wer ab jetzt mitmacht']) assert.equal(rsvp.test(t), false, t);
+  for (const t of ['Sagt bis Freitag zu oder ab', 'Sagt bis Sonntag Bescheid', 'Bitte zusagen bis Montag', 'Antwortet mit Ja oder Nein', 'RSVP by Friday']) assert.equal(rsvp.test(t), true, t);
 });

@@ -14,11 +14,13 @@ import { canonical } from '../lib/duell-seal.mjs';
 import { checkKarte, createDeck, fingerprint, sealKarte, similarity } from '../lib/duell-deck.mjs';
 import { createCredit } from '../lib/duell-credit.mjs';
 import { createMod } from '../lib/duell-mod.mjs';
+import { createShortLinks, freeCidOf, freeIdsOf } from '../lib/shortlink.mjs';
+import { App } from '../lib/duell-karte.mjs';
 
 const DAY = 86400000, ADMIN = 'admin-token-0123456789abcdef', SALT = 'deck-salt';
 const T0 = Date.UTC(2026, 10, 1, 12);
 
-function setup({ env = {}, review, dir = mkdtempSync(join(tmpdir(), 'duell-deck-')) } = {}) {
+function setup({ env = {}, review, blockLink, dir = mkdtempSync(join(tmpdir(), 'duell-deck-')) } = {}) {
   const clock = { t: T0 };
   const now = () => clock.t, log = () => {};
   const E = { DUELL_SEAL_SECRET: 'seal', DUELL_AI_SALT: 'ai', DUELL_DECK_SALT: SALT, DUELL_ADMIN_TOKEN: ADMIN, DUELL_DECK_TICK_MS: '0', DUELL_DECK_EPHEMERAL: '1', ...env };
@@ -27,7 +29,7 @@ function setup({ env = {}, review, dir = mkdtempSync(join(tmpdir(), 'duell-deck-
   const ai = createDuellAi({ env: E, shared: d.shared, auth, log, llm: async () => '{}', now });
   const credit = createCredit({ env: E, now, log, file: join(dir, 'credit.json') });
   const mod = createMod({ env: E, now, log, file: join(dir, 'mod.json') });
-  const deck = createDeck({ env: E, shared: d.shared, who: ai.who, credit, mod, review, now, log, file: join(dir, 'deck.json') });
+  const deck = createDeck({ env: E, shared: d.shared, who: ai.who, credit, mod, review, blockLink, now, log, file: join(dir, 'deck.json') });
   const reports = createReports({ env: { ...E, DUELL_REPORT_DIR: join(dir, 'rep') }, shared: d.shared, onCard: deck, now, log });
   return { clock, d, ai, credit, mod, deck, reports, dir, E };
 }
@@ -842,4 +844,154 @@ test('Review #102: Beschwerde- und Notiztexte werden nach der Widerspruchsfrist 
   s.mod.appeal(k2, n2.nid, 'Bitte noch einmal ansehen.');
   s.clock.t += (days + 5) * DAY; s.mod.status(k2);
   assert.ok(s.mod._accounts.get(k2).n.some((n) => n.appeal && n.appeal.text), 'open complaint: text stays');
+});
+
+// ---- Umbau Teil 2 (09.11.): "Entfernen + Strike" fuer geteilte Karten ausserhalb des Decks -----------------------------
+// the app's card link (apps/duell-web daily.js docUrl): c= base64url of { v: 1, d: doc }
+const fragOf = (d) => 'c=' + Buffer.from(JSON.stringify({ v: 1, d })).toString('base64url');
+const bareOf = (d) => 'c=' + Buffer.from(JSON.stringify(d)).toString('base64url');
+async function shortStack(env = {}) {
+  let short = null;
+  const s = setup({ env, blockLink: (id) => short.block(id) });
+  short = createShortLinks({ env: { SHORT_DATA_DIR: join(s.dir, 'short') }, now: () => s.clock.t, log: () => {}, free: () => s.deck });
+  const h = await serve(s);
+  const srv = http.createServer(async (q, r) => { const url = new URL(q.url, 'http://x'); if (!(await short.route(q, r, url))) r.writeHead(404).end(); });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const sb = `http://127.0.0.1:${srv.address().port}`;
+  return { s, h, short, sb, close: async () => { await h.close(); await new Promise((r) => srv.close(r)); } };
+}
+
+test('Umbau Teil 2: teilen -> Admin entfernt mit Pflichtgrund -> Link, Seite, Bild und Status sofort gesperrt ("nicht mehr verfuegbar") -> Strike gezaehlt, Begruendung und Widerspruch beim Ersteller', async () => {
+  const { s, h, short, sb, close } = await shortStack();
+  try {
+    const one = await make(s, 'teilt@example.org');
+    assert.equal(freeCidOf(fragOf(one.doc)), one.cid, 'the card id comes from the link itself');
+    const c = short.create({ f: fragOf(one.doc), k: 'card' });
+    assert.equal(c.status, 201, JSON.stringify(c.body));
+    const id = c.body.id;
+    assert.equal((await fetch(sb + '/api/s/' + id)).status, 200);
+    assert.equal((await fetch(sb + '/s/' + id)).status, 200);
+    assert.deepEqual(await (await fetch(h.base + '/api/duell/deck/status?c=' + one.cid)).json(), { c: one.cid, st: 'ok' });
+    // the reviewer sees it as shared outside the deck
+    let rv = await (await fetch(h.base + '/api/duell/deck/review', { headers: h.adm })).json();
+    const row = rv.shared.find((x) => x.cid === one.cid);
+    assert.ok(row, 'listed as shared'); assert.equal(row.links, 1); assert.equal(row.st, 'private');
+    // the reason is required: no ground, no words, too short -> nothing happens
+    for (const b of [{ action: 'remove' }, { action: 'remove', ground: 'hate' }, { action: 'remove', ground: 'hate', note: 'ab' }, { action: 'remove', ground: 'nope', note: 'Beleidigt eine Mitschuelerin' }]) {
+      const r = await h.post('/api/duell/deck/review/' + one.cid, b, null, h.adm);
+      assert.equal(r.status, 400, JSON.stringify(b)); assert.equal((await r.json()).error, 'reason-required');
+    }
+    assert.equal((await fetch(sb + '/api/s/' + id)).status, 200, 'still open after the refused tries');
+    assert.equal((await h.post('/api/duell/deck/review/' + one.cid, { action: 'remove', ground: 'hate', note: 'Beleidigt eine Mitschuelerin' })).status, 401, 'admin only');
+    const r = await h.post('/api/duell/deck/review/' + one.cid, { action: 'remove', ground: 'hate', note: 'Beleidigt eine Mitschuelerin' }, null, h.adm);
+    assert.equal(r.status, 200); const rb = await r.json();
+    assert.equal(rb.st, 'removed'); assert.equal(rb.links, 1); assert.equal(rb.strikes, 1);
+    // at once: the short link, its page, its picture and the status
+    const api = await fetch(sb + '/api/s/' + id);
+    assert.equal(api.status, 410); assert.equal((await api.json()).error, 'blocked');
+    const pg = await fetch(sb + '/s/' + id);
+    assert.equal(pg.status, 410); assert.match(await pg.text(), /gesperrt|nicht mehr verfügbar/);
+    assert.equal((await fetch(sb + '/s/img/' + id + '.jpg')).status, 404);
+    assert.deepEqual(await (await fetch(h.base + '/api/duell/deck/status?c=' + one.cid)).json(), { c: one.cid, st: 'blocked' });
+    assert.ok(!JSON.stringify(short._state.links.get(id)).includes(one.doc.t), 'the link content left the disk');
+    // a new short link for the removed card is refused; a long link of it asks status and gets "blocked"
+    assert.equal(short.create({ f: fragOf(one.doc), k: 'card' }).status, 409);
+    // strike counted, notice with ground, words and appeal for the creator; the account is not paused by it
+    const me = s.mod.me(one.owner);
+    const rm = me.notices.find((n) => n.type === 'card-removed'), st = me.notices.find((n) => n.type === 'strike');
+    assert.equal(rm.cid, one.cid); assert.equal(rm.facts.ground, 'hate'); assert.equal(rm.facts.note, 'Beleidigt eine Mitschuelerin');
+    assert.ok(rm.redress.includes('appeal') && rm.appealUntil, 'appeal possible (DSA Art. 17/20)');
+    assert.equal(st.automated.decided, false); assert.equal(s.mod.strikes(one.owner), 1); assert.equal(me.st, 'ok', 'no automatic pause or block');
+    rv = await (await fetch(h.base + '/api/duell/deck/review', { headers: h.adm })).json();
+    assert.ok(!rv.shared.some((x) => x.cid === one.cid), 'out of the shared list');
+    // a deck card is not removed this way (its own block path stays)
+    assert.equal((await h.post('/api/duell/deck/review/' + one.cid, { action: 'remove', ground: 'hate', note: 'noch einmal' }, null, h.adm)).status, 409);
+  } finally { await close(); }
+});
+
+test('Umbau Teil 2: fail-closed - eine unbekannte Karte ist nie "ok", ohne lesbares Deck oeffnet kein Link einer freien Karte; Strikes verfallen, Stufen bleiben beim Menschen', async () => {
+  const { s, h, short, sb, close } = await shortStack();
+  try {
+    // never registered: status "unknown", no short link
+    const d = doc('Nie uebernommen');
+    const { ki, cid } = sealKarte(s.d.shared.sealer, SALT, d, await keyOf(s, 'x@example.org'), s.clock.t);
+    assert.deepEqual(await (await fetch(h.base + '/api/duell/deck/status?c=' + cid)).json(), { c: cid, st: 'unknown' });
+    const no = short.create({ f: fragOf({ ...d, ki }), k: 'card' });
+    assert.equal(no.status, 409); assert.equal(no.body.error, 'card-unknown');
+    // other links are untouched by the deck
+    assert.equal(short.create({ f: 'c=' + Buffer.from(JSON.stringify({ t: 'Idee' })).toString('base64url'), k: 'idea' }).status, 201);
+    // a registered, shared card: deck unreadable (or gone) -> 503 everywhere, nothing of the card is served
+    const one = await make(s, 'zwei@example.org');
+    const id = short.create({ f: fragOf(one.doc), k: 'card' }).body.id;
+    const real = s.deck.linkState;
+    s.deck.linkState = () => { throw new Error('disk'); };
+    assert.equal((await fetch(sb + '/api/s/' + id)).status, 503);
+    assert.equal((await fetch(sb + '/s/' + id)).status, 503);
+    s.deck.linkState = () => 'unavailable';
+    assert.equal((await fetch(sb + '/api/s/' + id)).status, 503);
+    s.deck.linkState = real;
+    assert.equal((await fetch(sb + '/api/s/' + id)).status, 200);
+    const lone = createShortLinks({ env: { SHORT_DATA_DIR: join(s.dir, 'short2') }, log: () => {} });   // no deck wired at all
+    assert.equal(lone.create({ f: fragOf(one.doc), k: 'card' }).status, 503, 'a free card needs the deck to be checked');
+    // two removals: two strikes (graded: a flag for a human, never an automatic pause); after strikeDays they lapse
+    const two = await make(s, 'zwei@example.org');
+    for (const c of [one, two]) assert.equal((await h.post('/api/duell/deck/review/' + c.cid, { action: 'remove', ground: 'harm', note: 'Mobbing gegen eine Person' }, null, h.adm)).status, 200);
+    assert.equal(s.mod.strikes(one.owner), 2); assert.equal(s.mod.status(one.owner).st, 'ok');
+    assert.ok(s.mod.queue().accounts.some((a) => a.review && a.review.why === 'pause-due'), 'a human decides about a pause');
+    s.clock.t += s.mod.cfg.strikeDays * DAY + 1;
+    assert.equal(s.mod.strikes(one.owner), 0, 'strikes lapse after the window');
+  } finally { await close(); }
+});
+
+test('Umbau Teil 3: Pruefseite hat Deck-Test mit echter Karte zum Ausprobieren und den drei Knoepfen; Entfernen + Strike nur mit Begruendung', async () => {
+  const s = setup(); const h = await serve(s);
+  try {
+    const res = await fetch(h.base + '/duell/pruefen'), html = await res.text();
+    const js = html.match(/<script>([\s\S]*)<\/script>/)[1];
+    assert.doesNotThrow(() => new Function(js), 'the page script parses');
+    for (const t of ['Deck-Test', 'Ins Deck', 'Nicht ins Deck', 'Entfernen + Strike', 'Als echte Karte ausprobieren', 'Begruendung', 'Geteilt, ausserhalb des Decks']) assert.ok(html.includes(t), t);
+    assert.match(js, /'\/duell#c='\+frag\(r\.doc\)/); assert.match(js, /rel='noopener noreferrer'/);
+    assert.match(res.headers.get('content-security-policy'), /frame-ancestors 'none'/, 'the page itself is never framed');
+  } finally { await h.close(); }
+});
+
+test('Review Umbau: Link-Sperre greift fuer jede Fragmentform (App-Link {v,d}, nackter Zustand, Remix fr); eine geliehene fr-ID oeffnet keinen gesperrten Inhalt; ohne Moderation nichts; Begruendung hoechstens 300 Zeichen; Entfernen sofort auf der Platte', async () => {
+  const { s, h, short, sb, close } = await shortStack();
+  try {
+    const bad = await make(s, 'boese@example.org'), good = await make(s, 'gut@example.org');
+    assert.deepEqual(freeIdsOf(fragOf(bad.doc)), [bad.cid]); assert.deepEqual(freeIdsOf(bareOf(bad.doc)), [bad.cid]);
+    const ids = [fragOf(bad.doc), bareOf(bad.doc), fragOf({ t: 'Remix', x: 'neu', fr: bad.cid }), fragOf({ ...bad.doc, fr: good.cid })]
+      .map((f) => { const r = short.create({ f, k: 'card' }); assert.equal(r.status, 201, JSON.stringify(r.body)); return r.body.id; });
+    assert.equal(s.deck._cards.get(bad.cid).sl.length, 4, 'every short link of the card is known');
+    // reason over 300 characters: refused on the server too
+    assert.equal((await h.post('/api/duell/deck/review/' + bad.cid, { action: 'remove', ground: 'hate', note: 'x'.repeat(301) }, null, h.adm)).status, 400);
+    assert.equal((await h.post('/api/duell/deck/review/' + bad.cid, { action: 'remove', ground: 'hate', note: 'Hetze gegen eine Gruppe' }, null, h.adm)).status, 200);
+    assert.equal(JSON.parse(readF(join(s.dir, 'deck.json'), 'utf8')).cards[bad.cid].st, 'removed', 'on disk at once, not after the 2 s timer');
+    assert.ok(JSON.parse(readF(join(s.dir, 'mod.json'), 'utf8')), 'mod flushed');
+    for (const id of ids) { const r = await fetch(sb + '/api/s/' + id); assert.equal(r.status, 410, id); }
+    // a fresh link that borrows a good card's fr next to the removed card's seal stays blocked
+    assert.equal(short.create({ f: fragOf({ ...bad.doc, fr: good.cid }), k: 'card' }).status, 409);
+    assert.equal(short.create({ f: fragOf(good.doc), k: 'card' }).status, 201, 'the good card is not touched');
+  } finally { await close(); }
+  // no moderation wired: no link of a free card opens, no removal without strike and notice
+  const s2 = setup(); const one = await make(s2, 'ohne@example.org');
+  const deck2 = createDeck({ env: s2.E, shared: s2.d.shared, who: s2.ai.who, credit: s2.credit, now: () => s2.clock.t, log: () => {}, file: '' });
+  assert.equal(deck2.linkState(one.cid), 'unavailable');
+  assert.equal(s2.deck.linkState(one.cid), 'ok');
+});
+
+test('Review #110 Punkt 1: "Als echte Karte ausprobieren" oeffnet die Karte selbst - der Link geht durch parseRoute der vendorten App', async () => {
+  const s = setup(); const h = await serve(s);
+  try {
+    const one = await make(s, 'test@example.org', doc('Wer zuerst den Stern fängt, gewinnt', { k: 'card', st: 'druck', col: ['#ffd400', '#ff3b1d'], by: [] }));
+    const html = await (await fetch(h.base + '/duell/pruefen')).text();
+    const src = html.match(/function frag\(doc\)\{[\s\S]*?\n/)[0];
+    const frag = new Function(src + ';return frag')();
+    const href = '/duell#c=' + frag(one.doc);
+    const r = App.D.parseRoute(href.split('#')[1]);
+    assert.ok(r && r.type === 'doc', 'a card, not the idea of the day: ' + JSON.stringify(r));
+    assert.equal(r.doc.t, one.doc.t); assert.equal(r.doc.x, one.doc.x);
+    assert.equal(r.doc.ki.k, 'karte'); assert.equal(r.doc.ki.h, one.doc.ki.h, 'the seal stays: the app asks the deck status for this card');
+    assert.deepEqual(freeIdsOf(href.split('#')[1]), [one.cid], 'the server reads the same link as this card');
+  } finally { await h.close(); }
 });
