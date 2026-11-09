@@ -15,6 +15,7 @@ import { checkKarte, createDeck, fingerprint, sealKarte, similarity } from '../l
 import { createCredit } from '../lib/duell-credit.mjs';
 import { createMod } from '../lib/duell-mod.mjs';
 import { createShortLinks, freeCidOf, freeIdsOf } from '../lib/shortlink.mjs';
+import { App } from '../lib/duell-karte.mjs';
 
 const DAY = 86400000, ADMIN = 'admin-token-0123456789abcdef', SALT = 'deck-salt';
 const T0 = Date.UTC(2026, 10, 1, 12);
@@ -977,4 +978,20 @@ test('Review Umbau: Link-Sperre greift fuer jede Fragmentform (App-Link {v,d}, n
   const deck2 = createDeck({ env: s2.E, shared: s2.d.shared, who: s2.ai.who, credit: s2.credit, now: () => s2.clock.t, log: () => {}, file: '' });
   assert.equal(deck2.linkState(one.cid), 'unavailable');
   assert.equal(s2.deck.linkState(one.cid), 'ok');
+});
+
+test('Review #110 Punkt 1: "Als echte Karte ausprobieren" oeffnet die Karte selbst - der Link geht durch parseRoute der vendorten App', async () => {
+  const s = setup(); const h = await serve(s);
+  try {
+    const one = await make(s, 'test@example.org', doc('Wer zuerst den Stern fängt, gewinnt', { k: 'card', st: 'druck', col: ['#ffd400', '#ff3b1d'], by: [] }));
+    const html = await (await fetch(h.base + '/duell/pruefen')).text();
+    const src = html.match(/function frag\(doc\)\{[\s\S]*?\n/)[0];
+    const frag = new Function(src + ';return frag')();
+    const href = '/duell#c=' + frag(one.doc);
+    const r = App.D.parseRoute(href.split('#')[1]);
+    assert.ok(r && r.type === 'doc', 'a card, not the idea of the day: ' + JSON.stringify(r));
+    assert.equal(r.doc.t, one.doc.t); assert.equal(r.doc.x, one.doc.x);
+    assert.equal(r.doc.ki.k, 'karte'); assert.equal(r.doc.ki.h, one.doc.ki.h, 'the seal stays: the app asks the deck status for this card');
+    assert.deepEqual(freeIdsOf(href.split('#')[1]), [one.cid], 'the server reads the same link as this card');
+  } finally { await h.close(); }
 });
