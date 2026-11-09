@@ -54,11 +54,11 @@ function fakeLlm({ card, mod } = {}) {
   };
 }
 const auth = (email) => ({ mode: 'gate', identify: async () => ({ email }) });
-function mk({ email = 'lea@example.org', cardLlm = fakeLlm(), env = {}, now, age16 = (m) => !!m, age18 = () => false } = {}) {
+function mk({ email = 'lea@example.org', cardLlm = fakeLlm(), env = {}, now, age16 = (m) => !!m, age18 = () => false, log = () => {} } = {}) {
   const d = createDuell({ env: { DUELL_DAILY_MAX: '200', DUELL_SEAL_SECRET: 'seal' }, salt: 's', log: () => {}, llm: async () => '{}', now });
   if (age16) d.shared.age16 = age16;   // lib/duell-profile.mjs: the account's 16+ statement on the server
   if (age18) d.shared.age18 = age18;   // and its 18+ statement: the only source of age a18 (never the request)
-  const ai = createDuellAi({ env: { DUELL_AI_SALT: 'x', DUELL_AI_PROOF_BITS: '0', ...env }, llm: async () => '{}', cardLlm, shared: d.shared, auth: auth(email), log: () => {}, now });
+  const ai = createDuellAi({ env: { DUELL_AI_SALT: 'x', DUELL_AI_PROOF_BITS: '0', ...env }, llm: async () => '{}', cardLlm, shared: d.shared, auth: auth(email), log, now });
   return { d, ai, cardLlm };
 }
 const body = (text, extra = {}) => ({ kind: 'karte', input: { text, art: 'card', age: 'u18', ...extra }, device: DEV, lang: 'de' });
@@ -887,4 +887,33 @@ test('Review Umbau Punkt 4: Alter a18 nur aus dem Serverprofil, fail-closed; age
   assert.equal(ok.status, 200, JSON.stringify(ok.body)); assert.equal(ok.body.options[0].doc.i, 'zug-sammeln');
   // read() never takes the age from the request
   assert.equal(makeKarteKind({ redactContact: (t) => t, hasContact: () => false }).read({ text: 'Hallo du', age: 'a18' }).age, 'u18');
+});
+
+test('Review Umbau Punkt 5: Annehmen hinter einem Pro-Schluessel registriert fuer das Login-Konto (p.acct), das Ergebnis steht im Log; Gutschrift zurueck aufs Konto', async () => {
+  const { mintKey } = await import('../lib/duell-pots.mjs');
+  const key = mintKey('ent', 'pro', 'fam1'), lines = [], reg = [], refunds = [];
+  let answer = { ok: true, cid: 'C'.repeat(22) };
+  const c = mk({ env: { DUELL_ENTITLEMENT_SECRET: 'ent', DUELL_ENTITLEMENTS: key, DUELL_CREATE_FREE: '1' }, log: (o) => lines.push(o) });
+  let bal = 1;
+  Object.assign(c.d.shared, {
+    deck: { seen: () => {}, sealKarte: () => ({ ki: { k: 'karte', s: 's2.karte.x.' + 'S'.repeat(32), h: 'H'.repeat(43), o: 'O'.repeat(22) }, cid: 'C'.repeat(22) }), register: (r) => { reg.push(r.owner); return answer; } },
+    credit: { available: () => bal, spend: (k, n) => { if (bal < n) return false; bal -= n; return true; }, refund: (k, n) => { refunds.push(k); bal += n; } },
+  });
+  const p = await c.ai.who({}, { device: DEV, key });
+  assert.ok(p.acct && p.key !== p.acct, 'a Pro key in front of the account');
+  const r1 = await run(c.ai, { ...body('Karte A'), key });
+  assert.equal(r1.status, 200, JSON.stringify(r1.body));
+  c.ai.close(p, r1.body.receipt, 'accept');
+  assert.deepEqual(reg, [p.acct], 'registered for the account the card was sealed for, not the Pro key');
+  assert.deepEqual(lines.filter((o) => o.event === 'duell-deck-register'), [{ event: 'duell-deck-register', ok: true }]);
+  // a refused register is logged with its reason
+  answer = { ok: false, error: 'bad-owner' };
+  const r2 = await run(c.ai, { ...body('Karte B'), key });
+  assert.equal(r2.body.credit, true, 'pot of 1 used: paid from credit');
+  c.ai.close(p, r2.body.receipt, 'discard');
+  assert.deepEqual(refunds, [p.acct], 'credit back to the account it came from');
+  const r3 = await run(c.ai, { ...body('Karte C'), key });
+  assert.equal(r3.status, 200, JSON.stringify(r3.body));
+  c.ai.close(p, r3.body.receipt, 'accept');
+  assert.deepEqual(lines.filter((o) => o.event === 'duell-deck-register').at(-1), { event: 'duell-deck-register', ok: false, error: 'bad-owner' });
 });
