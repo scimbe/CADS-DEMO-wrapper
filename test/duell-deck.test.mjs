@@ -767,3 +767,24 @@ test('Review #102: kaputte deck.json, mod.json, credit.json werden gesichert und
     for (const f of ['deck.json', 'mod.json', 'credit.json']) assert.equal(readF(join(dir, f), 'utf8'), '{"v":1,"cards":{ kaputt', 'never overwritten: ' + f);
   } finally { await h.close(); }
 });
+
+test('Review #102: Beschwerde- und Notiztexte werden nach der Widerspruchsfrist und der Entscheidung geloescht, der Hinweis bleibt, solange der Schritt laeuft', async () => {
+  const s = setup(), k = await keyOf(s, 'texte@example.org'), C = (ch) => ch.repeat(22);
+  s.mod.cardRemoved(k, C('t'), { by: 'human', ground: 'harm', note: 'interne Notiz des Pruefers' });
+  const rm = s.mod.me(k).notices.find((n) => n.type === 'card-removed');
+  assert.equal(s.mod.appeal(k, rm.nid, 'Das war ein Zitat aus dem Unterricht.').status, 202);
+  assert.equal(s.mod.decide(s.mod.midOf(k), 'uphold', rm.nid, 'bleibt so').status, 200);
+  const days = s.mod.cfg.appealDays;
+  s.clock.t += (days - 1) * DAY; s.mod.status(k);
+  assert.ok(s.mod._accounts.get(k).n.some((n) => n.appeal && n.appeal.text), 'inside the complaint period the text stays');
+  s.clock.t += 2 * DAY; s.mod.status(k);
+  const left = s.mod._accounts.get(k).n;
+  assert.ok(!left.some((n) => (n.appeal && (n.appeal.text || n.appeal.note)) || (n.facts && n.facts.note)), 'texts gone after the period and the decision');
+  // an open complaint keeps its text until a human decides
+  const k2 = await keyOf(s, 'offen@example.org');
+  s.mod.cardRemoved(k2, C('u'), { by: 'human', ground: 'harm' });
+  const n2 = s.mod.me(k2).notices.find((n) => n.type === 'card-removed');
+  s.mod.appeal(k2, n2.nid, 'Bitte noch einmal ansehen.');
+  s.clock.t += (days + 5) * DAY; s.mod.status(k2);
+  assert.ok(s.mod._accounts.get(k2).n.some((n) => n.appeal && n.appeal.text), 'open complaint: text stays');
+});
