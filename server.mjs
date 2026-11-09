@@ -1077,12 +1077,12 @@ function builderVersions() {
 
 const INSTALLATIONS = createInstallations();
 const DUELL = createDuell({ llmEnv: ENV, root: __dir }); // public by design (no login), see lib/duell.mjs
-const SHORT = createShortLinks({ root: __dir, clientKey: DUELL.clientKey, metric: DUELL.shared.metric }); // public by design (no login), see lib/shortlink.mjs
+const SHORT = createShortLinks({ root: __dir, clientKey: DUELL.clientKey, metric: DUELL.shared.metric, free: () => DECK });   // free cards: open only while the deck says ok // public by design (no login), see lib/shortlink.mjs
 const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
 const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather() }); // AI actions and their pots, lib/duell-ai.mjs
 // Free cards: credit for use and reach, graded moderation, the community deck (lib/duell-deck.mjs). W2 reaches them over shared.
 const CREDIT = createCredit(), MOD = createMod();
-const DECK = createDeck({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDIT, mod: MOD });
+const DECK = createDeck({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDIT, mod: MOD, blockLink: (id) => SHORT.block(id) });
 Object.assign(DUELL.shared, { credit: CREDIT, mod: MOD });
 const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id), onCard: DECK }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
 const DUELL_PROFILE = createDuellProfile({ auth: AUTH, shared: DUELL.shared }); // profile under "Mein Stil": account (16+) or sync code, lib/duell-profile.mjs
