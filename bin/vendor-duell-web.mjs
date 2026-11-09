@@ -12,7 +12,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** The files daily.js needs in Node (its require() closure). */
-export const FILES = ['core.js', 'daily.js', 'duel.js', 'duel.json', 'engine.js', 'ideas.json', 'quest.js', 'quizpack.js', 'texts.json', 'turn.json', 'turns.js'];
+export const FILES = ['core.js', 'daily.js', 'duel.js', 'duel.json', 'engine.js', 'ideas.json', 'quest.js', 'quizpack.js', 'texts.json', 'turn.json', 'turns.js', 'turn-ui.js'];   // turn-ui.js: read as text only, for the limits of the date picker (lib/duell-karte.mjs CAP_LIMITS)
 export const DIR = fileURLToPath(new URL('../lib/vendor/duell-web/', import.meta.url));
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
