@@ -14,7 +14,7 @@ import { canonical } from '../lib/duell-seal.mjs';
 import { checkKarte, createDeck, fingerprint, sealKarte, similarity } from '../lib/duell-deck.mjs';
 import { createCredit } from '../lib/duell-credit.mjs';
 import { createMod } from '../lib/duell-mod.mjs';
-import { createShortLinks, freeCidOf } from '../lib/shortlink.mjs';
+import { createShortLinks, freeCidOf, freeIdsOf } from '../lib/shortlink.mjs';
 
 const DAY = 86400000, ADMIN = 'admin-token-0123456789abcdef', SALT = 'deck-salt';
 const T0 = Date.UTC(2026, 10, 1, 12);
@@ -846,7 +846,9 @@ test('Review #102: Beschwerde- und Notiztexte werden nach der Widerspruchsfrist 
 });
 
 // ---- Umbau Teil 2 (09.11.): "Entfernen + Strike" fuer geteilte Karten ausserhalb des Decks -----------------------------
-const fragOf = (d) => 'c=' + Buffer.from(JSON.stringify(d)).toString('base64url');
+// the app's card link (apps/duell-web daily.js docUrl): c= base64url of { v: 1, d: doc }
+const fragOf = (d) => 'c=' + Buffer.from(JSON.stringify({ v: 1, d })).toString('base64url');
+const bareOf = (d) => 'c=' + Buffer.from(JSON.stringify(d)).toString('base64url');
 async function shortStack(env = {}) {
   let short = null;
   const s = setup({ env, blockLink: (id) => short.block(id) });
@@ -950,4 +952,29 @@ test('Umbau Teil 3: Pruefseite hat Deck-Test mit echter Karte zum Ausprobieren u
     assert.match(js, /'\/duell#c='\+frag\(r\.doc\)/); assert.match(js, /rel='noopener noreferrer'/);
     assert.match(res.headers.get('content-security-policy'), /frame-ancestors 'none'/, 'the page itself is never framed');
   } finally { await h.close(); }
+});
+
+test('Review Umbau: Link-Sperre greift fuer jede Fragmentform (App-Link {v,d}, nackter Zustand, Remix fr); eine geliehene fr-ID oeffnet keinen gesperrten Inhalt; ohne Moderation nichts; Begruendung hoechstens 300 Zeichen; Entfernen sofort auf der Platte', async () => {
+  const { s, h, short, sb, close } = await shortStack();
+  try {
+    const bad = await make(s, 'boese@example.org'), good = await make(s, 'gut@example.org');
+    assert.deepEqual(freeIdsOf(fragOf(bad.doc)), [bad.cid]); assert.deepEqual(freeIdsOf(bareOf(bad.doc)), [bad.cid]);
+    const ids = [fragOf(bad.doc), bareOf(bad.doc), fragOf({ t: 'Remix', x: 'neu', fr: bad.cid }), fragOf({ ...bad.doc, fr: good.cid })]
+      .map((f) => { const r = short.create({ f, k: 'card' }); assert.equal(r.status, 201, JSON.stringify(r.body)); return r.body.id; });
+    assert.equal(s.deck._cards.get(bad.cid).sl.length, 4, 'every short link of the card is known');
+    // reason over 300 characters: refused on the server too
+    assert.equal((await h.post('/api/duell/deck/review/' + bad.cid, { action: 'remove', ground: 'hate', note: 'x'.repeat(301) }, null, h.adm)).status, 400);
+    assert.equal((await h.post('/api/duell/deck/review/' + bad.cid, { action: 'remove', ground: 'hate', note: 'Hetze gegen eine Gruppe' }, null, h.adm)).status, 200);
+    assert.equal(JSON.parse(readF(join(s.dir, 'deck.json'), 'utf8')).cards[bad.cid].st, 'removed', 'on disk at once, not after the 2 s timer');
+    assert.ok(JSON.parse(readF(join(s.dir, 'mod.json'), 'utf8')), 'mod flushed');
+    for (const id of ids) { const r = await fetch(sb + '/api/s/' + id); assert.equal(r.status, 410, id); }
+    // a fresh link that borrows a good card's fr next to the removed card's seal stays blocked
+    assert.equal(short.create({ f: fragOf({ ...bad.doc, fr: good.cid }), k: 'card' }).status, 409);
+    assert.equal(short.create({ f: fragOf(good.doc), k: 'card' }).status, 201, 'the good card is not touched');
+  } finally { await close(); }
+  // no moderation wired: no link of a free card opens, no removal without strike and notice
+  const s2 = setup(); const one = await make(s2, 'ohne@example.org');
+  const deck2 = createDeck({ env: s2.E, shared: s2.d.shared, who: s2.ai.who, credit: s2.credit, now: () => s2.clock.t, log: () => {}, file: '' });
+  assert.equal(deck2.linkState(one.cid), 'unavailable');
+  assert.equal(s2.deck.linkState(one.cid), 'ok');
 });

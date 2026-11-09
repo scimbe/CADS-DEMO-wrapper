@@ -350,7 +350,7 @@ test('W4 hooks: seen on every request, moderation pause is 403 (crisis help firs
   const deckHooks = {
     seen: (k) => log.push(['seen', k]),
     sealKarte: (doc, key, at) => ({ ki: { k: 'karte', s: 's2.karte.x.' + 'S'.repeat(32), h: 'H'.repeat(43), o: 'O'.repeat(22) }, cid: 'C'.repeat(22) }),
-    register: (r) => log.push(['register', r.cid, r.owner, r.doc.ki.o]),
+    register: (r) => { log.push(['register', r.cid, r.owner, r.doc.ki.o]); return { ok: true, cid: r.cid }; },
   };
   let bal = 1;
   const creditHooks = { available: () => bal, spend: (k, n) => { if (bal < n) return false; bal -= n; log.push(['spend']); return true; }, refund: (k, n) => { bal += n; log.push(['refund']); } };
@@ -906,14 +906,28 @@ test('Review Umbau Punkt 5: Annehmen hinter einem Pro-Schluessel registriert fue
   c.ai.close(p, r1.body.receipt, 'accept');
   assert.deepEqual(reg, [p.acct], 'registered for the account the card was sealed for, not the Pro key');
   assert.deepEqual(lines.filter((o) => o.event === 'duell-deck-register'), [{ event: 'duell-deck-register', ok: true }]);
-  // a refused register is logged with its reason
-  answer = { ok: false, error: 'bad-owner' };
+  // pot of 1 used: the next card is paid from credit; a discard gives it back to the account
   const r2 = await run(c.ai, { ...body('Karte B'), key });
   assert.equal(r2.body.credit, true, 'pot of 1 used: paid from credit');
   c.ai.close(p, r2.body.receipt, 'discard');
   assert.deepEqual(refunds, [p.acct], 'credit back to the account it came from');
+  // a refused register is logged with its reason and costs nothing (the card could never be shown from a link)
+  answer = { ok: false, error: 'owner-limit' };
   const r3 = await run(c.ai, { ...body('Karte C'), key });
   assert.equal(r3.status, 200, JSON.stringify(r3.body));
-  c.ai.close(p, r3.body.receipt, 'accept');
-  assert.deepEqual(lines.filter((o) => o.event === 'duell-deck-register').at(-1), { event: 'duell-deck-register', ok: false, error: 'bad-owner' });
+  const acc = c.ai.close(p, r3.body.receipt, 'accept');
+  assert.equal(acc.body.registered, false); assert.equal(acc.body.refunded, 1); assert.equal(acc.body.credit, true);
+  assert.deepEqual(refunds, [p.acct, p.acct]);
+  assert.deepEqual(lines.filter((o) => o.event === 'duell-deck-register').at(-1), { event: 'duell-deck-register', ok: false, error: 'owner-limit' });
+  assert.equal(c.ai.close(p, r3.body.receipt, 'accept').body.already, true, 'the receipt is closed: no second refund');
+});
+
+test('Review Umbau: cap ausserhalb der passenden Faehigkeiten wird nach der Antwort abgelehnt (cap-match); Zusage-Versprechen ohne Fehlalarm', async () => {
+  assert.equal(capCheck({ i: 'zug-termin' }, { age: 'u18', cands: ['zug-wunschzettel'] }), 'cap-match');
+  assert.equal(capCheck({ i: 'zug-wunschzettel' }, { age: 'u18', cands: ['zug-wunschzettel'] }), '');
+  assert.equal(capCheck({ i: 'zug-termin' }, { age: 'u18' }), '', 'without matching data unchanged');
+  const { PROMISES } = await import('../lib/duell-karte.mjs');
+  const rsvp = PROMISES.find((x) => x.any.includes('rsvp')).re;
+  for (const t of ['Sagt, was ihr zu Weihnachten wollt', 'Antworte ehrlich auf die Fragen', 'Sag mal, wer ab jetzt mitmacht']) assert.equal(rsvp.test(t), false, t);
+  for (const t of ['Sagt bis Freitag zu oder ab', 'Sagt bis Sonntag Bescheid', 'Bitte zusagen bis Montag', 'Antwortet mit Ja oder Nein', 'RSVP by Friday']) assert.equal(rsvp.test(t), true, t);
 });
