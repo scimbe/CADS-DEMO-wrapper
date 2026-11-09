@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDuell } from '../lib/duell.mjs';
 import { createDuellAi, KINDS, screenInput } from '../lib/duell-ai.mjs';
-import { App, CARD_STICKERS, CARD_SYSTEM, UNPROVEN, cardUser, verdictOf, LINK_MAX, MOD_SYSTEM, SCHEMAS, compose, linkOf, placeStickers, s1 as s1raw } from '../lib/duell-karte.mjs';
+import { App, makeKarteKind, CARD_STICKERS, CARD_SYSTEM, UNPROVEN, cardUser, verdictOf, LINK_MAX, MOD_SYSTEM, SCHEMAS, compose, linkOf, placeStickers, s1 as s1raw } from '../lib/duell-karte.mjs';
 import { FILES } from '../bin/vendor-duell-web.mjs';
 
 const fx = (f) => JSON.parse(readFileSync(fileURLToPath(new URL('./fixtures/' + f, import.meta.url)), 'utf8'));
@@ -54,9 +54,10 @@ function fakeLlm({ card, mod } = {}) {
   };
 }
 const auth = (email) => ({ mode: 'gate', identify: async () => ({ email }) });
-function mk({ email = 'lea@example.org', cardLlm = fakeLlm(), env = {}, now, age16 = (m) => !!m } = {}) {
+function mk({ email = 'lea@example.org', cardLlm = fakeLlm(), env = {}, now, age16 = (m) => !!m, age18 = () => false } = {}) {
   const d = createDuell({ env: { DUELL_DAILY_MAX: '200', DUELL_SEAL_SECRET: 'seal' }, salt: 's', log: () => {}, llm: async () => '{}', now });
   if (age16) d.shared.age16 = age16;   // lib/duell-profile.mjs: the account's 16+ statement on the server
+  if (age18) d.shared.age18 = age18;   // and its 18+ statement: the only source of age a18 (never the request)
   const ai = createDuellAi({ env: { DUELL_AI_SALT: 'x', DUELL_AI_PROOF_BITS: '0', ...env }, llm: async () => '{}', cardLlm, shared: d.shared, auth: auth(email), log: () => {}, now });
   return { d, ai, cardLlm };
 }
@@ -287,7 +288,7 @@ test('W3 rights: money only from 18; a chosen ability outside the allowlist is r
   const young = mk({ cardLlm: money });
   const r = await run(young.ai, { ...body('x'), input: { text: 'Geld für die Klassenfahrt einsammeln', art: 'faehigkeit', age: 'u18' } });
   assert.equal(r.status, 403, JSON.stringify(r.body)); assert.equal(r.body.error, 'age'); assert.equal(r.body.create.remaining, 5);
-  const adult = mk({ cardLlm: fakeLlm({ card: { ok: true, cap: 'zug-sammeln', title: 'Klassenfahrt', sub: 'Jeder zahlt seinen Teil.', word: '' } }) });
+  const adult = mk({ cardLlm: fakeLlm({ card: { ok: true, cap: 'zug-sammeln', title: 'Klassenfahrt', sub: 'Jeder zahlt seinen Teil.', word: '' } }), age18: () => true });
   const r2 = await run(adult.ai, { ...body('x'), input: { text: 'Geld für die Klassenfahrt einsammeln', art: 'faehigkeit', age: 'a18' } });
   assert.equal(r2.status, 200, JSON.stringify(r2.body)); assert.equal(r2.body.options[0].doc.i, 'zug-sammeln');
   assert.equal(capCheck({ i: 'nicht-da' }, { age: 'a18' }), 'cap-unknown');
@@ -730,7 +731,7 @@ test('S5: "welchen Film" auf einer festen Liste -> ein neuer Versuch mit dem Hin
 
 test('Ehrliche Hinweise der App selbst: Geld erst ab 18 (w051), die App schreibt niemandem selbst (w068)', async () => {
   const cap = (c, title) => ({ ok: true, cap: c, title, sub: 'Zusammen planen.', word: '' });
-  const go = async (card, text, age) => run(mk({ cardLlm: fakeLlm({ card }) }).ai, body(text, { art: 'faehigkeit', age }));
+  const go = async (card, text, age) => run(mk({ cardLlm: fakeLlm({ card }), age18: () => age === 'a18' }).ai, body(text, { art: 'faehigkeit', age }));
   let r = await go(cap('geschenk-finder', 'Geschenk für Frau Berg'), 'Geld sammeln für das Geschenk unserer Klassenlehrerin', 'u18');
   assert.equal(r.status, 200); assert.ok(r.body.note.includes('money18'), JSON.stringify(r.body.note));
   r = await go(cap('zug-sammeln', 'Geschenk-Kasse'), 'Geld sammeln für das Geschenk unserer Klassenlehrerin', 'a18');
@@ -777,11 +778,11 @@ test('Katalog: keine Live-Faehigkeit versprochen; bei einer Grenze die naechste 
 test('Sammel-Karte ab 18: S4 phishing bei Risiko 1 ist ihre Aufgabe (fp09); unter 18 und andere Kategorien bleiben gesperrt; Duell sagt, dass es sein eigenes Spiel zeigt', async () => {
   const card = { ok: true, cap: 'zug-sammeln', title: 'Geschenk für die Lehrerin', sub: 'Jeder legt seinen Anteil dazu.', word: '' };
   const modBy = (out) => (req) => (req.user.startsWith('REQUEST') ? { risk: 0, cats: [], drink: 'none' } : out);
-  const go = async (out, age = 'a18') => run(mk({ cardLlm: fakeLlm({ card, mod: modBy(out) }) }).ai, body('Geld einsammeln für das Geschenk der Lehrerin', { art: 'faehigkeit', age }));
+  const go = async (out, age = 'a18') => run(mk({ cardLlm: fakeLlm({ card, mod: modBy(out) }), age18: () => age === 'a18' }).ai, body('Geld einsammeln für das Geschenk der Lehrerin', { art: 'faehigkeit', age }));
   assert.equal((await go({ risk: 1, cats: ['phishing'], drink: 'none' })).status, 200);
   assert.equal((await go({ risk: 2, cats: ['phishing'], drink: 'none' })).status, 422);
   assert.equal((await go({ risk: 1, cats: ['phishing', 'harassment'], drink: 'none' })).status, 422);
-  const duel = await run(mk({ cardLlm: fakeLlm({ card: { ok: true, cap: 'duell-ssp', title: 'Kissenschlacht', sub: 'Wer gewinnt?', word: '' } }) }).ai, body('Kissenschlacht zwischen den Agenten', { art: 'faehigkeit', age: 'a18' }));
+  const duel = await run(mk({ cardLlm: fakeLlm({ card: { ok: true, cap: 'duell-ssp', title: 'Kissenschlacht', sub: 'Wer gewinnt?', word: '' } }), age18: () => true }).ai, body('Kissenschlacht zwischen den Agenten', { art: 'faehigkeit', age: 'a18' }));
   assert.equal(duel.status, 200); assert.ok(duel.body.note.includes('duel'), JSON.stringify(duel.body.note));
   assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /A rap battle or a duel teases the topic/);
 });
@@ -871,4 +872,19 @@ test('Merkmal-Matching: jede Faehigkeit hat Merkmale aus den App-Daten; das Mode
     const p = await run(mk({ cardLlm: fakeLlm({ card: { ok: true, cap, title: 'Unsere Runde', sub, word: '' } }) }).ai, body('Wie gut kennt ihr mich?', { art: 'faehigkeit', age: 'a18' }));
     assert.equal(p.status, 200, cap); assert.notEqual(p.body.options[0].doc.s, sub, cap + ': the catalog text instead of the promise');
   }
+});
+
+test('Review Umbau Punkt 4: Alter a18 nur aus dem Serverprofil, fail-closed; age im Request zaehlt nie', async () => {
+  const card = { ok: true, cap: 'zug-sammeln', title: 'Klassenfahrt', sub: 'Jeder zahlt seinen Teil.', word: '' };
+  const wish = body('Geld für die Klassenfahrt einsammeln', { art: 'faehigkeit', age: 'a18', adult: true });
+  // a18 in the body, no 18+ statement on the server: under 18 -> no zug-sammeln (403 age), nothing charged
+  for (const age18 of [() => false, () => null, () => { throw new Error('store down'); }, null]) {
+    const r = await run(mk({ cardLlm: fakeLlm({ card }), age18 }).ai, wish);
+    assert.equal(r.status, 403, JSON.stringify(r.body)); assert.equal(r.body.error, 'age'); assert.equal(r.body.create.remaining, 5);
+  }
+  // the statement on the server, body says u18: the server's statement counts
+  const ok = await run(mk({ cardLlm: fakeLlm({ card }), age18: (m) => m === 'lea@example.org' }).ai, body('Geld für die Klassenfahrt einsammeln', { art: 'faehigkeit', age: 'u18' }));
+  assert.equal(ok.status, 200, JSON.stringify(ok.body)); assert.equal(ok.body.options[0].doc.i, 'zug-sammeln');
+  // read() never takes the age from the request
+  assert.equal(makeKarteKind({ redactContact: (t) => t, hasContact: () => false }).read({ text: 'Hallo du', age: 'a18' }).age, 'u18');
 });

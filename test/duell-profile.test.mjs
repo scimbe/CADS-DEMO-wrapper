@@ -304,3 +304,28 @@ test('free card 16+ check: true only after this account\'s 16+ statement in its 
   const off = createDuellProfile({ env: {}, auth: gate('eltern@example.org'), shared: {}, log: () => {} });
   assert.equal(off.age16('eltern@example.org'), null, 'no storage: unknown');
 });
+
+test('free card 18+ check (Umbau Punkt 4): only the boolean age18 true of an account, kept with its day; false takes it back; never in the profile, never by code', async () => {
+  const s = mk();
+  const get = async () => (await s.handle('get', { via: 'account' }, R)).body;
+  assert.equal(s.age18('eltern@example.org'), false, 'no profile yet');
+  assert.equal((await s.handle('put', { via: 'account', rev: 0, profile: { ...PROFILE, a18: '2020-01-01', age18: true }, age16: true }, R)).status, 200);
+  assert.equal(s.age18('eltern@example.org'), false, 'a18 inside the profile is no statement'); assert.equal((await get()).age18, false);
+  for (const age18 of ['true', 1, 'yes', {}, [true]]) { const g = await get(); await s.handle('put', { via: 'account', rev: g.rev, profile: PROFILE, age18 }, R); }
+  assert.equal(s.age18('eltern@example.org'), false, 'only the boolean true counts');
+  let g = await get();
+  assert.equal((await s.handle('put', { via: 'account', rev: g.rev, profile: PROFILE, age18: true }, R)).status, 200);
+  assert.equal(s.age18('Eltern@Example.org'), true); assert.equal((await get()).age18, true); assert.equal(s.age18('kind@example.org'), false);
+  g = await get();
+  await s.handle('put', { via: 'account', rev: g.rev, profile: PROFILE }, R);
+  assert.equal(s.age18('eltern@example.org'), true, 'a put without age18 keeps the statement');
+  g = await get();
+  await s.handle('put', { via: 'account', rev: g.rev, profile: PROFILE, age18: false }, R);
+  assert.equal(s.age18('eltern@example.org'), false, 'false takes it back');
+  g = await get();
+  await s.handle('put', { via: 'account', rev: g.rev, profile: PROFILE, age18: true }, R);
+  await s.handle('delete', { via: 'account' }, R);
+  assert.equal(s.age18('eltern@example.org'), false, 'deleted profile: no statement');
+  const off = createDuellProfile({ env: {}, auth: gate('eltern@example.org'), shared: {}, log: () => {} });
+  assert.equal(off.age18('eltern@example.org'), null, 'no storage: unknown (the free card treats it as under 18)');
+});
