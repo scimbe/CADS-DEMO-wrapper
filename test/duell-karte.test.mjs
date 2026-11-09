@@ -816,12 +816,13 @@ test('Art Spiel: ein genanntes Spiel, das kein Flug ist, wird nie still ein Flug
   const G = SCHEMAS.game.properties, R = G.route.items.properties;
   const step = { physik: R.physik.enum[0], thema: R.thema.enum[0], emoji: R.emoji.enum[0] };
   const fly = { ok: true, title: 'Eisflug', emoji: G.emoji.enum[0], theme: G.theme.enum[0], motif: G.motif.enum[0], level: G.level.enum[0], route: [step, step, step] };
-  for (const [text, name] of [['Erstelle ein Dart Spiel', 'Dart'], ['Schach gegen meinen Bruder', 'Schach'], ['Bowling mit Freunden', 'Bowling'], ['Doppelkopf-Runde mit der Familie', 'Kartenspiel']]) {
+  // (Dart is reachable through its feature since #183, see the matching test; Doppelkopf is the feature cardgame, not yet)
+  for (const [text, name, what] of [['Schach gegen meinen Bruder', 'Schach', 'game'], ['Bowling mit Freunden', 'Bowling', 'game'], ['Doppelkopf-Runde mit der Familie', 'Kartenspiel', 'feature']]) {
     const llm = fakeLlm({ card: fly });
     const { ai } = mk({ cardLlm: llm });
     const before = (await run(ai, { kind: 'status', device: DEV })).body;
     const r = await run(ai, body(text, { art: 'game' }));
-    assert.equal(r.status, 200, text); assert.deepEqual(r.body.options, []); assert.deepEqual(r.body.notyet, { what: 'game', name }, text);
+    assert.equal(r.status, 200, text); assert.deepEqual(r.body.options, []); assert.deepEqual(r.body.notyet, { what, name }, text);
     assert.equal(llm.calls.length, 0, 'no model call: ' + text); assert.equal(r.body.receipt, undefined, 'nothing booked: ' + text);
     for (let i = 0; i < 4; i++) await run(ai, body(text, { art: 'game' }));
     assert.equal((await run(ai, body(text, { art: 'game' }))).status, 200, 'no strikes, no pause: ' + text);
@@ -833,5 +834,41 @@ test('Art Spiel: ein genanntes Spiel, das kein Flug ist, wird nie still ein Flug
     const llm = fakeLlm({ card: fly });
     const r = await run(mk({ cardLlm: llm }).ai, body(text, { art: 'game' }));
     assert.equal(r.status, 200, text); assert.equal(r.body.options.length, 1, text); assert.equal(r.body.notyet, undefined, text);
+  }
+});
+
+test('Merkmal-Matching: jede Faehigkeit hat Merkmale aus den App-Daten; das Modell waehlt nur unter passenden; keine passt -> noch nicht, aehnlich; Versprechen-Pruefung', async () => {
+  const { CAP_FEATURES, FEATURES, CAPS, needsOf, candidatesFor, catalogWith } = await import('../lib/duell-karte.mjs');
+  // completeness: a new catalog card without a feature fails here
+  for (const c of CAPS) { assert.ok((CAP_FEATURES[c.id] || []).length > 0, 'no feature: ' + c.id); for (const f of CAP_FEATURES[c.id]) assert.ok(FEATURES.includes(f), c.id + ': ' + f); }
+  assert.deepEqual(CAP_FEATURES['spiel-dart'], ['dart']); assert.ok(CAP_FEATURES['zug-einig'].includes('vote.own')); assert.ok(!CAP_FEATURES['zug-kreis'].includes('vote.own'));
+  assert.deepEqual(candidatesFor(needsOf('Abstimmung, wohin unser Klassenausflug geht'), 'a18').filter((id) => !CAP_FEATURES[id].includes('vote.own')), []);
+  assert.deepEqual(catalogWith('voice.fx'), ['stimme-verzerren']); assert.ok(catalogWith('cardgame').includes('tisch-doko'));
+  const gens = (llm) => llm.calls.filter((c) => c.system !== MOD_SYSTEM && c.user.startsWith('Card type'));
+  // Dart (#183) through its feature: art game becomes the ability, the model may only choose spiel-dart
+  const dart = fakeLlm({ card: { ok: true, cap: 'spiel-dart', title: 'Dart-Abend', sub: 'Wer trifft die Mitte?', word: '' } });
+  let r = await run(mk({ cardLlm: dart }).ai, body('Erstelle ein Dart Spiel', { art: 'game', age: 'a18' }));
+  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 100)); assert.equal(r.body.options[0].doc.i, 'spiel-dart');
+  assert.deepEqual(gens(dart)[0].schema.properties.cap.enum, ['spiel-dart']);
+  // a vote on own options: only abilities with own entries in the schema
+  const vote = fakeLlm({ card: { ok: true, cap: 'zug-einig', title: 'Ausflugsziel', sub: 'Jeder ordnet fünf Ziele.', word: 'Ziele' } });
+  r = await run(mk({ cardLlm: vote }).ai, body('Abstimmung, wohin unser Klassenausflug geht', { art: 'faehigkeit', age: 'a18' }));
+  assert.equal(r.status, 200); assert.ok(gens(vote)[0].schema.properties.cap.enum.every((id) => CAP_FEATURES[id].includes('vote.own')));
+  // nothing covers it: not yet, similar ...; no model call, nothing booked; the voice card (#181) and the card table as similar
+  for (const [text, catalog] of [['Einladung zur Party, alle sollen zu- oder absagen', null], ['meine Stimme verzerren wie ein Roboter', 'stimme-verzerren'], ['Doppelkopf-Runde mit der Familie', 'tisch-doko']]) {
+    const llm = fakeLlm({});
+    const n = await run(mk({ cardLlm: llm }).ai, body(text, { art: 'faehigkeit', age: 'a18' }));
+    assert.equal(n.status, 200, text); assert.deepEqual(n.body.options, []); assert.equal(n.body.notyet.what, 'feature', text);
+    assert.equal(llm.calls.length, 0, text); assert.equal(n.body.receipt, undefined, text);
+    if (catalog) assert.ok(n.body.catalog.includes(catalog), text + ' ' + JSON.stringify(n.body.catalog));
+  }
+  // no hard need: every ability as before
+  const free = fakeLlm({ card: { ok: true, cap: 'zug-kennst', title: 'Kennst du mich?', sub: 'Fünf Fragen.', word: '' } });
+  await run(mk({ cardLlm: free }).ai, body('Wie gut kennt ihr mich?', { art: 'faehigkeit', age: 'a18' }));
+  assert.ok(gens(free)[0].schema.properties.cap.enum.length > 40);
+  // promises: a text that asks for replies on a card that cannot take them, "everyone adds" to the owner's wish list
+  for (const [cap, sub] of [['zug-einig', 'Sagt bis Freitag zu oder ab!'], ['zug-wunschzettel', 'Alle tragen ein, was sie sich wünschen.']]) {
+    const p = await run(mk({ cardLlm: fakeLlm({ card: { ok: true, cap, title: 'Unsere Runde', sub, word: '' } }) }).ai, body('Wie gut kennt ihr mich?', { art: 'faehigkeit', age: 'a18' }));
+    assert.equal(p.status, 200, cap); assert.notEqual(p.body.options[0].doc.s, sub, cap + ': the catalog text instead of the promise');
   }
 });
