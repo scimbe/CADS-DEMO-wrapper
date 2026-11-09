@@ -287,3 +287,16 @@ test('Zwei gleichzeitige put mit demselben neuen Code: einer legt an, der andere
   assert.deepEqual(r, [200, 409]);
   assert.equal(s._count(), 1, 'one profile counted');
 });
+
+test('free card 16+ check: true only after this account\'s 16+ statement in its profile; null without storage; never by a sync code', async () => {
+  const s = mk();
+  assert.equal(s.age16('eltern@example.org'), false, 'no profile yet');
+  assert.equal((await s.handle('put', { via: 'account', rev: 0, profile: PROFILE }, R)).status, 403, 'no statement, no profile');
+  assert.equal((await s.handle('put', { via: 'account', rev: 0, profile: PROFILE, age16: true }, R)).status, 200);
+  assert.equal(s.age16('Eltern@Example.org'), true, 'the statement counts, case of the address does not matter');
+  assert.equal(s.age16('kind@example.org'), false, 'another account');
+  await s.handle('delete', { via: 'account' }, R);
+  assert.equal(s.age16('eltern@example.org'), false, 'deleted profile: no statement any more');
+  const off = createDuellProfile({ env: {}, auth: gate('eltern@example.org'), shared: {}, log: () => {} });
+  assert.equal(off.age16('eltern@example.org'), null, 'no storage: unknown');
+});

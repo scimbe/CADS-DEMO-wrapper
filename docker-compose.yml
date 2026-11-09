@@ -48,7 +48,9 @@ services:
       - DUELL_CARD_PROVIDER=${DUELL_CARD_PROVIDER:-anthropic}
       - DUELL_CARD_MODEL=${DUELL_CARD_MODEL:-claude-haiku-5-5}
       - DUELL_ANTHROPIC_KEY_FILE=${DUELL_ANTHROPIC_KEY_FILE:-}
-      - DUELL_CARD_BUDGET_USD=${DUELL_CARD_BUDGET_USD:-2}
+      - DUELL_CARD_BUDGET_USD=${DUELL_CARD_BUDGET_USD:-5}
+      # Notschalter nur fuer die freie Karte (1 = aus, die Seite zeigt "gerade nicht verfuegbar")
+      - DUELL_KARTE_OFF=${DUELL_KARTE_OFF:-}
       - DUELL_CARD_BUDGET_FILE=${DUELL_CARD_BUDGET_FILE:-/var/lib/duell-ai/card-budget.json}
       - DUELL_CARD_PRICE_AS=${DUELL_CARD_PRICE_AS:-}
       - DUELL_OLLAMA_BASE_URL=${DUELL_OLLAMA_BASE_URL:-}

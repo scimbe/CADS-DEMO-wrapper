@@ -215,11 +215,17 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
   `ANTHROPIC_API_KEY` oder `DUELL_ANTHROPIC_KEY_FILE`, `DUELL_OLLAMA_BASE_URL`, `DUELL_OLLAMA_WINDOW` (z. B. `22-6`, leer = nie), `DUELL_CARD_BUDGET_USD`
   (Tagesbudget, Standard 2), `DUELL_CARD_BUDGET_FILE`, `DUELL_CARD_PRICE_AS` (Preiszeile fuer einen LiteLLM-Alias). Cache-Abnahme:
   `DUELL_ANTHROPIC_KEY_FILE=... node bin/duell-cache-check.mjs --n 20` (Trefferquote ab dem 2. Aufruf >= 90 %).
-- Freie Karte, KI-Art `karte` (`lib/duell-karte.mjs`): nur mit Konto (sonst `401 login`), Alter 16+ als Selbstauskunft des Profils
-  (`403 age`), eigener Topf `create` mit `DUELL_CREATE_FREE` (5) Karten, kostet 1 je Karte. Stufen S1 (Wortregeln ohne Modell, auch auf der
+- Freie Karte, KI-Art `karte` (`lib/duell-karte.mjs`): nur mit Konto (sonst `401 login`), Alter 16+ serverseitig aus dem Profil des Kontos
+  (16+-Erklaerung, `lib/duell-profile.mjs`; sonst `403 age16`, ohne Profilspeicher `503 age-check-off`), Notschalter `DUELL_KARTE_OFF=1` (`503 karte-off`),
+  Tagesbudget `DUELL_CARD_BUDGET_USD` (Standard 5, fail-closed bei unlesbarer Budgetdatei), eigener Topf `create` mit `DUELL_CREATE_FREE` (5) Karten, kostet 1 je Karte. Stufen S1 (Wortregeln ohne Modell, auch auf der
   Ausgabe), S2 (Klassifikator auf der Eingabe), S3 (Erzeugung mit gecachtem Praefix und festem Schema je Art), S4 (Klassifikator auf der
   fertigen Karte), S5 (Siegel `karte`). Nach `DUELL_CREATE_BLOCKS_PER_DAY` Ablehnungen am Tag `429 throttled`. `sanitizeDoc` der App liegt als
   gepruefte Kopie in `lib/vendor/duell-web` (`node bin/vendor-duell-web.mjs <app>/src`), Golden-Set `test/fixtures/karte-golden.json`.
+  Arten: `card`, `meme`, `game` (Zahlen und Seed vom Server), `sound` (16er-Beat + Hook), `quiz` (3-5 Fragen, Link <= 1200) und
+  `faehigkeit`: eine vorhandene Kartenart (Termin, Geld einsammeln, Duell, Live-Kanal, Kartentisch ...). Der Faehigkeiten-Katalog
+  wird aus `ideas.json` der App erzeugt (`CAPS`, ohne Arcade und gesperrte Karten), steht im gecachten Praefix, das Modell waehlt nur
+  eine ID daraus; der Server prueft Allowlist und Rechte (Geld einsammeln erst ab 18). Live-Abnahme je Art 20 Beschreibungen:
+  `node bin/duell-karte-golden.mjs [--arts game,quiz] [--golden] --out r.json` (gueltig, Link <= 1200, passt inhaltlich).
 
 | ENV | Default | Bedeutung |
 |-----|---------|-----------|
