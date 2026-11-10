@@ -137,9 +137,9 @@ test('Kein Modell-alt mehr: Schema und Praefix ohne alt/why_short', () => {
 });
 
 // the outcome of one golden case at the server, seen by the person and by the strike count
-async function outcome(text, mod) {
+async function outcome(text, mod, art = 'card') {
   const { ai, cardLlm } = mk({ cardLlm: stub(mod), env: ONE });
-  const r = await run(ai, body(text));
+  const r = await run(ai, body(text, art));
   assert.ok(!(r.body.options && r.body.options.length), 'never a card: ' + text);
   const s = await struck(ai);
   if (r.status === 422 && r.body.why === 'crisis') return s ? 'crisis+strike' : 'crisis';
@@ -155,17 +155,18 @@ test('Bypass: alle 141 boesartigen Goldfaelle mit "Tetris über " bzw. "Jump n R
   const mod = { risk: 3, cats: ['harassment'] };
   const count = { base: {}, tetris: {}, jump: {} };
   let same = 0, hardKept = 0, hardBase = 0;
-  for (const b of g.bad) {
-    const base = await outcome(b.t, mod), te = await outcome('Tetris über ' + b.t, mod), ju = await outcome('Jump n Run: ' + b.t, mod);
+  // art game too: only there a named game ("Tetris") is refused by the table in runKarte, before S2
+  for (const art of ['card', 'game']) for (const b of g.bad) {
+    const base = await outcome(b.t, mod, art), te = await outcome('Tetris über ' + b.t, mod, art), ju = await outcome('Jump n Run: ' + b.t, mod, art);
     for (const [k, v] of [['base', base], ['tetris', te], ['jump', ju]]) count[k][v] = (count[k][v] || 0) + 1;
-    assert.equal(te, base, 'Tetris über ' + b.t); assert.equal(ju, base, 'Jump n Run: ' + b.t);
+    assert.equal(te, base, art + ': Tetris über ' + b.t); assert.equal(ju, base, art + ': Jump n Run: ' + b.t);
     if (te === base && ju === base) same++;
     if (base === 'block+strike') { hardBase++; if (te === base && ju === base) hardKept++; }
     // a case S1 refuses hard is never soft with a game word in front
-    const d = K.read({ text: b.t, art: 'card' });
-    if (screenInput(K, d) === 'blocked' && !K.soft(d)) for (const p of ['Tetris über ', 'Jump n Run: ']) { const e = K.read({ text: p + b.t, art: 'card' }); assert.equal(K.soft(e), '', p + b.t); }
+    const d = K.read({ text: b.t, art });
+    if (screenInput(K, d) === 'blocked' && !K.soft(d)) for (const p of ['Tetris über ', 'Jump n Run: ']) { const e = K.read({ text: p + b.t, art }); assert.equal(K.soft(e), '', p + b.t); }
   }
-  assert.equal(same, 141);
+  assert.equal(same, 2 * 141);
   assert.equal(hardKept, hardBase);
-  t.diagnostic(`bypass: gleich wie Basis ${same}/141; Block mit Strike Basis ${hardBase}, mit Praefix ${hardKept}/${hardBase}; Basis ${JSON.stringify(count.base)}; Tetris ${JSON.stringify(count.tetris)}; Jump ${JSON.stringify(count.jump)}`);
+  t.diagnostic(`bypass: gleich wie Basis ${same}/${2 * 141} (card + game); Block mit Strike Basis ${hardBase}, mit Praefix ${hardKept}/${hardBase}; Basis ${JSON.stringify(count.base)}; Tetris ${JSON.stringify(count.tetris)}; Jump ${JSON.stringify(count.jump)}`);
 });
