@@ -247,10 +247,14 @@ import { WELT } from '../lib/duell-ai.mjs';
 
 test('W3 ability catalog: built from the app catalog, no arcade, no gated card, money only from 18, one table for the flight', () => {
   const ideas = App.D.IDEAS;
-  assert.ok(CAPS.length >= 50);
+  // every turn card of the shelf but UNPROVEN (checked below); since Regal 74 (2026-11) that is 49, before about 100
+  assert.ok(CAPS.length >= 40, String(CAPS.length));
   for (const c of CAPS) { const i = App.D.byId(c.id); assert.ok(i, c.id); assert.notEqual(i.kind, 'arcade'); }
   assert.ok(!CAP_IDS.some((id) => (App.D.GATED || []).some((g) => g.id === id)));
-  for (const want of ['zug-termin', 'zug-sammeln', 'zug-quiz', 'duell-ssp', 'rap-agenten', 'auktion-quatsch']) assert.ok(CAP_IDS.includes(want), want);
+  for (const want of ['zug-termin', 'zug-sammeln', 'zug-abfragen', 'zug-auktion']) assert.ok(CAP_IDS.includes(want), want);
+  // Regal 74 (2026-11): no bot duel on the shelf (zug-quiz is in zug-abfragen, auktion-quatsch in zug-auktion), so none as an ability
+  assert.ok(!CAPS.some((c) => App.D.byId(c.id).kind === 'duel'), 'no duel ability');
+  for (const gone of ['duell-ssp', 'rap-agenten', 'auktion-quatsch', 'zug-quiz']) assert.ok(!CAP_IDS.includes(gone), gone);
   assert.deepEqual(CAPS.filter((c) => c.adult).map((c) => c.id), ['zug-sammeln']);
   // every turn card of the app is an ability, except the ones whose flow is not proven yet (UNPROVEN)
   assert.ok(ideas.filter((i) => i.turn && !UNPROVEN.has(i.id)).every((i) => CAP_IDS.includes(i.id)), 'every turn card of the app is an ability');
@@ -518,17 +522,18 @@ test('Ausgabe-Filter: Secret Santa und ein Fussball-Regel-Duell bleiben (w052, w
 test('Faehigkeit mit Secret Santa / Regel-Duell wird eine Karte; ein Regel-Echo in der Ausgabe bleibt gesperrt', async () => {
   const mkCap = (card) => mk({ cardLlm: fakeLlm({ card }) });
   const cap = (title, cap_) => ({ ok: true, cap: cap_, title, sub: 'Zusammen spielen.', word: 'Tor' });
-  for (const [t, c] of [['Office Secret Santa', 'zug-wichteln'], ['Fußball-Regel-Duell', 'zug-quiz']]) {
+  for (const [t, c] of [['Office Secret Santa', 'zug-wichteln'], ['Fußball-Regel-Duell', 'zug-abfragen']]) {
     const r = await run(mkCap(cap(t, c)).ai, body('Ein Spiel mit meinen Freunden', { art: 'faehigkeit', age: 'a18' }));
     assert.equal(r.status, 200, t + ' ' + JSON.stringify(r.body).slice(0, 80)); assert.equal(r.body.options[0].doc.t, t);
   }
-  const bad = await run(mkCap(cap('Your rules now', 'zug-quiz')).ai, body('Ein Spiel mit meinen Freunden', { art: 'faehigkeit', age: 'a18' }));
+  const bad = await run(mkCap(cap('Your rules now', 'zug-abfragen')).ai, body('Ein Spiel mit meinen Freunden', { art: 'faehigkeit', age: 'a18' }));
   assert.notEqual(bad.status, 200);
 });
 
-test('Katalog: ein Duell nennt seine Art (duell-ssp ist Schere, Stein, Papier, w074)', () => {
+test('Katalog: seit Regal 74 kein Duell im Katalog; nie ein namenloses "(duel)" (w074)', () => {
   const t = CARD_SYSTEM.map((b) => b.text).join('\n');
-  assert.match(t, /duell-ssp \(rock-paper-scissors duel\)/); assert.match(t, /rap-agenten \(rap battle\)/); assert.doesNotMatch(t, / \(duel\):/);
+  // the bot duels (duell-ssp, rap-agenten, ...) left the shelf (2026-11, keine Bot-Karten): none is offered as an ability
+  assert.doesNotMatch(t, /duell-ssp|rap-agenten/); assert.doesNotMatch(t, / \(duel\):/);
 });
 
 test('RULES: Glaube, Geschichte, Politik praezise - Festgruss und Faktenquiz ja, Missionieren, Verherrlichung, Wahlwerbung nein; je ein Beispiel', () => {
@@ -690,7 +695,7 @@ test('S5 Passung: Grenzen aus den App-Daten im Katalog; Liste nach dem Wunsch, e
   // derived, not copied: the date picker of src/turn-ui.js, the moves of src/turns.js, the fixed lists
   assert.ok(TERMIN.days >= 7 && TERMIN.picks >= 2, JSON.stringify(TERMIN));
   assert.equal(CAP_LIMITS['zug-termin'].days, TERMIN.days); assert.equal(CAP_LIMITS['zug-reihum'].people, 4);
-  assert.equal(CAP_LIMITS['zug-wichteln'].people, 12); assert.equal(CAP_LIMITS['zug-advent'].entries.max, 20);
+  assert.equal(CAP_LIMITS['zug-wichteln'].people, 12); assert.equal(CAP_LIMITS['zug-advent'], undefined, 'Regal 74: the Advent turn card is the door card now');
   assert.equal(CAP_LIMITS['raum-streichen'].lists.length, 2);
   const sys = CARD_SYSTEM.map((b) => b.text).join('\n');
   assert.match(sys, /zug-termin \(termin\)[^\n]*dates only within the next 14 days/); assert.match(sys, /zug-reihum \(reihum\)[^\n]*up to 4 people/);
@@ -757,18 +762,19 @@ test('Zu langer Text: ein Versuch mit dem Laengenhinweis statt einer abgeschnitt
   assert.equal(gens.length, 2); assert.match(gens[1].user, /too long \(bottom at most \d+ characters\)/);
 });
 
-test('Grenzen der Art: ein Duell ist zu zweit (Turnier -> people:2, w089), keine Faehigkeit spielt live (Echtzeit -> async, w074)', async () => {
+test('Grenzen der Art: seit Regal 74 kein Agenten-Duell - ein Duell-Wunsch ist ehrlich noch nicht; keine Faehigkeit spielt live (Echtzeit -> async, w074)', async () => {
   const { CAP_LIMITS, peopleAsked } = await import('../lib/duell-karte.mjs');
-  assert.equal(CAP_LIMITS['duell-ssp'].people, 2); assert.equal(peopleAsked('Ein Turnier mit meinen Freunden'), 4);
-  const cap = (c) => ({ ok: true, cap: c, title: 'Duell', sub: 'Dein Agent gegen meinen.', word: '' });
-  const go = async (c, text) => run(mk({ cardLlm: fakeLlm({ card: cap(c) }) }).ai, body(text, { art: 'faehigkeit', age: 'a18' }));
-  let r = await go('duell-ssp', 'ein Schere-Stein-Papier-Turnier mit meinen Freunden');
-  assert.equal(r.status, 200); assert.ok(r.body.note.includes('people:2'), JSON.stringify(r.body.note));
-  r = await go('duell-ssp', 'Schere, Stein, Papier in Echtzeit gegen meinen Mitbewohner');
+  // the bot duels left the shelf (2026-11, keine Bot-Karten): no ability is a duel, so none promises "each person's agent plays"
+  assert.ok(!Object.keys(CAP_LIMITS).some((id) => CAP_LIMITS[id].agent), 'no agent duel among the abilities');
+  assert.equal(peopleAsked('Ein Turnier mit meinen Freunden'), 4);
+  const cap = (c) => ({ ok: true, cap: c, title: 'Unsere Runde', sub: 'Zusammen spielen.', word: '' });
+  const go = async (c, text) => { const llm = fakeLlm({ card: cap(c) }); return { r: await run(mk({ cardLlm: llm }).ai, body(text, { art: 'faehigkeit', age: 'a18' })), llm }; };
+  let { r, llm } = await go('zug-kreis', 'Rap-Battle zwischen unseren Agenten');
+  assert.equal(r.status, 200); assert.deepEqual(r.body.options, []); assert.equal(r.body.notyet.what, 'feature');
+  assert.equal(llm.calls.length, 0, 'no model call'); assert.equal(r.body.receipt, undefined, 'nothing booked');
+  ({ r } = await go('zug-reihum', 'Reihum in Echtzeit mit meinen Freunden'));
   assert.equal(r.status, 200); assert.ok(r.body.note.includes('async'), JSON.stringify(r.body.note));
-  r = await go('duell-ssp', 'Schere, Stein, Papier gegen meinen Mitbewohner');
-  assert.equal(r.status, 200); assert.deepEqual(r.body.note, ['duel'], 'a plain duel only says that it shows its own game');
-  assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /duell-ssp \(rock-paper-scissors duel\)[^\n]*\[an agent duel: each person's agent plays; up to 2 people\]/);
+  assert.doesNotMatch(CARD_SYSTEM.map((b) => b.text).join('\n'), /an agent duel: each person's agent plays/);
 });
 
 test('Katalog: keine Live-Faehigkeit versprochen; bei einer Grenze die naechste Faehigkeit mit ok true und eigenem Thema (w066, w089)', () => {
@@ -784,34 +790,31 @@ test('Sammel-Karte ab 18: S4 phishing bei Risiko 1 ist ihre Aufgabe (fp09); unte
   assert.equal((await go({ risk: 1, cats: ['phishing'], drink: 'none' })).status, 200);
   assert.equal((await go({ risk: 2, cats: ['phishing'], drink: 'none' })).status, 422);
   assert.equal((await go({ risk: 1, cats: ['phishing', 'harassment'], drink: 'none' })).status, 422);
-  const duel = await run(mk({ cardLlm: fakeLlm({ card: { ok: true, cap: 'duell-ssp', title: 'Kissenschlacht', sub: 'Wer gewinnt?', word: '' } }), age18: () => true }).ai, body('Kissenschlacht zwischen den Agenten', { art: 'faehigkeit', age: 'a18' }));
-  assert.equal(duel.status, 200); assert.ok(duel.body.note.includes('duel'), JSON.stringify(duel.body.note));
+  // a duel between agents: since Regal 74 no duel on the shelf, an honest "not yet" (the agent as counterpart), no model call
+  const duelLlm = fakeLlm({}), duel = await run(mk({ cardLlm: duelLlm, age18: () => true }).ai, body('Kissenschlacht zwischen den Agenten', { art: 'faehigkeit', age: 'a18' }));
+  assert.equal(duel.status, 200); assert.equal(duel.body.notyet.what, 'feature', JSON.stringify(duel.body)); assert.equal(duelLlm.calls.length, 0);
   assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /A rap battle or a duel teases the topic/);
 });
 
-test('Agent als Gegenueber ist eine harte Anforderung (w067): eine Abstimmung bekommt einen neuen Versuch mit dem Hinweis auf ein Agenten-Duell, nie zwei', async () => {
+test('Agent als Gegenueber ist eine harte Anforderung (w067): nie still eine Abstimmung; seit Regal 74 ehrlich noch nicht', async () => {
   const { wantsAgent, CAP_LIMITS } = await import('../lib/duell-karte.mjs');
   for (const t of ['Live mit einem ct-agent chatten, der mir Witze erzählt', 'Rap-Battle zwischen unseren Agenten', 'Quiz gegen die KI', 'a bot that tells jokes']) assert.equal(wantsAgent(t), true, t);
   for (const t of ['Karte für meine Agentin Lisa', 'Reiseagentur Gutschein', 'Geheimagent-Party', 'Abstimmung für die Klassenfahrt']) assert.equal(wantsAgent(t), false, t);
-  assert.equal(CAP_LIMITS['rap-agenten'].agent, true);
-  let n = 0;
-  const cards = [{ ok: true, cap: 'zug-stimme', title: 'Witze-Abend', sub: 'Stimm ab.', word: '' }, { ok: true, cap: 'rap-agenten', title: 'Witze-Battle', sub: 'Dein Agent reimt.', word: '' }];
-  const llm = fakeLlm({ card: () => cards[Math.min(n++, 1)] });
+  // no agent duel on the shelf (rap-agenten left it, 2026-11): the hard need finds no ability, so "not yet" with no model
+  // call and nothing booked, and never a vote in its place
+  assert.equal(CAP_LIMITS['rap-agenten'], undefined);
+  const llm = fakeLlm({ card: { ok: true, cap: 'zug-stimme', title: 'Witze-Abend', sub: 'Stimm ab.', word: '' } });
   const r = await run(mk({ cardLlm: llm }).ai, body('Live mit einem ct-agent chatten, der mir Witze erzählt', { art: 'faehigkeit', age: 'a18' }));
-  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 100)); assert.equal(r.body.options[0].doc.i, 'rap-agenten');
-  assert.ok(r.body.note.includes('async'), JSON.stringify(r.body.note));
-  const gens = llm.calls.filter((c) => c.system !== MOD_SYSTEM && c.user.startsWith('Card type'));
-  assert.equal(gens.length, 2); assert.match(gens[1].user, /choose an agent duel/);
-  const stuck = fakeLlm({ card: cards[0] });
-  assert.notEqual((await run(mk({ cardLlm: stuck }).ai, body('Live mit einem ct-agent chatten, der mir Witze erzählt', { art: 'faehigkeit', age: 'a18' }))).status, 200, 'no vote for an agent wish');
-  assert.match(CARD_SYSTEM.map((b) => b.text).join('\n'), /rap-agenten \(rap battle\)[^\n]*an agent duel: each person's agent plays/);
+  assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 100)); assert.deepEqual(r.body.options, [], 'no vote for an agent wish');
+  assert.equal(r.body.notyet.what, 'feature'); assert.equal(llm.calls.length, 0); assert.equal(r.body.receipt, undefined);
 });
 
-test('Kurze Eintraege fuer einen Wunsch nach Saetzen: ehrlicher Hinweis chars:N (w065 Advent 20 Zeichen)', async () => {
-  const card = { ok: true, cap: 'zug-advent', title: 'Advent für Mia', sub: 'Jeden Tag eine Tür.', word: '' };
-  const r = await run(mk({ cardLlm: fakeLlm({ card }) }).ai, body('Adventskalender für meine Tochter, jeden Tag ein Satz von mir', { art: 'faehigkeit', age: 'a18' }));
-  assert.equal(r.status, 200); assert.ok(r.body.note.includes('chars:20'), JSON.stringify(r.body.note));
-  const r2 = await run(mk({ cardLlm: fakeLlm({ card }) }).ai, body('Adventskalender für meine Tochter', { art: 'faehigkeit', age: 'a18' }));
+test('Kurze Eintraege fuer einen Wunsch nach Saetzen: ehrlicher Hinweis chars:N (w065; seit Regal 74 an der Abstimmung, 16 Zeichen)', async () => {
+  // the Advent turn card (20 characters) left the shelf with Regal 74; the same rule on the vote zug-einig (entries of 16)
+  const card = { ok: true, cap: 'zug-einig', title: 'Unser Ausflug', sub: 'Jeder ordnet die Ziele.', word: 'Ziele' };
+  const r = await run(mk({ cardLlm: fakeLlm({ card }) }).ai, body('Abstimmung, wohin der Ausflug geht, jeder schreibt einen Satz', { art: 'faehigkeit', age: 'a18' }));
+  assert.equal(r.status, 200); assert.ok(r.body.note.includes('chars:16'), JSON.stringify(r.body.note));
+  const r2 = await run(mk({ cardLlm: fakeLlm({ card }) }).ai, body('Abstimmung, wohin der Ausflug geht', { art: 'faehigkeit', age: 'a18' }));
   assert.equal(r2.body.note, undefined);
 });
 
@@ -832,7 +835,7 @@ test('Art Spiel: ein genanntes Spiel, das kein Flug ist, wird nie still ein Flug
     assert.equal((await run(ai, body(text, { art: 'game' }))).status, 200, 'no strikes, no pause: ' + text);
   }
   const doko = await run(mk({ cardLlm: fakeLlm({ card: fly }) }).ai, body('Doppelkopf-Runde mit der Familie', { art: 'game' }));
-  assert.ok(doko.body.catalog.includes('tisch-doko'), JSON.stringify(doko.body.catalog));
+  assert.ok(doko.body.catalog.includes('tisch-skat'), JSON.stringify(doko.body.catalog));   // Regal 74: Doppelkopf is in the Skat table
   const skat = await run(mk({ cardLlm: fakeLlm({ card: fly }) }).ai, body('Skat mit Opa', { art: 'game' }));
   assert.deepEqual(skat.body.alt, { kind: 'katalog', id: 'tisch-skat', satz: 'Skat live' }); assert.deepEqual(skat.body.catalog, ['tisch-skat']);
   // flying, or nothing named: the flying game as before
@@ -849,7 +852,8 @@ test('Merkmal-Matching: jede Faehigkeit hat Merkmale aus den App-Daten; das Mode
   for (const c of CAPS) { assert.ok((CAP_FEATURES[c.id] || []).length > 0, 'no feature: ' + c.id); for (const f of CAP_FEATURES[c.id]) assert.ok(FEATURES.includes(f), c.id + ': ' + f); }
   assert.deepEqual(CAP_FEATURES['spiel-dart'], ['dart']); assert.ok(CAP_FEATURES['zug-einig'].includes('vote.own')); assert.ok(!CAP_FEATURES['zug-kreis'].includes('vote.own'));
   assert.deepEqual(candidatesFor(needsOf('Abstimmung, wohin unser Klassenausflug geht'), 'a18').filter((id) => !CAP_FEATURES[id].includes('vote.own')), []);
-  assert.deepEqual(catalogWith('voice.fx'), ['stimme-verzerren']); assert.ok(catalogWith('cardgame').includes('tisch-doko'));
+  // Regal 74: the voice changer left the shelf (it opens by link), Doppelkopf is in the Skat table
+  assert.deepEqual(catalogWith('voice.fx'), []); assert.ok(catalogWith('cardgame').includes('tisch-skat'));
   const gens = (llm) => llm.calls.filter((c) => c.system !== MOD_SYSTEM && c.user.startsWith('Card type'));
   // Dart (#183) through its feature: art game becomes the ability, the model may only choose spiel-dart
   const dart = fakeLlm({ card: { ok: true, cap: 'spiel-dart', title: 'Dart-Abend', sub: 'Wer trifft die Mitte?', word: '' } });
@@ -861,7 +865,7 @@ test('Merkmal-Matching: jede Faehigkeit hat Merkmale aus den App-Daten; das Mode
   r = await run(mk({ cardLlm: vote }).ai, body('Abstimmung, wohin unser Klassenausflug geht', { art: 'faehigkeit', age: 'a18' }));
   assert.equal(r.status, 200); assert.ok(gens(vote)[0].schema.properties.cap.enum.every((id) => CAP_FEATURES[id].includes('vote.own')));
   // nothing covers it: not yet, similar ...; no model call, nothing booked; the voice card (#181) and the card table as similar
-  for (const [text, catalog] of [['Einladung zur Party, alle sollen zu- oder absagen', null], ['meine Stimme verzerren wie ein Roboter', 'stimme-verzerren'], ['Doppelkopf-Runde mit der Familie', 'tisch-doko']]) {
+  for (const [text, catalog] of [['Einladung zur Party, alle sollen zu- oder absagen', null], ['meine Stimme verzerren wie ein Roboter', null], ['Doppelkopf-Runde mit der Familie', 'tisch-skat']]) {
     const llm = fakeLlm({});
     const n = await run(mk({ cardLlm: llm }).ai, body(text, { art: 'faehigkeit', age: 'a18' }));
     assert.equal(n.status, 200, text); assert.deepEqual(n.body.options, []); assert.equal(n.body.notyet.what, 'feature', text);
