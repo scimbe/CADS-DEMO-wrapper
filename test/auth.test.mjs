@@ -103,3 +103,22 @@ test('mode off (default) leaves everything open; gate mode without DEMO_GATE_HOS
   assert.throws(() => createAuth({ env: { DEMO_AUTH_MODE: 'gate' } }), /DEMO_GATE_HOST/);
   assert.throws(() => createAuth({ env: { DEMO_AUTH_MODE: 'typo' } }), /DEMO_AUTH_MODE/);
 });
+
+test('/auth/login passes the app language to the gate, only de|en, otherwise leaves it out', async () => {
+  // the gate origin comes from DEMO_GATE_CHECK_URL (the local stub here); compare from /gate/start on
+  const loc = async (q) => { const l = (await fetch(base + '/auth/login?' + q, { redirect: 'manual' })).headers.get('location'); return l.slice(l.indexOf('/gate/start')); };
+  assert.equal(await loc('return=/duell&lang=de'), '/gate/start?host=demos.example.org&return=%2Fduell&lang=de');
+  assert.equal(await loc('return=/duell&lang=en'), '/gate/start?host=demos.example.org&return=%2Fduell&lang=en');
+  for (const bad of ['', 'lang=fr', 'lang=DE', 'lang=de-DE', 'lang=de%26prompt%3Dnone', 'lang=']) {
+    assert.equal(await loc('return=/duell&' + bad), '/gate/start?host=demos.example.org&return=%2Fduell', bad);
+  }
+  const me = await (await fetch(base + '/auth/me?return=/duell&lang=de')).json();
+  assert.match(me.login_url, /&return=%2Fduell&lang=de$/);
+});
+
+test('loginUrl without lang is unchanged (all existing callers)', () => {
+  const a = createAuth({ env: { DEMO_AUTH_MODE: 'gate', DEMO_GATE_HOST: 'h.example.org' } });
+  assert.equal(a.loginUrl('/duell'), 'https://bunsenbrenner.org/gate/start?host=h.example.org&return=%2Fduell');
+  assert.equal(a.loginUrl('/duell', 'de'), 'https://bunsenbrenner.org/gate/start?host=h.example.org&return=%2Fduell&lang=de');
+  assert.equal(a.loginUrl('/duell', 'xx'), 'https://bunsenbrenner.org/gate/start?host=h.example.org&return=%2Fduell');
+});
