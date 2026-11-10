@@ -120,6 +120,10 @@ test('anchors: theme stems (all | one), pole id, forbidden word in the title; re
   assert.deepEqual(pflichtFehlt({ optionen: ['Pizza', 'Sushi'], wahl: 1 }, 'G12_wahl'), []);
   assert.deepEqual(pflichtFehlt({ saetze: ['a', 'b', 'c'], luege: 3 }, 'G12_luege'), ['luegen-index']);
   assert.deepEqual(pflichtFehlt({ g: { title: 'x' } }, 'G1'), ['ziel', 'spur', 'ende']);
+  // corpus B names only 'G12': a lie doc is checked as the lie variant, a choice doc as the choice variant
+  assert.deepEqual(pflichtFehlt({ k: 'turn', g: 'luege', saetze: ['a', 'b', 'c'], luege: 1 }, 'G12'), []);
+  assert.deepEqual(pflichtFehlt({ k: 'turn', g: 'luege', saetze: ['a', 'b'], luege: 1 }, 'G12'), ['saetze 3']);
+  assert.deepEqual(pflichtFehlt({ k: 'turn', g: 'wahl', optionen: ['Tee', 'Kaffee'], wahl: 0 }, 'G12'), []);
 });
 
 test('genre first: a chip that does not fit the sentence must give a question with both chips, never a silent rebuild', async () => {

@@ -144,6 +144,8 @@ export function pflichtFehlt(doc, key) {
   const idx = (v, n) => Number.isInteger(v) && v >= 0 && v < n;
   if (key === 'G1' || key === 'G2') { need(filled(g.title), 'titel'); need(filled(g.ziel), 'ziel'); need(filled(g.spur), 'spur'); need(filled(g.ende), 'ende'); }
   else if (key === 'G11') { const f = Array.isArray(doc.fragen) ? doc.fragen : []; need(f.length >= 3 && f.length <= 5, 'fragen 3-5'); need(f.length > 0 && f.every((q) => q && filled(q.q) && filled(q.z)), 'alle z'); }
+  // plain 'G12' (corpus B) names no variant: the doc's g says which one (luege -> 3 sentences + index, else choice)
+  else if (key === 'G12' && doc.g === 'luege') return pflichtFehlt(doc, 'G12_luege');
   else if (key === 'G12_wahl' || key === 'G12') { const o = Array.isArray(doc.optionen) ? doc.optionen : []; need(o.length >= 2 && o.length <= 4 && o.every(filled), 'optionen 2-4'); need(idx(doc.wahl, o.length), 'eigene wahl'); }
   else if (key === 'G12_luege') { const s = Array.isArray(doc.saetze) ? doc.saetze : []; need(s.length === 3 && s.every(filled), 'saetze 3'); need(idx(doc.luege, 3), 'luegen-index'); }
   else if (key === 'G15') { need(filled(doc.pol), 'pol-paar'); need(Number.isFinite(doc.punkt) && doc.punkt >= 0 && doc.punkt <= 100, 'punkt'); need(filled(doc.hinweis), 'hinweiswort'); }
