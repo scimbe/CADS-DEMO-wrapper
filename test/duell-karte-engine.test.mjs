@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { createDuell } from '../lib/duell.mjs';
 import { createDuellAi } from '../lib/duell-ai.mjs';
 import { App, Lauf, ARTS, CARD_SYSTEM, MOD_SYSTEM, SCHEMAS, compose, engineOf, engineFits, fits } from '../lib/duell-karte.mjs';
+import { ABSAGE, gameKeyOf } from '../lib/duell-absage.mjs';
 
 const GOLD = JSON.parse(readFileSync(fileURLToPath(new URL('./fixtures/karte-engine-golden.json', import.meta.url)), 'utf8'));
 const DEV = 'c'.repeat(32);
@@ -77,8 +78,10 @@ test('Ein Runner-Wunsch geht nie als Flieger durch: Routing vor dem Modell und T
 test('Kein passendes Spiel: ehrlich noch nicht, ohne Modellaufruf und ohne Buchung', async () => {
   for (const [w, want] of GOLD.wishes.filter(([, x]) => x.startsWith('notyet:'))) {
     const llm = fakeLlm(bySchema), { ai } = mk(llm);
-    const r = await run(ai, body(w));
-    assert.deepEqual(r.body.notyet, { what: 'game', name: want.slice(7) }, w);
+    const r = await run(ai, body(w)), key = gameKeyOf(w);
+    // a game the refusal table knows (lib/duell-absage.mjs, W111f) gets its fixed answer first; any other the engine's
+    if (key) { assert.equal(r.body.notyet, true, w); assert.equal(r.body.reason, key, w); assert.deepEqual(r.body.alt, ABSAGE[key].alt, w); }
+    else assert.deepEqual(r.body.notyet, { what: 'game', name: want.slice(7) }, w);
     assert.equal(llm.calls.length, 0, w); assert.equal(r.body.receipt, undefined, w);
   }
 });
