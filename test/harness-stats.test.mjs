@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import { cohenKappa, mcnemarExact, mcnemarPaired, ruleOfThree, wilsonLower, wilsonUpper } from '../lib/harness-stats.mjs';
 import { ankerFehlt, bewerte, bindung, gateGueltig, genreOf, harnessBudget, kennzahlen, klasseOf, ladeAufzeichnungen, ladeKorpus, linkFor, decodeLink, pflichtFehlt, requestHash } from '../bin/duell-karte-golden.mjs';
 
@@ -87,9 +89,12 @@ test('a run doc with a desert world for "Runner über Brücken": FAIL (anchor), 
   assert.deepEqual(r.gruende, ['anker:welt:wueste']);
   const ok = await bewerte(runner, card(laufDoc('night')), { agent: agentAll, ...future });
   assert.equal(ok.pass, true, ok.gruende.join(' '));
-  // the vendored app of today cannot open k:'lauf' yet: on the real decoder that is a fail of its own
+  // since #112 the vendored app opens k:'lauf' itself, but the run's title, goal, track and end of this doc (bahn, A7b/c)
+  // are not in its doc yet: the real decoder drops them, so the same doc fails on its anchors and parts - never a pass,
+  // never a wrong genre
   const today = await bewerte(runner, card(laufDoc('night')), { agent: agentAll });
-  assert.ok(today.gruende.includes('link-app'));
+  assert.equal(today.pass, false); assert.ok(!today.gruende.some((g) => g.startsWith('genre')), today.gruende.join(' '));
+  assert.ok(today.gruende.some((g) => g.startsWith('pflicht')), today.gruende.join(' '));
   // the vendored app knows k:'turn' but would turn g:'skala' into another turn game: also 'link-app', never a wrong genre
   const sk = await bewerte(skala, card({ k: 'turn', g: 'skala', t: 'Wie scharf esse ich gern?', pol: 'mild-scharf', punkt: 70, hinweis: 'Chili' }), { agent: agentAll });
   assert.deepEqual(sk.gruende, ['link-app']);
@@ -138,7 +143,7 @@ test('link: the app encoder, else the raw fragment; length limit; strike on a ha
   const { raw, app } = decodeLink(linkFor(doc));
   assert.equal(raw.k, 'game'); assert.equal(app.k, 'game');
   const lauf = decodeLink(linkFor(laufDoc('day')));
-  assert.equal(lauf.raw.k, 'lauf'); assert.equal(lauf.app, null);
+  assert.equal(lauf.raw.k, 'lauf'); assert.equal(lauf.app.k, 'lauf', 'since #112 the vendored app decodes k:lauf');
   const long = await bewerte(runner, { options: [{ doc: laufDoc('day') }], link: 'https://x/#c=' + 'A'.repeat(1300) }, { agent: agentAll, ...future });
   assert.ok(long.gruende.includes('link>1200'));
   const struck = await bewerte({ ...runner, ergebnis_gold: 'block' }, { error: 'blocked', strike: true });
@@ -175,7 +180,9 @@ test('records: origin head required, request_hash must match; corpus in both sha
   const dir = mkdtempSync(join(tmpdir(), 'gate-'));
   const a = join(dir, 'karte-v21-a.json'), b = join(dir, 'karte-v21-b.json');
   writeFileSync(a, JSON.stringify({ kopf: { korpus: 'a', anker_regeln: 'jedes Element muss vorkommen', frozen_by: null }, eintraege: [runner] }));
-  writeFileSync(b, JSON.stringify({ teil: 'b', frozen_by: 'Mensch', faelle: [skala] }));
+  // frozen by a person: name, date and the hash over the entries (a run-time rule, see the freeze test below)
+  const shaB = createHash('sha256').update(JSON.stringify([skala]), 'utf8').digest('hex');
+  writeFileSync(b, JSON.stringify({ teil: 'b', frozen_by: 'Mensch', frozen_at: '2026-11-12', sha256: shaB, faelle: [skala] }));
   const ka = ladeKorpus(a), kb = ladeKorpus(b);
   assert.equal(ka.modus, 'alle'); assert.equal(kb.modus, 'eines');
   assert.equal(ka.faelle.length, 1); assert.equal(kb.faelle.length, 1);
@@ -202,4 +209,28 @@ test('harness budget: own file required, never the production file (or its month
   assert.match(harnessBudget({ DUELL_CARD_BUDGET_FILE: '/srv/b.json', DUELL_HARNESS_BUDGET_FILE: '/srv/./b.json' }).error, /Produktivdatei/);
   assert.match(harnessBudget({ DUELL_HARNESS_BUDGET_FILE: '/var/lib/duell-ai/card-budget.month.json' }).error, /Produktivdatei/);
   assert.deepEqual(harnessBudget({ DUELL_HARNESS_BUDGET_FILE: '/tmp/h.json' }), { file: '/tmp/h.json', month: '/tmp/h.month.json' });
+});
+
+test('freeze is a run-time rule: without frozen_by, with a wrong sha256 or open entries no real run and no "bestanden"', async () => {
+  const { eingefroren, freezeSperre, ladeKorpus, gateGueltig, NICHT_EINGEFROREN } = await import('../bin/duell-karte-golden.mjs');
+  const { spawnSync } = await import('node:child_process');
+  const { createHash } = await import('node:crypto');
+  const fx = (f) => fileURLToPath(new URL('./fixtures/' + f, import.meta.url));
+  // the corpora as they are: drafts, so the harness refuses and says why
+  const ks = ['karte-v21-a.json', 'karte-v21-b.json'].map((f) => ladeKorpus(fx(f)));
+  assert.ok(ks.every((k) => !k.frozen));
+  assert.ok(freezeSperre(ks).startsWith(NICHT_EINGEFROREN), freezeSperre(ks));
+  // what frozen means: a person, a date, the hash over the entries, nothing open
+  const faelle = [{ id: 'x-1', satz: 'Flappy mit Döner' }], sha = createHash('sha256').update(JSON.stringify(faelle), 'utf8').digest('hex');
+  assert.equal(eingefroren({ frozen_by: 'Martin', frozen_at: '2026-11-12', sha256: sha }, faelle).ok, true);
+  assert.deepEqual(eingefroren({ frozen_by: 'Martin', frozen_at: '2026-11-12', sha256: 'x' + sha.slice(1) }, faelle).gruende, ['sha256 passt nicht zum Inhalt']);
+  assert.deepEqual(eingefroren({ frozen_by: 'Martin', frozen_at: '2026-11-12', sha256: createHash('sha256').update(JSON.stringify([{ ...faelle[0], pruefen: 'ziel' }]), 'utf8').digest('hex') }, [{ ...faelle[0], pruefen: 'ziel' }]).gruende, ['1 Einträge mit pruefen']);
+  assert.deepEqual(eingefroren({ frozen_by: null, frozen_at: null, sha256: sha }, faelle).gruende, ['frozen_by fehlt', 'frozen_at fehlt']);
+  // a real run stops before the budget file, the provider and any model call (exit 2, the message on stderr)
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(DUELL_|ANTHROPIC|LITELLM)/.test(k)));
+  const run = spawnSync(process.execPath, [fileURLToPath(new URL('../bin/duell-karte-golden.mjs', import.meta.url)), '--v21'], { env, encoding: 'utf8', timeout: 60000 });
+  assert.equal(run.status, 2, run.stderr); assert.match(run.stderr, /Korpus nicht eingefroren – Gold-Labels prüfen/); assert.doesNotMatch(run.stderr, /BUDGET|provider/);
+  // an old gate is never valid for a corpus that is not frozen now
+  const g = gateGueltig({ bestanden: true, bindung: { korpus_sha256: {}, app_commit: 'a' } }, { korpus_sha256: {}, app_commit: 'a', korpora_eingefroren: false });
+  assert.equal(g.gueltig, false); assert.ok(g.gruende.includes('korpus-nicht-eingefroren'));
 });

@@ -261,7 +261,26 @@ export function ladeKorpus(file) {
   const faelle = j.eintraege || j.faelle || [];
   // corpus A says "jedes Element muss vorkommen"; corpus B means "mindestens ein Stamm" (PR W1c)
   const modus = /jedes Element/.test(String(kopf.anker_regeln || '')) ? 'alle' : 'eines';
-  return { name: file.split('/').pop(), sha256: createHash('sha256').update(text, 'utf8').digest('hex'), kopf, faelle, modus, frozen: !!kopf.frozen_by };
+  const fz = eingefroren(kopf, faelle);
+  return { name: file.split('/').pop(), sha256: createHash('sha256').update(text, 'utf8').digest('hex'), kopf, faelle, modus, frozen: fz.ok, freeze_fehlt: fz.gruende };
+}
+/** The text the harness says, and the reason, when a corpus is not frozen by a person (decision 2026-11-10: a run-time rule). */
+export const NICHT_EINGEFROREN = 'Korpus nicht eingefroren – Gold-Labels prüfen';
+/** Frozen by a person: frozen_by and frozen_at in the head, the head's sha256 over the entries (hash_regel) matches, no open
+ *  entry ("pruefen"). Only then a real run may spend money on it and a gate may say "bestanden". */
+export function eingefroren(kopf, faelle) {
+  const gruende = [];
+  if (!(typeof kopf.frozen_by === 'string' && kopf.frozen_by.trim().length > 1)) gruende.push('frozen_by fehlt');
+  if (!/^\d{4}-\d{2}-\d{2}/.test(String(kopf.frozen_at || ''))) gruende.push('frozen_at fehlt');
+  if (kopf.sha256 !== createHash('sha256').update(JSON.stringify(faelle), 'utf8').digest('hex')) gruende.push('sha256 passt nicht zum Inhalt');
+  const offen = faelle.filter((f) => f.pruefen !== undefined).length;
+  if (offen) gruende.push(offen + ' Einträge mit pruefen');
+  return { ok: gruende.length === 0, gruende };
+}
+/** For a real run: null when every corpus is frozen, else the message the harness prints before it stops. */
+export function freezeSperre(korpora) {
+  const off = korpora.filter((k) => !k.frozen);
+  return off.length ? NICHT_EINGEFROREN + ': ' + off.map((k) => `${k.name} (${k.freeze_fehlt.join(', ')})`).join('; ') : null;
 }
 /** The hash a record must carry for a case: what was asked (sentence, chip, language). */
 export const requestHash = (f) => createHash('sha256').update(JSON.stringify([f.satz, f.genre_gewaehlt || null, f.lang || 'de']), 'utf8').digest('hex');
@@ -366,9 +385,11 @@ export function bindung({ korpora, modell }) {
   try { wrapper = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: fileURLToPath(new URL('..', import.meta.url)), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { wrapper = ''; }
   return { app_commit: app, wrapper_commit: wrapper, korpus_sha256: Object.fromEntries(korpora.map((k) => [k.name, k.sha256])), modell };
 }
-/** Is a gate.json still valid for what is checked out now? Corpus hashes, app commit and model must be the same. */
+/** Is a gate.json still valid for what is checked out now? Corpus hashes, app commit and model must be the same, and every
+ *  corpus checked out now frozen by a person (jetzt.korpora_eingefroren, when given). */
 export function gateGueltig(gate, jetzt) {
   const gruende = [];
+  if (jetzt.korpora_eingefroren === false) gruende.push('korpus-nicht-eingefroren');
   const a = (gate && gate.bindung) || {}, b = jetzt;
   for (const [name, sha] of Object.entries(b.korpus_sha256 || {})) if (!a.korpus_sha256 || a.korpus_sha256[name] !== sha) gruende.push('korpus:' + name);
   for (const name of Object.keys(a.korpus_sha256 || {})) if (!(b.korpus_sha256 || {})[name]) gruende.push('korpus-fehlt:' + name);
@@ -411,7 +432,7 @@ async function v21(opts) {
   const beleg = synth === 0 && k.offen === 0 && korpora.every((x) => x.frozen);
   const gate = {
     erstellt: new Date().toISOString(), bindung: bindung({ korpora, modell }), beleg,
-    beleg_fehlt: [...(synth ? [`${synth} synthetische Aufzeichnungen`] : []), ...(k.offen ? [`${k.offen} offen`] : []), ...korpora.filter((x) => !x.frozen).map((x) => `${x.name} nicht eingefroren`)],
+    beleg_fehlt: [...(synth ? [`${synth} synthetische Aufzeichnungen`] : []), ...(k.offen ? [`${k.offen} offen`] : []), ...korpora.filter((x) => !x.frozen).map((x) => `${x.name}: ${NICHT_EINGEFROREN} (${x.freeze_fehlt.join(', ')})`)],
     bestanden: beleg && verfehlt.length === 0, verfehlt, kennzahlen: k,
     richter_warnungen: richterWarnungen(rows, rec.map), verworfene_aufzeichnungen: rec.verworfen,
     ...(opts.stichprobe ? { stichprobe: stichprobe(rows, opts.stichprobe) } : {}),
@@ -429,10 +450,16 @@ async function main() {
   const gateFile = home(arg('gate', fileURLToPath(new URL('../reports/gate.json', import.meta.url))));
   if (has('pruefe-gate')) {
     const file = home(arg('pruefe-gate', gateFile)), gate = JSON.parse(readFileSync(file, 'utf8'));
-    const jetzt = bindung({ korpora: korpus.map(ladeKorpus), modell: arg('modell', (gate.bindung && gate.bindung.modell) || '') });
+    const ks = korpus.map(ladeKorpus), jetzt = { ...bindung({ korpora: ks, modell: arg('modell', (gate.bindung && gate.bindung.modell) || '') }), korpora_eingefroren: ks.every((k) => k.frozen) };
     const g = gateGueltig(gate, jetzt);
+    if (!jetzt.korpora_eingefroren) console.error(freezeSperre(ks));
     console.log(JSON.stringify({ gate: file, ...g, bestanden: !!gate.bestanden }));
     process.exit(g.gueltig ? 0 : 1);
+  }
+  // a real run of the gate costs money and judges against the gold labels: never on a corpus no person has frozen
+  if (has('v21') && !has('dry')) {
+    const sperre = freezeSperre(korpus.map(ladeKorpus));
+    if (sperre) { console.error(sperre); process.exit(2); }
   }
   if (!has('dry')) {
     const b = harnessBudget(process.env);
