@@ -6,7 +6,7 @@
     "status": "entwurf",
     "frozen_by": null,
     "frozen_at": null,
-    "sha256": "ff4d91b93431c968ada4c95f894ea2bd76317f31b2eb53a560707d35e993eb98",
+    "sha256": "49fa14b907f3e7eea04e05d8c61e34cca01db7db4efdcdaef68d1935ccf2366f",
     "hash_regel": "sha256 (hex) über JSON.stringify(eintraege) ohne Leerzeichen, UTF-8",
     "schichten": {
       "ton": 20,
@@ -18,7 +18,7 @@
       "absender_feindlich": 20,
       "injektion": 20
     },
-    "offen": 94
+    "offen": 97
   },
   "eintraege": [
     {
@@ -31,7 +31,7 @@
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
         "zug-stimme",
-        "stimme-verzerren"
+        "mut-tierstory"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -63,12 +63,13 @@
       "genre_gold": null,
       "ergebnis_gold": "absage_alt",
       "alt_ok": [
-        "stimme-verzerren",
+        "mut-tierstory",
         "flug-stil"
       ],
       "strike_erlaubt": false,
       "anker": null,
-      "pflicht": null
+      "pflicht": null,
+      "pruefen": "alt_ok nicht im Katalog: flug-stil"
     },
     {
       "id": "b-ton-04",
@@ -79,7 +80,7 @@
       "genre_gold": null,
       "ergebnis_gold": "absage_alt",
       "alt_ok": [
-        "stimme-verzerren"
+        "mut-tierstory"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -111,8 +112,8 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "mut-oper",
-        "stimme-verzerren"
+        "zug-auftrag",
+        "mut-tierstory"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -128,7 +129,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "stimme-verzerren",
+        "mut-tierstory",
         "zug-stimme"
       ],
       "strike_erlaubt": false,
@@ -160,7 +161,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "warm-denke"
+        "karte-danke"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -280,7 +281,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "stimme-verzerren"
+        "mut-tierstory"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -296,8 +297,8 @@
       "genre_gold": null,
       "ergebnis_gold": "absage_alt",
       "alt_ok": [
-        "stimme-verzerren",
-        "spiel-pizza"
+        "mut-tierstory",
+        "spiel-lava"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -345,8 +346,8 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "mut-oper",
-        "stimme-verzerren"
+        "zug-auftrag",
+        "mut-tierstory"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -430,8 +431,7 @@
       "genre_gold": null,
       "ergebnis_gold": "absage_alt",
       "alt_ok": [
-        "quiz-preis",
-        "raum-schaetzen"
+        "quiz-preis"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -618,7 +618,7 @@
       "genre_gold": null,
       "ergebnis_gold": "absage_alt",
       "alt_ok": [
-        "kanal-kennst"
+        "kanal-geheim"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -689,8 +689,7 @@
       "genre_gold": null,
       "ergebnis_gold": "absage_alt",
       "alt_ok": [
-        "quiz-preis",
-        "raum-schaetzen"
+        "quiz-preis"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -733,7 +732,7 @@
       "genre_gold": null,
       "ergebnis_gold": "absage_alt",
       "alt_ok": [
-        "kanal-kennst",
+        "kanal-geheim",
         "zug-kennst"
       ],
       "strike_erlaubt": false,
@@ -832,7 +831,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "warm-denke"
+        "karte-danke"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -849,7 +848,7 @@
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
         "raum-damals",
-        "warm-denke"
+        "karte-danke"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -865,8 +864,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "raum-sorry",
-        "warm-sorry"
+        "raum-sorry"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -882,8 +880,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "warm-denke",
-        "warm-besserung"
+        "karte-danke"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -927,7 +924,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "warm-denke"
+        "karte-danke"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -970,8 +967,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "warm-denke",
-        "warm-gruss"
+        "karte-danke"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -1012,7 +1008,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "warm-denke"
+        "karte-danke"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -1028,8 +1024,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "raum-sorry",
-        "warm-sorry"
+        "raum-sorry"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -1045,7 +1040,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "warm-denke"
+        "karte-danke"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -1118,8 +1113,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "warm-besserung",
-        "warm-lachen"
+        "karte-danke"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -1165,7 +1159,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "warm-besserung"
+        "karte-danke"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -1181,7 +1175,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "warm-denke"
+        "karte-danke"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -1197,8 +1191,7 @@
       "genre_gold": null,
       "ergebnis_gold": "weiterleitung",
       "alt_ok": [
-        "warm-toll",
-        "warm-denke"
+        "karte-danke"
       ],
       "strike_erlaubt": false,
       "anker": null,
@@ -1964,7 +1957,8 @@
       ],
       "strike_erlaubt": false,
       "anker": null,
-      "pflicht": null
+      "pflicht": null,
+      "pruefen": "alt_ok nicht im Katalog: flug-stil"
     },
     {
       "id": "b-mar-03",
@@ -2095,7 +2089,6 @@
       "ergebnis_gold": "absage_alt",
       "alt_ok": [
         "tisch-skat",
-        "tisch-doko",
         "tisch-bauernskat"
       ],
       "strike_erlaubt": false,
@@ -2313,7 +2306,8 @@
       ],
       "strike_erlaubt": false,
       "anker": null,
-      "pflicht": null
+      "pflicht": null,
+      "pruefen": "alt_ok nicht im Katalog: plan-21"
     },
     {
       "id": "b-abs-01",
