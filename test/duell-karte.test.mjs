@@ -256,7 +256,7 @@ test('W3 ability catalog: built from the app catalog, no arcade, no gated card, 
   assert.ok(ideas.filter((i) => i.turn && !UNPROVEN.has(i.id)).every((i) => CAP_IDS.includes(i.id)), 'every turn card of the app is an ability');
   assert.deepEqual(PHYSIK, WELT.physik, 'the flight deltas are the AI kind welt\'s');
   assert.ok(CARD_SYSTEM[1].text.includes('zug-termin (termin)'), 'the catalog sits in the cached prefix');
-  assert.deepEqual(ARTS, ['card', 'meme', 'game', 'sound', 'quiz', 'faehigkeit']);
+  assert.deepEqual(ARTS, ['card', 'meme', 'game', 'sound', 'quiz', 'faehigkeit', 'lauf']);
 });
 
 test('W3 compose: every art becomes a doc the app keeps as it is, numbers and seed from the server, links fit', () => {

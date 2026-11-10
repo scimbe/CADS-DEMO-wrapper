@@ -1,13 +1,13 @@
 {
   "repo": "scimbe/CADS-agent-marketplace",
   "path": "apps/duell-web/src",
-  "commit": "2b374433b48dd98e2d60f3d826b9b5d0eff55c1c",
+  "commit": "2f760795b52e68a2fbfcad2d33d17cc8845a7eb3",
   "files": {
     "core.js": {
       "sha256": "9e81a521136321b1a302dcaf43ec69ced05c4237e323a9a89d38527097a0ed7b"
     },
     "daily.js": {
-      "sha256": "21ea7c54ba0b0ce364d5aba2fa9ea4d0480216528f27e6b88788408990b72c41"
+      "sha256": "cd1a901805ca613aea0f9813598671a6db04ae5fd334731945933d722cd942c5"
     },
     "duel.js": {
       "sha256": "610cb113e41b6c03628a8e0c549ea39458c283cf9aba600c71364cb06b1a0c5e"
@@ -21,6 +21,12 @@
     "ideas.json": {
       "sha256": "b7b3f88b4cc7bca0220a55662e2fad0cd63df1800c55a69c6fdba2e57eca3cba"
     },
+    "lauf.js": {
+      "sha256": "bf7388eca33fa24b1be5ee980b8c0af872995920b478610c9b8385b6adc58c41"
+    },
+    "lauf-engine.js": {
+      "sha256": "e3b470abf706cfd928a0cbed6a9e28a4023c2294b0d515a30ff0fd1fa31bb396"
+    },
     "quest.js": {
       "sha256": "1f628675b3946e6beedb0deaf69cfccf89b09a5763878b043b74b38641373e78"
     },
@@ -28,7 +34,7 @@
       "sha256": "2b7d5050462fc975014c03b2f47aacf76315b4aaa010f9cb73f9e9b57b7b8959"
     },
     "texts.json": {
-      "sha256": "a85e6865795124623c6519ecb834e0e7a66ff7f6d67e1cf5ec998cb4d18dbfb5"
+      "sha256": "5fa51ed182a9804748c77df00f9f6790db2f8ed4f7b5d859cfe88754ca97878e"
     },
     "turn.json": {
       "sha256": "5941e3bc34924f7d821170fc1cd8aee61a2affa7d09acab39aa23902a0a227c0"

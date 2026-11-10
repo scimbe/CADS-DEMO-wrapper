@@ -1,0 +1,21 @@
+{
+  "note": "Golden set for the free card's game matching (lib/duell-karte.mjs engineOf): which engine a game wish lands in. lauf = runner/platformer (second engine), flug = flying game, notyet:<name> = honestly not yet. User report 10.11.2026: 'Endless Runner über Brücken' became the flying game.",
+  "wishes": [
+    ["Endless Runner über Brücken", "lauf"],
+    ["Ein Jump'n'Run mit Ziel im Wald", "lauf"],
+    ["Plattformer in einer Lava-Welt", "lauf"],
+    ["Mein Hund rennt durch die Stadt und springt über Kisten", "lauf"],
+    ["Ein Frosch hüpft über Baumstämme", "lauf"],
+    ["Jump and Run mit fliegenden Gegnern", "lauf"],
+    ["endless runner across bridges at night", "lauf"],
+    ["a platformer where a robot collects stars", "lauf"],
+    ["Unter Wasser mit Fischen, dann ein Sturm", "flug"],
+    ["Ein Drache fliegt durch die Nacht", "flug"],
+    ["Flappy-Spiel mit einer Rakete", "flug"],
+    ["a bird flying over the ocean", "flug"],
+    ["Ein Weltraum-Abenteuer mit Kometen", "flug"],
+    ["Schach gegen meinen Bruder", "notyet:Schach"],
+    ["Ein Rennspiel mit Autos", "notyet:Rennspiel"],
+    ["Bowling mit Freunden", "notyet:Bowling"]
+  ]
+}
