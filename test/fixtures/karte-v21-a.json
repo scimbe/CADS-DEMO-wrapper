@@ -206,7 +206,7 @@
       ]
     },
     "pole_hinweis": "Entwurf der stabilen Pol-IDs für skala.json (A5a). A5a übernimmt diese IDs oder der Korpus wird vor dem Freeze angepasst.",
-    "foto_regel": "foto:'lokal' = Satz nennt ein eigenes Foto. Das Bild bleibt am Gerät; an den Empfänger geht nur das Mosaik im Link-Fragment, nie Bildbytes an den Server."
+    "foto_regel": "foto:'lokal' = Karte, deren Figur (Tier, Gegenstand) der Absender über die Blase durch ein eigenes Foto ersetzen kann; der Satz selbst nennt kein Foto. Das Bild bleibt am Gerät; an den Empfänger geht nur das Mosaik im Link-Fragment, nie Bildbytes an den Server."
   },
   "eintraege": [
     {"id": "a-klar-g1-01", "satz": "Flappy-Spiel mit einem fliegenden Döner", "lang": "de", "schicht": "klar", "genre_gewaehlt": "G1", "genre_gold": "G1", "ergebnis_gold": "karte", "alt_ok": [], "strike_erlaubt": false, "anker": {"welt": ["day", "night", "sunset", "retro", "candy", "neon", "ocean", "lava"], "thema_stamm": ["döner"], "pole_ids": [], "verboten": ["lauf", "renn", "runner", "quiz", "schätz", "skala", "gelogen", "lüge"]}, "pflicht": "G1", "foto": "lokal"},

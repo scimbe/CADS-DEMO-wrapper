@@ -62,6 +62,7 @@ for (const [name, K] of KORPORA) {
       if (e.absage_key !== undefined) assert.ok(e.absage_key === null || ABSAGE_KEYS.includes(e.absage_key), `${e.id}: absage_key`);
       if (e.alt_genre !== undefined) assert.ok(e.alt_genre.every((g) => GENRES.includes(g)), `${e.id}: alt_genre`);
       if (e.foto !== undefined) assert.equal(e.foto, 'lokal', `${e.id}: foto bleibt am Gerät`);
+      if (e.foto !== undefined) assert.equal(e.ergebnis_gold, 'karte', `${e.id}: foto nur an einer Karte`);
       if (e.ergebnis_gold === 'karte') {
         assert.ok(e.genre_gold, `${e.id}: karte ohne genre_gold`);
         const a = e.anker;
