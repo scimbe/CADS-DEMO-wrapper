@@ -1,13 +1,13 @@
 {
   "repo": "scimbe/CADS-agent-marketplace",
   "path": "apps/duell-web/src",
-  "commit": "2b374433b48dd98e2d60f3d826b9b5d0eff55c1c",
+  "commit": "f50431384ddbb8157c4dc84aa8c3518d1bca6f61",
   "files": {
     "core.js": {
-      "sha256": "9e81a521136321b1a302dcaf43ec69ced05c4237e323a9a89d38527097a0ed7b"
+      "sha256": "69fa5292825ae5ebc5029ad7a42edc63013c2d6167717a43529f59f4527b667d"
     },
     "daily.js": {
-      "sha256": "21ea7c54ba0b0ce364d5aba2fa9ea4d0480216528f27e6b88788408990b72c41"
+      "sha256": "81601ceb16960e17898fc92d7ad3b7b4c638013a37553d06fc22276cf64129b5"
     },
     "duel.js": {
       "sha256": "610cb113e41b6c03628a8e0c549ea39458c283cf9aba600c71364cb06b1a0c5e"
@@ -16,19 +16,25 @@
       "sha256": "cfe37b8b009e479da98cf4314691a3ccf9d2e955e0fd80cb6961d6e365a28d8f"
     },
     "engine.js": {
-      "sha256": "989ae07a24561ccb8e670bf7e3d9ed689f21dd4be667cc065553efad45192953"
+      "sha256": "46f49d5e145dd3a499d8ffcaa7ead0251e78084f8af7d9446314bdf510852232"
     },
     "ideas.json": {
-      "sha256": "b7b3f88b4cc7bca0220a55662e2fad0cd63df1800c55a69c6fdba2e57eca3cba"
+      "sha256": "47e309790d46f5630e0d1e4fa080886b2471214aa93666cd09deebf4cc6eb864"
+    },
+    "lauf.js": {
+      "sha256": "389f9c786574f7b9989f054d9a051c80710eccf7d94490c4d7bc84c7ef944079"
+    },
+    "lauf-engine.js": {
+      "sha256": "3845a4e3e253c4939fbd7cb61970846874f6726e981abee1cc815abb76e20da1"
     },
     "quest.js": {
       "sha256": "1f628675b3946e6beedb0deaf69cfccf89b09a5763878b043b74b38641373e78"
     },
     "quizpack.js": {
-      "sha256": "2b7d5050462fc975014c03b2f47aacf76315b4aaa010f9cb73f9e9b57b7b8959"
+      "sha256": "04156f01d6ed2c8efd6f542e9beb48300eb51a0cf91a0fddf6aede2efef04441"
     },
     "texts.json": {
-      "sha256": "a85e6865795124623c6519ecb834e0e7a66ff7f6d67e1cf5ec998cb4d18dbfb5"
+      "sha256": "c8821f6789387d0aa9240a0e6838e57dc71171d83ec3f90e47c77ec195bc99b0"
     },
     "turn.json": {
       "sha256": "5941e3bc34924f7d821170fc1cd8aee61a2affa7d09acab39aa23902a0a227c0"
@@ -37,7 +43,7 @@
       "sha256": "5982c85ec9127ed2d49246e978b6446740cc087efb774b43bb0f6f159b9f23a7"
     },
     "turn-ui.js": {
-      "sha256": "88b2c361e0a232c5fcbd2ceb6c9f3836693d2b846a175855bb139ebf5daac804"
+      "sha256": "c6031730575e12d4f78071ad5ad95e9667cf45d1a50675eecc47d8fa18a4a73a"
     }
   }
 }

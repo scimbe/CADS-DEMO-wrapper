@@ -52,7 +52,7 @@ test('Tabelle: feste Gruende, Gegenvorschlaege nur als Katalog-ID (per Mechanik 
   assert.equal(ABSAGE.tetris.alt.id, only((i) => i.turn && i.turn.g === 'steine'));
   assert.equal(ABSAGE.skat.alt.id, only((i) => i.table && i.table.game === 'skat'));
   assert.equal(ABSAGE.dart.alt.id, only((i) => i.kind === 'turn' && i.turn.g === 'dart'));
-  assert.equal(ABSAGE.flipper.alt.id, only((i) => i.kind === 'arcade' && i.arcade.g === 'flipper'));
+  assert.equal(ABSAGE.flipper.alt.id, only((i) => i.kind === 'arcade' && i.arcade.g === 'kick'), 'Regal 74: the carrier of Flipper and Puck');
   assert.equal(ABSAGE.pong.alt.kind, 'katalog');
   for (const k of ['match3', 'memory', 'puzzle', 'rhythmus']) assert.equal(ABSAGE[k].alt.kind, 'katalog', k);
   assert.equal(ABSAGE.shooter.alt, null);

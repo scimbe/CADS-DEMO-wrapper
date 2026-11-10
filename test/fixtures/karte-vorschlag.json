@@ -300,11 +300,11 @@
     "reason": "pong",
     "alt": {
      "kind": "katalog",
-     "id": "arcade-puck",
-     "satz": "Puck-Duell"
+     "id": "arcade-kick",
+     "satz": "Stangen-Kick"
     },
     "catalog": [
-     "arcade-puck"
+     "arcade-kick"
     ]
    }
   },
