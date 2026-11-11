@@ -1054,8 +1054,12 @@ test('Swarm: a card wish that needs a date, money or food chosen together goes t
   assert.deepEqual((await go('geld sammeln bernd geschenk 10 euro jeder')).catalog, ['zug-sammeln']);
   assert.ok((await go('pizza or chinese for xmas staff lunch')).catalog.includes('zug-einig'));
   assert.equal(llm.calls.length, 0, 'no model call for a catalog wish');
-  // a greeting, one's own appointment, and money under 18 stay a card (the model is asked)
-  for (const [text, age] of [['Danke an alle, die Geld gesammelt haben', 'a18'], ['vorsorge arzt termin nicht vergessen erinnerung', 'a18'], ['geld von allen für das geschenk einsammeln', 'u18']]) {
+  // under 18 money is said honestly (the gift plan without money), never a card that asks to pay
+  const young = await go('geld von allen für das geschenk einsammeln', 'u18');
+  assert.equal(young.notyet.what, 'feature'); assert.deepEqual(young.catalog, ['geschenk-finder', 'zug-wunschzettel']);
+  assert.deepEqual((await go('card that reminds my friends to pay me back for the pizza', 'u18')).catalog, []);
+  // a greeting and one's own appointment stay a card (the model is asked)
+  for (const [text, age] of [['Danke an alle, die Geld gesammelt haben', 'a18'], ['vorsorge arzt termin nicht vergessen erinnerung', 'a18']]) {
     const r = await go(text, age);
     assert.ok(!r.notyet, text);
   }
@@ -1065,4 +1069,17 @@ test('Swarm: Nigeria is no slur prefix; the slur with a doubled g still is', asy
   const { isBlocked } = await import('../lib/duell.mjs');
   assert.equal(isBlocked('quiz about nigeria and germany'), false); assert.equal(isBlocked('nigerian food'), false); assert.equal(isBlocked('Nigerianer in Hamburg'), false);
   assert.equal(isBlocked('nigger'), true); assert.equal(isBlocked('n1gg3r'), true); assert.equal(isBlocked('nigerr'), true);
+});
+
+test('Swarm: a harmless money wish that S3 still refuses is no strike (meme, under 18)', async () => {
+  const llm = fakeLlm({ card: { ok: false, title: '', top: '', bottom: '', st: 'meme' } });
+  const r = await K.run({ art: 'meme', text: 'meme für die die mir noch geld schulden vom ausflug, wer schon bezahlt hat', age: 'u18' }, 'de', { llm, seed: 1 });
+  assert.ok(r.notyet && !r.fail, JSON.stringify(r)); assert.equal(r.notyet.what, 'feature');
+  const hard = await K.run({ art: 'meme', text: 'meme über meinen hund', age: 'u18' }, 'de', { llm, seed: 1 });
+  assert.equal(hard.fail, 'unkind', 'a refusal without a money need stays as it was');
+});
+test('Swarm: S1 false alarms - an exam gone wrong, a negated "dumm", short breaks, 💊 by one\'s own tablets', () => {
+  for (const t of ['Karte für Lukas der seine Prüfung verhauen hat, soll ihm Mut machen', 'mathe total verhauen, mut machen', 'karte für mein enkelin mut machen sie ist nicht dumm du bist super',
+    'Erinnerung an genug Trinken und kurze Pausen im Nachtdienst', 'Karte Tabletten 💊 Blutdruck morgens']) assert.equal(K.s1(t), '', t);
+  for (const t of ['ich will tim verhauen', 'den mathelehrer verhauen', 'nach dem test tim verhauen', 'mein bruder ist dumm', 'kurze trinken auf der party', '💊 party pillen', 'karte mit 💊 und 🍺']) assert.ok(K.s1(t), t);
 });
