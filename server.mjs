@@ -31,6 +31,8 @@ import { createReports } from './lib/duell-report.mjs';
 import { createDeck } from './lib/duell-deck.mjs';
 import { createCredit } from './lib/duell-credit.mjs';
 import { createVouchers } from './lib/duell-voucher.mjs';
+import { createRelay } from './lib/duell-relay.mjs';
+import { createBearer } from './lib/oidc-bearer.mjs';
 import { createMod } from './lib/duell-mod.mjs';
 import { createWeather } from './lib/duell-weather.mjs';
 import { createStats } from './lib/duell-stat.mjs';
@@ -1088,6 +1090,7 @@ const CREDIT = createCredit(), MOD = createMod();
 const DECK = createDeck({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDIT, mod: MOD, blockLink: (id) => SHORT.block(id) });
 const VOUCHERS = createVouchers({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDIT }); // "Aufladen per Gutschein": codes only from DUELL_VOUCHERS
 Object.assign(DUELL.shared, { credit: CREDIT, mod: MOD, vouchers: VOUCHERS });
+const RELAY = createRelay({ shared: DUELL.shared, who: DUELL_AI.who, acctOf: DUELL_AI.acctOf, credit: CREDIT, bearer: createBearer() }); // file tool: TURN relay grant only with credit (cookie or app Bearer), lib/duell-relay.mjs
 const BILD = createBild({ shared: DUELL.shared, who: DUELL_AI.who, llm: DUELL_AI.cardLlm }); // KI-Bilder auf Wunsch (login, 30 s, checked before shown), lib/duell-bild.mjs
 const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id), onCard: DECK, onBild: BILD }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
 const DUELL_PROFILE = createDuellProfile({ auth: AUTH, shared: DUELL.shared }); // profile under "Mein Stil": account (16+) or sync code, lib/duell-profile.mjs
@@ -1111,6 +1114,7 @@ async function route(req, res) {
   if (await REPORTS.route(req, res, url)) return; // report, seal check (public); reviewer routes need DUELL_ADMIN_TOKEN
   if (await BILD.route(req, res, url)) return; // KI-Bilder: /api/duell/bild/* (login), /duell/bild/<id> (public by id), lib/duell-bild.mjs
   if (await VOUCHERS.route(req, res, url)) return; // POST /api/duell/credit/redeem (login), lib/duell-voucher.mjs
+  if (await RELAY.route(req, res, url)) return; // POST /api/duell/relay-grant (login: cookie or Bearer), lib/duell-relay.mjs
   if (await DECK.route(req, res, url)) return; // community deck (public), use/thumbs/credit/appeal (login), review (DUELL_ADMIN_TOKEN)
   if (await PUSH.route(req, res, url)) return; // push: key, subscribe, unsubscribe, wake (public, a mark is the only address; own limits)
   if (await STATS.route(req, res, url)) return; // card statistics (public, k-anonymous read; a vote counts only with a verified account)

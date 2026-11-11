@@ -65,6 +65,12 @@ services:
       # Gutscheine fuer die freie Karte (lib/duell-voucher.mjs): sha256hex:anzahl:jeKontoTag:gesamtTag:wiederholbar, nur hier, nie im Repo.
       - DUELL_VOUCHERS=${DUELL_VOUCHERS:-}
       - DUELL_VOUCHER_TRIES_PER_HOUR=${DUELL_VOUCHER_TRIES_PER_HOUR:-5}
+      # Datei rueber: TURN-Relais nur mit Guthaben (lib/duell-relay.mjs). Gleicher Wert wie DUELL_RELAY_GRANT_SECRET der
+      # webconference-Bridge (mind. 32 Zeichen); leer: keine Grants, Dateien nur direkt. Bearer-Login der Apps: lib/oidc-bearer.mjs.
+      - DUELL_RELAY_GRANT_SECRET=${DUELL_RELAY_GRANT_SECRET:-}
+      - DUELL_RELAY_GRANT_SECRET_FILE=${DUELL_RELAY_GRANT_SECRET_FILE:-}
+      - DUELL_BEARER_ISSUER=${DUELL_BEARER_ISSUER:-https://auth.bunsenbrenner.org/realms/ct-demo}
+      - DUELL_BEARER_AZP=${DUELL_BEARER_AZP:-cads-mobile}
       # Push als reines Wecksignal (lib/duell-push.mjs): ohne die drei VAPID-Werte ist alles aus. Schluessel: node bin/duell-vapid.mjs.
       # DUELL_PUSH_HOSTS nur fuer einen eigenen UnifiedPush-Server (ntfy); FCM, Mozilla, Apple und Windows stehen schon im Code.
       - DUELL_VAPID_PUBLIC=${DUELL_VAPID_PUBLIC:-}
