@@ -193,7 +193,7 @@ test('Preis: Bildtopf, dann Guthaben; Kontobild nur mit Guthaben; Fehler gibt Gu
 });
 
 test('Limits: pro Konto und Tag, Abbrechen in der Schlange erstattet', async () => {
-  const s = setup({ env: { DUELL_BILD_PER_DAY: '2', DUELL_BILD_PARALLEL: '1', DUELL_BILD_DEADLINE_MS: '5000' }, backend: fakeBackend({ ms: 200 }) }), h = await serve(s);
+  const s = setup({ env: { DUELL_BILD_PER_DAY: '2', DUELL_BILD_PARALLEL: '1', DUELL_BILD_DEADLINE_MS: '8000' }, backend: fakeBackend({ ms: 2000 }) }), h = await serve(s);
   try {
     await h.post('/api/duell/bild', P());
     const second = await h.post('/api/duell/bild', P('logo', 'ein Stern'));
