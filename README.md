@@ -276,6 +276,8 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
 | `DUELL_DECK_PER_OWNER_DAY` / `DUELL_DECK_USERS_MAX` / `DUELL_DECK_CARDS_MAX` | 20 / 20000 / 20000 | Registrierungen je Person und Tag / gespeicherte Konten je Karte / Karten insgesamt |
 | `DUELL_DECK_REVIEW_REQUIRED` | 1 | `0`: ein Mensch darf ohne KI-Nachpruefung entscheiden |
 | `DUELL_CREDIT_USE` / `_DECK` / `_CARD_CAP` / `_YEAR_CAP` | 2 / 3 / 8 / 30 | Guthaben (nur echte Nutzung, kein Grund fuer Reichweite) |
+| `DUELL_VOUCHERS` | leer (aus) | Gutscheine fuer die freie Karte, `POST /api/duell/credit/redeem` (Login): Komma-Liste `sha256hex:anzahl:jeKontoTag:gesamtTag:wiederholbar(1\|0)`; Hash ueber den Code in Grossbuchstaben ohne Leerraum aussen (`printf %s 'CODE' \| shasum -a 256`). Codes nur in der Umgebung, nie im Repo, nie im Log (nur 8 Zeichen des Hashs). Kostenobergrenze und `DUELL_CREATE_CALLS_PER_DAY` gelten weiter |
+| `DUELL_VOUCHER_TRIES_PER_HOUR` | 5 | falsche Codes je Konto und je IP pro Stunde, danach `limit` |
 | `DUELL_MOD_CARD_DOWN` / `_CARD_SHARE` / `_DOWN_DAYS` | 8 / 0.6 / 14 | Karte aus dem Deck nehmen und vorlegen (Daumen im Fenster, nie Sperre) |
 | `DUELL_MOD_HOLD_STRIKES` / `_STRIKE_DAYS` / `_PAUSE_STRIKES` / `_BAN_STRIKES` / `_PAUSE_DAYS` / `_APPEAL_DAYS` / `_REPORTS_HIDE` | 2 / 30 / 2 / 3 / 14 / 183 / 0 (aus) | Strikes aus vorlaeufigen Sperren / Fenster und Verfall / Pause / Vorlage zur Sperre / Dauer der Pause / Beschwerdefrist |
 | `DUELL_DECK_REPORT_ACCOUNTS` / `DUELL_DECK_REPORT_DAYS` | 3 / 7 | Meldungen verschiedener angemeldeter Konten fuer eine vorlaeufige Sperre |
