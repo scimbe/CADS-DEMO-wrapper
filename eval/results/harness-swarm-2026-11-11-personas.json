@@ -1,0 +1,1124 @@
+[
+ {
+  "id": "p01",
+  "lang": "en",
+  "age": 17,
+  "band": "16-17",
+  "life": "English-speaking teen of an expat family in Munich",
+  "gender": "m",
+  "region": "lebt in Deutschland",
+  "edu": "noch in der Schule",
+  "mig": "English native speaker",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)",
+   "schreibt alles klein, kaum Satzzeichen"
+  ]
+ },
+ {
+  "id": "p02",
+  "lang": "de",
+  "age": 16,
+  "band": "16-17",
+  "life": "Azubi Kfz-Mechatronik",
+  "gender": "m",
+  "region": "Sachsen (Sächsisch)",
+  "edu": "noch in der Schule",
+  "mig": "keiner",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "schreibt in Großbuchstaben, wenn aufgeregt",
+   "macht Tippfehler und korrigiert sie nicht"
+  ]
+ },
+ {
+  "id": "p03",
+  "lang": "de",
+  "age": 16,
+  "band": "16-17",
+  "life": "Schülerin/Schüler (Gymnasium)",
+  "gender": "d",
+  "region": "Köln/Rheinland (Kölsch-Einschlag)",
+  "edu": "noch in der Schule",
+  "mig": "keiner",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "stellt lieber eine Frage als eine Anweisung",
+   "schreibt wie in WhatsApp an Freunde"
+  ]
+ },
+ {
+  "id": "p04",
+  "lang": "de",
+  "age": 17,
+  "band": "16-17",
+  "life": "Azubi Friseurhandwerk",
+  "gender": "m",
+  "region": "Mecklenburg-Vorpommern",
+  "edu": "noch in der Schule",
+  "mig": "keiner",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "schreibt wie in WhatsApp an Freunde",
+   "schreibt höflich und vollständig"
+  ]
+ },
+ {
+  "id": "p05",
+  "lang": "en",
+  "age": 16,
+  "band": "16-17",
+  "life": "English-speaking teen of an expat family in Munich",
+  "gender": "m",
+  "region": "lebt in Deutschland",
+  "edu": "noch in der Schule",
+  "mig": "English native speaker",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)",
+   "stellt lieber eine Frage als eine Anweisung"
+  ]
+ },
+ {
+  "id": "p06",
+  "lang": "de",
+  "age": 16,
+  "band": "16-17",
+  "life": "Schülerin/Schüler (Gymnasium)",
+  "gender": "w",
+  "region": "Sachsen (Sächsisch)",
+  "edu": "noch in der Schule",
+  "mig": "aus Syrien, seit 8 Jahren hier, Deutsch B1",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "stellt lieber eine Frage als eine Anweisung",
+   "schreibt wie in WhatsApp an Freunde"
+  ]
+ },
+ {
+  "id": "p07",
+  "lang": "de",
+  "age": 17,
+  "band": "16-17",
+  "life": "Schülerin/Schüler (Realschule)",
+  "gender": "d",
+  "region": "Sachsen (Sächsisch)",
+  "edu": "noch in der Schule",
+  "mig": "italienische Familie, zweite Generation",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt alles klein, kaum Satzzeichen",
+   "nutzt gern Emojis"
+  ]
+ },
+ {
+  "id": "p08",
+  "lang": "en",
+  "age": 19,
+  "band": "18-24",
+  "life": "English-speaking teen of an expat family in Munich",
+  "gender": "d",
+  "region": "lebt in Deutschland",
+  "edu": "noch in der Schule",
+  "mig": "English native speaker",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt alles klein, kaum Satzzeichen",
+   "schreibt sehr kurz, Stichworte"
+  ]
+ },
+ {
+  "id": "p09",
+  "lang": "de",
+  "age": 19,
+  "band": "18-24",
+  "life": "Studentin/Student",
+  "gender": "w",
+  "region": "Hochdeutsch, kein Dialekt beim Schreiben",
+  "edu": "Abitur",
+  "mig": "aus der Ukraine, seit 3 Jahren hier, Deutsch A2-B1",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "stellt lieber eine Frage als eine Anweisung",
+   "schreibt wie in WhatsApp an Freunde"
+  ]
+ },
+ {
+  "id": "p10",
+  "lang": "de",
+  "age": 18,
+  "band": "18-24",
+  "life": "Schülerin/Schüler (Gymnasium)",
+  "gender": "w",
+  "region": "Hessen (Hessisch)",
+  "edu": "noch in der Schule",
+  "mig": "aus der Ukraine, seit 3 Jahren hier, Deutsch A2-B1",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)",
+   "schreibt sehr kurz, Stichworte"
+  ]
+ },
+ {
+  "id": "p11",
+  "lang": "de",
+  "age": 23,
+  "band": "18-24",
+  "life": "Erzieherin/Erzieher",
+  "gender": "w",
+  "region": "Bayern (Bairisch)",
+  "edu": "Abitur",
+  "mig": "italienische Familie, zweite Generation",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt wie in WhatsApp an Freunde",
+   "nutzt gern Emojis"
+  ]
+ },
+ {
+  "id": "p12",
+  "lang": "de",
+  "age": 19,
+  "band": "18-24",
+  "life": "Schülerin/Schüler (Gymnasium)",
+  "gender": "d",
+  "region": "Hochdeutsch, kein Dialekt beim Schreiben",
+  "edu": "noch in der Schule",
+  "mig": "keiner",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)",
+   "schreibt höflich und vollständig"
+  ]
+ },
+ {
+  "id": "p13",
+  "lang": "de",
+  "age": 19,
+  "band": "18-24",
+  "life": "Azubi Kfz-Mechatronik",
+  "gender": "w",
+  "region": "Berlin (Berlinerisch)",
+  "edu": "abgeschlossene Ausbildung",
+  "mig": "keiner",
+  "digital": "low",
+  "digitalText": "unsicher am Handy (tippt langsam, oft Diktierfunktion oder nur kurze Wörter, wenig Erfahrung mit Apps)",
+  "typing": [
+   "schreibt lang und erzählt drumherum",
+   "schreibt höflich und vollständig"
+  ]
+ },
+ {
+  "id": "p14",
+  "lang": "de",
+  "age": 22,
+  "band": "18-24",
+  "life": "Azubi Friseurhandwerk",
+  "gender": "w",
+  "region": "Hamburg/Norddeutsch (Platt-Einschlag)",
+  "edu": "abgeschlossene Ausbildung",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt in Großbuchstaben, wenn aufgeregt",
+   "stellt lieber eine Frage als eine Anweisung"
+  ]
+ },
+ {
+  "id": "p15",
+  "lang": "en",
+  "age": 22,
+  "band": "18-24",
+  "life": "Australian on a working holiday",
+  "gender": "d",
+  "region": "lebt in Deutschland",
+  "edu": "Studium",
+  "mig": "English native speaker",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "schreibt sehr kurz, Stichworte",
+   "schreibt höflich und vollständig"
+  ]
+ },
+ {
+  "id": "p16",
+  "lang": "de",
+  "age": 24,
+  "band": "18-24",
+  "life": "Fliesenleger/in",
+  "gender": "w",
+  "region": "Sachsen (Sächsisch)",
+  "edu": "Studium",
+  "mig": "aus Rumänien, Deutsch B1",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "schreibt alles klein, kaum Satzzeichen",
+   "schreibt in Großbuchstaben, wenn aufgeregt"
+  ]
+ },
+ {
+  "id": "p17",
+  "lang": "de",
+  "age": 21,
+  "band": "18-24",
+  "life": "Azubi Friseurhandwerk",
+  "gender": "m",
+  "region": "Berlin (Berlinerisch)",
+  "edu": "Mittlere Reife",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt sehr kurz, Stichworte",
+   "schreibt alles klein, kaum Satzzeichen"
+  ]
+ },
+ {
+  "id": "p18",
+  "lang": "de",
+  "age": 23,
+  "band": "18-24",
+  "life": "Studentin/Student",
+  "gender": "w",
+  "region": "Sachsen (Sächsisch)",
+  "edu": "Abitur",
+  "mig": "aus der Ukraine, seit 3 Jahren hier, Deutsch A2-B1",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "schreibt wie in WhatsApp an Freunde",
+   "schreibt alles klein, kaum Satzzeichen"
+  ]
+ },
+ {
+  "id": "p19",
+  "lang": "de",
+  "age": 28,
+  "band": "25-34",
+  "life": "Fliesenleger/in",
+  "gender": "m",
+  "region": "Köln/Rheinland (Kölsch-Einschlag)",
+  "edu": "Studium",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt alles klein, kaum Satzzeichen",
+   "nutzt gern Emojis"
+  ]
+ },
+ {
+  "id": "p20",
+  "lang": "de",
+  "age": 32,
+  "band": "25-34",
+  "life": "Elternteil mit kleinen Kindern",
+  "gender": "w",
+  "region": "Berlin (Berlinerisch)",
+  "edu": "abgeschlossene Ausbildung",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "stellt lieber eine Frage als eine Anweisung",
+   "macht Tippfehler und korrigiert sie nicht"
+  ]
+ },
+ {
+  "id": "p21",
+  "lang": "de",
+  "age": 32,
+  "band": "25-34",
+  "life": "Lkw-Fahrer/in",
+  "gender": "w",
+  "region": "Berlin (Berlinerisch)",
+  "edu": "Hauptschulabschluss",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt sehr kurz, Stichworte",
+   "schreibt in Großbuchstaben, wenn aufgeregt"
+  ]
+ },
+ {
+  "id": "p22",
+  "lang": "en",
+  "age": 31,
+  "band": "25-34",
+  "life": "Nigerian nurse in Hamburg, German B1",
+  "gender": "m",
+  "region": "lebt in Deutschland",
+  "edu": "Hauptschulabschluss",
+  "mig": "English native speaker",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt lang und erzählt drumherum",
+   "nutzt gern Emojis"
+  ]
+ },
+ {
+  "id": "p23",
+  "lang": "de",
+  "age": 29,
+  "band": "25-34",
+  "life": "Landwirt/in",
+  "gender": "w",
+  "region": "Hamburg/Norddeutsch (Platt-Einschlag)",
+  "edu": "Mittlere Reife",
+  "mig": "türkische Familie, in Deutschland geboren (Deutsch Muttersprache, manchmal Türkisch-Wörter)",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt sehr kurz, Stichworte",
+   "schreibt wie in WhatsApp an Freunde"
+  ]
+ },
+ {
+  "id": "p24",
+  "lang": "de",
+  "age": 25,
+  "band": "25-34",
+  "life": "Erzieherin/Erzieher",
+  "gender": "w",
+  "region": "Ruhrgebiet (Ruhrdeutsch)",
+  "edu": "Mittlere Reife",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)",
+   "schreibt alles klein, kaum Satzzeichen"
+  ]
+ },
+ {
+  "id": "p25",
+  "lang": "de",
+  "age": 29,
+  "band": "25-34",
+  "life": "Lehrkraft Grundschule",
+  "gender": "w",
+  "region": "Köln/Rheinland (Kölsch-Einschlag)",
+  "edu": "Studium",
+  "mig": "keiner",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)",
+   "schreibt wie in WhatsApp an Freunde"
+  ]
+ },
+ {
+  "id": "p26",
+  "lang": "de",
+  "age": 32,
+  "band": "25-34",
+  "life": "Arbeitssuchend",
+  "gender": "m",
+  "region": "Hochdeutsch, kein Dialekt beim Schreiben",
+  "edu": "Studium",
+  "mig": "aus Eritrea, Deutsch A2",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt gern Emojis",
+   "schreibt lang und erzählt drumherum"
+  ]
+ },
+ {
+  "id": "p27",
+  "lang": "de",
+  "age": 28,
+  "band": "25-34",
+  "life": "Studentin/Student",
+  "gender": "m",
+  "region": "Bayern (Bairisch)",
+  "edu": "Abitur",
+  "mig": "aus der Ukraine, seit 3 Jahren hier, Deutsch A2-B1",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)",
+   "schreibt sehr kurz, Stichworte"
+  ]
+ },
+ {
+  "id": "p28",
+  "lang": "de",
+  "age": 27,
+  "band": "25-34",
+  "life": "Fliesenleger/in",
+  "gender": "m",
+  "region": "Berlin (Berlinerisch)",
+  "edu": "Mittlere Reife",
+  "mig": "keiner",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)",
+   "schreibt alles klein, kaum Satzzeichen"
+  ]
+ },
+ {
+  "id": "p29",
+  "lang": "en",
+  "age": 25,
+  "band": "25-34",
+  "life": "Ghanaian student in Aachen",
+  "gender": "m",
+  "region": "lebt in Deutschland",
+  "edu": "Abitur",
+  "mig": "English native speaker",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "schreibt sehr kurz, Stichworte",
+   "nutzt gern Emojis"
+  ]
+ },
+ {
+  "id": "p30",
+  "lang": "de",
+  "age": 48,
+  "band": "35-49",
+  "life": "Landwirt/in",
+  "gender": "m",
+  "region": "Österreich (Wienerisch)",
+  "edu": "abgeschlossene Ausbildung",
+  "mig": "keiner",
+  "digital": "low",
+  "digitalText": "unsicher am Handy (tippt langsam, oft Diktierfunktion oder nur kurze Wörter, wenig Erfahrung mit Apps)",
+  "typing": [
+   "schreibt wie in WhatsApp an Freunde",
+   "nutzt gern Emojis"
+  ]
+ },
+ {
+  "id": "p31",
+  "lang": "de",
+  "age": 48,
+  "band": "35-49",
+  "life": "Lkw-Fahrer/in",
+  "gender": "w",
+  "region": "Bayern (Bairisch)",
+  "edu": "Hauptschulabschluss",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)",
+   "macht Tippfehler und korrigiert sie nicht"
+  ]
+ },
+ {
+  "id": "p32",
+  "lang": "de",
+  "age": 36,
+  "band": "35-49",
+  "life": "Pflegefachkraft im Schichtdienst",
+  "gender": "w",
+  "region": "Mecklenburg-Vorpommern",
+  "edu": "Mittlere Reife",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt alles klein, kaum Satzzeichen",
+   "schreibt sehr kurz, Stichworte"
+  ]
+ },
+ {
+  "id": "p33",
+  "lang": "de",
+  "age": 44,
+  "band": "35-49",
+  "life": "Arbeitssuchend",
+  "gender": "m",
+  "region": "Bayern (Bairisch)",
+  "edu": "Mittlere Reife",
+  "mig": "keiner",
+  "digital": "low",
+  "digitalText": "unsicher am Handy (tippt langsam, oft Diktierfunktion oder nur kurze Wörter, wenig Erfahrung mit Apps)",
+  "typing": [
+   "macht Tippfehler und korrigiert sie nicht",
+   "schreibt lang und erzählt drumherum"
+  ]
+ },
+ {
+  "id": "p34",
+  "lang": "de",
+  "age": 41,
+  "band": "35-49",
+  "life": "Alleinerziehend, Teilzeit im Einzelhandel",
+  "gender": "m",
+  "region": "Hochdeutsch, kein Dialekt beim Schreiben",
+  "edu": "Mittlere Reife",
+  "mig": "aus Syrien, seit 8 Jahren hier, Deutsch B1",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "schreibt alles klein, kaum Satzzeichen",
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)"
+  ]
+ },
+ {
+  "id": "p35",
+  "lang": "de",
+  "age": 38,
+  "band": "35-49",
+  "life": "Pflegefachkraft im Schichtdienst",
+  "gender": "m",
+  "region": "Hochdeutsch, kein Dialekt beim Schreiben",
+  "edu": "Hauptschulabschluss",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt gern Emojis",
+   "schreibt in Großbuchstaben, wenn aufgeregt"
+  ]
+ },
+ {
+  "id": "p36",
+  "lang": "en",
+  "age": 38,
+  "band": "35-49",
+  "life": "Scottish teacher at an international school",
+  "gender": "m",
+  "region": "lebt in Deutschland",
+  "edu": "Studium",
+  "mig": "English native speaker",
+  "digital": "low",
+  "digitalText": "unsicher am Handy (tippt langsam, oft Diktierfunktion oder nur kurze Wörter, wenig Erfahrung mit Apps)",
+  "typing": [
+   "schreibt sehr kurz, Stichworte",
+   "schreibt alles klein, kaum Satzzeichen"
+  ]
+ },
+ {
+  "id": "p37",
+  "lang": "de",
+  "age": 38,
+  "band": "35-49",
+  "life": "Lkw-Fahrer/in",
+  "gender": "m",
+  "region": "Schweiz (Schweizerdeutsch, schreibt ss statt ß)",
+  "edu": "Mittlere Reife",
+  "mig": "aus der Ukraine, seit 3 Jahren hier, Deutsch A2-B1",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt gern Emojis",
+   "stellt lieber eine Frage als eine Anweisung"
+  ]
+ },
+ {
+  "id": "p38",
+  "lang": "de",
+  "age": 46,
+  "band": "35-49",
+  "life": "Pflegefachkraft im Schichtdienst",
+  "gender": "w",
+  "region": "Hochdeutsch, kein Dialekt beim Schreiben",
+  "edu": "Mittlere Reife",
+  "mig": "aus Polen, Deutsch B2",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "schreibt höflich und vollständig",
+   "schreibt in Großbuchstaben, wenn aufgeregt"
+  ]
+ },
+ {
+  "id": "p39",
+  "lang": "de",
+  "age": 40,
+  "band": "35-49",
+  "life": "Pflegefachkraft im Schichtdienst",
+  "gender": "m",
+  "region": "Köln/Rheinland (Kölsch-Einschlag)",
+  "edu": "Abitur",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt gern Emojis",
+   "schreibt höflich und vollständig"
+  ]
+ },
+ {
+  "id": "p40",
+  "lang": "de",
+  "age": 37,
+  "band": "35-49",
+  "life": "Elternteil mit kleinen Kindern",
+  "gender": "w",
+  "region": "Hochdeutsch, kein Dialekt beim Schreiben",
+  "edu": "Mittlere Reife",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt höflich und vollständig",
+   "nutzt gern Emojis"
+  ]
+ },
+ {
+  "id": "p41",
+  "lang": "de",
+  "age": 43,
+  "band": "35-49",
+  "life": "Bürokaufmann/-frau",
+  "gender": "m",
+  "region": "Ruhrgebiet (Ruhrdeutsch)",
+  "edu": "Abitur",
+  "mig": "aus Eritrea, Deutsch A2",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "schreibt lang und erzählt drumherum",
+   "schreibt höflich und vollständig"
+  ]
+ },
+ {
+  "id": "p42",
+  "lang": "de",
+  "age": 62,
+  "band": "50-64",
+  "life": "Erzieherin/Erzieher",
+  "gender": "d",
+  "region": "Österreich (Wienerisch)",
+  "edu": "Hauptschulabschluss",
+  "mig": "aus Polen, Deutsch B2",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt gern Emojis",
+   "schreibt sehr kurz, Stichworte"
+  ]
+ },
+ {
+  "id": "p43",
+  "lang": "en",
+  "age": 56,
+  "band": "50-64",
+  "life": "Nigerian nurse in Hamburg, German B1",
+  "gender": "m",
+  "region": "lebt in Deutschland",
+  "edu": "Studium",
+  "mig": "English native speaker",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt lang und erzählt drumherum",
+   "schreibt wie in WhatsApp an Freunde"
+  ]
+ },
+ {
+  "id": "p44",
+  "lang": "de",
+  "age": 57,
+  "band": "50-64",
+  "life": "Selbständig mit kleinem Café",
+  "gender": "m",
+  "region": "Hamburg/Norddeutsch (Platt-Einschlag)",
+  "edu": "abgeschlossene Ausbildung",
+  "mig": "keiner",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "schreibt alles klein, kaum Satzzeichen",
+   "schreibt sehr kurz, Stichworte"
+  ]
+ },
+ {
+  "id": "p45",
+  "lang": "de",
+  "age": 63,
+  "band": "50-64",
+  "life": "Landwirt/in",
+  "gender": "d",
+  "region": "Schwaben (Schwäbisch)",
+  "edu": "abgeschlossene Ausbildung",
+  "mig": "türkische Familie, in Deutschland geboren (Deutsch Muttersprache, manchmal Türkisch-Wörter)",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt lang und erzählt drumherum",
+   "stellt lieber eine Frage als eine Anweisung"
+  ]
+ },
+ {
+  "id": "p46",
+  "lang": "de",
+  "age": 57,
+  "band": "50-64",
+  "life": "Bürokaufmann/-frau",
+  "gender": "w",
+  "region": "Sachsen (Sächsisch)",
+  "edu": "Studium",
+  "mig": "aus Syrien, seit 8 Jahren hier, Deutsch B1",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt gern Emojis",
+   "schreibt wie in WhatsApp an Freunde"
+  ]
+ },
+ {
+  "id": "p47",
+  "lang": "de",
+  "age": 62,
+  "band": "50-64",
+  "life": "Pfarrsekretär/in",
+  "gender": "w",
+  "region": "Berlin (Berlinerisch)",
+  "edu": "Hauptschulabschluss",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "macht Tippfehler und korrigiert sie nicht",
+   "schreibt lang und erzählt drumherum"
+  ]
+ },
+ {
+  "id": "p48",
+  "lang": "de",
+  "age": 55,
+  "band": "50-64",
+  "life": "Bürokaufmann/-frau",
+  "gender": "w",
+  "region": "Sachsen (Sächsisch)",
+  "edu": "Mittlere Reife",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt sehr kurz, Stichworte",
+   "nutzt gern Emojis"
+  ]
+ },
+ {
+  "id": "p49",
+  "lang": "de",
+  "age": 62,
+  "band": "50-64",
+  "life": "Fliesenleger/in",
+  "gender": "m",
+  "region": "Österreich (Wienerisch)",
+  "edu": "abgeschlossene Ausbildung",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt in Großbuchstaben, wenn aufgeregt",
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)"
+  ]
+ },
+ {
+  "id": "p50",
+  "lang": "en",
+  "age": 61,
+  "band": "50-64",
+  "life": "Scottish teacher at an international school",
+  "gender": "m",
+  "region": "lebt in Deutschland",
+  "edu": "Studium",
+  "mig": "English native speaker",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt gern Emojis",
+   "schreibt höflich und vollständig"
+  ]
+ },
+ {
+  "id": "p51",
+  "lang": "de",
+  "age": 53,
+  "band": "50-64",
+  "life": "Landwirt/in",
+  "gender": "d",
+  "region": "Sachsen (Sächsisch)",
+  "edu": "Mittlere Reife",
+  "mig": "aus Syrien, seit 8 Jahren hier, Deutsch B1",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "schreibt wie in WhatsApp an Freunde",
+   "nutzt gern Emojis"
+  ]
+ },
+ {
+  "id": "p52",
+  "lang": "de",
+  "age": 54,
+  "band": "50-64",
+  "life": "Pflegefachkraft im Schichtdienst",
+  "gender": "m",
+  "region": "Köln/Rheinland (Kölsch-Einschlag)",
+  "edu": "Abitur",
+  "mig": "keiner",
+  "digital": "low",
+  "digitalText": "unsicher am Handy (tippt langsam, oft Diktierfunktion oder nur kurze Wörter, wenig Erfahrung mit Apps)",
+  "typing": [
+   "stellt lieber eine Frage als eine Anweisung",
+   "schreibt wie in WhatsApp an Freunde"
+  ]
+ },
+ {
+  "id": "p53",
+  "lang": "de",
+  "age": 71,
+  "band": "65-74",
+  "life": "Vorsitz Kleingartenverein",
+  "gender": "w",
+  "region": "Hochdeutsch, kein Dialekt beim Schreiben",
+  "edu": "Abitur",
+  "mig": "keiner",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "schreibt höflich und vollständig",
+   "schreibt sehr kurz, Stichworte"
+  ]
+ },
+ {
+  "id": "p54",
+  "lang": "de",
+  "age": 72,
+  "band": "65-74",
+  "life": "Rentner/in, lebt allein",
+  "gender": "m",
+  "region": "Köln/Rheinland (Kölsch-Einschlag)",
+  "edu": "Mittlere Reife",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)",
+   "macht Tippfehler und korrigiert sie nicht"
+  ]
+ },
+ {
+  "id": "p55",
+  "lang": "de",
+  "age": 71,
+  "band": "65-74",
+  "life": "Rentner/in, aktiv im Chor",
+  "gender": "m",
+  "region": "Sachsen (Sächsisch)",
+  "edu": "Hauptschulabschluss",
+  "mig": "italienische Familie, zweite Generation",
+  "digital": "low",
+  "digitalText": "unsicher am Handy (tippt langsam, oft Diktierfunktion oder nur kurze Wörter, wenig Erfahrung mit Apps)",
+  "typing": [
+   "schreibt wie in WhatsApp an Freunde",
+   "schreibt alles klein, kaum Satzzeichen"
+  ]
+ },
+ {
+  "id": "p56",
+  "lang": "de",
+  "age": 66,
+  "band": "65-74",
+  "life": "Rentner/in, aktiv im Chor",
+  "gender": "m",
+  "region": "Ruhrgebiet (Ruhrdeutsch)",
+  "edu": "abgeschlossene Ausbildung",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt gern Emojis",
+   "schreibt höflich und vollständig"
+  ]
+ },
+ {
+  "id": "p57",
+  "lang": "en",
+  "age": 71,
+  "band": "65-74",
+  "life": "Canadian retiree living near the grandchildren in Germany",
+  "gender": "m",
+  "region": "lebt in Deutschland",
+  "edu": "Mittlere Reife",
+  "mig": "English native speaker",
+  "digital": "low",
+  "digitalText": "unsicher am Handy (tippt langsam, oft Diktierfunktion oder nur kurze Wörter, wenig Erfahrung mit Apps)",
+  "typing": [
+   "stellt lieber eine Frage als eine Anweisung",
+   "schreibt in Großbuchstaben, wenn aufgeregt"
+  ]
+ },
+ {
+  "id": "p58",
+  "lang": "de",
+  "age": 69,
+  "band": "65-74",
+  "life": "Rentner/in, lebt allein",
+  "gender": "m",
+  "region": "Berlin (Berlinerisch)",
+  "edu": "abgeschlossene Ausbildung",
+  "mig": "aus der Ukraine, seit 3 Jahren hier, Deutsch A2-B1",
+  "digital": "high",
+  "digitalText": "sehr sicher (viele Apps, schreibt schnell, Abkürzungen)",
+  "typing": [
+   "schreibt wie in WhatsApp an Freunde",
+   "schreibt sehr kurz, Stichworte"
+  ]
+ },
+ {
+  "id": "p59",
+  "lang": "de",
+  "age": 71,
+  "band": "65-74",
+  "life": "Rentner/in, Großeltern von Enkeln",
+  "gender": "m",
+  "region": "Schwaben (Schwäbisch)",
+  "edu": "Hauptschulabschluss",
+  "mig": "aus Eritrea, Deutsch A2",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "macht Tippfehler und korrigiert sie nicht",
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)"
+  ]
+ },
+ {
+  "id": "p60",
+  "lang": "de",
+  "age": 70,
+  "band": "65-74",
+  "life": "Kassierer/in im Sportverein (ehrenamtlich)",
+  "gender": "m",
+  "region": "Baden (Badisch)",
+  "edu": "Abitur",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "schreibt lang und erzählt drumherum",
+   "stellt lieber eine Frage als eine Anweisung"
+  ]
+ },
+ {
+  "id": "p61",
+  "lang": "de",
+  "age": 76,
+  "band": "75-85",
+  "life": "Rentner/in, Großeltern von Enkeln",
+  "gender": "w",
+  "region": "Sachsen (Sächsisch)",
+  "edu": "Hauptschulabschluss",
+  "mig": "keiner",
+  "digital": "low",
+  "digitalText": "unsicher am Handy (tippt langsam, oft Diktierfunktion oder nur kurze Wörter, wenig Erfahrung mit Apps)",
+  "typing": [
+   "schreibt lang und erzählt drumherum",
+   "schreibt in Großbuchstaben, wenn aufgeregt"
+  ]
+ },
+ {
+  "id": "p62",
+  "lang": "de",
+  "age": 83,
+  "band": "75-85",
+  "life": "Rentner/in, lebt allein",
+  "gender": "d",
+  "region": "Schweiz (Schweizerdeutsch, schreibt ss statt ß)",
+  "edu": "Hauptschulabschluss",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt gern Emojis",
+   "schreibt sehr kurz, Stichworte"
+  ]
+ },
+ {
+  "id": "p63",
+  "lang": "de",
+  "age": 85,
+  "band": "75-85",
+  "life": "Rentner/in, Großeltern von Enkeln",
+  "gender": "w",
+  "region": "Köln/Rheinland (Kölsch-Einschlag)",
+  "edu": "Hauptschulabschluss",
+  "mig": "keiner",
+  "digital": "low",
+  "digitalText": "unsicher am Handy (tippt langsam, oft Diktierfunktion oder nur kurze Wörter, wenig Erfahrung mit Apps)",
+  "typing": [
+   "schreibt in Großbuchstaben, wenn aufgeregt",
+   "macht Tippfehler und korrigiert sie nicht"
+  ]
+ },
+ {
+  "id": "p64",
+  "lang": "de",
+  "age": 81,
+  "band": "75-85",
+  "life": "Rentner/in, lebt allein",
+  "gender": "m",
+  "region": "Thüringen",
+  "edu": "abgeschlossene Ausbildung",
+  "mig": "türkische Familie, in Deutschland geboren (Deutsch Muttersprache, manchmal Türkisch-Wörter)",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt gern Emojis",
+   "schreibt sehr kurz, Stichworte"
+  ]
+ },
+ {
+  "id": "p65",
+  "lang": "de",
+  "age": 83,
+  "band": "75-85",
+  "life": "Rentner/in, Großeltern von Enkeln",
+  "gender": "m",
+  "region": "Sachsen (Sächsisch)",
+  "edu": "Abitur",
+  "mig": "keiner",
+  "digital": "low",
+  "digitalText": "unsicher am Handy (tippt langsam, oft Diktierfunktion oder nur kurze Wörter, wenig Erfahrung mit Apps)",
+  "typing": [
+   "stellt lieber eine Frage als eine Anweisung",
+   "schreibt lang und erzählt drumherum"
+  ]
+ },
+ {
+  "id": "p66",
+  "lang": "de",
+  "age": 77,
+  "band": "75-85",
+  "life": "Rentner/in, lebt allein",
+  "gender": "w",
+  "region": "Mecklenburg-Vorpommern",
+  "edu": "Abitur",
+  "mig": "keiner",
+  "digital": "mid",
+  "digitalText": "normal (WhatsApp, Fotos, ein paar Apps)",
+  "typing": [
+   "nutzt gern Emojis",
+   "nutzt Diktierfunktion (keine Satzzeichen, Wörter falsch erkannt)"
+  ]
+ }
+]
