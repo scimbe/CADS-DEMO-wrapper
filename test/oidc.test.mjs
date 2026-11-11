@@ -4,13 +4,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign as cryptoSign, createPrivateKey } from 'node:crypto';
-import { createBearer, authHeader } from '../lib/oidc.mjs';
+import { createBearer, authHeader, createSubjectBinding } from '../lib/oidc.mjs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createAuth } from '../lib/auth.mjs';
 import { createDuell } from '../lib/duell.mjs';
 import { createDuellAi } from '../lib/duell-ai.mjs';
 
 const ISS = 'https://auth.example.org/realms/ct-demo';
 const ENV = { DEMO_OIDC_ISSUER: ISS, DEMO_OIDC_AUDIENCE: 'mydailyidea-api', DEMO_OIDC_CLIENT_IDS: 'cads-mobile' };
+const SALT = 'test-salt-0123456789';
+const bindFile = () => join(mkdtempSync(join(tmpdir(), 'oidc-bind-')), 'subjects.json');
+const freshBinding = () => createSubjectBinding({ file: bindFile(), salt: SALT });
+const ENVB = () => ({ ...ENV, DEMO_OIDC_BINDING_FILE: bindFile(), DEMO_OIDC_BINDING_SALT: SALT });
 const rsa = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const ec = generateKeyPairSync('ec', { namedCurve: 'P-256' });
 const rsa2 = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -44,7 +51,7 @@ function fakeJwks(initial = JWKS) {
   return f;
 }
 const mk = (o = {}) => { const j = o.jwks || fakeJwks(); let t = o.t ?? T0; const logs = [];
-  const b = createBearer({ env: { ...ENV, ...(o.env || {}) }, fetchImpl: j.fetch, now: () => t, log: (x) => logs.push(x) });
+  const b = createBearer({ env: { ...ENV, ...(o.env || {}) }, fetchImpl: j.fetch, now: () => t, log: (x) => logs.push(x), binding: o.binding || freshBinding() });
   return { b, j, logs, at: (x) => { t = x; } };
 };
 
@@ -56,7 +63,9 @@ test('config: off without env, all three together or refuse to start, https only
   }
   assert.throws(() => createBearer({ env: { ...ENV, DEMO_OIDC_ISSUER: 'http://auth.example.org/realms/x' } }), /https/);
   assert.throws(() => createBearer({ env: { ...ENV, DEMO_OIDC_JWKS_URL: 'http://auth.example.org/certs' } }), /https/);
-  assert.equal(createBearer({ env: ENV, fetchImpl: async () => { throw new Error('no network in tests'); } }).enabled, true);
+  assert.throws(() => createBearer({ env: ENV }), /DEMO_OIDC_BINDING_FILE/, 'no subject binding: refuses to start');
+  assert.throws(() => createBearer({ env: { ...ENVB(), DEMO_OIDC_BINDING_SALT: 'short' } }), /at least 16/);
+  assert.equal(createBearer({ env: ENVB(), fetchImpl: async () => { throw new Error('no network in tests'); } }).enabled, true);
 });
 
 test('valid RS256 and ES256 access tokens yield the e-mail; only signing keys of allowed kinds are loaded', async () => {
@@ -97,17 +106,20 @@ test('claims: iss, aud, azp, typ, binding, time with skew, verified e-mail', asy
     [{ iss: ISS + '/' }, 'iss'], [{ iss: 'https://evil.example/realms/ct-demo' }, 'iss'],
     [{ aud: 'account' }, 'aud'], [{ aud: undefined }, 'aud'], [{ aud: ['cads-mobile'] }, 'aud'],
     [{ azp: 'ct-portal' }, 'azp'], [{ azp: undefined }, 'azp'],
-    [{ typ: 'ID' }, 'typ'], [{ typ: 'Refresh' }, 'typ'], [{ typ: 'DPoP' }, 'typ'],
+    [{ typ: 'ID' }, 'typ'], [{ typ: 'Refresh' }, 'typ'], [{ typ: 'DPoP' }, 'typ'], [{ typ: undefined }, 'typ'],
+    [{ sub: undefined }, 'sub'], [{ sub: '' }, 'sub'], [{ sub: 7 }, 'sub'],
+    [{ iat: undefined }, 'iat'], [{ exp: sec + 901 }, 'lifetime'], [{ iat: sec - 1000, exp: sec + 10 }, 'lifetime'],
     [{ cnf: { jkt: 'abc' } }, 'bound'],
-    [{ exp: undefined }, 'exp'], [{ exp: sec - 31 }, 'exp'], [{ exp: String(sec + 300) }, 'exp'],
-    [{ nbf: sec + 31 }, 'nbf'], [{ iat: sec + 31 }, 'iat'],
+    [{ exp: undefined }, 'exp'], [{ exp: sec - 6, iat: sec - 300 }, 'exp'], [{ exp: String(sec + 300) }, 'exp'],
+    [{ nbf: sec + 6 }, 'nbf'], [{ iat: sec + 6, exp: sec + 306 }, 'iat'],
     [{ email: undefined }, 'email'], [{ email: 'share:abc' }, 'email'], [{ email: 'no-at-sign' }, 'email'], [{ email: 'a@' + 'b'.repeat(260) }, 'email'],
     [{ email_verified: false }, 'email-unverified'], [{ email_verified: 'true' }, 'email-unverified'], [{ email_verified: undefined }, 'email-unverified'],
   ];
   for (const [claims, reason] of cases) assert.equal((await b.verify(token(claims))).reason, reason, JSON.stringify(claims));
-  assert.equal((await b.verify(token({ exp: sec - 29 }))).email, 'Lea@Example.org', 'expiry within the skew');
-  assert.equal((await b.verify(token({ nbf: sec + 29 }))).email, 'Lea@Example.org');
-  const later = token(); at(T0 + 301_000 + 30_000);
+  assert.equal((await b.verify(token({ exp: sec - 4, iat: sec - 300 }))).email, 'Lea@Example.org', 'expiry within the 5 s skew');
+  assert.equal((await b.verify(token({ nbf: sec + 4 }))).email, 'Lea@Example.org');
+  assert.equal((await b.verify(token({ exp: sec + 900 }))).email, 'Lea@Example.org', '15 min is the longest lifetime');
+  const later = token(); at(T0 + 301_000 + 5_000);
   assert.equal((await b.verify(later)).reason, 'exp', 'a cached token still expires');
 });
 
@@ -115,7 +127,7 @@ test('JWKS: cached, refetched on a new kid at most every 30 s (rotation), fail c
   const j = fakeJwks({ keys: [jwk(rsa, 'r1', 'RS256')] });
   const { b, at } = mk({ jwks: j });
   assert.equal((await b.verify(token())).email, 'Lea@Example.org');
-  assert.equal((await b.verify(token({ sub: 'u2' }))).email, 'Lea@Example.org');
+  assert.equal((await b.verify(token({ jti: 'second' }))).email, 'Lea@Example.org');
   assert.equal(j.calls, 1, 'one fetch for many tokens');
   // rotation: Keycloak adds a new key; the first token with the new kid within 30 s of the last fetch is refused,
   // after that one refetch finds it. Random kids never cause more than one fetch per 30 s.
@@ -126,11 +138,11 @@ test('JWKS: cached, refetched on a new kid at most every 30 s (rotation), fail c
   at(T0 + 30_000);
   assert.equal((await b.verify(token({}, { kid: 'r2' }, rsa2.privateKey))).email, 'Lea@Example.org');
   assert.equal(j.calls, 2);
-  // Keycloak down: the cached keys keep working (stale, under a day), new kids are refused, nothing is "allowed" blindly
-  j.down = true; at(T0 + 700_000);
-  assert.equal((await b.verify(token({ sub: 'u3', exp: Math.floor(T0 / 1000) + 1000 }))).email, 'Lea@Example.org');
-  at(T0 + 86_400_000 + 60_000);
-  assert.deepEqual(await b.verify(token({ sub: 'u4', exp: Math.floor((T0 + 86_400_000 + 600_000) / 1000) })), { error: true }, 'keys older than a day are dropped');
+  // Keycloak down: the cached keys keep working (stale, under 2 h), new kids are refused, nothing is "allowed" blindly
+  const at2 = (ms) => { at(T0 + ms); const s0 = Math.floor((T0 + ms) / 1000); return { iat: s0, exp: s0 + 300 }; };
+  j.down = true;
+  assert.equal((await b.verify(token({ jti: 'u3', ...at2(700_000) }))).email, 'Lea@Example.org');
+  assert.deepEqual(await b.verify(token({ jti: 'u4', ...at2(2 * 3600_000 + 60_000) })), { error: true }, 'keys older than 2 h are dropped');
 
   const down = fakeJwks(); down.down = true;
   const m2 = mk({ jwks: down });
@@ -173,7 +185,7 @@ function mkAuth(o = {}) {
     return new Response(null, { status: 200, headers: { 'x-gate-email': 'lea@example.org' } });
   };
   const env = { ...GATE, ...(o.oidc === false ? {} : ENV) };
-  const a = createAuth({ env, fetchImpl, now: () => T0, log: () => {}, bearer: o.oidc === false ? undefined : createBearer({ env, fetchImpl: j.fetch, now: () => T0, log: () => {} }) });
+  const a = createAuth({ env, fetchImpl, now: () => T0, log: () => {}, bearer: o.oidc === false ? undefined : createBearer({ env, fetchImpl: j.fetch, now: () => T0, log: () => {}, binding: freshBinding() }) });
   return { a, gateCalls, j };
 }
 const req = (headers) => ({ method: 'POST', headers });
@@ -200,7 +212,7 @@ test('identify without DEMO_OIDC_*: the Authorization header is ignored, the coo
   assert.deepEqual(await a.identify(req({ authorization: 'Bearer ' + token(), cookie: 'ct_gate_session=t' })), { email: 'lea@example.org', via: 'cookie' });
   assert.equal(a.hasCredential(req({ authorization: 'Bearer x' })), false);
   assert.equal(gateCalls.length, 1);
-  assert.throws(() => createAuth({ env: { ...ENV } }), /DEMO_AUTH_MODE=gate/, 'app login needs gate mode');
+  assert.throws(() => createAuth({ env: ENVB() }), /DEMO_AUTH_MODE=gate/, 'app login needs gate mode');
 });
 
 test('guard: bearer passes the login check, shares the run limit with the cookie, 503 when the keys are unreachable', async () => {
@@ -211,7 +223,7 @@ test('guard: bearer passes the login check, shares the run limit with the cookie
   const { a } = mkAuth();
   assert.equal(await run(a, { authorization: 'Bearer ' + token({ email: 'lea@example.org' }) }), 200);
   assert.equal(await run(a, { cookie: 'ct_gate_session=tok' }), 200);
-  assert.equal(await run(a, { authorization: 'Bearer ' + token({ email: 'LEA@example.org', sub: 'x' }) }), 429, 'same account, same limit (case-insensitive)');
+  assert.equal(await run(a, { authorization: 'Bearer ' + token({ email: 'LEA@example.org', jti: 'x' }) }), 429, 'same account, same limit (case-insensitive)');
   assert.equal(await run(a, { authorization: 'Bearer ' + token({ azp: 'ct-portal' }) }), 401);
   const down = fakeJwks(); down.down = true;
   assert.equal(await run(mkAuth({ jwks: down }).a, { authorization: 'Bearer ' + token() }), 503);
@@ -231,4 +243,45 @@ test('My Daily Idea: the app token and the web cookie reach the same pot (lib/du
   assert.equal(web.key, app.key, 'one account, one key');
   const anon = await ai.who(req({ authorization: 'Bearer ' + token({ email_verified: false }) }), { device: 'b'.repeat(32) });
   assert.equal(anon.account, false);
+});
+
+test('subject binding: first (iss, sub) per address wins; another subject with the same address is refused; survives a restart', async () => {
+  const file = bindFile();
+  const { b } = mk({ binding: createSubjectBinding({ file, salt: SALT }) });
+  assert.equal((await b.verify(token())).email, 'Lea@Example.org');
+  assert.equal((await b.verify(token({ jti: 'again' }))).email, 'Lea@Example.org', 'same subject again');
+  assert.equal((await b.verify(token({ sub: 'u-other' }))).reason, 'subject-changed', 're-assigned address at an IdP cannot take over');
+  assert.equal((await b.verify(token({ sub: 'u-other', email: 'LEA@example.org' }))).reason, 'subject-changed', 'case does not help');
+  assert.equal((await b.verify(token({ sub: 'u2', email: 'tom@example.org' }))).email, 'tom@example.org', 'other address: own binding');
+  const raw = readFileSync(file, 'utf8');
+  assert.ok(!/lea|tom|example|u-other|u1/i.test(raw), 'no address or subject in clear: ' + raw);
+  // after a restart the binding is still there
+  const { b: b2 } = mk({ binding: createSubjectBinding({ file, salt: SALT }) });
+  assert.equal((await b2.verify(token({ sub: 'u-other', jti: 'r' }))).reason, 'subject-changed');
+  assert.equal((await b2.verify(token({ jti: 'r2' }))).email, 'Lea@Example.org');
+  // a broken file stops the start instead of forgetting every binding
+  writeFileSync(file, '{"v":2}');
+  assert.throws(() => createSubjectBinding({ file, salt: SALT }), /not a binding file/);
+  // an unwritable file: the new binding is not accepted (fail closed)
+  const ro = createSubjectBinding({ file: join(bindFile(), 'missing-dir', 'x.json'), salt: SALT });
+  const { b: b3 } = mk({ binding: ro });
+  assert.equal((await b3.verify(token())).reason, 'subject-changed');
+});
+
+test('JWKS: concurrent first requests wait for the one running fetch; the body is capped while streaming', async () => {
+  let release, calls = 0;
+  const gate = new Promise((r) => { release = r; });
+  const slow = async () => { calls++; await gate; return new Response(JSON.stringify(JWKS), { status: 200 }); };
+  const b = createBearer({ env: ENV, fetchImpl: slow, now: () => T0, log: () => {}, binding: freshBinding() });
+  const both = Promise.all([b.verify(token()), b.verify(token({ jti: 'p2' }))]);
+  release();
+  assert.deepEqual((await both).map((r) => r.email), ['Lea@Example.org', 'Lea@Example.org'], 'no 503 for the second request');
+  assert.equal(calls, 1);
+  let pulled = 0;
+  const huge = async () => new Response(new ReadableStream({ pull(c) { pulled++; if (pulled > 1000) { c.close(); return; } c.enqueue(new Uint8Array(16384)); } }), { status: 200 });
+  const b2 = createBearer({ env: ENV, fetchImpl: huge, now: () => T0, log: () => {}, binding: freshBinding() });
+  assert.deepEqual(await b2.verify(token()), { error: true });
+  assert.ok(pulled < 10, 'stopped reading after the cap, pulled ' + pulled);
+  const declared = async () => new Response('{}', { status: 200, headers: { 'content-length': '999999' } });
+  assert.deepEqual(await createBearer({ env: ENV, fetchImpl: declared, now: () => T0, log: () => {}, binding: freshBinding() }).verify(token()), { error: true });
 });
