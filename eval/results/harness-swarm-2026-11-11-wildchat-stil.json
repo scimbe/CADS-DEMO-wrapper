@@ -1,0 +1,141 @@
+{
+ "source": "allenai/WildChat-1M (ODC-BY), 100 deutsche erste Nutzer-Turns, Hugging Face datasets-server (erste Seite des Filters)",
+ "limit": "Chat-Assistent-Nutzung (lange Aufgaben, viele Vorlagen/Bots): Referenz nur für Stil, nicht für die Länge in einem Ein-Satz-Feld einer App",
+ "n_ref": 100,
+ "n_mine_de": 896,
+ "distinct_openings": 8,
+ "top_template_share": 0.93,
+ "ref_full": {
+  "n": 100,
+  "words": {
+   "p10": 250,
+   "p50": 269,
+   "p90": 284,
+   "mean": 251.5
+  },
+  "chars": {
+   "p10": 2000,
+   "p50": 2000,
+   "p90": 2000,
+   "mean": 1867.18
+  },
+  "hist": {
+   "1-2": 0,
+   "3-5": 1,
+   "6-10": 2,
+   "11-15": 2,
+   "16-25": 1,
+   "26-40": 1,
+   "41+": 93
+  },
+  "shares": {
+   "lowerStart": 0.01,
+   "allLower": 0.01,
+   "emoji": 0,
+   "question": 0.04,
+   "imperative": 0.96,
+   "polite": 0,
+   "named": 0,
+   "family": 0.23,
+   "endPunct": 0.08,
+   "listy": 0.94,
+   "llmish": 0
+  }
+ },
+ "ref_head40": {
+  "n": 100,
+  "words": {
+   "p10": 40,
+   "p50": 40,
+   "p90": 40,
+   "mean": 38.19
+  },
+  "chars": {
+   "p10": 258,
+   "p50": 297,
+   "p90": 322,
+   "mean": 283.63
+  },
+  "hist": {
+   "1-2": 0,
+   "3-5": 1,
+   "6-10": 2,
+   "11-15": 2,
+   "16-25": 1,
+   "26-40": 94,
+   "41+": 0
+  },
+  "shares": {
+   "lowerStart": 0.01,
+   "allLower": 0.01,
+   "emoji": 0,
+   "question": 0.04,
+   "imperative": 0.96,
+   "polite": 0,
+   "named": 0,
+   "family": 0.12,
+   "endPunct": 0.11,
+   "listy": 0.77,
+   "llmish": 0
+  }
+ },
+ "mine_de": {
+  "n": 896,
+  "words": {
+   "p10": 7,
+   "p50": 10,
+   "p90": 18,
+   "mean": 11.602678571428571
+  },
+  "chars": {
+   "p10": 41,
+   "p50": 60,
+   "p90": 103,
+   "mean": 67.48995535714286
+  },
+  "hist": {
+   "1-2": 0,
+   "3-5": 29,
+   "6-10": 427,
+   "11-15": 278,
+   "16-25": 145,
+   "26-40": 16,
+   "41+": 0
+  },
+  "shares": {
+   "lowerStart": 0.7912946428571429,
+   "allLower": 0.7544642857142857,
+   "emoji": 0.2845982142857143,
+   "question": 0.15959821428571427,
+   "imperative": 0.0033482142857142855,
+   "polite": 0.10825892857142858,
+   "named": 0,
+   "family": 0.18191964285714285,
+   "endPunct": 0.11495535714285714,
+   "listy": 0,
+   "llmish": 0
+  }
+ },
+ "judge_flags_ref_head40": {
+  "typos": 0.03,
+  "dialect": 0.01,
+  "too_polished": 0.6,
+  "list": 0.69,
+  "over_polite": 0,
+  "llm_phrasing": 0.93
+ },
+ "judge_flags_mine_de": {
+  "typos": 0.18861607142857142,
+  "dialect": 0.29799107142857145,
+  "too_polished": 0.029017857142857144,
+  "list": 0.041294642857142856,
+  "over_polite": 0.011160714285714286,
+  "llm_phrasing": 0.021205357142857144
+ },
+ "judge_human_ref_head40": {
+  "n": 100,
+  "mean": 1.7,
+  "lo": 1.55,
+  "hi": 1.87
+ }
+}

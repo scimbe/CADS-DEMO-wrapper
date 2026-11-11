@@ -8,5 +8,6 @@ node_modules/
 *.log
 *.png
 static/vendor/untertitel/ffmpeg-core.wasm
+eval/runs/
 static/vendor/untertitel/ggml-tiny-q5_1.bin
 static/vendor/untertitel/ggml-base-q5_1.bin
