@@ -1,0 +1,9 @@
+# Reference worker for lib/duell-bild.mjs (FLUX.1-schnell, Apache-2.0). Versions pinned to what supports
+# FluxPipeline with callback_on_step_end and true_cfg_scale; torch: pick the wheel for the host (CUDA or Apple MPS).
+torch>=2.4
+diffusers==0.33.1
+transformers==4.51.3
+accelerate==1.6.0
+sentencepiece==0.2.0
+protobuf==5.29.4
+pillow==11.2.1
