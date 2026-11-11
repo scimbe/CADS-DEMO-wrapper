@@ -383,12 +383,20 @@ test('W4 hooks: seen on every request, moderation pause is 403 (crisis help firs
   assert.ok(log.filter((x) => x[0] === 'seen').length >= 5);
 });
 
-test('live finding: beat tracks are no text for S1 (x-x-x is no "xxx"), a whole sound card goes through', async () => {
-  const llm = fakeLlm({ card: { ok: true, title: 'Party Beat', bpm: 130, fx: 'chip', kick: 'x---x---x---x---', snare: '----x-------x---', hat: 'x-x-x-x-x-x-x-x-', bass: 'xxx-----xxx-----', hook: ['Hände hoch, wir feiern heut', 'Tanzen, bis der Wecker läut'] } });
+test('Sound gibt es auf der freien Karte nicht (Entscheidung 11.11.2026): feste Absage, kein Modellaufruf, nichts gebucht; Beat-Spuren bleiben kein Text', async () => {
+  const BEAT = { ok: true, title: 'Party Beat', bpm: 130, fx: 'chip', kick: 'x---x---x---x---', snare: '----x-------x---', hat: 'x-x-x-x-x-x-x-x-', bass: 'xxx-----xxx-----', hook: ['Hände hoch, wir feiern heut', 'Tanzen, bis der Wecker läut'] };
+  const llm = fakeLlm({ card: BEAT });
   const { ai } = mk({ cardLlm: llm });
-  const r = await run(ai, { ...body('x'), input: { text: 'Fröhlicher Geburtstagsbeat für meine Schwester', art: 'sound', age: 'u18' } });
-  assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.equal(r.body.options[0].doc.p.b, 'xxx-----xxx-----');
+  for (let i = 0; i < 4; i++) {
+    const r = await run(ai, { ...body('x'), input: { text: 'Fröhlicher Geburtstagsbeat für meine Schwester', art: 'sound', age: 'u18' } });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.notyet, true); assert.equal(r.body.reason, 'sound'); assert.deepEqual(r.body.options, []);
+    assert.equal(r.body.alt.kind, 'katalog'); assert.equal(r.body.receipt, undefined);
+  }
+  assert.equal(llm.calls.length, 0, 'kein Modellaufruf'); assert.ok(![403, 422, 429].includes((await run(ai, body('Karte mit Frosch'))).status), 'kein Strike, keine Pause');
+  // the beat tracks of a sound doc are still no text for S1 (live finding: x-x-x is no "xxx")
+  const { compose } = await import('../lib/duell-karte.mjs');
+  assert.equal(compose('sound', BEAT, 7, (v, max) => String(v || '').slice(0, max)).p.b, 'xxx-----xxx-----');
 });
 
 test('review #103: S4 refusals end in a pause, a daily cap holds every outcome, a Pro key changes nothing for the free card', async () => {
@@ -838,9 +846,10 @@ test('Art Spiel: ein genanntes Spiel, das kein Flug ist, wird nie still ein Flug
   assert.ok(doko.body.catalog.includes('tisch-skat'), JSON.stringify(doko.body.catalog));   // Regal 74: Doppelkopf is in the Skat table
   const skat = await run(mk({ cardLlm: fakeLlm({ card: fly }) }).ai, body('Skat mit Opa', { art: 'game' }));
   assert.deepEqual(skat.body.alt, { kind: 'katalog', id: 'tisch-skat', satz: 'Skat live' }); assert.deepEqual(skat.body.catalog, ['tisch-skat']);
-  // flying, or nothing named: the flying game as before
+  // flying: the flying game as before; nothing named (a scene, S2 says "szene", 11.11.): the flying game with the note which
+  // game it became (lib/duell-karte.mjs engineOf 'offen'; test/duell-karte-spielwunsch.test.mjs)
   for (const text of ['Pinguin fliegt über Eis', 'Ein Drache über der Burg', 'Ein Flugspiel mit Dartpfeilen']) {
-    const llm = fakeLlm({ card: fly });
+    const llm = fakeLlm({ card: fly, mod: { risk: 0, cats: [], spiel: 'szene' } });
     const r = await run(mk({ cardLlm: llm }).ai, body(text, { art: 'game' }));
     assert.equal(r.status, 200, text); assert.equal(r.body.options.length, 1, text); assert.equal(r.body.notyet, undefined, text);
   }
@@ -979,7 +988,8 @@ test('Absage: S3 ok:false bleibt hart (Strike, nach drei Ablehnungen Pause); kei
   const llm = fakeLlm({ card: { ...NO, alt: 'Ein Würfelduell zu zweit', why_short: 'Glücksspiel baue ich nicht' } });
   const { ai } = mk({ cardLlm: llm });
   for (let i = 0; i < 3; i++) {
-    const r = await run(ai, body('Ein gemeinsam gespielter einarmiger Bandit ' + i, { art: 'game' }));
+    // (genre G1 chosen: the wish goes to S3; without a genre S2 would call it another game, not yet)
+    const r = await run(ai, body('Ein gemeinsam gespielter einarmiger Bandit ' + i, { art: 'game', genre: 'G1' }));
     assert.equal(r.status, 422); assert.equal(r.body.error, 'blocked'); assert.equal(r.body.alt, undefined); assert.equal(r.body.reason, undefined); assert.equal(r.body.notyet, undefined);
   }
   assert.equal((await run(ai, body('Karte mit Frosch'))).body.error, 'throttled');
