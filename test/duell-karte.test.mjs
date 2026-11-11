@@ -838,9 +838,10 @@ test('Art Spiel: ein genanntes Spiel, das kein Flug ist, wird nie still ein Flug
   assert.ok(doko.body.catalog.includes('tisch-skat'), JSON.stringify(doko.body.catalog));   // Regal 74: Doppelkopf is in the Skat table
   const skat = await run(mk({ cardLlm: fakeLlm({ card: fly }) }).ai, body('Skat mit Opa', { art: 'game' }));
   assert.deepEqual(skat.body.alt, { kind: 'katalog', id: 'tisch-skat', satz: 'Skat live' }); assert.deepEqual(skat.body.catalog, ['tisch-skat']);
-  // flying, or nothing named: the flying game as before
+  // flying: the flying game as before; nothing named (a scene, S2 says "szene", 11.11.): the flying game with the note which
+  // game it became (lib/duell-karte.mjs engineOf 'offen'; test/duell-karte-spielwunsch.test.mjs)
   for (const text of ['Pinguin fliegt über Eis', 'Ein Drache über der Burg', 'Ein Flugspiel mit Dartpfeilen']) {
-    const llm = fakeLlm({ card: fly });
+    const llm = fakeLlm({ card: fly, mod: { risk: 0, cats: [], spiel: 'szene' } });
     const r = await run(mk({ cardLlm: llm }).ai, body(text, { art: 'game' }));
     assert.equal(r.status, 200, text); assert.equal(r.body.options.length, 1, text); assert.equal(r.body.notyet, undefined, text);
   }
@@ -979,7 +980,8 @@ test('Absage: S3 ok:false bleibt hart (Strike, nach drei Ablehnungen Pause); kei
   const llm = fakeLlm({ card: { ...NO, alt: 'Ein Würfelduell zu zweit', why_short: 'Glücksspiel baue ich nicht' } });
   const { ai } = mk({ cardLlm: llm });
   for (let i = 0; i < 3; i++) {
-    const r = await run(ai, body('Ein gemeinsam gespielter einarmiger Bandit ' + i, { art: 'game' }));
+    // (genre G1 chosen: the wish goes to S3; without a genre S2 would call it another game, not yet)
+    const r = await run(ai, body('Ein gemeinsam gespielter einarmiger Bandit ' + i, { art: 'game', genre: 'G1' }));
     assert.equal(r.status, 422); assert.equal(r.body.error, 'blocked'); assert.equal(r.body.alt, undefined); assert.equal(r.body.reason, undefined); assert.equal(r.body.notyet, undefined);
   }
   assert.equal((await run(ai, body('Karte mit Frosch'))).body.error, 'throttled');

@@ -174,6 +174,12 @@ test('karte-v21-a: die 30 Golden-Fälle aus h365/phase1 sind vollständig', () =
   assert.ok(by['b1-17'].alt_ok.includes('zug-steine'));
 });
 
-test('karte-v21-b: Zählung je Schicht wie im Bauplan W1c (160 Einträge)', { skip: B ? false : 'karte-v21-b.json kommt mit W1c' }, () => {
-  assert.equal(B.eintraege.length, 160);
+test('karte-v21-b: Zählung je Schicht wie im Bauplan W1c (160 Einträge) plus Spielwünsche ohne Engine (11.11.2026)', { skip: B ? false : 'karte-v21-b.json kommt mit W1c' }, () => {
+  assert.equal(B.eintraege.filter((e) => e.schicht !== 'spiel_ohne_engine').length, 160);
+  // Live-Befund 11.11.: ein Spielwunsch ohne Engine wurde still ein Flugspiel. Die Einträge sind offene Gold-Labels (pruefen):
+  // ein Mensch entscheidet Soll und Gegenvorschlag, bevor eingefroren wird
+  const spiel = B.eintraege.filter((e) => e.schicht === 'spiel_ohne_engine');
+  assert.ok(spiel.length >= 10);
+  assert.ok(spiel.every((e) => e.pruefen && e.strike_erlaubt === false));
+  assert.ok(spiel.some((e) => e.satz === 'Ich möchte mit jemanden übers Netz oder alleine 2024 spielen'));
 });

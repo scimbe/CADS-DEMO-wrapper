@@ -1,21 +1,117 @@
 {
-  "note": "Golden set for the free card's game matching (lib/duell-karte.mjs engineOf): which engine a game wish lands in. lauf = runner/platformer (second engine), flug = flying game, notyet:<name> = honestly not yet. User report 10.11.2026: 'Endless Runner über Brücken' became the flying game.",
+  "note": "Golden set for the free card's game matching (lib/duell-karte.mjs engineOf): which engine a game wish lands in. lauf = runner/platformer (second engine), flug = flying game, notyet:<name> = honestly not yet. User report 10.11.2026: 'Endless Runner über Brücken' became the flying game. offen = names no engine: S2 decides on a closed list (szene -> built with a note, anything else -> not yet; never a silent flying game). User report 11.11.2026: '... 2024 spielen' (the number-sliding puzzle) became the flying game.",
   "wishes": [
-    ["Endless Runner über Brücken", "lauf"],
-    ["Ein Jump'n'Run mit Ziel im Wald", "lauf"],
-    ["Plattformer in einer Lava-Welt", "lauf"],
-    ["Mein Hund rennt durch die Stadt und springt über Kisten", "lauf"],
-    ["Ein Frosch hüpft über Baumstämme", "lauf"],
-    ["Jump and Run mit fliegenden Gegnern", "lauf"],
-    ["endless runner across bridges at night", "lauf"],
-    ["a platformer where a robot collects stars", "lauf"],
-    ["Unter Wasser mit Fischen, dann ein Sturm", "flug"],
-    ["Ein Drache fliegt durch die Nacht", "flug"],
-    ["Flappy-Spiel mit einer Rakete", "flug"],
-    ["a bird flying over the ocean", "flug"],
-    ["Ein Weltraum-Abenteuer mit Kometen", "flug"],
-    ["Schach gegen meinen Bruder", "notyet:Schach"],
-    ["Ein Rennspiel mit Autos", "notyet:Rennspiel"],
-    ["Bowling mit Freunden", "notyet:Bowling"]
+    [
+      "Endless Runner über Brücken",
+      "lauf"
+    ],
+    [
+      "Ein Jump'n'Run mit Ziel im Wald",
+      "lauf"
+    ],
+    [
+      "Plattformer in einer Lava-Welt",
+      "lauf"
+    ],
+    [
+      "Mein Hund rennt durch die Stadt und springt über Kisten",
+      "lauf"
+    ],
+    [
+      "Ein Frosch hüpft über Baumstämme",
+      "lauf"
+    ],
+    [
+      "Jump and Run mit fliegenden Gegnern",
+      "lauf"
+    ],
+    [
+      "endless runner across bridges at night",
+      "lauf"
+    ],
+    [
+      "a platformer where a robot collects stars",
+      "lauf"
+    ],
+    [
+      "Unter Wasser mit Fischen, dann ein Sturm",
+      "offen"
+    ],
+    [
+      "Ein Drache fliegt durch die Nacht",
+      "flug"
+    ],
+    [
+      "Flappy-Spiel mit einer Rakete",
+      "flug"
+    ],
+    [
+      "a bird flying over the ocean",
+      "flug"
+    ],
+    [
+      "Ein Weltraum-Abenteuer mit Kometen",
+      "offen"
+    ],
+    [
+      "Ein Papierflieger segelt über die Stadt",
+      "flug"
+    ],
+    [
+      "Schach gegen meinen Bruder",
+      "notyet:Schach"
+    ],
+    [
+      "Ein Rennspiel mit Autos",
+      "notyet:Rennspiel"
+    ],
+    [
+      "Bowling mit Freunden",
+      "notyet:Bowling"
+    ],
+    [
+      "Ganz entspannt nach Feierabend",
+      "offen"
+    ],
+    [
+      "Ich möchte mit jemanden übers Netz oder alleine 2024 spielen",
+      "notyet:Zahlenspiel"
+    ],
+    [
+      "2048 mit meinem Bruder",
+      "notyet:Zahlen-Schiebepuzzle"
+    ],
+    [
+      "Zahlen schieben, bis zwei gleiche verschmelzen",
+      "notyet:Zahlen-Schiebepuzzle"
+    ],
+    [
+      "Kacheln zusammenschieben gegen die Zeit",
+      "notyet:Zahlen-Schiebepuzzle"
+    ],
+    [
+      "Snake für die Mittagspause",
+      "notyet:Schlangenspiel"
+    ],
+    [
+      "Punkte fressen im Labyrinth, Geister jagen mich",
+      "notyet:Labyrinth-Spiel"
+    ],
+    [
+      "Ein Wordle für meine Oma",
+      "notyet:Wörterrätsel"
+    ],
+    [
+      "Mehrspieler übers Netz mit meiner Klasse",
+      "notyet:Online-Mehrspieler-Spiel"
+    ],
+    [
+      "Ein Strategiespiel mit Burgen",
+      "notyet:Strategiespiel"
+    ],
+    [
+      "Ein Brettspiel für den Familienabend",
+      "notyet:Brettspiel"
+    ]
   ]
 }

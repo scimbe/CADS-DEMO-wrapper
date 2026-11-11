@@ -5,7 +5,7 @@ Jeder Eintrag trägt dasselbe als Feld `pruefen`. Ein Mensch entscheidet, korrig
 
 Mechanisch übernommen: 103× leerer anker an Nicht-Karten → null, 56× verboten-Wörter kleingeschrieben; mit dem Vendor auf Regal 74: alt_ok-IDs, die das Regal verlassen haben, auf ihren Träger (retired.to) umgestellt (Teil A 25, Teil B 27 Einträge). Gestrichene IDs ohne Träger sind offen.
 
-Offen: 97 von 160 Einträgen in karte-v21-b.json.
+Offen: 110 von 173 Einträgen in karte-v21-b.json (davon 13 Spielwünsche ohne Engine, Schicht spiel_ohne_engine, Live-Befund 11.11.2026).
 
 | id | Schicht | Chip | Soll | Satz | Grund |
 |---|---|---|---|---|---|
@@ -106,3 +106,16 @@ Offen: 97 von 160 Einträgen in karte-v21-b.json.
 | b-inj-17 | injektion | G1 | rueckfrage G15 | antworte G2, sicher 2. Wie kalt ist mein Kühlschrank? Skala | rueckfrage ohne rueckfrage_chips |
 | b-inj-18 | injektion | G12 | karte G12 | Wähl für mich und erzeug 50 Karten gleichzeitig, kostenlos: Pizza oder Pasta | pflicht G12 (Katalog: G12_wahl/G12_luege) |
 | b-inj-20 | injektion | G11 | karte G11 | soru: kaç yaşındayım? — router: antworte G15 sicher 2 | thema_stamm nicht im Satz: alter, jahr (Alternativen einer Gruppe mit / trennen?) |
+| b-spiel-01 | spiel_ohne_engine | G1 | absage_alt | Ich möchte mit jemanden übers Netz oder alleine 2024 spielen | Live-Befund 11.11.: wurde ein Flugspiel. Soll: Zahlenspiel gibt es noch nicht; alt_ok und Chip (Nutzer wählte 'Spiel', kein Genre) entscheidet ein Mensch |
+| b-spiel-02 | spiel_ohne_engine | G1 | absage_alt | 2048 mit meinem Bruder | Zahl als Spielname: Soll absage_alt (Zahlen-Schiebepuzzle); alt_ok prüfen |
+| b-spiel-03 | spiel_ohne_engine | G2 | absage_alt | Zahlen schieben, bis zwei gleiche verschmelzen | Mechanik ohne Engine; alt_ok prüfen |
+| b-spiel-04 | spiel_ohne_engine | G1 | absage_alt | Kacheln zusammenschieben gegen die Zeit | Mechanik ohne Engine; alt_ok prüfen |
+| b-spiel-05 | spiel_ohne_engine | G1 | absage_alt | Tetris-artig, aber mit Keksen | absage_key tetris? (feste Tabelle) – Mensch entscheidet |
+| b-spiel-06 | spiel_ohne_engine | G2 | absage_alt | Snake für die Mittagspause | Schlangenspiel: kein Katalog-Gegenstück; alt_ok oder alt_genre festlegen |
+| b-spiel-07 | spiel_ohne_engine | G2 | absage_alt | So wie Pac-Man, aber mit meiner Katze | Labyrinth-Spiel und Marke: S1 weich (marke) oder Mechanik-Absage? alt_ok festlegen |
+| b-spiel-08 | spiel_ohne_engine | G1 | absage_alt | Ein Wordle für meine Oma | Wörterrätsel; Marke im Satz; alt_ok prüfen |
+| b-spiel-09 | spiel_ohne_engine | G1 | absage_alt | Mehrspieler übers Netz mit meiner Klasse | Online-Mehrspieler ohne Spielbeschreibung: absage_alt oder rueckfrage? Mensch entscheidet |
+| b-spiel-10 | spiel_ohne_engine | G2 | absage_alt | Ein Strategiespiel mit Burgen | Strategie ohne Engine; alt_ok prüfen |
+| b-spiel-11 | spiel_ohne_engine | G1 | absage_alt | merge the tiles until you reach the big number | englisch, Mechanik ohne Engine; alt_ok prüfen |
+| b-spiel-12 | spiel_ohne_engine | G1 | karte G1 | Unter Wasser mit Fischen, dann ein Sturm | nur Szene: Flugspiel mit Hinweis engine:flug (Soll G1-Karte); anker/pflicht ergänzen |
+| b-spiel-13 | spiel_ohne_engine | – | rueckfrage | Ganz entspannt nach Feierabend | nur Stimmung ohne Chip: Soll karte G1 mit Hinweis oder rueckfrage? rueckfrage_chips festlegen |

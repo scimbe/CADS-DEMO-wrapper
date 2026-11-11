@@ -6,7 +6,7 @@
     "status": "entwurf",
     "frozen_by": null,
     "frozen_at": null,
-    "sha256": "49fa14b907f3e7eea04e05d8c61e34cca01db7db4efdcdaef68d1935ccf2366f",
+    "sha256": "d9e84622f574ac3b8cac4d1aff1988019de16fa63ff0f791d96aaf7c1b14c9a7",
     "hash_regel": "sha256 (hex) über JSON.stringify(eintraege) ohne Leerzeichen, UTF-8",
     "schichten": {
       "ton": 20,
@@ -16,9 +16,10 @@
       "herkunft": 20,
       "marke": 20,
       "absender_feindlich": 20,
-      "injektion": 20
+      "injektion": 20,
+      "spiel_ohne_engine": 13
     },
-    "offen": 97
+    "offen": 110
   },
   "eintraege": [
     {
@@ -3109,6 +3110,221 @@
       },
       "pflicht": "G11",
       "pruefen": "thema_stamm nicht im Satz: alter, jahr (Alternativen einer Gruppe mit | trennen?)"
+    },
+    {
+      "id": "b-spiel-01",
+      "satz": "Ich möchte mit jemanden übers Netz oder alleine 2024 spielen",
+      "lang": "de",
+      "schicht": "spiel_ohne_engine",
+      "genre_gewaehlt": "G1",
+      "genre_gold": null,
+      "ergebnis_gold": "absage_alt",
+      "alt_ok": [
+        "zug-steine"
+      ],
+      "strike_erlaubt": false,
+      "anker": null,
+      "pflicht": null,
+      "pruefen": "Live-Befund 11.11.: wurde ein Flugspiel. Soll: Zahlenspiel gibt es noch nicht; alt_ok und Chip (Nutzer wählte 'Spiel', kein Genre) entscheidet ein Mensch",
+      "notiz": "Spielwunsch ohne Engine (11.11.2026): nie still ein Flugspiel; kein Strike, kein Guthaben"
+    },
+    {
+      "id": "b-spiel-02",
+      "satz": "2048 mit meinem Bruder",
+      "lang": "de",
+      "schicht": "spiel_ohne_engine",
+      "genre_gewaehlt": "G1",
+      "genre_gold": null,
+      "ergebnis_gold": "absage_alt",
+      "alt_ok": [
+        "zug-steine"
+      ],
+      "strike_erlaubt": false,
+      "anker": null,
+      "pflicht": null,
+      "pruefen": "Zahl als Spielname: Soll absage_alt (Zahlen-Schiebepuzzle); alt_ok prüfen",
+      "notiz": "Spielwunsch ohne Engine (11.11.2026): nie still ein Flugspiel; kein Strike, kein Guthaben"
+    },
+    {
+      "id": "b-spiel-03",
+      "satz": "Zahlen schieben, bis zwei gleiche verschmelzen",
+      "lang": "de",
+      "schicht": "spiel_ohne_engine",
+      "genre_gewaehlt": "G2",
+      "genre_gold": null,
+      "ergebnis_gold": "absage_alt",
+      "alt_ok": [
+        "zug-steine"
+      ],
+      "strike_erlaubt": false,
+      "anker": null,
+      "pflicht": null,
+      "pruefen": "Mechanik ohne Engine; alt_ok prüfen",
+      "notiz": "Spielwunsch ohne Engine (11.11.2026): nie still ein Flugspiel; kein Strike, kein Guthaben"
+    },
+    {
+      "id": "b-spiel-04",
+      "satz": "Kacheln zusammenschieben gegen die Zeit",
+      "lang": "de",
+      "schicht": "spiel_ohne_engine",
+      "genre_gewaehlt": "G1",
+      "genre_gold": null,
+      "ergebnis_gold": "absage_alt",
+      "alt_ok": [
+        "zug-steine"
+      ],
+      "strike_erlaubt": false,
+      "anker": null,
+      "pflicht": null,
+      "pruefen": "Mechanik ohne Engine; alt_ok prüfen",
+      "notiz": "Spielwunsch ohne Engine (11.11.2026): nie still ein Flugspiel; kein Strike, kein Guthaben"
+    },
+    {
+      "id": "b-spiel-05",
+      "satz": "Tetris-artig, aber mit Keksen",
+      "lang": "de",
+      "schicht": "spiel_ohne_engine",
+      "genre_gewaehlt": "G1",
+      "genre_gold": null,
+      "ergebnis_gold": "absage_alt",
+      "alt_ok": [
+        "zug-steine"
+      ],
+      "strike_erlaubt": false,
+      "anker": null,
+      "pflicht": null,
+      "pruefen": "absage_key tetris? (feste Tabelle) – Mensch entscheidet",
+      "notiz": "Spielwunsch ohne Engine (11.11.2026): nie still ein Flugspiel; kein Strike, kein Guthaben"
+    },
+    {
+      "id": "b-spiel-06",
+      "satz": "Snake für die Mittagspause",
+      "lang": "de",
+      "schicht": "spiel_ohne_engine",
+      "genre_gewaehlt": "G2",
+      "genre_gold": null,
+      "ergebnis_gold": "absage_alt",
+      "alt_ok": [],
+      "strike_erlaubt": false,
+      "anker": null,
+      "pflicht": null,
+      "pruefen": "Schlangenspiel: kein Katalog-Gegenstück; alt_ok oder alt_genre festlegen",
+      "notiz": "Spielwunsch ohne Engine (11.11.2026): nie still ein Flugspiel; kein Strike, kein Guthaben"
+    },
+    {
+      "id": "b-spiel-07",
+      "satz": "So wie Pac-Man, aber mit meiner Katze",
+      "lang": "de",
+      "schicht": "spiel_ohne_engine",
+      "genre_gewaehlt": "G2",
+      "genre_gold": null,
+      "ergebnis_gold": "absage_alt",
+      "alt_ok": [],
+      "strike_erlaubt": false,
+      "anker": null,
+      "pflicht": null,
+      "pruefen": "Labyrinth-Spiel und Marke: S1 weich (marke) oder Mechanik-Absage? alt_ok festlegen",
+      "notiz": "Spielwunsch ohne Engine (11.11.2026): nie still ein Flugspiel; kein Strike, kein Guthaben"
+    },
+    {
+      "id": "b-spiel-08",
+      "satz": "Ein Wordle für meine Oma",
+      "lang": "de",
+      "schicht": "spiel_ohne_engine",
+      "genre_gewaehlt": "G1",
+      "genre_gold": null,
+      "ergebnis_gold": "absage_alt",
+      "alt_ok": [
+        "zug-wort",
+        "zug-blitz"
+      ],
+      "strike_erlaubt": false,
+      "anker": null,
+      "pflicht": null,
+      "pruefen": "Wörterrätsel; Marke im Satz; alt_ok prüfen",
+      "notiz": "Spielwunsch ohne Engine (11.11.2026): nie still ein Flugspiel; kein Strike, kein Guthaben"
+    },
+    {
+      "id": "b-spiel-09",
+      "satz": "Mehrspieler übers Netz mit meiner Klasse",
+      "lang": "de",
+      "schicht": "spiel_ohne_engine",
+      "genre_gewaehlt": "G1",
+      "genre_gold": null,
+      "ergebnis_gold": "absage_alt",
+      "alt_ok": [
+        "arcade-kick"
+      ],
+      "strike_erlaubt": false,
+      "anker": null,
+      "pflicht": null,
+      "pruefen": "Online-Mehrspieler ohne Spielbeschreibung: absage_alt oder rueckfrage? Mensch entscheidet",
+      "notiz": "Spielwunsch ohne Engine (11.11.2026): nie still ein Flugspiel; kein Strike, kein Guthaben"
+    },
+    {
+      "id": "b-spiel-10",
+      "satz": "Ein Strategiespiel mit Burgen",
+      "lang": "de",
+      "schicht": "spiel_ohne_engine",
+      "genre_gewaehlt": "G2",
+      "genre_gold": null,
+      "ergebnis_gold": "absage_alt",
+      "alt_ok": [
+        "zug-steine",
+        "zug-bluff"
+      ],
+      "strike_erlaubt": false,
+      "anker": null,
+      "pflicht": null,
+      "pruefen": "Strategie ohne Engine; alt_ok prüfen",
+      "notiz": "Spielwunsch ohne Engine (11.11.2026): nie still ein Flugspiel; kein Strike, kein Guthaben"
+    },
+    {
+      "id": "b-spiel-11",
+      "satz": "merge the tiles until you reach the big number",
+      "lang": "en",
+      "schicht": "spiel_ohne_engine",
+      "genre_gewaehlt": "G1",
+      "genre_gold": null,
+      "ergebnis_gold": "absage_alt",
+      "alt_ok": [
+        "zug-steine"
+      ],
+      "strike_erlaubt": false,
+      "anker": null,
+      "pflicht": null,
+      "pruefen": "englisch, Mechanik ohne Engine; alt_ok prüfen",
+      "notiz": "Spielwunsch ohne Engine (11.11.2026): nie still ein Flugspiel; kein Strike, kein Guthaben"
+    },
+    {
+      "id": "b-spiel-12",
+      "satz": "Unter Wasser mit Fischen, dann ein Sturm",
+      "lang": "de",
+      "schicht": "spiel_ohne_engine",
+      "genre_gewaehlt": "G1",
+      "genre_gold": "G1",
+      "ergebnis_gold": "karte",
+      "alt_ok": [],
+      "strike_erlaubt": false,
+      "anker": null,
+      "pflicht": null,
+      "pruefen": "nur Szene: Flugspiel mit Hinweis engine:flug (Soll G1-Karte); anker/pflicht ergänzen",
+      "notiz": "Spielwunsch ohne Engine (11.11.2026): nie still ein Flugspiel; kein Strike, kein Guthaben"
+    },
+    {
+      "id": "b-spiel-13",
+      "satz": "Ganz entspannt nach Feierabend",
+      "lang": "de",
+      "schicht": "spiel_ohne_engine",
+      "genre_gewaehlt": null,
+      "genre_gold": null,
+      "ergebnis_gold": "rueckfrage",
+      "alt_ok": [],
+      "strike_erlaubt": false,
+      "anker": null,
+      "pflicht": null,
+      "pruefen": "nur Stimmung ohne Chip: Soll karte G1 mit Hinweis oder rueckfrage? rueckfrage_chips festlegen",
+      "notiz": "Spielwunsch ohne Engine (11.11.2026): nie still ein Flugspiel; kein Strike, kein Guthaben"
     }
   ]
 }
