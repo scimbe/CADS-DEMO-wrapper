@@ -35,6 +35,7 @@ import { createMod } from './lib/duell-mod.mjs';
 import { createWeather } from './lib/duell-weather.mjs';
 import { createStats } from './lib/duell-stat.mjs';
 import { createBild } from './lib/duell-bild.mjs';
+import { createPush } from './lib/duell-push.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
@@ -1091,9 +1092,10 @@ const BILD = createBild({ shared: DUELL.shared, who: DUELL_AI.who, llm: DUELL_AI
 const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id), onCard: DECK, onBild: BILD }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
 const DUELL_PROFILE = createDuellProfile({ auth: AUTH, shared: DUELL.shared }); // profile under "Mein Stil": account (16+) or sync code, lib/duell-profile.mjs
 const STATS = createStats({ shared: DUELL.shared, auth: AUTH }); // card statistics, thumbs up/down; votes only with a verified account (lib/duell-stat.mjs)
+const PUSH = createPush({ shared: DUELL.shared, webFile: DUELL.cfg.webFile }); // push as a wake-up signal only (kind, no content), off without DUELL_VAPID_*, lib/duell-push.mjs
 DECK.useStat(STATS); // the Statistik tab on /duell/pruefen reads STATS.readAdmin (no k mask, admin token only)
 // Deck, credit, moderation and statistics write debounced; 'exit' writes what is pending however the process ends (signal or another handler).
-process.on('exit', () => { for (const s of [DECK, CREDIT, MOD, STATS, BILD]) try { s.flush(); } catch { /* one failing store does not stop the others */ } });
+process.on('exit', () => { for (const s of [DECK, CREDIT, MOD, STATS, BILD, PUSH]) try { s.flush(); } catch { /* one failing store does not stop the others */ } });
 for (const sig of ['SIGTERM', 'SIGINT']) process.once(sig, () => process.exit(0));
 // One failing request answers 500; it never takes the gallery (and everybody's runs) down with it.
 http.createServer((req, res) => route(req, res).catch((e) => {
@@ -1110,6 +1112,7 @@ async function route(req, res) {
   if (await BILD.route(req, res, url)) return; // KI-Bilder: /api/duell/bild/* (login), /duell/bild/<id> (public by id), lib/duell-bild.mjs
   if (await VOUCHERS.route(req, res, url)) return; // POST /api/duell/credit/redeem (login), lib/duell-voucher.mjs
   if (await DECK.route(req, res, url)) return; // community deck (public), use/thumbs/credit/appeal (login), review (DUELL_ADMIN_TOKEN)
+  if (await PUSH.route(req, res, url)) return; // push: key, subscribe, unsubscribe, wake (public, a mark is the only address; own limits)
   if (await STATS.route(req, res, url)) return; // card statistics (public, k-anonymous read; a vote counts only with a verified account)
   if (await DUELL.route(req, res, url)) return; // Duell: config API, web game, assetlinks (public, own limits)
   if (await SHORT.route(req, res, url)) return; // short links of My Daily Idea (public, own limits)
