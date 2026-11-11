@@ -1089,6 +1089,7 @@ const DECK = createDeck({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDI
 const VOUCHERS = createVouchers({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDIT }); // "Aufladen per Gutschein": codes only from DUELL_VOUCHERS
 Object.assign(DUELL.shared, { credit: CREDIT, mod: MOD, vouchers: VOUCHERS });
 const BILD = createBild({ shared: DUELL.shared, who: DUELL_AI.who, llm: DUELL_AI.cardLlm }); // KI-Bilder auf Wunsch (login, 30 s, checked before shown), lib/duell-bild.mjs
+DUELL.shared.bild = BILD; // /api/duell/ai/status answers "bild" (free pictures left this month, next price) from it
 const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id), onCard: DECK, onBild: BILD }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
 const DUELL_PROFILE = createDuellProfile({ auth: AUTH, shared: DUELL.shared }); // profile under "Mein Stil": account (16+) or sync code, lib/duell-profile.mjs
 const STATS = createStats({ shared: DUELL.shared, auth: AUTH }); // card statistics, thumbs up/down; votes only with a verified account (lib/duell-stat.mjs)

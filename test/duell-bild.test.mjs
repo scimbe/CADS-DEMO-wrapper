@@ -131,7 +131,7 @@ test('harte Frist: ein haengender Worker endet als timeout innerhalb der Frist, 
     const t = Date.now(), a = await h.post('/api/duell/bild', P());
     const r = await h.done(a.body.job);
     assert.ok(Date.now() - t < 1500, 'within the deadline');
-    assert.deepEqual([r.state, r.error, r.refunded], ['failed', 'timeout', true]);
+    assert.deepEqual([r.state, r.error, r.charged], ['failed', 'timeout', false]);
     assert.equal((await h.post('/api/duell/bild/status', {})).body.free.left, 3);
   } finally { await h.close(); }
 });
@@ -142,7 +142,7 @@ test('Frist laeuft auch ueber die Bildpruefung: haengt sie, kein Bild (fail clos
     const r = await h.done((await h.post('/api/duell/bild', P())).body.job);
     assert.equal(r.state, 'failed');
     assert.equal(r.error, 'timeout');
-    assert.equal(r.refunded, true);
+    assert.equal(r.charged, false);
     assert.equal(r.url, undefined);
   } finally { await h.close(); }
 });
@@ -152,7 +152,7 @@ test('Bildpruefung fail closed: nicht ok, Fehler, kaputtes JSON -> kein Bild, ke
     const s = setup({ llm: fakeLlm({ pic }) }), h = await serve(s);
     try {
       const r = await h.done((await h.post('/api/duell/bild', P())).body.job);
-      assert.equal(r.state, 'failed'); assert.equal(r.error, err); assert.equal(r.refunded, true);
+      assert.equal(r.state, 'failed'); assert.equal(r.error, err); assert.equal(r.charged, false);
       assert.equal(Object.keys(s.b._idx.pics).length, 0, 'nothing stored');
       assert.equal((await h.post('/api/duell/bild/status', {})).body.free.left, 3);
       assert.equal((await h.post('/api/duell/bild', P())).status, 202, 'no strike, no pause');
@@ -162,10 +162,10 @@ test('Bildpruefung fail closed: nicht ok, Fehler, kaputtes JSON -> kein Bild, ke
   assert.equal(checkVerdict({ json: { ok: 'yes', cats: [] } }), false);
   // the worker's own classifier flagged it: refused too
   const s = setup({ backend: fakeBackend({ flagged: true }) }), h = await serve(s);
-  try { const r = await h.done((await h.post('/api/duell/bild', P())).body.job); assert.equal(r.error, 'unsafe'); assert.equal(r.refunded, true); } finally { await h.close(); }
+  try { const r = await h.done((await h.post('/api/duell/bild', P())).body.job); assert.equal(r.error, 'unsafe'); assert.equal(r.charged, false); } finally { await h.close(); }
 });
 
-test('Preis: Bildtopf, dann Guthaben; Kontobild nur mit Guthaben; Fehler gibt Guthaben zurueck', async () => {
+test('Preis: Bildtopf, dann Guthaben; Kontobild nur mit Guthaben; Fehler kostet kein Guthaben', async () => {
   const s = setup({ env: { DUELL_BILD_FREE: '1' } }), h = await serve(s);
   try {
     assert.equal((await h.done((await h.post('/api/duell/bild', P('logo', 'ein Fuchs als Wappen'))).body.job)).state, 'done');
@@ -176,8 +176,10 @@ test('Preis: Bildtopf, dann Guthaben; Kontobild nur mit Guthaben; Fehler gibt Gu
     s.credit.grant(keyOf(MAIL), 2, 'voucher', 'abcdef12');
     const c = await h.post('/api/duell/bild', P('avatar', 'ein Pinguin mit Muetze'));
     assert.equal(c.body.paid, 'credit');
-    assert.equal(s.credit.available(keyOf(MAIL)), 1);
+    assert.equal(s.credit.available(keyOf(MAIL)), 1, 'held while making');
     const r = await h.done(c.body.job);
+    assert.equal(r.charged, 'credit');
+    assert.equal(s.credit.view(keyOf(MAIL)).balance, 1, 'charged on delivery');
     const set = await h.post('/api/duell/bild/avatar', { id: r.id });
     assert.equal(set.body.avatar, r.url);
     assert.equal((await h.post('/api/duell/bild/status', {})).body.avatar, r.url);
@@ -187,19 +189,19 @@ test('Preis: Bildtopf, dann Guthaben; Kontobild nur mit Guthaben; Fehler gibt Gu
   const s2 = setup({ env: { DUELL_BILD_FREE: '0' }, credits: 1, llm: fakeLlm({ pic: 'throw' }) }), h2 = await serve(s2);
   try {
     const r = await h2.done((await h2.post('/api/duell/bild', P())).body.job);
-    assert.equal(r.refunded, true);
-    assert.equal(s2.credit.available(keyOf(MAIL)), 1, 'credit given back');
+    assert.equal(r.charged, false);
+    assert.equal(s2.credit.available(keyOf(MAIL)), 1, 'nothing charged');
   } finally { await h2.close(); }
 });
 
-test('Limits: pro Konto und Tag, Abbrechen in der Schlange erstattet', async () => {
+test('Limits: pro Konto und Tag, Abbrechen in der Schlange kostet nichts', async () => {
   const s = setup({ env: { DUELL_BILD_PER_DAY: '2', DUELL_BILD_PARALLEL: '1', DUELL_BILD_DEADLINE_MS: '8000' }, backend: fakeBackend({ ms: 2000 }) }), h = await serve(s);
   try {
     await h.post('/api/duell/bild', P());
     const second = await h.post('/api/duell/bild', P('logo', 'ein Stern'));
     assert.equal(second.body.state, 'queued');
     const c = await h.post('/api/duell/bild/cancel', { job: second.body.job });
-    assert.deepEqual(c.body, { cancelled: true, refunded: true });
+    assert.deepEqual(c.body, { cancelled: true, charged: false });
     const third = await h.post('/api/duell/bild', P());
     assert.deepEqual([third.status, third.body.error], [429, 'daily-cap']);
   } finally { await h.close(); }
