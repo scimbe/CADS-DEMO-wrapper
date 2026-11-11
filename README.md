@@ -130,6 +130,7 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | `DUELL_CORS_ORIGINS` | `https://appassets.androidplatform.net` | erlaubte Herkunft (kommagetrennt); andere Browser-Herkuenfte bekommen `403` |
 | `DUELL_WEB_FILE` | `apps/duell-web/dist/index.html` | Spieldatei fuer `/duell` |
 | `DUELL_BIZ_FILE` | `business/index.html` neben `DUELL_WEB_FILE` | Seite fuer `/duell/business/` |
+| `DUELL_LEGAL_DIR` | `apps/duell-web/dist/legal` | Rechtsseiten fuer `/duell/<seite>` und `/duell/en/<seite>` (impressum, datenschutz, agb, barrierefreiheit, lizenzen); eine Seite mit Platzhalter `⟦…⟧` wird nie ausgeliefert (503) |
 | `DUELL_ASSETLINKS_SHA256` / `DUELL_ANDROID_PACKAGE` | Release-Fingerabdruck / `org.bunsenbrenner.cads` | Inhalt der assetlinks.json |
 
 ### Kurzlinks (`lib/shortlink.mjs`, Tests: `test/shortlink.test.mjs`)
@@ -247,6 +248,7 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
 | `DUELL_REPORT_EXPIRE_MS` | 3600000 | wie oft die Loeschfrist auch ohne Verkehr angewandt wird (0 = nur bei Zugriff) |
 | `DUELL_ADMIN_TOKEN` | leer (aus) | Token fuer Review und Messung (mindestens 16 Zeichen) |
 | `DUELL_AI_KEYS_MAX` | 100000 | groesste Zaehlerdatei; die aeltesten Eintraege fallen zuerst heraus |
+| `DUELL_AI_KEEP_DAYS` | 365 | ein Zaehler-Eintrag wird so viele Tage nach seiner letzten Nutzung geloescht (steht so in der Datenschutzerklaerung) |
 | `DUELL_AI_CACHE_TTL_S` / `DUELL_AI_CACHE_MAX` | 86400 / 300 | Antwort-Cache |
 | `DUELL_WEATHER_IP_PER_HOUR` / `DUELL_WEATHER_DAILY_MAX` | 30 / 1000 | Wetteranfragen je gehashter IP und Stunde / pro UTC-Tag |
 | `DUELL_IP_HEADER` / `DUELL_IP_SALT` | leer / zufaellig je Prozess | Kopfzeile mit der echten Client-IP, leer heisst keine Grenzen je IP hinter dem Tunnel; Salz der IP-Hashes |

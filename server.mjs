@@ -33,6 +33,7 @@ import { createCredit } from './lib/duell-credit.mjs';
 import { createVouchers } from './lib/duell-voucher.mjs';
 import { createMod } from './lib/duell-mod.mjs';
 import { createWeather } from './lib/duell-weather.mjs';
+import { createLegalPages } from './lib/legal-pages.mjs';
 import { createStats } from './lib/duell-stat.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
@@ -1080,6 +1081,7 @@ const INSTALLATIONS = createInstallations();
 const DUELL = createDuell({ llmEnv: ENV, root: __dir }); // public by design (no login), see lib/duell.mjs
 const SHORT = createShortLinks({ root: __dir, clientKey: DUELL.clientKey, metric: DUELL.shared.metric, free: () => DECK });   // free cards: open only while the deck says ok // public by design (no login), see lib/shortlink.mjs
 const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
+const LEGAL = createLegalPages({ root: __dir }); // public by design: legal notice, privacy, terms of My Daily Idea, lib/legal-pages.mjs
 const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather() }); // AI actions and their pots, lib/duell-ai.mjs
 // Free cards: credit for use and reach, graded moderation, the community deck (lib/duell-deck.mjs). W2 reaches them over shared.
 const CREDIT = createCredit(), MOD = createMod();
@@ -1110,6 +1112,7 @@ async function route(req, res) {
   if (await STATS.route(req, res, url)) return; // card statistics (public, k-anonymous read; a vote counts only with a verified account)
   if (await DUELL.route(req, res, url)) return; // Duell: config API, web game, assetlinks (public, own limits)
   if (await SHORT.route(req, res, url)) return; // short links of My Daily Idea (public, own limits)
+  if (await LEGAL.route(req, res, url)) return; // legal pages of My Daily Idea (public, never with a placeholder)
   if (await AUTH.guard(req, res, url)) return;
   if (p === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(indexPage(DEMOS, normLang(url.searchParams.get('lang')), { sandboxLive: !!LOCAL_RUN.version, savedLive: process.env.INSTALLATIONS_LIVE === '1' })); return; }
   if (p === '/installationen') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }).end(installationsPage(url.searchParams.get('lang'), INSTALLATIONS.enabled)); return; }

@@ -100,6 +100,22 @@ test('Kontingent uebersteht einen Neustart; gespeichert sind nur HMACs und Zahle
   await run(noSalt, line('Hallo'));
   assert.ok(!existsSync(f + '2'), 'ohne festen Schluessel wird nichts gespeichert');
 });
+test('Kontingent: ein Eintrag verschwindet 365 Tage nach der letzten Nutzung (wie in der Datenschutzerklaerung)', async () => {
+  const f = join(mkdtempSync(join(tmpdir(), 'duell-ai-')), 'state.json'), DAY = 86400000;
+  let t = Date.parse('2026-01-10T12:00:00Z');
+  const make = () => createDuellAi({ env: { DUELL_AI_SALT: 'x', DUELL_AI_PROOF_BITS: '0', DUELL_AI_STATE_FILE: f }, llm: async () => GOOD, shared: mk().d.shared, now: () => t, log: () => {} });
+  const keys = () => Object.keys(JSON.parse(readFileSync(f, 'utf8')));
+  await run(make(), line('Hallo'));
+  const first = keys();
+  assert.equal(first.length, 1);
+  t += 365 * DAY;   // still inside: last use exactly a year ago today
+  await run(make(), line('Hallo', DEV2));
+  assert.deepEqual(keys().filter((k) => first.includes(k)), first, 'a year to the day: still there');
+  t += 2 * DAY;
+  await run(make(), line('Hallo', DEV2));
+  assert.deepEqual(keys().filter((k) => first.includes(k)), [], 'after a year without use the entry is gone, from the file too');
+  assert.equal(keys().length, 1);
+});
 test('Pro und Business: nur signierte Schluessel aus der Liste, eigene Toepfe, Pro hoechstens 6 Geraete, Konto statt Geraet', async () => {
   const { mintKey } = await import('../lib/duell-pots.mjs');
   const S = 'entitlement-secret-for-tests';
