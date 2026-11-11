@@ -76,8 +76,8 @@ test('aus ohne Backend; Login noetig; Status sagt, was geht und warum nicht', as
     assert.equal((await h.post('/api/duell/bild', P(), null)).status, 401);
     const st = await h.post('/api/duell/bild/status', {});
     assert.equal(st.body.on, true);
-    assert.deepEqual(st.body.can, { card: true, logo: true, avatar: false });
-    assert.equal(st.body.why.avatar, 'credit');
+    assert.deepEqual(st.body.can, { card: true, logo: true, avatar: true }, 'the account picture may use the free pot (default)');
+    assert.deepEqual(st.body.rules, { freePerMonth: 3, price: 1, dailyCap: 10, avatarFree: true, capCountsFailed: true, tz: 'UTC' });
     assert.equal(st.body.deadlineS, 30);
   } finally { await h.close(); }
 });
@@ -165,8 +165,8 @@ test('Bildpruefung fail closed: nicht ok, Fehler, kaputtes JSON -> kein Bild, ke
   try { const r = await h.done((await h.post('/api/duell/bild', P())).body.job); assert.equal(r.error, 'unsafe'); assert.equal(r.charged, false); } finally { await h.close(); }
 });
 
-test('Preis: Bildtopf, dann Guthaben; Kontobild nur mit Guthaben; Fehler kostet kein Guthaben', async () => {
-  const s = setup({ env: { DUELL_BILD_FREE: '1' } }), h = await serve(s);
+test('Preis: Bildtopf, dann Guthaben; mit DUELL_BILD_AVATAR_FREE=0 Kontobild nur mit Guthaben; Fehler kostet kein Guthaben', async () => {
+  const s = setup({ env: { DUELL_BILD_FREE: '1', DUELL_BILD_AVATAR_FREE: '0' } }), h = await serve(s);
   try {
     assert.equal((await h.done((await h.post('/api/duell/bild', P('logo', 'ein Fuchs als Wappen'))).body.job)).state, 'done');
     const q = await h.post('/api/duell/bild', P());

@@ -76,6 +76,13 @@ services:
       - DUELL_BILD_BACKEND=${DUELL_BILD_BACKEND:-off}
       - DUELL_BILD_URL=${DUELL_BILD_URL:-}
       - DUELL_BILD_TOKEN_FILE=${DUELL_BILD_TOKEN_FILE:-}
+      # KI-Bild-Preis (lib/duell-bild.mjs pricingConfig, beim Start geprueft): leer = Vorgabe 3 frei/Monat (UTC), 1 Guthaben, 10/Tag,
+      # Kontobild aus dem freien Topf (1), Fehlschlaege zaehlen zum Tageslimit (1)
+      - DUELL_BILD_FREE_PER_MONTH=${DUELL_BILD_FREE_PER_MONTH:-}
+      - DUELL_BILD_PRICE=${DUELL_BILD_PRICE:-}
+      - DUELL_BILD_DAILY_CAP=${DUELL_BILD_DAILY_CAP:-}
+      - DUELL_BILD_AVATAR_FREE=${DUELL_BILD_AVATAR_FREE:-}
+      - DUELL_BILD_CAP_COUNTS_FAILED=${DUELL_BILD_CAP_COUNTS_FAILED:-}
       # Wetterkarte: Grenzen je gehashter IP und pro UTC-Tag (siehe lib/duell-weather.mjs).
       - DUELL_WEATHER_IP_PER_HOUR=${DUELL_WEATHER_IP_PER_HOUR:-30}
       - DUELL_WEATHER_DAILY_MAX=${DUELL_WEATHER_DAILY_MAX:-1000}

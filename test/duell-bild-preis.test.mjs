@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { createDuell } from '../lib/duell.mjs';
 import { createDuellAi } from '../lib/duell-ai.mjs';
 import { createCredit } from '../lib/duell-credit.mjs';
-import { createBild, stubPng } from '../lib/duell-bild.mjs';
+import { createBild, stubPng, pricingConfig } from '../lib/duell-bild.mjs';
 
 const MAIL = 'lea@example.org';
 const OK_MOD = { json: { risk: 0, cats: [], drink: 'none' }, usage: {} };
@@ -84,7 +84,7 @@ test('3 kostenlos im Monat, dann 1 Guthaben je Bild; /ai/status zeigt bild.freeL
   s.credit.grant(await acctOf(s), 2, 'voucher', 'abcdef12');
   try {
     let ai = (await h.post('/api/duell/ai/status', {})).body;
-    assert.deepEqual(ai.bild, { freeLeft: 3, freeSize: 3, period: 'month', tz: 'UTC', resetAt: '2026-12-01T00:00:00.000Z', credit: 2, price: 1, next: { card: 'free', logo: 'free', avatar: 'credit' } });
+    assert.deepEqual(ai.bild, { freeLeft: 3, freeSize: 3, period: 'month', tz: 'UTC', resetAt: '2026-12-01T00:00:00.000Z', credit: 2, price: 1, avatarFree: true, next: { card: 'free', logo: 'free', avatar: 'free' } });
     assert.equal((await h.post('/api/duell/ai/status', {}, null)).body.bild, undefined, 'no login, no bild');
     for (const left of [2, 1, 0]) {
       const { a, r } = await h.make(P());
@@ -162,23 +162,91 @@ test('Abbruch kostet nichts: in der Schlange und auch waehrend das Bild entsteht
   } finally { await h.close(); }
 });
 
-test('zu wenig Guthaben: 402 ohne Modellaufruf; Kontobild nie aus dem Bildtopf', async () => {
+test('zu wenig Guthaben: 402 ohne Modellaufruf, auch fuer das Kontobild', async () => {
   let calls = 0;
   const llm = { async generate(q) { calls++; return q.name === 'bild_check' ? OK_PIC : OK_MOD; } };
-  const s = setup({ env: { DUELL_BILD_FREE: '0' }, llm }), h = await serve(s);
+  const s = setup({ env: { DUELL_BILD_FREE_PER_MONTH: '0' }, llm }), h = await serve(s);
   try {
     const q = await h.post('/api/duell/bild', P());
-    assert.deepEqual([q.status, q.body.error, q.body.credit, q.body.free], [402, 'quota', 0, 0]);
+    assert.deepEqual([q.status, q.body.error, q.body.credit, q.body.free, q.body.price], [402, 'quota', 0, 0, 1]);
     const av = await h.post('/api/duell/bild', P('avatar', 'ein Pinguin mit Muetze'));
-    assert.deepEqual([av.status, av.body.error, av.body.why], [402, 'credit', 'avatar-needs-credit']);
+    assert.deepEqual([av.status, av.body.error], [402, 'quota']);
     assert.equal(calls, 0, 'no model call for a request that cannot be paid');
   } finally { await h.close(); }
-  const s2 = setup(), h2 = await serve(s2);   // free pictures left, no credit: the account picture still needs credit
+});
+
+test('Kontobild, beide Schalter: AVATAR_FREE=1 aus dem Bildtopf, dann Guthaben; AVATAR_FREE=0 nur mit Guthaben', async () => {
+  const s = setup({ env: { DUELL_BILD_FREE_PER_MONTH: '1' } }), h = await serve(s);
+  s.credit.grant(await acctOf(s), 1, 'voucher', 'abcdef12');
   try {
-    const av = await h2.post('/api/duell/bild', P('avatar', 'ein Pinguin mit Muetze'));
-    assert.deepEqual([av.status, av.body.error], [402, 'credit']);
-    assert.equal((await status(h2)).free.left, 3);
-  } finally { await h2.close(); }
+    const st = await status(h);
+    assert.deepEqual([st.next.avatar, st.rules.avatarFree, st.can.avatar], ['free', true, true]);
+    assert.equal((await h.make(P('avatar', 'ein Pinguin mit Muetze'))).r.charged, 'free');
+    assert.equal(await bal(s), 1, 'the free pot, not the credit');
+    assert.equal((await h.make(P('avatar', 'ein Otter mit Muetze'))).r.charged, 'credit');
+    const no = await h.post('/api/duell/bild', P('avatar', 'ein Biber mit Muetze'));
+    assert.deepEqual([no.status, no.body.error], [402, 'quota']);
+  } finally { await h.close(); }
+  const s0 = setup({ env: { DUELL_BILD_AVATAR_FREE: '0' } }), h0 = await serve(s0);
+  try {
+    let st = await status(h0);
+    assert.deepEqual([st.next.avatar, st.rules.avatarFree, st.can.avatar, st.why.avatar, st.free.left], ['none', false, false, 'credit', 3]);
+    const av = await h0.post('/api/duell/bild', P('avatar', 'ein Pinguin mit Muetze'));
+    assert.deepEqual([av.status, av.body.error, av.body.why], [402, 'credit', 'avatar-needs-credit']);
+    s0.credit.grant(await acctOf(s0), 1, 'voucher', 'abcdef12');
+    assert.equal((await h0.make(P('avatar', 'ein Pinguin mit Muetze'))).r.charged, 'credit');
+    st = await status(h0);
+    assert.equal(st.free.left, 3, 'free pot untouched');
+  } finally { await h0.close(); }
+});
+
+test('Tageslimit, beide Schalter: CAP_COUNTS_FAILED=1 zaehlt Fehlschlaege (ohne Abzug), =0 gibt den Platz zurueck', async () => {
+  for (const [flag, leftAfter, third] of [['1', 0, 429], ['0', 2, 202]]) {
+    const s = setup({ env: { DUELL_BILD_DAILY_CAP: '2', DUELL_BILD_CAP_COUNTS_FAILED: flag }, backend: fakeBackend({ fail: true }) }), h = await serve(s);
+    try {
+      for (let i = 0; i < 2; i++) assert.deepEqual([(await h.make(P())).r.charged], [false]);
+      const st = await status(h);
+      assert.deepEqual([st.perDay.left, st.rules.capCountsFailed, st.free.left], [leftAfter, flag === '1', 3], 'flag ' + flag);
+      const a = await h.post('/api/duell/bild', P());
+      assert.equal(a.status, third, 'flag ' + flag + ': ' + JSON.stringify(a.body));
+      if (third === 429) assert.deepEqual([a.body.error, a.body.perDay], ['daily-cap', 2]);
+    } finally { await h.close(); }
+  }
+  // a delivered picture always counts, with either flag
+  const s = setup({ env: { DUELL_BILD_DAILY_CAP: '1', DUELL_BILD_CAP_COUNTS_FAILED: '0' } }), h = await serve(s);
+  try {
+    assert.equal((await h.make(P())).r.state, 'done');
+    assert.deepEqual([(await h.post('/api/duell/bild', P())).status, (await status(h)).perDay.left], [429, 0]);
+  } finally { await h.close(); }
+});
+
+test('Preis aus der Konfiguration: DUELL_BILD_PRICE=2 haelt und bucht 2, mit 1 Guthaben gibt es kein Bild', async () => {
+  const s = setup({ env: { DUELL_BILD_FREE_PER_MONTH: '0', DUELL_BILD_PRICE: '2' } }), h = await serve(s);
+  const acct = await acctOf(s);
+  s.credit.grant(acct, 3, 'voucher', 'abcdef12');
+  try {
+    let st = await status(h);
+    assert.deepEqual([st.rules.price, st.next.card, (await h.post('/api/duell/ai/status', {})).body.bild.price], [2, 'credit', 2]);
+    const a = await h.post('/api/duell/bild', P());
+    assert.equal(s.credit.available(acct), 1, '2 held');
+    assert.equal((await h.done(a.body.job)).charged, 'credit');
+    assert.equal(s.credit._book.get(acct).s, 2);
+    st = await status(h);
+    assert.deepEqual([st.credit, st.next.card, st.can.card, st.why.card], [1, 'none', false, 'quota']);
+    const no = await h.post('/api/duell/bild', P());
+    assert.deepEqual([no.status, no.body.error, no.body.credit, no.body.price], [402, 'quota', 1, 2]);
+  } finally { await h.close(); }
+});
+
+test('Konfiguration wird beim Start geprueft: Unsinn bricht mit dem Namen ab, Vorgaben und alte Namen gelten', () => {
+  assert.deepEqual(pricingConfig({}), { freePerMonth: 3, price: 1, dailyCap: 10, avatarFree: true, capCountsFailed: true });
+  assert.deepEqual(pricingConfig({ DUELL_BILD_FREE: '5', DUELL_BILD_PER_DAY: '20' }), { freePerMonth: 5, price: 1, dailyCap: 20, avatarFree: true, capCountsFailed: true });
+  assert.equal(pricingConfig({ DUELL_BILD_FREE: '5', DUELL_BILD_FREE_PER_MONTH: '4' }).freePerMonth, 4, 'the new name wins');
+  assert.deepEqual(pricingConfig({ DUELL_BILD_AVATAR_FREE: '0', DUELL_BILD_CAP_COUNTS_FAILED: '0', DUELL_BILD_PRICE: ' 2 ' }), { freePerMonth: 3, price: 2, dailyCap: 10, avatarFree: false, capCountsFailed: false });
+  for (const [k, v] of [['DUELL_BILD_FREE_PER_MONTH', 'drei'], ['DUELL_BILD_FREE_PER_MONTH', '-1'], ['DUELL_BILD_FREE_PER_MONTH', '2.5'], ['DUELL_BILD_PRICE', '0'], ['DUELL_BILD_PRICE', '101'], ['DUELL_BILD_DAILY_CAP', '0'], ['DUELL_BILD_AVATAR_FREE', 'yes'], ['DUELL_BILD_AVATAR_FREE', '2'], ['DUELL_BILD_CAP_COUNTS_FAILED', 'true'], ['DUELL_BILD_FREE', 'x']]) {
+    assert.throws(() => pricingConfig({ [k]: v }), new RegExp(k + '='), k + '=' + v);
+    assert.throws(() => setup({ env: { [k]: v } }), new RegExp(k + '='), 'createBild fails fast: ' + k);
+  }
 });
 
 test('Monatswechsel in UTC: am 1. um 00:00 UTC wieder 3; ein Bild vom 30. zaehlt fuer den alten Monat', async () => {
