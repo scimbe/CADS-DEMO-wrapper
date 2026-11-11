@@ -383,12 +383,20 @@ test('W4 hooks: seen on every request, moderation pause is 403 (crisis help firs
   assert.ok(log.filter((x) => x[0] === 'seen').length >= 5);
 });
 
-test('live finding: beat tracks are no text for S1 (x-x-x is no "xxx"), a whole sound card goes through', async () => {
-  const llm = fakeLlm({ card: { ok: true, title: 'Party Beat', bpm: 130, fx: 'chip', kick: 'x---x---x---x---', snare: '----x-------x---', hat: 'x-x-x-x-x-x-x-x-', bass: 'xxx-----xxx-----', hook: ['Hände hoch, wir feiern heut', 'Tanzen, bis der Wecker läut'] } });
+test('Sound gibt es auf der freien Karte nicht (Entscheidung 11.11.2026): feste Absage, kein Modellaufruf, nichts gebucht; Beat-Spuren bleiben kein Text', async () => {
+  const BEAT = { ok: true, title: 'Party Beat', bpm: 130, fx: 'chip', kick: 'x---x---x---x---', snare: '----x-------x---', hat: 'x-x-x-x-x-x-x-x-', bass: 'xxx-----xxx-----', hook: ['Hände hoch, wir feiern heut', 'Tanzen, bis der Wecker läut'] };
+  const llm = fakeLlm({ card: BEAT });
   const { ai } = mk({ cardLlm: llm });
-  const r = await run(ai, { ...body('x'), input: { text: 'Fröhlicher Geburtstagsbeat für meine Schwester', art: 'sound', age: 'u18' } });
-  assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.equal(r.body.options[0].doc.p.b, 'xxx-----xxx-----');
+  for (let i = 0; i < 4; i++) {
+    const r = await run(ai, { ...body('x'), input: { text: 'Fröhlicher Geburtstagsbeat für meine Schwester', art: 'sound', age: 'u18' } });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.notyet, true); assert.equal(r.body.reason, 'sound'); assert.deepEqual(r.body.options, []);
+    assert.equal(r.body.alt.kind, 'katalog'); assert.equal(r.body.receipt, undefined);
+  }
+  assert.equal(llm.calls.length, 0, 'kein Modellaufruf'); assert.ok(![403, 422, 429].includes((await run(ai, body('Karte mit Frosch'))).status), 'kein Strike, keine Pause');
+  // the beat tracks of a sound doc are still no text for S1 (live finding: x-x-x is no "xxx")
+  const { compose } = await import('../lib/duell-karte.mjs');
+  assert.equal(compose('sound', BEAT, 7, (v, max) => String(v || '').slice(0, max)).p.b, 'xxx-----xxx-----');
 });
 
 test('review #103: S4 refusals end in a pause, a daily cap holds every outcome, a Pro key changes nothing for the free card', async () => {
