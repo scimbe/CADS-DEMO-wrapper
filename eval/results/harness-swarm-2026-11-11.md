@@ -2,13 +2,13 @@
 
 > LLM-bewertet (Judge Claude Sonnet 5.5, kalibriert gegen Claude Opus 5.5). Kein Ergebnis gegen Gold-Labels; das menschliche Gold-Korpus bleibt offen und nicht eingefroren.
 
-Kosten: 15.81 USD (≈ 14.55 EUR bei 0,92), harte Grenze 43 USD.
+Kosten: 16.06 USD (≈ 14.78 EUR bei 0,92), harte Grenze 43 USD.
 
 | Rolle | Aufrufe | USD |
 |---|---|---|
 | pilot | 360 | 0.714 |
 | persona | 1071 | 0.434 |
-| realism | 90 | 1.024 |
+| realism | 108 | 1.272 |
 | sut | 5789 | 0.937 |
 | judge | 2712 | 10.505 |
 | judge-calib | 72 | 0.375 |
@@ -165,6 +165,11 @@ Referenz (Größenordnung, kein Korpusvergleich): Websuche 2,2–2,8 Wörter je 
 | 65-74|de | 9 | 11 | 10 | 13 | 9 | 10 | 9 | 9 | 17 | 15 |
 | 65-74|en | 2 | 1 | 4 | 1 | 1 | 1 | 1 | 1 | 3 | 1 |
 | 75-85|de | 9 | 10 | 13 | 9 | 9 | 9 | 8 | 9 | 9 | 11 |
+
+**Stil-Abgleich mit echten Prompts (WildChat-DE)**
+
+Quelle: allenai/WildChat-1M (ODC-BY), 100 deutsche erste Nutzer-Turns, Hugging Face datasets-server (erste Seite des Filters). Lizenz ODC-BY; Zitat: Zhao et al., „WildChat: 1M ChatGPT Interaction Logs in the Wild“, ICLR 2024. Einschränkung: Chat-Assistent-Nutzung (lange Aufgaben, viele Vorlagen/Bots): Referenz nur für Stil, nicht für die Länge in einem Ein-Satz-Feld einer App.
+Von 100 Zeilen haben nur 8 verschiedene Anfänge; 93.0 % stammen aus einer einzigen automatisierten Vorlage („Gib mir nur 10 Keywords …“). Der Auszug taugt daher nicht als Referenz für menschlichen Stil: Kleinschreibung 1.0 % (Personas 75.4 %), Emoji 0.0 % (28.5 %), Imperativ 96.0 % (0.3 %), Liste 94.0 % (0.0 %); Judge auf den ersten 40 Wörtern: Tippfehler 3.0 % (18.9 %), LLM-artig 93.0 % (2.1 %). Entscheidung: keine Neugewichtung der Personas; ein brauchbarer Vergleich braucht mehr Seiten des Filters mit Entfernen der Vorlagen (Duplikate nach Anfang) oder echte, datenschutzkonforme Eingaben der App.
 
 **Judge-Kalibrierung sonnet_vs_sonnet** (n=36): bestanden κ=0.94 (Übereinstimmung 97.2 %), Fehlerbild gleich 72.2 %; intent κw=0.96 exakt 94.4 %, vorstellung κw=0.936 exakt 91.7 %, routing κw=0.953 exakt 91.7 %, quality κw=0.896 exakt 88.9 %
 

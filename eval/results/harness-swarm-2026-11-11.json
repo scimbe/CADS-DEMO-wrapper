@@ -1,8 +1,8 @@
 {
  "note": "LLM-judged evaluation (judge claude-sonnet-5-5, calibrated against claude-opus-5-5). Not a gold-label result; the human gold corpus stays open.",
  "cost": {
-  "usd": 15.811887679999984,
-  "eur": 14.546936665599986,
+  "usd": 16.060269279999986,
+  "eur": 14.775447737599988,
   "byRole": {
    "pilot": {
     "usd": 0.7139750499999998,
@@ -21,12 +21,12 @@
     "cacheWrite": 0
    },
    "realism": {
-    "usd": 1.0235879999999997,
-    "calls": 90,
-    "in": 46596,
-    "out": 91218,
-    "cacheRead": 91080,
-    "cacheWrite": 0
+    "usd": 1.2719695999999994,
+    "calls": 108,
+    "in": 78754,
+    "out": 107722,
+    "cacheRead": 105248,
+    "cacheWrite": 4048
    },
    "sut": {
     "usd": 0.9368244900000033,

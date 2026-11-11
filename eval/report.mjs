@@ -124,6 +124,11 @@ if (rr.surface) {
   L.push('\n**Abdeckung Altersband|Sprache × Thema (angenommene Prompts)**\n', '| | ' + topics.join(' | ') + ' |', '|---|' + topics.map(() => '---').join('|') + '|');
   for (const b of bands) L.push(`| ${b} | ` + topics.map((t) => rr.coverage_band_lang_x_topic[b][t] || 0).join(' | ') + ' |');
 }
+const refr = readJ('reference-report.json', null);
+if (refr) {
+  L.push('\n**Stil-Abgleich mit echten Prompts (WildChat-DE)**\n', `Quelle: ${refr.source}. Lizenz ODC-BY; Zitat: Zhao et al., „WildChat: 1M ChatGPT Interaction Logs in the Wild“, ICLR 2024. Einschränkung: ${refr.limit}.`);
+  L.push(`Von ${refr.n_ref} Zeilen haben nur ${refr.distinct_openings} verschiedene Anfänge; ${pct(refr.top_template_share)} stammen aus einer einzigen automatisierten Vorlage („Gib mir nur 10 Keywords …“). Der Auszug taugt daher nicht als Referenz für menschlichen Stil: Kleinschreibung ${pct(refr.ref_full.shares.allLower)} (Personas ${pct(refr.mine_de.shares.allLower)}), Emoji ${pct(refr.ref_full.shares.emoji)} (${pct(refr.mine_de.shares.emoji)}), Imperativ ${pct(refr.ref_full.shares.imperative)} (${pct(refr.mine_de.shares.imperative)}), Liste ${pct(refr.ref_full.shares.listy)} (${pct(refr.mine_de.shares.listy)}); Judge auf den ersten 40 Wörtern: Tippfehler ${pct(refr.judge_flags_ref_head40.typos)} (${pct(refr.judge_flags_mine_de.typos)}), LLM-artig ${pct(refr.judge_flags_ref_head40.llm_phrasing)} (${pct(refr.judge_flags_mine_de.llm_phrasing)}). Entscheidung: keine Neugewichtung der Personas; ein brauchbarer Vergleich braucht mehr Seiten des Filters mit Entfernen der Vorlagen (Duplikate nach Anfang) oder echte, datenschutzkonforme Eingaben der App.`);
+}
 for (const [lab, v] of Object.entries(calib)) {
   L.push(`\n**Judge-Kalibrierung ${lab}** (n=${v.n}): bestanden κ=${v.pass.kappa.toFixed(2)} (Übereinstimmung ${pct(v.pass.po)}), Fehlerbild gleich ${pct(v.failure_tag_agree)}; ` + ['intent', 'vorstellung', 'routing', 'quality'].map((d) => `${d} κw=${v[d].kappa_w} exakt ${pct(v[d].exact)}`).join(', ') + (v.low_agreement.length ? '; schwach: ' + v.low_agreement.join(', ') : ''));
 }

@@ -368,9 +368,37 @@ async function stageRerender() {
   void P0;
   console.log(JSON.stringify({ rerendered: rows.length, as }));
 }
+// --file F: a reference corpus of real first-turn prompts (JSON array of { text }, read as data only). Style only: the same
+// surface features on the whole text and on its first 40 words, and the realism judge's flags (typos, dialect, polish, list,
+// politeness, LLM wording) on the first 40 words; the persona prompts are judged on the same window (they are shorter).
+async function stageReference() {
+  const rows = JSON.parse(readFileSync(resolve(arg('file')), 'utf8')).filter((r) => r && typeof r.text === 'string' && r.text.trim());
+  const names = new Set();
+  const head = (t) => t.trim().split(/\s+/).slice(0, 40).join(' ');
+  const ref = rows.map((r, i) => ({ id: 'w' + String(i + 1).padStart(3, '0'), lang: 'de', getippt: head(r.text), full: r.text, v: 1 }));
+  const flags = await judgeRealism(ref);
+  const mine = finalPrompts().filter((r) => r.lang === 'de');
+  const real = readJ('realism.json', {});
+  const share = (rs, f) => (rs.length ? rs.filter(f).length / rs.length : 0);
+  const fl = (rs, get) => Object.fromEntries(['typos', 'dialect', 'too_polished', 'list', 'over_polite', 'llm_phrasing'].map((k) => [k, share(rs, (r) => get(r) && get(r)[k])]));
+  const rep = {
+    source: 'allenai/WildChat-1M (ODC-BY), 100 deutsche erste Nutzer-Turns, Hugging Face datasets-server (erste Seite des Filters)',
+    limit: 'Chat-Assistent-Nutzung (lange Aufgaben, viele Vorlagen/Bots): Referenz nur für Stil, nicht für die Länge in einem Ein-Satz-Feld einer App',
+    n_ref: ref.length, n_mine_de: mine.length,
+    // automated use: many rows share one prompt template (the same first six words); such rows say nothing about how people type
+    distinct_openings: new Set(ref.map((r) => r.full.trim().split(/\s+/).slice(0, 6).join(' '))).size,
+    top_template_share: Math.max(...Object.values(ref.reduce((m, r) => { const k = r.full.trim().split(/\s+/).slice(0, 6).join(' '); m[k] = (m[k] || 0) + 1; return m; }, {}))) / (ref.length || 1),
+    ref_full: distribution(ref.map((r) => featuresOf(r.full, names))), ref_head40: distribution(ref.map((r) => featuresOf(r.getippt, names))),
+    mine_de: distribution(mine.map((r) => featuresOf(r.getippt, names))),
+    judge_flags_ref_head40: fl(ref, (r) => flags[r.id]), judge_flags_mine_de: fl(mine, (r) => real[r.id]),
+    judge_human_ref_head40: meanCi(ref.filter((r) => flags[r.id]).map((r) => flags[r.id].human)),
+  };
+  writeJ('reference-report.json', rep);
+  console.log(JSON.stringify(rep, (k, v) => (k === 'hist' ? undefined : v), 1));
+}
 function stageCost() { console.log(JSON.stringify(ledger.get(), null, 1)); }
 
-const STAGES = { rerender: stageRerender, population: stagePopulation, prompts: stagePrompts, realism: stageRealism, 'realism-report': realismReport, candidate: stageCandidate, sut: stageSut, judge: stageJudge, calib: stageCalib, correct: stageCorrect, compare: stageCompare, cost: stageCost };
+const STAGES = { reference: stageReference, rerender: stageRerender, population: stagePopulation, prompts: stagePrompts, realism: stageRealism, 'realism-report': realismReport, candidate: stageCandidate, sut: stageSut, judge: stageJudge, calib: stageCalib, correct: stageCorrect, compare: stageCompare, cost: stageCost };
 if (!STAGES[stage]) { console.error('stages: ' + Object.keys(STAGES).join(' | ')); process.exit(2); }
 try { await STAGES[stage](); } catch (e) { if (capHit(e)) { console.error('cost cap reached: ' + ledger.get().usd.toFixed(4) + ' USD'); process.exit(3); } throw e; }
 console.error('ledger: ' + ledger.get().usd.toFixed(4) + ' USD of ' + CAP);
