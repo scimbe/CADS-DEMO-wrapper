@@ -191,8 +191,9 @@ async function stageSut() {
   let affected = null, reuse = {};
   if (arg('affected')) {
     const m = await import(resolve(arg('affected')));
-    const [bl, cl] = await Promise.all([import(join(libOf(arg('reuse', 'base')), 'duell-karte.mjs')), import(join(libOf(name), 'duell-karte.mjs'))]);
-    affected = (r) => { const ui = artOf(r.lang, r.kategorie, r.spielart); return m.affected(r.getippt, ui, P0[r.persona].age >= 18 ? 'a18' : 'u18', bl, cl); };
+    const [bl, cl, ba, ca] = await Promise.all([import(join(libOf(arg('reuse', 'base')), 'duell-karte.mjs')), import(join(libOf(name), 'duell-karte.mjs')),
+      import(join(libOf(arg('reuse', 'base')), 'duell-ai.mjs')), import(join(libOf(name), 'duell-ai.mjs'))]);
+    affected = (r) => { const ui = artOf(r.lang, r.kategorie, r.spielart); return m.affected(r.getippt, ui, P0[r.persona].age >= 18 ? 'a18' : 'u18', bl, cl, { baseAi: ba, candAi: ca }); };
     reuse = Object.fromEntries(readL(`sut-${arg('reuse', 'base')}.jsonl`).map((x) => [x.id, x]));
   }
   const L = limiter(conc); let n = 0, kept = 0, stop = false;
