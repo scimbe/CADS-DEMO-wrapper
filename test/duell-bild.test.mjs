@@ -257,6 +257,11 @@ test('Melden: Siegel geprueft, schwerer Grund versteckt das Bild sofort; Pruefer
     assert.equal(s.b._idx.pics[r.id].st, 'gone');
     assert.equal(existsSync(join(s.dir, 'bild', r.id + '.png')), false, 'file deleted');
     assert.equal(s.strikes.length, 1); assert.equal(s.strikes[0][0], keyOf(MAIL)); assert.equal(s.strikes[0][1], 'confirmed');
+    // the recipient of a link has only the id: a known id is enough, an unknown one holds nothing and does not fail
+    const r2 = await h.done((await h.post('/api/duell/bild', P('logo', 'ein Stern'))).body.job);
+    assert.equal((await h.post('/api/duell/report', { reason: 'hate', kind: 'bild', consent: true, content: { bild: r2.id } }, null)).status, 202);
+    assert.equal((await h.get(r2.url)).status, 404, 'held without a seal');
+    assert.equal((await h.post('/api/duell/report', { reason: 'hate', kind: 'bild', consent: true, content: { bild: 'y'.repeat(22) } }, null)).status, 202);
   } finally { await h.close(); }
 });
 
