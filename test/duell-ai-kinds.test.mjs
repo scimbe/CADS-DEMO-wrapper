@@ -7,7 +7,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDuell } from '../lib/duell.mjs';
-import { createDuellAi, repairJson, KINDS, PLAN, LISTE, WELT, TEXT, CRISIS_HELP, fit, inText, isCrisis, isMean, redactContact, screenInput, statedNumbers } from '../lib/duell-ai.mjs';
+import { createDuellAi, repairJson, KINDS, PLAN, LISTE, WELT, TEXT, ANIM, animOf, CRISIS_HELP, fit, inText, isCrisis, isMean, redactContact, screenInput, statedNumbers } from '../lib/duell-ai.mjs';
 import { createReports } from '../lib/duell-report.mjs';
 import { makeSealer, optionHash, HASH_RE } from '../lib/duell-seal.mjs';
 import { at, check, GOLDEN, verdict } from '../bin/duell-golden.mjs';
@@ -133,6 +133,20 @@ test('welt: Config-Werte wie /api/duell/config plus 3 Abschnitte aus festen List
   assert.equal((await run(odd.ai, 'welt', INPUTS.welt)).body.options[0].abschnitte[0].emoji, '🌙', 'an emoji off the list -> the theme\'s fixed emoji');
   const few = mk({ answer: { ...ANSWERS.welt, route: [{ physik: 'ruhig', thema: 'space', emoji: '🐠' }, ...ANSWERS.welt.route.slice(1)] } });
   assert.equal((await run(few.ai, 'welt', INPUTS.welt)).status, 503, 'a theme off the list leaves 2 sections: no world');
+});
+
+test('welt: anim der Figur nur aus festen Listen und Bereichen; Unbekanntes faellt weg, nie geraten; ohne anim kein Feld', async () => {
+  const one = async (anim) => (await run(mk({ answer: { ...ANSWERS.welt, anim } }).ai, 'welt', INPUTS.welt)).body.options[0];
+  assert.deepEqual((await one({ art: 'huepfen', tempo: 1.5, staerke: 1, bei: 'sprung' })).anim, { art: 'huepfen', tempo: 1.5, staerke: 1, bei: 'sprung' });
+  assert.deepEqual((await one({ art: 'wackeln', tempo: 9, staerke: -2, bei: 'nie', code: 'alert(1)' })).anim, { art: 'wackeln' }, 'off its range: dropped, not clamped');
+  assert.deepEqual((await one({ art: 'blinken', tempo: 1.26, bei: 'immer' })).anim, { art: 'blinken', tempo: 1.3 });
+  assert.deepEqual((await one({ art: 'keine', tempo: 2 })).anim, { art: 'keine' }, 'keine takes an old one away');
+  for (const bad of [{ art: 'tanzen' }, 'huepfen', [{ art: 'huepfen' }], null]) assert.equal('anim' in (await one(bad)), false, JSON.stringify(bad));
+  const { ai, calls } = mk({ answer: ANSWERS.welt });
+  await run(ai, 'welt', INPUTS.welt);
+  assert.match(calls[0].s, /anim: ONLY when the wish says how the figure moves/); assert.match(calls[0].s, /huepfen, wippen, drehen, wackeln, fluegel, blinken, pulsieren, keine/);
+  assert.deepEqual(ANIM, { art: ['huepfen', 'wippen', 'drehen', 'wackeln', 'fluegel', 'blinken', 'pulsieren', 'keine'], bei: ['immer', 'sprung', 'treffer', 'sieg'] });
+  assert.deepEqual(animOf({ art: 'drehen', staerke: 0 }), { art: 'drehen', staerke: 0 });
 });
 
 test('text: 3 Varianten, Laengen-Cap am Wortende, {name} bleibt Platzhalter, fremde Schrift faellt weg, persoenlich nie im Cache', async () => {
