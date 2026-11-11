@@ -1,0 +1,331 @@
+[
+ {
+  "in": {
+   "k": "arcade",
+   "i": "arcade-ziegel",
+   "a": "ziegel",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "t": "Weltraum-Ziegel",
+   "s": "Bis sieben!",
+   "fa": {
+    "e": "🚀",
+    "w": 7
+   }
+  },
+  "out": {
+   "k": "arcade",
+   "i": "arcade-ziegel",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "by": [],
+   "a": "ziegel",
+   "t": "Weltraum-Ziegel",
+   "s": "Bis sieben!",
+   "fa": {
+    "e": "🚀",
+    "w": 7
+   }
+  }
+ },
+ {
+  "in": {
+   "k": "arcade",
+   "i": "arcade-ziegel",
+   "a": "ziegel",
+   "col": [
+    "#FFD400",
+    "#ff3b1d"
+   ],
+   "fa": {
+    "e": "💣",
+    "w": 12,
+    "x": "<b>"
+   },
+   "t": "  A\u0000b <script> ",
+   "evil": 1
+  },
+  "out": {
+   "k": "arcade",
+   "i": "arcade-ziegel",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "by": [],
+   "a": "ziegel",
+   "t": "A b script"
+  }
+ },
+ {
+  "in": {
+   "k": "arcade",
+   "i": "arcade-ziegel",
+   "a": "tetris",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ]
+  },
+  "out": null
+ },
+ {
+  "in": {
+   "k": "arcade",
+   "i": "tisch-skat",
+   "a": "ziegel",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ]
+  },
+  "out": null
+ },
+ {
+  "in": {
+   "k": "arcade",
+   "i": "arcade-kick",
+   "a": "kick",
+   "col": "rot",
+   "fa": {
+    "w": 0
+   }
+  },
+  "out": {
+   "k": "arcade",
+   "i": "arcade-kick",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "by": [],
+   "a": "kick"
+  }
+ },
+ {
+  "in": {
+   "k": "tool",
+   "i": "notizzettel",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "t": "Einkauf",
+   "fa": {
+    "v": "karo",
+    "x": "Milch, Brot, Äpfel"
+   }
+  },
+  "out": {
+   "k": "tool",
+   "i": "notizzettel",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "by": [],
+   "t": "Einkauf",
+   "fa": {
+    "v": "karo",
+    "x": "Milch, Brot, Äpfel"
+   }
+  }
+ },
+ {
+  "in": {
+   "k": "tool",
+   "i": "notizzettel",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "fa": {
+    "v": "gold",
+    "x": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   }
+  },
+  "out": {
+   "k": "tool",
+   "i": "notizzettel",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "by": [],
+   "fa": {
+    "x": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   }
+  }
+ },
+ {
+  "in": {
+   "k": "tool",
+   "i": "rm-rf",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ]
+  },
+  "out": null
+ },
+ {
+  "in": {
+   "k": "table",
+   "i": "tisch-bauernskat",
+   "g": "bauernskat",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "t": "Opas Runde",
+   "fa": {
+    "r": [
+     "kontra",
+     "null",
+     "dulle"
+    ]
+   }
+  },
+  "out": {
+   "k": "table",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "by": [],
+   "i": "tisch-bauernskat",
+   "t": "Opas Runde",
+   "g": "bauernskat",
+   "fa": {
+    "r": [
+     "null",
+     "kontra"
+    ]
+   }
+  }
+ },
+ {
+  "in": {
+   "k": "table",
+   "i": "tisch-skat",
+   "g": "skat",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "fa": {
+    "r": [
+     "null"
+    ]
+   }
+  },
+  "out": {
+   "k": "table",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "by": [],
+   "i": "tisch-skat",
+   "g": "skat"
+  }
+ },
+ {
+  "in": {
+   "k": "table",
+   "i": "tisch-skat",
+   "g": "skat",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "fa": {
+    "r": "ramsch"
+   }
+  },
+  "out": {
+   "k": "table",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "by": [],
+   "i": "tisch-skat",
+   "g": "skat"
+  }
+ },
+ {
+  "in": {
+   "k": "arcade",
+   "i": "arcade-elfer",
+   "a": "elfer",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "ki": {
+    "k": "karte",
+    "s": "s2.karte.abc.DEF",
+    "h": "h",
+    "o": "o",
+    "x": "y"
+   }
+  },
+  "out": {
+   "k": "arcade",
+   "i": "arcade-elfer",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "by": [],
+   "a": "elfer",
+   "ki": {
+    "k": "karte",
+    "s": "s2.karte.abc.DEF",
+    "h": "h",
+    "o": "o"
+   }
+  }
+ },
+ {
+  "in": {
+   "k": "card",
+   "x": "Hallo",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "by": [],
+   "st": "druck",
+   "sk": []
+  },
+  "out": {
+   "k": "card",
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "by": [],
+   "x": "Hallo",
+   "st": "druck",
+   "sk": []
+  }
+ },
+ {
+  "in": null,
+  "out": null
+ },
+ {
+  "in": [],
+  "out": null
+ },
+ {
+  "in": "x",
+  "out": null
+ }
+]
