@@ -1,0 +1,9 @@
+{
+  "package": "acorn",
+  "version": "8.15.0",
+  "license": "MIT",
+  "source": "https://registry.npmjs.org/acorn/-/acorn-8.15.0.tgz",
+  "integrity": "sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==",
+  "files": { "acorn.mjs": { "sha256": "b4c8c70200e72bae33cf1085e0ecb1e792c1b6924ed50cab817caf14f51bb249", "from": "package/dist/acorn.mjs" }, "LICENSE": { "from": "package/LICENSE" } },
+  "use": "server only (lib/code/check.mjs): parses model-written game code for the allowlist; never shipped to the app"
+}

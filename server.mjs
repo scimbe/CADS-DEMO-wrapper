@@ -26,6 +26,7 @@ import { DEFAULT_REGISTRY_URL, REFUSAL, loadVerifiedManifest, readTrustRoot } fr
 import { createDuell } from './lib/duell.mjs';
 import { createShortLinks } from './lib/shortlink.mjs';
 import { createDuellAi } from './lib/duell-ai.mjs';
+import { createCodeStore } from './lib/code/store.mjs';
 import { createDuellProfile } from './lib/duell-profile.mjs';
 import { createReports } from './lib/duell-report.mjs';
 import { createDeck } from './lib/duell-deck.mjs';
@@ -1079,12 +1080,15 @@ const INSTALLATIONS = createInstallations();
 const DUELL = createDuell({ llmEnv: ENV, root: __dir }); // public by design (no login), see lib/duell.mjs
 const SHORT = createShortLinks({ root: __dir, clientKey: DUELL.clientKey, metric: DUELL.shared.metric, free: () => DECK });   // free cards: open only while the deck says ok // public by design (no login), see lib/shortlink.mjs
 const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
+// Code-Modus of the free card (lib/duell-code.mjs): only with DUELL_CODE_MODE=1; signed games and their route (lib/code/store.mjs)
+const CODE = process.env.DUELL_CODE_MODE === '1' ? createCodeStore({ env: process.env }) : null;
+if (CODE) DUELL.shared.code = CODE;
 const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather() }); // AI actions and their pots, lib/duell-ai.mjs
 // Free cards: credit for use and reach, graded moderation, the community deck (lib/duell-deck.mjs). W2 reaches them over shared.
 const CREDIT = createCredit(), MOD = createMod();
 const DECK = createDeck({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDIT, mod: MOD, blockLink: (id) => SHORT.block(id) });
 Object.assign(DUELL.shared, { credit: CREDIT, mod: MOD });
-const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id), onCard: DECK }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
+const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id), onCard: DECK, onCode: CODE }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
 const DUELL_PROFILE = createDuellProfile({ auth: AUTH, shared: DUELL.shared }); // profile under "Mein Stil": account (16+) or sync code, lib/duell-profile.mjs
 const STATS = createStats({ shared: DUELL.shared, auth: AUTH }); // card statistics, thumbs up/down; votes only with a verified account (lib/duell-stat.mjs)
 DECK.useStat(STATS); // the Statistik tab on /duell/pruefen reads STATS.readAdmin (no k mask, admin token only)
@@ -1101,6 +1105,7 @@ async function route(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
   if (await DUELL_AI.route(req, res, url)) return; // own limits and allowance, reads the login itself
+  if (CODE && await CODE.route(req, res, url)) return; // Code-Modus: signed game code (JSON, nosniff, own CSP), revoke (DUELL_ADMIN_TOKEN)
   if (await DUELL_PROFILE.route(req, res, url)) return; // My Daily Idea profile, reads the login itself
   if (await REPORTS.route(req, res, url)) return; // report, seal check (public); reviewer routes need DUELL_ADMIN_TOKEN
   if (await DECK.route(req, res, url)) return; // community deck (public), use/thumbs/credit/appeal (login), review (DUELL_ADMIN_TOKEN)
