@@ -1,0 +1,121 @@
+{
+  "id": "zug-wichteln",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.2",
+  "kind": "turn",
+  "mode": "turn",
+  "order": 13,
+  "title": {
+    "de": "Wer beschenkt wen?",
+    "en": "Who gives to whom?"
+  },
+  "teaser": {
+    "de": "Wichteln in der Gruppe, ganz ohne Zettel.",
+    "en": "Secret Santa for the group, no paper slips."
+  },
+  "howto": {
+    "de": "Du trägst mindestens drei Namen ein. Jede Person öffnet den Link, tippt ihren Namen und sieht nur ihren Zettel.",
+    "en": "You enter at least three names. Everyone opens the link, taps their name and sees only their own slip."
+  },
+  "rule": {
+    "de": "Du trägst mindestens drei Namen ein. Jede Person öffnet den Link, tippt ihren Namen und sieht nur ihren Zettel.",
+    "en": "You enter at least three names. Everyone opens the link, taps their name and sees only their own slip."
+  },
+  "seats": {
+    "de": [
+      "Lost aus",
+      "Zieht"
+    ],
+    "en": [
+      "Draws",
+      "Picks"
+    ]
+  },
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 4096
+  },
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "legacy": [
+    "zug-wichteln"
+  ],
+  "on": [
+    "11-28"
+  ],
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans",
+          "close"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "titel"
+    ],
+    "properties": {
+      "titel": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "Wer beschenkt wen?",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "titel"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    }
+  ]
+}

@@ -1,0 +1,330 @@
+{
+  "id": "frei",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.1",
+  "kind": "card",
+  "mode": "static",
+  "title": {
+    "de": "Deine freie Karte",
+    "en": "Your free card"
+  },
+  "teaser": {
+    "de": "Ein Satz, die KI baut sie. Mit KI-Siegel.",
+    "en": "One sentence, the AI builds it. With AI seal."
+  },
+  "players": {
+    "min": 1,
+    "max": 1
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 1,
+    "stateBytes": 4096
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "kind",
+      "title",
+      "text",
+      "top",
+      "bottom",
+      "style",
+      "palette",
+      "stickers",
+      "seal",
+      "hash",
+      "owner",
+      "root"
+    ],
+    "properties": {
+      "kind": {
+        "type": "string",
+        "enum": [
+          "card",
+          "meme"
+        ],
+        "default": "card",
+        "x-field": "choice",
+        "x-label": {
+          "de": "Art",
+          "en": "Type"
+        }
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "Meine Karte",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Überschrift",
+          "en": "Headline"
+        }
+      },
+      "text": {
+        "type": "string",
+        "maxLength": 90,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Text",
+          "en": "Text"
+        }
+      },
+      "top": {
+        "type": "string",
+        "maxLength": 28,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Text oben",
+          "en": "Top text"
+        }
+      },
+      "bottom": {
+        "type": "string",
+        "maxLength": 28,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Text unten",
+          "en": "Bottom text"
+        }
+      },
+      "style": {
+        "type": "string",
+        "enum": [
+          "druck",
+          "zettel",
+          "stempel",
+          "neon",
+          "herz",
+          "advent",
+          "poster",
+          "sticker",
+          "meme",
+          "glitch"
+        ],
+        "default": "druck",
+        "x-field": "choice",
+        "x-label": {
+          "de": "Stil",
+          "en": "Style"
+        }
+      },
+      "palette": {
+        "type": "string",
+        "enum": [
+          "gelb",
+          "blau",
+          "pink",
+          "gruen",
+          "orange",
+          "lime",
+          "weiss",
+          "himmel"
+        ],
+        "default": "gelb",
+        "x-field": "color",
+        "x-label": {
+          "de": "Farbe",
+          "en": "Colour"
+        }
+      },
+      "stickers": {
+        "type": "array",
+        "maxItems": 6,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "enum": [
+            "🐸",
+            "🦆",
+            "🐙",
+            "🦝",
+            "🐌",
+            "🦖",
+            "🐶",
+            "🐱",
+            "🦄",
+            "🐝",
+            "🍕",
+            "🌮",
+            "🍩",
+            "🥨",
+            "🍟",
+            "🧃",
+            "🍪",
+            "🎂",
+            "🚀",
+            "🛸",
+            "👽",
+            "🪐",
+            "🌟",
+            "☄️",
+            "💥",
+            "🔥",
+            "🌀",
+            "⚡",
+            "🎄",
+            "⭐",
+            "🎁",
+            "❄️",
+            "⛄",
+            "🦌",
+            "🔔",
+            "🕯️",
+            "✨",
+            "🧦",
+            "☃️",
+            "💛",
+            "🌻",
+            "🫶",
+            "🌈",
+            "☀️",
+            "🌙",
+            "🌸",
+            "🍀",
+            "🎉",
+            "🎈",
+            "🥳",
+            "⚽",
+            "🎸",
+            "🎮",
+            "📚",
+            "💪",
+            "🏖️"
+          ]
+        },
+        "default": [],
+        "x-field": "list",
+        "x-label": {
+          "de": "Sticker (bis 6)",
+          "en": "Stickers (up to 6)"
+        }
+      },
+      "seal": {
+        "type": "string",
+        "maxLength": 200,
+        "pattern": "^[A-Za-z0-9._~-]*$",
+        "default": "",
+        "x-field": "text",
+        "x-label": {
+          "de": "KI-Siegel",
+          "en": "AI seal"
+        },
+        "x-hidden": true
+      },
+      "hash": {
+        "type": "string",
+        "maxLength": 43,
+        "pattern": "^([A-Za-z0-9_-]{43})?$",
+        "default": "",
+        "x-field": "text",
+        "x-label": {
+          "de": "Siegel-Hash",
+          "en": "Seal hash"
+        },
+        "x-hidden": true
+      },
+      "owner": {
+        "type": "string",
+        "maxLength": 22,
+        "pattern": "^([A-Za-z0-9_-]{22})?$",
+        "default": "",
+        "x-field": "text",
+        "x-label": {
+          "de": "Ersteller-Kennung",
+          "en": "Creator tag"
+        },
+        "x-hidden": true
+      },
+      "root": {
+        "type": "string",
+        "maxLength": 22,
+        "pattern": "^([A-Za-z0-9_-]{22})?$",
+        "default": "",
+        "x-field": "text",
+        "x-label": {
+          "de": "Ursprungskarte",
+          "en": "Root card"
+        },
+        "x-hidden": true
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "title"
+      ],
+      "label": {
+        "de": "Überschrift",
+        "en": "Headline"
+      }
+    },
+    {
+      "id": "text",
+      "params": [
+        "text"
+      ],
+      "label": {
+        "de": "Text",
+        "en": "Text"
+      }
+    },
+    {
+      "id": "meme",
+      "params": [
+        "top",
+        "bottom"
+      ],
+      "label": {
+        "de": "Meme-Texte",
+        "en": "Meme texts"
+      }
+    },
+    {
+      "id": "stil",
+      "params": [
+        "style"
+      ],
+      "label": {
+        "de": "Stil",
+        "en": "Style"
+      }
+    },
+    {
+      "id": "farbe",
+      "params": [
+        "palette"
+      ],
+      "label": {
+        "de": "Farbe",
+        "en": "Colour"
+      }
+    },
+    {
+      "id": "sticker",
+      "params": [
+        "stickers"
+      ],
+      "label": {
+        "de": "Sticker",
+        "en": "Stickers"
+      }
+    }
+  ],
+  "order": 9000
+}

@@ -1,0 +1,161 @@
+{
+  "id": "zug-umschlag",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.2",
+  "kind": "turn",
+  "mode": "turn",
+  "order": 19,
+  "title": {
+    "de": "Mach auf, wenn …",
+    "en": "Open when …"
+  },
+  "teaser": {
+    "de": "Drei Umschläge für jemanden, der fehlt.",
+    "en": "Three envelopes for someone you miss."
+  },
+  "howto": {
+    "de": "Du schreibst drei Briefe für drei Momente. Die andere Person öffnet den, der gerade passt.",
+    "en": "You write three notes for three moments. The other person opens the one that fits right now."
+  },
+  "rule": {
+    "de": "Du schreibst drei Briefe für drei Momente. Die andere Person öffnet den, der gerade passt.",
+    "en": "You write three notes for three moments. The other person opens the one that fits right now."
+  },
+  "seats": {
+    "de": [
+      "Schreibt",
+      "Öffnet"
+    ],
+    "en": [
+      "Writes",
+      "Opens"
+    ]
+  },
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 4096
+  },
+  "play": {
+    "default": "link",
+    "offer": [
+      "link"
+    ]
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "inputDay": true,
+  "legacy": [
+    "zug-umschlag"
+  ],
+  "variants": [
+    {
+      "id": "zug-morgen",
+      "title": {
+        "de": "Erst morgen aufmachen",
+        "en": "Open it tomorrow"
+      },
+      "params": {
+        "spiel": "morgen"
+      },
+      "legacy": [
+        "zug-morgen"
+      ]
+    },
+    {
+      "id": "halloween",
+      "title": {
+        "de": "Happy Halloween",
+        "en": "Happy Halloween"
+      },
+      "params": {
+        "spiel": "halloween"
+      },
+      "legacy": [
+        "halloween"
+      ]
+    }
+  ],
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans",
+          "close"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "titel",
+      "spiel"
+    ],
+    "properties": {
+      "titel": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "Mach auf, wenn …",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "spiel": {
+        "type": "string",
+        "enum": [
+          "umschlag",
+          "morgen",
+          "halloween"
+        ],
+        "default": "umschlag",
+        "x-field": "choice",
+        "x-label": {
+          "de": "Art",
+          "en": "Kind"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "titel"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    }
+  ]
+}

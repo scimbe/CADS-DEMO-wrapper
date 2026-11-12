@@ -8,7 +8,8 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decodeV2, encodeV2, V2_MAX } from '../lib/link-v2.mjs';
-import { createShortLinks, freeChecksOf, freeIdsOf, freiGateDoc, fragmentOk } from '../lib/shortlink.mjs';
+import { createShortLinks, freeChecksOf, freeIdsOf, fragmentOk } from '../lib/shortlink.mjs';
+import { CARDS } from '../lib/vendor/mdi/index.js';
 import { gateHash } from '../lib/duell-deck.mjs';
 import { createDuell } from '../lib/duell.mjs';
 import { createDuellProfile, cleanProfile, wallLinkFormat } from '../lib/duell-profile.mjs';
@@ -189,27 +190,63 @@ test('short link v2: the chat preview picture works as for the old links (creato
 });
 
 // ---- free cards in v2 links: bound to the deck status, with the content's gate hash ------------------------------------
-test('free card v2: the server rebuilds the doc as the app does, so the gate hash is the one stored with the card (fixed vectors)', () => {
-  assert.equal(gateHash(freiGateDoc(FREI_CARD)), GH.card);
-  assert.equal(gateHash(freiGateDoc(FREI_MEME)), GH.meme);
-  assert.deepEqual(freeChecksOf(frei(FREI_CARD)), [[FREI_CARD.hash.slice(0, 22), GH.card]]);
-  assert.notEqual(gateHash(freiGateDoc({ ...FREI_CARD, title: 'Gefälscht' })), GH.card, 'other content, other hash');
-  assert.notEqual(gateHash(freiGateDoc({ ...FREI_CARD, palette: 'blau' })), GH.card);
-  assert.equal(gateHash(freiGateDoc({ ...FREI_CARD, owner: 'x', seal: 's2.karte.other.zzzzzzzz' })), GH.card, 'seal and owner are not shown, so not hashed');
+// The server docs of the free card as this server answered them (test/fixtures/mdi-frei-docs.json); the link carries them as
+// the parameters of the target card (the app's fromFree), the server reads them back with the app's toFree (lib/vendor/mdi).
+const DOCS = JSON.parse(readFileSync(join(root, 'test', 'fixtures', 'mdi-frei-docs.json'), 'utf8')).docs;
+const serverDoc = (n) => ({ ...DOCS[n].doc, ki: DOCS[n].ki });
+const linkOf = (id, doc, type = 'card') => {
+  const p = CARDS[id].fromFree(doc);
+  assert.ok(p, `${id}: fromFree takes the server doc`);
+  const env = { c: id, v: CARDS[id].manifest.version, p };
+  return type === 'card' ? encodeV2('card', env) : encodeV2('challenge', { ...env, s: 'a'.repeat(32), k: [], m: [], g: 'c'.repeat(16) });
+};
+const cidOf = (n) => DOCS[n].ki.h.slice(0, 22);
+
+test('free card v2 (frei, flug, lauf): with the app\'s own adapters the link gives the gate hash stored with the card', () => {
+  for (const [n, id] of [['karte-ok-card', 'frei'], ['karte-ok-meme', 'frei'], ['karte-ok-game', 'flug'], ['karte-ok-lauf', 'lauf']]) {
+    const doc = serverDoc(n), want = [[cidOf(n), gateHash(doc)]];
+    assert.deepEqual(freeChecksOf(linkOf(id, doc)), want, `${n} -> ${id}`);
+    assert.deepEqual(freeChecksOf(linkOf(id, doc, 'challenge')), want, `${n} as a challenge`);
+    // other visible content under the same seal: another hash, so the deck answers "changed"
+    const forged = { ...doc, t: 'Gefälscht', ...(doc.x !== undefined ? { x: 'Fremder Text' } : {}), ...(doc.g ? { g: { ...doc.g, title: 'Gefälscht' } } : {}), ...(doc.l ? { l: { ...doc.l, e: '💀' } } : {}) };
+    const [[cid, gh]] = freeChecksOf(linkOf(id, forged));
+    assert.equal(cid, cidOf(n)); assert.notEqual(gh, want[0][1], `${n}: forged content`);
+  }
+  assert.deepEqual(freeChecksOf(frei(FREI_CARD)), [[FREI_CARD.hash.slice(0, 22), GH.card]], 'the fixed vector of the app');
+  assert.equal(GH.card, gateHash(serverDoc('karte-ok-card')));
+  // a remix: by the root's id alone (frei: root, lauf: fr)
   const remix = { ...FREI_CARD, seal: '', hash: '', owner: '', root: 'R'.repeat(22), title: 'Mein Remix' };
-  assert.deepEqual(freeChecksOf(frei(remix)), [['R'.repeat(22), undefined]], 'a remix: the root by its id alone');
+  assert.deepEqual(freeChecksOf(frei(remix)), [['R'.repeat(22), undefined]]);
+  const { ki, ...plain } = serverDoc('karte-ok-lauf');
+  assert.deepEqual(freeChecksOf(linkOf('lauf', { ...plain, fr: 'R'.repeat(22) })), [['R'.repeat(22), undefined]]);
   assert.deepEqual(freeIdsOf(frei({ ...FREI_CARD, root: 'R'.repeat(22) })), [FREI_CARD.hash.slice(0, 22), 'R'.repeat(22)]);
-  // what this server cannot check against its content is marked ('' = never released)
-  assert.deepEqual(freeChecksOf(frei({ ...FREI_CARD, hash: '' })), [['', undefined]], 'a seal without its hash');
-  assert.deepEqual(freeChecksOf(frei({ ...FREI_CARD, hash: 'kurz' })), [['', undefined]]);
-  assert.deepEqual(freeChecksOf(frei({ ...FREI_CARD, stickers: 'x' })), [['', undefined]], 'the app would not build a doc either');
-  assert.deepEqual(freeChecksOf(frei({ ...remix, root: 'nicht-22' })), [['', undefined]]);
-  const flug = encodeV2('card', { c: 'flug', v: '1.0.0', p: { ki: { k: 'karte', s: FREI_CARD.seal, h: FREI_CARD.hash } } });
-  assert.deepEqual(freeChecksOf(flug), [['', undefined]], 'a sealed free card on another card: content not checkable here');
-  assert.deepEqual(freeChecksOf(encodeV2('card', { c: 'lauf', v: '1.0.0', p: { fr: 'R'.repeat(22) } })), [['R'.repeat(22), undefined]]);
-  assert.deepEqual(freeChecksOf(encodeV2('card', { c: 'flug', v: '1.0.0', p: { ki: { k: 'welt', s: 'x' } } })), [], 'an AI world is no free card');
+  // what the app does not treat as a free card, the server does not either: an AI world, no adapter, an adapter that throws
+  const welt = { ...serverDoc('karte-ok-game'), ki: { k: 'welt', s: 's2.welt.mw2y455c.AnlRQb9jJYrLILMRBtJj7yR1qlhJF0ER' } };
+  assert.deepEqual(freeChecksOf(linkOf('flug', welt)), [], 'an AI world is no free card');
+  assert.deepEqual(freeChecksOf(encodeV2('card', { c: 'bluff', v: '1.0.0', p: { ki: { k: 'karte', s: FREI_CARD.seal, h: FREI_CARD.hash } } })), [], 'a card without toFree holds no free card');
+  assert.deepEqual(freeChecksOf(frei({ ...FREI_CARD, stickers: 'x' })), [], 'toFree throws: no doc, as in the app (freeDocOf)');
   assert.deepEqual(freeChecksOf(FC), []); assert.deepEqual(freeChecksOf(FG), []);
   assert.deepEqual(freeChecksOf('v2.card.kaputt'), [], 'a link that does not pass is no free card (and is refused anyway)');
+});
+
+test('free card v2 (zug-*): the seal does not travel in their parameters, so neither the app nor the server gates them', async () => {
+  const zug = Object.keys(CARDS).filter((id) => !['frei', 'flug', 'lauf'].includes(id));
+  assert.ok(zug.includes('zug-abfragen') && zug.includes('zug-termin') && zug.length >= 10, zug.join());
+  const deck = fakeDeck(), s = mk({}, { free: () => deck });
+  for (const id of zug) {
+    const props = CARDS[id].manifest.params.properties, p = {};
+    for (const [k, v] of Object.entries(props)) p[k] = structuredClone(v.default);
+    const f = encodeV2('card', { c: id, v: CARDS[id].manifest.version, p });
+    assert.deepEqual(freeChecksOf(f), [], id);
+    // a seal pushed into the parameters is dropped by the card's own toFree, as in the app
+    assert.deepEqual(freeChecksOf(encodeV2('card', { c: id, v: '1.0.0', p: { ...p, ki: { k: 'karte', s: FREI_CARD.seal, h: FREI_CARD.hash }, fr: 'R'.repeat(22) } })), [], id + ' with a pushed seal');
+    assert.equal(s.create({ f, k: 'game' }).status, 201, id);
+  }
+  // the quiz and the ability of the free card arrive as these cards, without their seal
+  assert.deepEqual(freeChecksOf(linkOf('zug-abfragen', serverDoc('karte-ok-quiz'))), []);
+  const fae = serverDoc('karte-ok-faehigkeit');
+  assert.deepEqual(freeChecksOf(linkOf(fae.i, fae)), [], fae.i);
+  assert.deepEqual(deck.asked, [], 'the deck is never asked for them');
 });
 
 test('free card v2: a short link only while the deck says ok for that content; later blocks close link, page and picture', async () => {
@@ -226,9 +263,12 @@ test('free card v2: a short link only while the deck says ok for that content; l
   assert.deepEqual(deck.shared, [[cid, id]], 'the deck learns the short link (removal lists it)');
   // forged content with the id of the released card
   assert.deepEqual(s.create({ f: frei({ ...FREI_CARD, text: 'Ganz anderer Text' }), k: 'card' }).body, { error: 'card-blocked' });
-  // a sealed free card on another card, or a seal without hash: no short link, the app keeps its long link
-  assert.deepEqual(s.create({ f: encodeV2('card', { c: 'flug', v: '1.0.0', p: { ki: { k: 'karte', s: FREI_CARD.seal, h: FREI_CARD.hash } } }), k: 'game' }).body, { error: 'card-unverifiable' });
-  assert.deepEqual(s.create({ f: frei({ ...FREI_CARD, hash: '' }), k: 'card' }).body, { error: 'card-unverifiable' });
+  // a sealed free card on flug and lauf: the same gate, with the hash of the shown game
+  const fl = linkOf('flug', serverDoc('karte-ok-game')), la = linkOf('lauf', serverDoc('karte-ok-lauf'));
+  assert.deepEqual(s.create({ f: la, k: 'game' }).body, { error: 'card-unknown' });
+  deck.cards.set(cidOf('karte-ok-game'), gateHash(serverDoc('karte-ok-game')));
+  assert.equal(s.create({ f: fl, k: 'game' }).status, 201);
+  assert.deepEqual(s.create({ f: linkOf('flug', { ...serverDoc('karte-ok-game'), g: { ...serverDoc('karte-ok-game').g, title: 'Fremd' } }), k: 'game' }).body, { error: 'card-blocked' });
   // a remix: by the root's id alone; one blocked id blocks the whole link
   const rm = frei({ ...FREI_CARD, seal: '', hash: '', owner: '', root: cid, title: 'Remix' });
   assert.equal(s.create({ f: rm, k: 'card' }).status, 201);

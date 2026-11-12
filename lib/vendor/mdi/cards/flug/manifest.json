@@ -1,0 +1,2166 @@
+{
+ "id": "flug",
+ "version": "1.0.0",
+ "sdk": "mdi-sdk/0.2",
+ "kind": "realtime",
+ "mode": "realtime",
+ "order": 300,
+ "title": {
+  "de": "Bau dein Lava-Level",
+  "en": "Build your lava level"
+ },
+ "teaser": {
+  "de": "Feuer, Drache, kein Mitleid.",
+  "en": "Fire, dragon, zero mercy."
+ },
+ "rule": {
+  "de": "Tippen oder Leertaste: flattern. Durch die Lücken fliegen.",
+  "en": "Tap or space: flap. Fly through the gaps."
+ },
+ "howto": {
+  "de": "Tippen. Fliegen. Angeben.",
+  "en": "Tap. Fly. Flex."
+ },
+ "family": "flug",
+ "grip": "pause",
+ "dur": 40,
+ "legacy": [
+  "spiel-lava",
+  "spiel-mond",
+  "spiel-pizza",
+  "spiel-tiefsee",
+  "spiel-neon",
+  "spiel-geist",
+  "spiel-einhorn",
+  "spiel-retro",
+  "flug-agent",
+  "flug-mond",
+  "plan-01",
+  "plan-08",
+  "plan-13",
+  "plan-18",
+  "plan-22",
+  "plan-28"
+ ],
+ "players": {
+  "min": 1,
+  "max": 2
+ },
+ "hidden": "none",
+ "uses": [
+  "image"
+ ],
+ "modes": [
+  "alone",
+  "ghost"
+ ],
+ "play": {
+  "default": "alone",
+  "offer": [
+   "alone"
+  ]
+ },
+ "limits": {
+  "stepBudget": 2000,
+  "stateBytes": 16384
+ },
+ "rt": {
+  "tick": 120,
+  "view": {
+   "w": 288,
+   "h": 512,
+   "fit": "contain"
+  },
+  "numeric": "f64",
+  "net": "none",
+  "maxTicks": 10800,
+  "ghost": {
+   "bytes": 1200
+  },
+  "controls": {
+   "buttons": [
+    {
+     "id": "tap",
+     "kind": "pulse",
+     "keys": [
+      "Space",
+      "ArrowUp",
+      "KeyW"
+     ],
+     "zone": "any",
+     "label": {
+      "de": "Flattern",
+      "en": "Flap"
+     }
+    }
+   ]
+  },
+  "sounds": {
+   "flap": {
+    "synth": "tone",
+    "f0": 420,
+    "f1": 760,
+    "dur": 0.09,
+    "type": "square",
+    "vol": 0.05,
+    "haptic": 6
+   },
+   "score": {
+    "synth": "tone",
+    "f0": 880,
+    "f1": 1320,
+    "dur": 0.14,
+    "type": "triangle",
+    "vol": 0.12,
+    "haptic": 14
+   },
+   "dead": {
+    "synth": "tone",
+    "f0": 260,
+    "f1": 40,
+    "dur": 0.45,
+    "type": "sawtooth",
+    "vol": 0.16,
+    "haptic": 160
+   },
+   "section": {
+    "haptic": 20
+   }
+  }
+ },
+ "params": {
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+   "variant": {
+    "type": "string",
+    "enum": [
+     "spiel-lava",
+     "spiel-mond",
+     "spiel-pizza",
+     "spiel-tiefsee",
+     "spiel-neon",
+     "spiel-geist",
+     "spiel-einhorn",
+     "spiel-retro",
+     "flug-agent",
+     "flug-mond",
+     "plan-01",
+     "plan-08",
+     "plan-13",
+     "plan-18",
+     "plan-22",
+     "plan-28",
+     "eigen"
+    ],
+    "default": "spiel-lava",
+    "x-field": "choice",
+    "x-label": {
+     "de": "Variante",
+     "en": "Variant"
+    }
+   },
+   "mode": {
+    "type": "string",
+    "enum": [
+     "solo",
+     "agent",
+     "train"
+    ],
+    "default": "solo",
+    "x-field": "choice",
+    "x-label": {
+     "de": "Wer fliegt?",
+     "en": "Who flies?"
+    }
+   },
+   "seed": {
+    "type": "integer",
+    "minimum": 0,
+    "maximum": 4294967295,
+    "default": 6061,
+    "x-field": "number",
+    "x-label": {
+     "de": "Strecke",
+     "en": "Course"
+    }
+   },
+   "gravity": {
+    "type": "integer",
+    "minimum": 900,
+    "maximum": 2600,
+    "default": 2100,
+    "x-field": "number",
+    "x-steps": {
+     "values": [
+      900,
+      1350,
+      1800,
+      2200,
+      2600
+     ],
+     "names": {
+      "de": [
+       "Mond",
+       "leicht",
+       "Erde",
+       "schwer",
+       "Jupiter"
+      ],
+      "en": [
+       "Moon",
+       "light",
+       "Earth",
+       "heavy",
+       "Jupiter"
+      ]
+     }
+    },
+    "x-label": {
+     "de": "Schwere",
+     "en": "Weight"
+    }
+   },
+   "jump": {
+    "type": "integer",
+    "minimum": 280,
+    "maximum": 620,
+    "default": 480,
+    "x-field": "number",
+    "x-steps": {
+     "values": [
+      280,
+      355,
+      430,
+      525,
+      620
+     ],
+     "names": {
+      "de": [
+       "winzig",
+       "klein",
+       "normal",
+       "hoch",
+       "riesig"
+      ],
+      "en": [
+       "tiny",
+       "small",
+       "normal",
+       "high",
+       "huge"
+      ]
+     }
+    },
+    "x-label": {
+     "de": "Sprung",
+     "en": "Jump"
+    }
+   },
+   "gap": {
+    "type": "integer",
+    "minimum": 90,
+    "maximum": 200,
+    "default": 125,
+    "x-field": "number",
+    "x-steps": {
+     "values": [
+      90,
+      115,
+      140,
+      170,
+      200
+     ],
+     "names": {
+      "de": [
+       "sehr eng",
+       "eng",
+       "normal",
+       "weit",
+       "sehr weit"
+      ],
+      "en": [
+       "very narrow",
+       "narrow",
+       "normal",
+       "wide",
+       "very wide"
+      ]
+     }
+    },
+    "x-label": {
+     "de": "Lücke",
+     "en": "Gap"
+    }
+   },
+   "speed": {
+    "type": "integer",
+    "minimum": 90,
+    "maximum": 260,
+    "default": 165,
+    "x-field": "number",
+    "x-steps": {
+     "values": [
+      90,
+      110,
+      130,
+      195,
+      260
+     ],
+     "names": {
+      "de": [
+       "Schnecke",
+       "langsam",
+       "normal",
+       "schnell",
+       "Rakete"
+      ],
+      "en": [
+       "snail",
+       "slow",
+       "normal",
+       "fast",
+       "rocket"
+      ]
+     }
+    },
+    "x-label": {
+     "de": "Tempo",
+     "en": "Speed"
+    }
+   },
+   "theme": {
+    "type": "string",
+    "enum": [
+     "day",
+     "night",
+     "sunset",
+     "retro",
+     "candy",
+     "neon",
+     "ocean",
+     "lava"
+    ],
+    "default": "lava",
+    "x-field": "choice",
+    "x-label": {
+     "de": "Welt",
+     "en": "World"
+    }
+   },
+   "title": {
+    "type": "string",
+    "maxLength": 28,
+    "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+    "default": "Bau dein Lava-Level",
+    "x-field": "text",
+    "x-model": true,
+    "x-label": {
+     "de": "Titel",
+     "en": "Title"
+    }
+   },
+   "emoji": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 12,
+    "default": "🐉",
+    "x-field": "text",
+    "x-label": {
+     "de": "Figur",
+     "en": "Hero"
+    }
+   },
+   "look": {
+    "type": [
+     "object",
+     "null"
+    ],
+    "additionalProperties": false,
+    "default": null,
+    "x-field": "list",
+    "x-label": {
+     "de": "Look",
+     "en": "Look"
+    },
+    "properties": {
+     "a": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "pattern": "^#[0-9a-fA-F]{6}$"
+     },
+     "b": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "pattern": "^#[0-9a-fA-F]{6}$"
+     },
+     "p": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "pattern": "^#[0-9a-fA-F]{6}$"
+     },
+     "q": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "pattern": "^#[0-9a-fA-F]{6}$"
+     },
+     "g": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "pattern": "^#[0-9a-fA-F]{6}$"
+     },
+     "h": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "pattern": "^#[0-9a-fA-F]{6}$"
+     },
+     "d": {
+      "type": "string",
+      "enum": [
+       "stars",
+       "bubbles",
+       "clouds",
+       "snow",
+       "rain",
+       "none"
+      ]
+     },
+     "f": {
+      "type": "string",
+      "enum": [
+       "tube",
+       "block",
+       "round",
+       "emoji"
+      ]
+     },
+     "e": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 12
+      }
+     },
+     "o": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12
+     },
+     "m": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12
+     }
+    }
+   },
+   "route": {
+    "type": [
+     "array",
+     "null"
+    ],
+    "minItems": 3,
+    "maxItems": 3,
+    "default": null,
+    "x-field": "list",
+    "x-label": {
+     "de": "Strecke in 3 Abschnitten",
+     "en": "Route in 3 sections"
+    },
+    "items": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "p",
+      "d",
+      "t",
+      "e"
+     ],
+     "properties": {
+      "p": {
+       "type": "string",
+       "enum": [
+        "normal",
+        "ruhig",
+        "schnell",
+        "eng",
+        "schwebend",
+        "schwer",
+        "sturm"
+       ]
+      },
+      "t": {
+       "type": "string",
+       "enum": [
+        "day",
+        "night",
+        "sunset",
+        "retro",
+        "candy",
+        "neon",
+        "ocean",
+        "lava"
+       ]
+      },
+      "e": {
+       "type": "string",
+       "minLength": 1,
+       "maxLength": 12
+      },
+      "d": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+        "gravity": {
+         "type": "integer",
+         "minimum": -800,
+         "maximum": 800
+        },
+        "jump": {
+         "type": "integer",
+         "minimum": -120,
+         "maximum": 120
+        },
+        "gap": {
+         "type": "integer",
+         "minimum": -60,
+         "maximum": 60
+        },
+        "speed": {
+         "type": "integer",
+         "minimum": -80,
+         "maximum": 80
+        }
+       }
+      }
+     }
+    }
+   },
+   "anim": {
+    "type": [
+     "object",
+     "null"
+    ],
+    "additionalProperties": false,
+    "default": null,
+    "x-field": "list",
+    "x-label": {
+     "de": "Animation",
+     "en": "Animation"
+    },
+    "properties": {
+     "art": {
+      "type": "string",
+      "enum": [
+       "huepfen",
+       "wippen",
+       "drehen",
+       "wackeln",
+       "fluegel",
+       "blinken",
+       "pulsieren"
+      ]
+     },
+     "tempo": {
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 2
+     },
+     "staerke": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+     },
+     "bei": {
+      "type": "string",
+      "enum": [
+       "sprung",
+       "treffer",
+       "sieg"
+      ]
+     }
+    },
+    "required": [
+     "art"
+    ]
+   },
+   "tempo": {
+    "type": "number",
+    "enum": [
+     1,
+     0.75,
+     0.5
+    ],
+    "default": 1,
+    "x-field": "choice",
+    "x-label": {
+     "de": "Zeitlupe",
+     "en": "Slow motion"
+    }
+   },
+   "agent": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "n",
+     "e",
+     "r",
+     "c",
+     "p"
+    ],
+    "properties": {
+     "n": {
+      "type": "string",
+      "maxLength": 16
+     },
+     "e": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12
+     },
+     "r": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+     },
+     "c": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+     },
+     "p": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+     }
+    },
+    "default": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "x-field": "list",
+    "x-label": {
+     "de": "Dein Agent",
+     "en": "Your agent"
+    }
+   },
+   "rival": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+     "n",
+     "e",
+     "r",
+     "c",
+     "p"
+    ],
+    "properties": {
+     "n": {
+      "type": "string",
+      "maxLength": 16
+     },
+     "e": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12
+     },
+     "r": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+     },
+     "c": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+     },
+     "p": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+     }
+    },
+    "default": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "x-field": "list",
+    "x-label": {
+     "de": "Gegner",
+     "en": "Rival"
+    }
+   },
+   "figur": {
+    "type": [
+     "string",
+     "null"
+    ],
+    "default": null,
+    "x-field": "media.local",
+    "x-label": {
+     "de": "Eigenes Foto als Figur",
+     "en": "Own photo as hero"
+    }
+   },
+   "hintergrund": {
+    "type": [
+     "string",
+     "null"
+    ],
+    "default": null,
+    "x-field": "media.local",
+    "x-label": {
+     "de": "Eigenes Foto als Hintergrund",
+     "en": "Own photo as background"
+    }
+   },
+   "col": {
+    "type": "array",
+    "minItems": 2,
+    "maxItems": 2,
+    "items": {
+     "type": "string",
+     "pattern": "^#[0-9a-fA-F]{6}$"
+    },
+    "default": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "x-field": "color",
+    "x-label": {
+     "de": "Farben",
+     "en": "Colours"
+    }
+   },
+   "t": {
+    "type": "string",
+    "maxLength": 40,
+    "default": "",
+    "x-field": "text",
+    "x-label": {
+     "de": "Eigener Titel",
+     "en": "Own title"
+    }
+   },
+   "by": {
+    "type": "array",
+    "maxItems": 8,
+    "default": [],
+    "x-field": "list",
+    "x-hidden": true,
+    "x-label": {
+     "de": "Bearbeitet von",
+     "en": "Edited by"
+    },
+    "items": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "n",
+      "w"
+     ],
+     "properties": {
+      "n": {
+       "type": "string",
+       "maxLength": 16
+      },
+      "w": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      }
+     }
+    }
+   },
+   "ki": {
+    "type": [
+     "object",
+     "null"
+    ],
+    "default": null,
+    "x-field": "text",
+    "x-hidden": true,
+    "x-label": {
+     "de": "KI-Siegel",
+     "en": "AI seal"
+    }
+   },
+   "fr": {
+    "type": [
+     "string",
+     "null"
+    ],
+    "pattern": "^[A-Za-z0-9_-]{22}$",
+    "default": null,
+    "x-field": "text",
+    "x-hidden": true,
+    "x-label": {
+     "de": "Freie Karte",
+     "en": "Free card"
+    }
+   }
+  }
+ },
+ "parts": [
+  {
+   "id": "welt",
+   "params": [
+    "theme"
+   ],
+   "label": {
+    "de": "Welt",
+    "en": "World"
+   }
+  },
+  {
+   "id": "figur",
+   "params": [
+    "emoji"
+   ],
+   "label": {
+    "de": "Figur",
+    "en": "Hero"
+   }
+  },
+  {
+   "id": "tempo",
+   "params": [
+    "tempo"
+   ],
+   "label": {
+    "de": "Zeitlupe",
+    "en": "Slow motion"
+   }
+  },
+  {
+   "id": "text",
+   "params": [
+    "title",
+    "t"
+   ],
+   "label": {
+    "de": "Text",
+    "en": "Text"
+   }
+  }
+ ],
+ "variants": [
+  {
+   "id": "spiel-lava",
+   "title": {
+    "de": "Bau dein Lava-Level",
+    "en": "Build your lava level"
+   },
+   "teaser": {
+    "de": "Feuer, Drache, kein Mitleid.",
+    "en": "Fire, dragon, zero mercy."
+   },
+   "legacy": [
+    "spiel-lava"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-spiel-lava.webp",
+    "alt": {
+     "de": "Bau dein Lava-Level",
+     "en": "Build your lava level"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "vulkan",
+    "langeweile",
+    "pause",
+    "bauen",
+    "fantasie",
+    "volcano",
+    "boredom",
+    "break"
+   ],
+   "params": {
+    "variant": "spiel-lava",
+    "mode": "solo",
+    "seed": 6061,
+    "gravity": 2100,
+    "jump": 480,
+    "gap": 125,
+    "speed": 165,
+    "theme": "lava",
+    "title": "Bau dein Lava-Level",
+    "emoji": "🐉",
+    "look": null,
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "spiel-mond",
+   "title": {
+    "de": "Flieg zum Mond",
+    "en": "Fly to the moon"
+   },
+   "teaser": {
+    "de": "Fast keine Schwerkraft. Fast.",
+    "en": "Almost no gravity. Almost."
+   },
+   "legacy": [
+    "spiel-mond"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-spiel-mond.webp",
+    "alt": {
+     "de": "Flieg zum Mond",
+     "en": "Fly to the moon"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "weltraum",
+    "fliegen",
+    "kosmos",
+    "fantasy",
+    "science-fiction",
+    "unendlich",
+    "schweben",
+    "space"
+   ],
+   "params": {
+    "variant": "spiel-mond",
+    "mode": "solo",
+    "seed": 7001,
+    "gravity": 1000,
+    "jump": 320,
+    "gap": 150,
+    "speed": 130,
+    "theme": "night",
+    "title": "Flieg zum Mond",
+    "emoji": "🚀",
+    "look": null,
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "spiel-pizza",
+   "title": {
+    "de": "Pizza muss fliegen",
+    "en": "Pizza must fly"
+   },
+   "teaser": {
+    "de": "Niemand fragt warum.",
+    "en": "Nobody asks why."
+   },
+   "legacy": [
+    "spiel-pizza"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-spiel-pizza.webp",
+    "alt": {
+     "de": "Pizza muss fliegen",
+     "en": "Pizza must fly"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "sinnfrei",
+    "absurd",
+    "party",
+    "lach",
+    "unserios",
+    "chaos",
+    "silly",
+    "nonsense"
+   ],
+   "params": {
+    "variant": "spiel-pizza",
+    "mode": "solo",
+    "seed": 7002,
+    "gravity": 1600,
+    "jump": 420,
+    "gap": 155,
+    "speed": 125,
+    "theme": "sunset",
+    "title": "Pizza muss fliegen",
+    "emoji": "🍕",
+    "look": null,
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "spiel-tiefsee",
+   "title": {
+    "de": "Tauch ab, Hai",
+    "en": "Dive down, shark"
+   },
+   "teaser": {
+    "de": "Unten ist es schön. Und eng.",
+    "en": "Nice down there. And tight."
+   },
+   "legacy": [
+    "spiel-tiefsee"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-spiel-tiefsee.webp",
+    "alt": {
+     "de": "Tauch ab, Hai",
+     "en": "Dive down, shark"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "unterwasser",
+    "nacht",
+    "grusel",
+    "underwater",
+    "scary"
+   ],
+   "params": {
+    "variant": "spiel-tiefsee",
+    "mode": "solo",
+    "seed": 7003,
+    "gravity": 1200,
+    "jump": 370,
+    "gap": 130,
+    "speed": 135,
+    "theme": "ocean",
+    "title": "Tauch ab, Hai",
+    "emoji": "🦈",
+    "look": null,
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "spiel-neon",
+   "title": {
+    "de": "Neon Panik",
+    "en": "Neon panic"
+   },
+   "teaser": {
+    "de": "Schnell. Bunt. Unfair.",
+    "en": "Fast. Loud. Unfair."
+   },
+   "legacy": [
+    "spiel-neon"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-spiel-neon.webp",
+    "alt": {
+     "de": "Neon Panik",
+     "en": "Neon panic"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "party",
+    "nacht",
+    "disko",
+    "licht",
+    "colorful",
+    "night",
+    "disco",
+    "light"
+   ],
+   "params": {
+    "variant": "spiel-neon",
+    "mode": "solo",
+    "seed": 7004,
+    "gravity": 2100,
+    "jump": 470,
+    "gap": 118,
+    "speed": 205,
+    "theme": "neon",
+    "title": "Neon Panik",
+    "emoji": "👽",
+    "look": null,
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "spiel-geist",
+   "title": {
+    "de": "Geisterschicht",
+    "en": "Ghost shift"
+   },
+   "teaser": {
+    "de": "Spukt schön durch die Nacht.",
+    "en": "Haunt your way through the night."
+   },
+   "legacy": [
+    "spiel-geist"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-spiel-geist.webp",
+    "alt": {
+     "de": "Geisterschicht",
+     "en": "Ghost shift"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "halloween",
+    "gruselig",
+    "gespenster",
+    "unheimlich",
+    "gruselfilm",
+    "scary",
+    "haunting",
+    "ghosts"
+   ],
+   "params": {
+    "variant": "spiel-geist",
+    "mode": "solo",
+    "seed": 7005,
+    "gravity": 1500,
+    "jump": 410,
+    "gap": 145,
+    "speed": 120,
+    "theme": "night",
+    "title": "Geisterschicht",
+    "emoji": "👻",
+    "look": null,
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "spiel-einhorn",
+   "title": {
+    "de": "Einhorn auf Zucker",
+    "en": "Unicorn on sugar"
+   },
+   "teaser": {
+    "de": "Süß. Aber gefährlich.",
+    "en": "Sweet. But dangerous."
+   },
+   "legacy": [
+    "spiel-einhorn"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-spiel-einhorn.webp",
+    "alt": {
+     "de": "Einhorn auf Zucker",
+     "en": "Unicorn on sugar"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "uberraschung",
+    "bunt",
+    "magie",
+    "fantasy",
+    "versteckt",
+    "wunderlich",
+    "marchen",
+    "surprise"
+   ],
+   "params": {
+    "variant": "spiel-einhorn",
+    "mode": "solo",
+    "seed": 7006,
+    "gravity": 1350,
+    "jump": 395,
+    "gap": 160,
+    "speed": 150,
+    "theme": "candy",
+    "title": "Einhorn auf Zucker",
+    "emoji": "🦄",
+    "look": null,
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "spiel-retro",
+   "title": {
+    "de": "Opas Konsole",
+    "en": "Grandpa's console"
+   },
+   "teaser": {
+    "de": "Acht Bit. Volle Härte.",
+    "en": "Eight bits. Full pain."
+   },
+   "legacy": [
+    "spiel-retro"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-spiel-retro.webp",
+    "alt": {
+     "de": "Opas Konsole",
+     "en": "Grandpa's console"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "nostalgie",
+    "8-bit",
+    "kindheit",
+    "retro",
+    "klassiker",
+    "arcade",
+    "oldschool",
+    "nostalgia"
+   ],
+   "params": {
+    "variant": "spiel-retro",
+    "mode": "solo",
+    "seed": 7007,
+    "gravity": 1900,
+    "jump": 440,
+    "gap": 128,
+    "speed": 150,
+    "theme": "retro",
+    "title": "Opas Konsole",
+    "emoji": "👾",
+    "look": null,
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "flug-agent",
+   "title": {
+    "de": "Agent fliegt für dich",
+    "en": "Agent flies for you"
+   },
+   "teaser": {
+    "de": "Flieg einmal vor. Er macht's nach.",
+    "en": "Fly once. It copies you."
+   },
+   "legacy": [
+    "flug-agent"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-flug-agent.webp",
+    "alt": {
+     "de": "Agent fliegt für dich",
+     "en": "Agent flies for you"
+    }
+   },
+   "modes": [
+    "alone"
+   ],
+   "tags": [
+    "nachahmen",
+    "kopie",
+    "duell",
+    "fliegen",
+    "geschwister",
+    "team",
+    "imitate",
+    "copy"
+   ],
+   "params": {
+    "variant": "flug-agent",
+    "mode": "agent",
+    "seed": 1229318964,
+    "gravity": 1800,
+    "jump": 430,
+    "gap": 140,
+    "speed": 130,
+    "theme": "day",
+    "title": "Agent fliegt für dich",
+    "emoji": "🔌",
+    "look": null,
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "flug-mond",
+   "title": {
+    "de": "Mondflug ohne Hände",
+    "en": "Moon flight hands free"
+   },
+   "teaser": {
+    "de": "Fast keine Schwerkraft, nur dein Agent.",
+    "en": "Almost no gravity, just your agent."
+   },
+   "legacy": [
+    "flug-mond"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-flug-mond.webp",
+    "alt": {
+     "de": "Mondflug ohne Hände",
+     "en": "Moon flight hands free"
+    }
+   },
+   "modes": [
+    "alone"
+   ],
+   "tags": [
+    "langeweile",
+    "team",
+    "boredom",
+    "excitement",
+    "amusing"
+   ],
+   "params": {
+    "variant": "flug-mond",
+    "mode": "agent",
+    "seed": 542895009,
+    "gravity": 1000,
+    "jump": 320,
+    "gap": 150,
+    "speed": 130,
+    "theme": "night",
+    "title": "Mondflug ohne Hände",
+    "emoji": "🛸",
+    "look": null,
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Sir Blinker",
+     "e": "🛸",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "plan-01",
+   "title": {
+    "de": "Flug im Tunnel",
+    "en": "Flight in the tunnel"
+   },
+   "teaser": {
+    "de": "Fliege durch den Bunsenbrenner-Tunnel.",
+    "en": "Fly through the Bunsenbrenner tunnel."
+   },
+   "legacy": [
+    "plan-01"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-plan-01.webp",
+    "alt": {
+     "de": "Flug im Tunnel",
+     "en": "Flight in the tunnel"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "langeweile",
+    "pause",
+    "geschicklichkeit",
+    "boredom",
+    "break",
+    "dexterity"
+   ],
+   "params": {
+    "variant": "plan-01",
+    "mode": "solo",
+    "seed": 12340,
+    "gravity": 1900,
+    "jump": 440,
+    "gap": 135,
+    "speed": 150,
+    "theme": "neon",
+    "title": "Flug im Tunnel",
+    "emoji": "🛸",
+    "look": {
+     "a": "#0a0a1f",
+     "b": "#23104f",
+     "d": "stars",
+     "e": [
+      "✨"
+     ],
+     "p": "#00f5d4",
+     "q": "#00a896",
+     "f": "block",
+     "g": "#14082e",
+     "h": "#ff2bd6",
+     "m": "✨"
+    },
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "plan-08",
+   "title": {
+    "de": "Wetter-Flug",
+    "en": "Weather flight"
+   },
+   "teaser": {
+    "de": "Flieg durch den Sturm von heute.",
+    "en": "Fly through today’s storm."
+   },
+   "legacy": [
+    "plan-08"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-plan-08.webp",
+    "alt": {
+     "de": "Wetter-Flug",
+     "en": "Weather flight"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "regen",
+    "schnee",
+    "schlechtes-wetter",
+    "fliegen",
+    "reise",
+    "urlaub",
+    "sommer",
+    "rain"
+   ],
+   "params": {
+    "variant": "plan-08",
+    "mode": "solo",
+    "seed": 10968,
+    "gravity": 2000,
+    "jump": 450,
+    "gap": 135,
+    "speed": 150,
+    "theme": "day",
+    "title": "Wetter-Flug",
+    "emoji": "🪁",
+    "look": {
+     "a": "#3d4a5c",
+     "b": "#9fb2c7",
+     "d": "rain",
+     "e": [
+      "⛈️",
+      "☁️"
+     ],
+     "p": "#26323f",
+     "q": "#10161d",
+     "f": "round",
+     "g": "#4a5a3a",
+     "h": "#2e3a24",
+     "m": "💧"
+    },
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "plan-13",
+   "title": {
+    "de": "Lötkolben-Labor",
+    "en": "Solder lab"
+   },
+   "teaser": {
+    "de": "Flieg durchs Elektroniklabor.",
+    "en": "Fly through the electronics lab."
+   },
+   "legacy": [
+    "plan-13"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-plan-13.webp",
+    "alt": {
+     "de": "Lötkolben-Labor",
+     "en": "Solder lab"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "basteln",
+    "technik",
+    "loten",
+    "schuler",
+    "projekte",
+    "mint",
+    "experiment",
+    "crafting"
+   ],
+   "params": {
+    "variant": "plan-13",
+    "mode": "solo",
+    "seed": 13166,
+    "gravity": 1800,
+    "jump": 430,
+    "gap": 130,
+    "speed": 160,
+    "theme": "retro",
+    "title": "Lötkolben-Labor",
+    "emoji": "🤖",
+    "look": {
+     "a": "#0f380f",
+     "b": "#306230",
+     "d": "none",
+     "e": [
+      "⚡",
+      "🔌"
+     ],
+     "p": "#c0c0c0",
+     "q": "#505050",
+     "f": "block",
+     "g": "#102a10",
+     "h": "#9bbc0f",
+     "m": "⚡"
+    },
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "plan-18",
+   "title": {
+    "de": "Süßes Wolkenland",
+    "en": "Sweet cloud land"
+   },
+   "teaser": {
+    "de": "Zuckerwatte statt Röhren.",
+    "en": "Candy floss, no pipes."
+   },
+   "legacy": [
+    "plan-18"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-plan-18.webp",
+    "alt": {
+     "de": "Süßes Wolkenland",
+     "en": "Sweet cloud land"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "geburtstag",
+    "sommerfest",
+    "picknick",
+    "entspannung",
+    "traum",
+    "sussigkeit",
+    "feier",
+    "birthday"
+   ],
+   "params": {
+    "variant": "plan-18",
+    "mode": "solo",
+    "seed": 14559,
+    "gravity": 1500,
+    "jump": 400,
+    "gap": 165,
+    "speed": 110,
+    "theme": "candy",
+    "title": "Süßes Wolkenland",
+    "emoji": "🦄",
+    "look": {
+     "a": "#ff9ad5",
+     "b": "#fff0fa",
+     "d": "clouds",
+     "e": [
+      "🍭",
+      "🍬"
+     ],
+     "p": "#7a5cff",
+     "q": "#4a2fb0",
+     "f": "emoji",
+     "o": "🍩",
+     "g": "#ffc0e6",
+     "h": "#e59ccf",
+     "m": "🌈"
+    },
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "plan-22",
+   "title": {
+    "de": "Tiefsee-Kabel",
+    "en": "Deep sea cable"
+   },
+   "teaser": {
+    "de": "Flieg am Seekabel entlang.",
+    "en": "Fly along the sea cable."
+   },
+   "legacy": [
+    "plan-22"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-plan-22.webp",
+    "alt": {
+     "de": "Tiefsee-Kabel",
+     "en": "Deep sea cable"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "unterwasser",
+    "flug",
+    "erlebnis",
+    "entdecken",
+    "reise",
+    "underwater",
+    "flight",
+    "experience"
+   ],
+   "params": {
+    "variant": "plan-22",
+    "mode": "solo",
+    "seed": 10499,
+    "gravity": 1500,
+    "jump": 390,
+    "gap": 150,
+    "speed": 120,
+    "theme": "ocean",
+    "title": "Tiefsee-Kabel",
+    "emoji": "🐡",
+    "look": {
+     "a": "#021f3a",
+     "b": "#0a6c86",
+     "d": "bubbles",
+     "e": [
+      "🐟",
+      "🪼"
+     ],
+     "p": "#ffd166",
+     "q": "#a87b00",
+     "f": "round",
+     "g": "#07243a",
+     "h": "#1d5f86",
+     "m": "🫧"
+    },
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  },
+  {
+   "id": "plan-28",
+   "title": {
+    "de": "Winter-Tunnel",
+    "en": "Winter tunnel"
+   },
+   "teaser": {
+    "de": "Schnee, Eis, ruhiger Flug.",
+    "en": "Snow, ice, calm flight."
+   },
+   "legacy": [
+    "plan-28"
+   ],
+   "thumb": {
+    "src": "shot",
+    "file": "thumb-plan-28.webp",
+    "alt": {
+     "de": "Winter-Tunnel",
+     "en": "Winter tunnel"
+    }
+   },
+   "modes": [
+    "alone",
+    "ghost"
+   ],
+   "tags": [
+    "ruhe",
+    "entspannung",
+    "frieden",
+    "kalte",
+    "traum",
+    "magie",
+    "relaxation",
+    "peace"
+   ],
+   "params": {
+    "variant": "plan-28",
+    "mode": "solo",
+    "seed": 11024,
+    "gravity": 1600,
+    "jump": 410,
+    "gap": 155,
+    "speed": 120,
+    "theme": "day",
+    "title": "Winter-Tunnel",
+    "emoji": "⛄",
+    "look": {
+     "a": "#a9d6ff",
+     "b": "#f4fbff",
+     "d": "snow",
+     "e": [
+      "❄️"
+     ],
+     "p": "#3f7fb5",
+     "q": "#1f4f7a",
+     "f": "block",
+     "g": "#ffffff",
+     "h": "#a8cfe8",
+     "m": "❄️"
+    },
+    "route": null,
+    "anim": null,
+    "tempo": 1,
+    "agent": {
+     "n": "",
+     "e": "🦊",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "rival": {
+     "n": "Toastomat",
+     "e": "🔌",
+     "r": 50,
+     "c": 50,
+     "p": 50
+    },
+    "figur": null,
+    "hintergrund": null,
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "t": "",
+    "by": [],
+    "ki": null,
+    "fr": null
+   }
+  }
+ ],
+ "thumb": {
+  "src": "shot",
+  "file": "thumb.webp",
+  "alt": {
+   "de": "Bau dein Lava-Level",
+   "en": "Build your lava level"
+  }
+ }
+}

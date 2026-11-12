@@ -1,0 +1,139 @@
+{
+  "id": "zug-termin",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.2",
+  "kind": "turn",
+  "mode": "turn",
+  "order": 11,
+  "title": {
+    "de": "Wann könnt ihr alle?",
+    "en": "When can you all?"
+  },
+  "teaser": {
+    "de": "Termine antippen, die Gruppe stimmt ab.",
+    "en": "Tap some dates, the group votes."
+  },
+  "howto": {
+    "de": "Du schlägst 2 bis 5 Termine vor. Bis zu 9 weitere stimmen im selben Link ab: Ja, Vielleicht, Nein.",
+    "en": "You suggest 2 to 5 dates. Up to 9 more vote in the same link: yes, maybe, no."
+  },
+  "rule": {
+    "de": "Du schlägst 2 bis 5 Termine vor. Bis zu 9 weitere stimmen im selben Link ab: Ja, Vielleicht, Nein.",
+    "en": "You suggest 2 to 5 dates. Up to 9 more vote in the same link: yes, maybe, no."
+  },
+  "seats": {
+    "de": [
+      "Fragt",
+      "Person 2",
+      "Person 3",
+      "Person 4",
+      "Person 5",
+      "Person 6",
+      "Person 7",
+      "Person 8",
+      "Person 9",
+      "Person 10"
+    ],
+    "en": [
+      "Asks",
+      "Person 2",
+      "Person 3",
+      "Person 4",
+      "Person 5",
+      "Person 6",
+      "Person 7",
+      "Person 8",
+      "Person 9",
+      "Person 10"
+    ]
+  },
+  "players": {
+    "min": 1,
+    "max": 10
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 4096
+  },
+  "play": {
+    "default": "link",
+    "offer": [
+      "link"
+    ]
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "legacy": [
+    "zug-termin",
+    "karte-einladung",
+    "plan-09"
+  ],
+  "on": [
+    "11-09",
+    "12-04"
+  ],
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans",
+          "close"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "titel"
+    ],
+    "properties": {
+      "titel": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "Wann könnt ihr alle?",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "titel"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    }
+  ]
+}

@@ -1,0 +1,151 @@
+{
+  "id": "zug-reihum",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.2",
+  "kind": "turn",
+  "mode": "turn",
+  "order": 14,
+  "title": {
+    "de": "Alle unterschreiben",
+    "en": "Everyone signs"
+  },
+  "teaser": {
+    "de": "Eine Karte wandert durch die Clique.",
+    "en": "One card goes round the crew."
+  },
+  "howto": {
+    "de": "Jede Person wählt einen Satzanfang, schreibt ihr Ende und ihren Namen und schickt die Karte weiter.",
+    "en": "Everyone picks a start, writes their ending and name, and passes the card on."
+  },
+  "rule": {
+    "de": "Jede Person wählt einen Satzanfang, schreibt ihr Ende und ihren Namen und schickt die Karte weiter.",
+    "en": "Everyone picks a start, writes their ending and name, and passes the card on."
+  },
+  "seats": {
+    "de": [
+      "Fängt an",
+      "Person 2",
+      "Person 3",
+      "Person 4"
+    ],
+    "en": [
+      "Starts",
+      "Person 2",
+      "Person 3",
+      "Person 4"
+    ]
+  },
+  "players": {
+    "min": 1,
+    "max": 4
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 4096
+  },
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "legacy": [
+    "zug-reihum"
+  ],
+  "variants": [
+    {
+      "id": "zug-kerzen",
+      "title": {
+        "de": "Kerzen auspusten",
+        "en": "Blow out the candles"
+      },
+      "params": {
+        "spiel": "kerzen"
+      },
+      "legacy": [
+        "zug-kerzen"
+      ]
+    }
+  ],
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans",
+          "close"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "titel",
+      "spiel"
+    ],
+    "properties": {
+      "titel": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "Alle unterschreiben",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "spiel": {
+        "type": "string",
+        "enum": [
+          "reihum",
+          "kerzen"
+        ],
+        "default": "reihum",
+        "x-field": "choice",
+        "x-label": {
+          "de": "Art",
+          "en": "Kind"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "titel"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    }
+  ]
+}

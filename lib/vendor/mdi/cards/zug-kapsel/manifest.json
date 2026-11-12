@@ -1,0 +1,148 @@
+{
+  "id": "zug-kapsel",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.2",
+  "kind": "turn",
+  "mode": "turn",
+  "order": 20,
+  "title": {
+    "de": "Das sag ich dir voraus",
+    "en": "I predict this for you"
+  },
+  "teaser": {
+    "de": "Öffnet sich erst an dem Tag.",
+    "en": "Opens only on that day."
+  },
+  "howto": {
+    "de": "Du wählst eine Vorhersage und einen Tag. Erst dann lässt sie sich öffnen, und die andere Person sagt, ob sie stimmt.",
+    "en": "You pick a prediction and a day. Only then can it be opened, and the other person says whether it came true."
+  },
+  "rule": {
+    "de": "Du wählst eine Vorhersage und einen Tag. Erst dann lässt sie sich öffnen, und die andere Person sagt, ob sie stimmt.",
+    "en": "You pick a prediction and a day. Only then can it be opened, and the other person says whether it came true."
+  },
+  "seats": {
+    "de": [
+      "Sagt voraus",
+      "Prüft"
+    ],
+    "en": [
+      "Predicts",
+      "Checks"
+    ]
+  },
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 4096
+  },
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "inputDay": true,
+  "legacy": [
+    "zug-kapsel"
+  ],
+  "variants": [
+    {
+      "id": "zug-post",
+      "title": {
+        "de": "Post an mich in 30 Tagen",
+        "en": "Mail to me in 30 days"
+      },
+      "params": {
+        "spiel": "post"
+      },
+      "legacy": [
+        "zug-post"
+      ]
+    }
+  ],
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans",
+          "close"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "titel",
+      "spiel"
+    ],
+    "properties": {
+      "titel": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "Das sag ich dir voraus",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "spiel": {
+        "type": "string",
+        "enum": [
+          "kapsel",
+          "post"
+        ],
+        "default": "kapsel",
+        "x-field": "choice",
+        "x-label": {
+          "de": "Art",
+          "en": "Kind"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "titel"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    }
+  ]
+}

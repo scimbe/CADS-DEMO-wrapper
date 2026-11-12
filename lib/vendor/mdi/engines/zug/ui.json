@@ -1,0 +1,40 @@
+{
+  "de": {
+    "next": "Weiter",
+    "whyOpen": "Noch offen: {s}",
+    "pickMore": "Noch {n} antippen.",
+    "rankMore": "Noch {n} der Reihe nach antippen.",
+    "reset": "Von vorn",
+    "filter": "Diesen Text können wir so nicht verschicken. Bitte anders schreiben (ohne Adressen, Nummern oder Beleidigungen).",
+    "oneWord": "Bitte ein Wort ohne Leerzeichen.",
+    "notThis": "Das passt hier nicht. Bitte prüfen.",
+    "listLeast": "Mindestens {n} verschiedene Einträge.",
+    "listAll": "Bitte alle {n} Felder ausfüllen.",
+    "listSame": "Zwei Einträge sind gleich.",
+    "less": "Kleiner",
+    "more": "Größer",
+    "left": "Übrig: {n}",
+    "candle": "Kerze {n}",
+    "candlesLeft": "Noch {n} Kerzen. Tippe sie aus.",
+    "gateUnknown": "Verschlossen, bis das Datum bekannt ist."
+  },
+  "en": {
+    "next": "Next",
+    "whyOpen": "Still open: {s}",
+    "pickMore": "Tap {n} more.",
+    "rankMore": "Tap {n} more in order.",
+    "reset": "Start again",
+    "filter": "We cannot send this text as it is. Please write it differently (no addresses, numbers or insults).",
+    "oneWord": "One word without spaces, please.",
+    "notThis": "That does not fit here. Please check.",
+    "listLeast": "At least {n} different entries.",
+    "listAll": "Please fill in all {n} fields.",
+    "listSame": "Two entries are the same.",
+    "less": "Smaller",
+    "more": "Bigger",
+    "left": "Left: {n}",
+    "candle": "Candle {n}",
+    "candlesLeft": "{n} candles left. Tap them out.",
+    "gateUnknown": "Locked until the date is known."
+  }
+}

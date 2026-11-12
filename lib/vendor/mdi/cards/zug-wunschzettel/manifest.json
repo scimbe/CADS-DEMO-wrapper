@@ -1,0 +1,120 @@
+{
+  "id": "zug-wunschzettel",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.2",
+  "kind": "turn",
+  "mode": "turn",
+  "order": 16,
+  "title": {
+    "de": "Wunschzettel mit Geheimnis",
+    "en": "Secret wish list"
+  },
+  "teaser": {
+    "de": "Wünsche aufschreiben. Die Familie schenkt verdeckt.",
+    "en": "Write your wishes. The family gives in secret."
+  },
+  "howto": {
+    "de": "Du schreibst Wünsche. Die Familie tippt an, was sie schenkt. Du siehst nie, wer was schenkt.",
+    "en": "You write wishes. The family taps what they give. You never see who gives what."
+  },
+  "rule": {
+    "de": "Du schreibst Wünsche. Die Familie tippt an, was sie schenkt. Du siehst nie, wer was schenkt.",
+    "en": "You write wishes. The family taps what they give. You never see who gives what."
+  },
+  "seats": {
+    "de": [
+      "Wünscht sich",
+      "Schenkt"
+    ],
+    "en": [
+      "Wishes",
+      "Gives"
+    ]
+  },
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 8192
+  },
+  "play": {
+    "default": "link",
+    "offer": [
+      "link"
+    ]
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "link": {
+    "snap": true
+  },
+  "legacy": [
+    "zug-wunschzettel"
+  ],
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans",
+          "close"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "titel"
+    ],
+    "properties": {
+      "titel": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "Wunschzettel mit Geheimnis",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "titel"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    }
+  ]
+}

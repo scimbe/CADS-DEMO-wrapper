@@ -1,0 +1,328 @@
+{
+  "id": "zug-abfragen",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.1",
+  "kind": "turn",
+  "mode": "turn",
+  "title": {
+    "de": "Frag mich ab",
+    "en": "Quiz me"
+  },
+  "teaser": {
+    "de": "Abfragen, jeder von seinem Sofa.",
+    "en": "Test each other from two sofas."
+  },
+  "howto": {
+    "de": "Abfragen, jeder von seinem Sofa.",
+    "en": "Test each other from two sofas."
+  },
+  "grip": "pause",
+  "dur": 120,
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "seats": {
+    "de": [
+      "Spieler 1",
+      "Spieler 2"
+    ],
+    "en": [
+      "Player 1",
+      "Player 2"
+    ]
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 20,
+    "stateBytes": 8192
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "variante",
+      "paket",
+      "pk"
+    ],
+    "properties": {
+      "variante": {
+        "type": "string",
+        "enum": [
+          "abfragen",
+          "quiz"
+        ],
+        "default": "abfragen",
+        "x-field": "choice",
+        "x-label": {
+          "de": "Spielart",
+          "en": "Game"
+        }
+      },
+      "paket": {
+        "type": "string",
+        "enum": [
+          "",
+          "planeten",
+          "koerper",
+          "photosynthese",
+          "bundeslaender",
+          "mittelalter",
+          "dinosaurier",
+          "wasserkreislauf",
+          "rom",
+          "hauptstaedte",
+          "vulkane",
+          "erfindungen",
+          "wald",
+          "solar",
+          "ocean",
+          "egypt",
+          "weather"
+        ],
+        "default": "",
+        "x-field": "choice",
+        "x-label": {
+          "de": "Fertiges Paket",
+          "en": "Ready pack"
+        }
+      },
+      "pk": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "default": null,
+        "x-field": "list",
+        "x-label": {
+          "de": "Eigenes Fragenpaket",
+          "en": "Own question pack"
+        },
+        "additionalProperties": false,
+        "required": [
+          "t",
+          "m",
+          "q"
+        ],
+        "properties": {
+          "t": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "m": {
+            "type": "string",
+            "enum": [
+              "l",
+              "f",
+              "g"
+            ]
+          },
+          "q": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "array",
+              "maxItems": 6
+            }
+          },
+          "z": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "integer"
+            }
+          },
+          "y": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "array",
+              "maxItems": 2
+            }
+          },
+          "u": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "maxLength": 40
+            }
+          }
+        }
+      }
+    },
+    "allOf": [
+      {
+        "not": {
+          "required": [
+            "pk",
+            "paket"
+          ],
+          "properties": {
+            "pk": {
+              "type": "object"
+            },
+            "paket": {
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "if": {
+          "required": [
+            "variante"
+          ],
+          "properties": {
+            "variante": {
+              "const": "quiz",
+              "type": "string"
+            }
+          }
+        },
+        "then": {
+          "anyOf": [
+            {
+              "required": [
+                "paket"
+              ],
+              "properties": {
+                "paket": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "required": [
+                "pk"
+              ],
+              "properties": {
+                "pk": {
+                  "type": "object"
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "parts": [
+    {
+      "id": "regeln",
+      "params": [
+        "variante"
+      ],
+      "label": {
+        "de": "Spielart",
+        "en": "Game"
+      }
+    },
+    {
+      "id": "paket",
+      "params": [
+        "paket"
+      ],
+      "label": {
+        "de": "Fragenpaket",
+        "en": "Question pack"
+      }
+    }
+  ],
+  "modes": [
+    "alone",
+    "link",
+    "live"
+  ],
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "t",
+      "seat",
+      "a"
+    ],
+    "properties": {
+      "t": {
+        "const": "ans"
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "a": {
+        "anyOf": [
+          {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3000000
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 8
+            }
+          },
+          {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "string",
+              "maxLength": 28
+            }
+          }
+        ]
+      },
+      "d": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10000000
+      }
+    }
+  },
+  "variants": [
+    {
+      "id": "zug-quiz",
+      "title": {
+        "de": "Quiz aus Lernstoff",
+        "en": "Quiz from your notes"
+      },
+      "teaser": {
+        "de": "Fertiges Paket oder dein Text, dann Duell.",
+        "en": "A ready pack or your text, then a duel."
+      },
+      "params": {
+        "variante": "quiz",
+        "paket": "planeten"
+      },
+      "legacy": [
+        "zug-quiz"
+      ],
+      "tags": [
+        "quiz",
+        "lernstoff",
+        "klassenarbeit",
+        "schule",
+        "duell",
+        "study-notes",
+        "exam"
+      ]
+    }
+  ]
+}
