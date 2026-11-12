@@ -201,3 +201,11 @@ test('Baukasten: Playtest im Worker besteht fuer ein gutes Spiel und lehnt bei Z
   const slow = await playtest(check(BEISPIELE.huepfer).desc, { timeoutMs: 1 });
   assert.equal(slow.ok, false); assert.equal(slow.stage, 'budget');
 });
+
+test('Baukasten: Genre G3 gilt auch fuer art lauf (Review L3), ein beendeter Worker lehnt sofort ab (L5)', async () => {
+  const llm = fakeLlm([full(BEISPIELE.huepfer)]), { ai } = mk(llm);
+  const r = await run(ai, { kind: 'karte', input: { text: 'Ein Fuchs springt ueber Kisten', art: 'lauf', genre: 'G3' }, device: DEV, lang: 'de' });
+  assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(r.body.options[0].doc.k, 'bau');
+  const t0 = Date.now(), v = await playtest({ v: 'kaputt' }, { timeoutMs: 10000 });
+  assert.equal(v.ok, false); assert.ok(Date.now() - t0 < 5000);
+});
