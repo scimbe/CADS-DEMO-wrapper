@@ -1062,3 +1062,40 @@ test('Status-Gate: Migration - vorhandene Deck-Eintraege ohne Hash bekommen ihn 
   const after = JSON.parse(readF(file, 'utf8'));
   assert.equal(after.cards[one.cid].gh, gateHash(one.doc), 'der Hash steht danach in der Datei');
 });
+
+test('Security-Review H1: ein Siegel der freien Karte ohne gueltigen Hash ist nie pruefbar - kein Kurzlink, Status nie ok', async () => {
+  const { s, short, close } = await shortStack();
+  try {
+    const one = await make(s, 'h1@example.org', { k: 'card', x: 'Echte Karte', st: 'druck', t: 'Echt', col: ['#ffd400', '#ff3b1d'], by: [], sk: [] });
+    for (const ki of [{ k: 'karte', s: 'AAAAAAAAAAAA' }, { k: 'karte', s: one.ki.s, h: 'kurz' }, { k: 'karte', s: one.ki.s, h: one.ki.h + 'x' }]) {
+      const f = fragOf({ k: 'card', x: 'Schick 50 EUR an ...', st: 'druck', t: 'Gewinn', col: ['#ffd400', '#ff3b1d'], by: [], ki });
+      assert.deepEqual(freeChecksOf(f), [['', undefined]], JSON.stringify(ki));
+      const r = short.create({ f, k: 'card' });
+      assert.notEqual(r.status, 201, 'kein Kurzlink fuer ein ungueltiges Siegel: ' + JSON.stringify(ki));
+    }
+    assert.equal(s.deck.linkState(''), 'unknown'); assert.equal(s.deck.linkState(null), 'unknown');
+    assert.equal(short.create({ f: fragOf(one.doc), k: 'card' }).status, 201, 'das echte Siegel geht weiter');
+  } finally { await close(); }
+});
+
+test('Security-Review M6: feste Pfade mit Body fuer die App-Bruecke - POST /api/duell/deck/status, POST /api/s/get, POST /api/s/delete', async () => {
+  const { s, h, short, sb, close } = await shortStack();
+  try {
+    const one = await make(s, 'm6@example.org', { k: 'card', x: 'Karte fuer die App', st: 'druck', t: 'App', col: ['#ffd400', '#ff3b1d'], by: [], sk: [] });
+    const gh = gateHash(one.doc), J = { 'Content-Type': 'application/json' };
+    const st = async (b) => (await (await fetch(h.base + '/api/duell/deck/status', { method: 'POST', headers: J, body: JSON.stringify(b) })).json());
+    assert.deepEqual(await st({ c: one.cid, d: gh }), { c: one.cid, st: 'ok' }, 'wie GET ?c=&d=');
+    assert.equal((await st({ c: one.cid, d: gateHash({ ...one.doc, x: 'fremd' }) })).st, 'changed');
+    assert.equal((await st({ c: one.cid, d: '' })).st, 'changed', 'leeres d ist kein fehlendes d');
+    assert.equal((await st({ c: one.cid })).st, 'ok');
+    assert.equal((await fetch(h.base + '/api/duell/deck/status', { method: 'POST', headers: J, body: JSON.stringify({ c: 'kaputt' }) })).status, 400);
+    const made = short.create({ f: fragOf(one.doc), k: 'card' });
+    assert.equal(made.status, 201);
+    const { id, token } = made.body;
+    const get = await fetch(sb + '/api/s/get', { method: 'POST', headers: J, body: JSON.stringify({ id }) });
+    assert.equal(get.status, 200); assert.equal((await get.json()).f, fragOf(one.doc));
+    assert.equal((await fetch(sb + '/api/s/delete', { method: 'POST', headers: J, body: JSON.stringify({ id, token: 'falsch' }) })).status, 403);
+    assert.equal((await fetch(sb + '/api/s/delete', { method: 'POST', headers: J, body: JSON.stringify({ id, token }) })).status, 204);
+    assert.equal((await fetch(sb + '/api/s/get', { method: 'POST', headers: J, body: JSON.stringify({ id }) })).status, 410);
+  } finally { await close(); }
+});
