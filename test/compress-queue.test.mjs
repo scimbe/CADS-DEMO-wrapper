@@ -10,7 +10,12 @@ import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { createCompressedFiles, createJobQueue } from '../lib/compress.mjs';
 
-const tick = () => new Promise((r) => setTimeout(r, 5));
+/** Waits until cond() holds (the warm-up reads each file asynchronously before it queues its jobs: how long that takes
+ * depends on Node and the machine, so a fixed pause is a race; Node 22 in a 2-CPU container lost it every time). */
+async function until(cond, ms = 10000) {
+  const t0 = Date.now();
+  while (!cond()) { if (Date.now() - t0 > ms) throw new Error('timed out waiting'); await new Promise((r) => setTimeout(r, 2)); }
+}
 /** n text files of about kb KiB each (compressible but not trivially). */
 function texts(n, kb) {
   const dir = mkdtempSync(join(tmpdir(), 'compress-q-'));
@@ -42,9 +47,9 @@ test('L4: while the warm-up compresses, a DNS lookup and a file read still get a
   const q = createJobQueue(1), c = createCompressedFiles({ queue: q });
   const files = texts(24, 160);
   for (const f of files) c.warm(f);
-  await tick();
+  await until(() => q.stats().queued === files.length * 2);   // brotli and gzip of every file
   const jobs = q.stats().waiting + q.stats().running;
-  assert.ok(jobs >= 40, `warm-up queued (${jobs})`);
+  assert.ok(jobs >= 40, `warm-up queued (${jobs} of ${q.stats().queued} still open)`);
   await lookup('localhost');                       // getaddrinfo runs in the same thread pool as zlib
   const left = q.stats().waiting;
   assert.ok(left >= jobs / 2, `the lookup did not wait for the warm-up (${left} of ${jobs} jobs still waiting)`);
@@ -55,7 +60,7 @@ test('L4: a request for a file still waiting in the warm-up is compressed before
   const q = createJobQueue(1), c = createCompressedFiles({ queue: q });
   const files = texts(20, 120), last = files[files.length - 1];
   for (const f of files) c.warm(f);
-  await tick();
+  await until(() => q.stats().queued === files.length * 2);
   let sent = null;
   const res = { writeHead(status, headers) { sent = { status, headers }; return this; }, end() {} };
   await c.serve({ method: 'GET', headers: { 'accept-encoding': 'br' } }, res, last, { 'Content-Type': 'text/javascript; charset=utf-8' });
