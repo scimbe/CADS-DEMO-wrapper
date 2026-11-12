@@ -1,7 +1,7 @@
 {
   "repo": "scimbe/CADS-agent-marketplace",
   "path": "apps/mdi/src",
-  "commit": "06f31336a5c9b5c92198719b6bf73d04e9c1ec2a",
+  "commit": "abb8d904edb79d9ad29d713e5c3bf1f2d2e39cb1",
   "files": {
     "contract/sdk.js": {
       "sha256": "584c5b945ff2e43e54743f3450a5f69ce35ffaaba1e38aaff4eac69750b643fa"
@@ -19,10 +19,10 @@
       "sha256": "5603e87e2d4d50997334255060bb2e1e096918298490c401f5043af00f1dadac"
     },
     "engines/baukasten/bot.js": {
-      "sha256": "d0a174d1a9b236e8648f30af66eb9f4d66a5381a25423390edff2c898a44dab6"
+      "sha256": "97ffbbeff31d6af9e0215192972b06e1f27a6a049f1c0f8a062c5355719ee76c"
     },
     "engines/baukasten/pruefer.js": {
-      "sha256": "ad4f3f28e308fc87df81220693fb859ab51e0a3ef1ad13cb1a7bab8696bf4c23"
+      "sha256": "81f534264774d8813b9ac417e71028b253b959dd751774d988d0271aad3b973f"
     },
     "engines/baukasten/beispiele.js": {
       "sha256": "83a3a1b71bc789289455a5750dd84f0d9eb47dee204377736fc967efcc815a55"
