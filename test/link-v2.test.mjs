@@ -8,7 +8,8 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decodeV2, encodeV2, V2_MAX } from '../lib/link-v2.mjs';
-import { createShortLinks, freeChecksOf, freeIdsOf, fragmentOk } from '../lib/shortlink.mjs';
+import { freeChecksOf, freeIdsOf, fragmentOk } from '../lib/shortlink.mjs';
+import { testShortLinks, withDevice } from './short-helper.mjs';
 import { CARDS } from '../lib/vendor/mdi/index.js';
 import { gateHash } from '../lib/duell-deck.mjs';
 import { createDuell } from '../lib/duell.mjs';
@@ -42,14 +43,14 @@ function fakeDeck() {
   d.sharedAs = (cid, id) => d.shared.push([cid, id]);
   return d;
 }
-const mk = (env = {}, over = {}) => createShortLinks({ env: { SHORT_DATA_DIR: dir('short-v2-'), ...env }, log: () => {}, root, ...over });
+const mk = (env = {}, over = {}) => testShortLinks({ env: { SHORT_DATA_DIR: dir('short-v2-'), ...env }, log: () => {}, root, ...over });
 function serve(s) {
   return new Promise((ok) => {
     const srv = http.createServer((req, res) => s.route(req, res, new URL(req.url, 'http://x')).then((mine) => { if (!mine) res.writeHead(599).end(); }));
     srv.listen(0, '127.0.0.1', () => ok({ base: `http://127.0.0.1:${srv.address().port}`, close: () => { srv.close(); srv.closeAllConnections(); } }));
   });
 }
-const post = (base, body) => fetch(base + '/api/s', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: typeof body === 'string' ? body : JSON.stringify(body) });
+const post = (base, body) => fetch(base + '/api/s', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: typeof body === 'string' ? body : JSON.stringify(withDevice(body)) });
 const hrefOf = (html) => html.match(/<a id="go" href="([^"]*)"/)[1].replace(/&amp;/g, '&');
 
 // ---- envelope ---------------------------------------------------------------------------------------------------------
