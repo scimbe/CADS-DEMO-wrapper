@@ -134,6 +134,7 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 
 ### Kurzlinks (`lib/shortlink.mjs`, Tests: `test/shortlink.test.mjs`)
 - `POST /api/s` `{f, k, n, l}` -> `201 {id, url, token, exp}`; `f` ist das Fragment (`c=...` oder `i=...`, hoechstens 2 KB) und bleibt fuer den Server undurchsichtig. `p=` (enthaelt einen geheimen Schluessel) wird abgelehnt.
+- Links der neuen App (apps/mdi, `lib/link-v2.mjs`, Tests: `test/link-v2.test.mjs`): `f` = `v2.card.<b64>` oder `v2.challenge.<b64>` ohne `#`, hoechstens 3999 Zeichen (die App: 4000 mit `#`). Geprueft wird vor dem Speichern: Groesse, Zeichensatz, kanonisches base64url, UTF-8, JSON und die Huelle wie `link.schema.json`; sonst `400 {error: "bad-fragment", reason}` (`praefix`, `typ`, `base64`, `utf8`, `json`, `schema`) bzw. `413`. `v2.live` (Einmal-Token) und `v2.ghost` werden nie gespeichert. `/s/<id>` oeffnet `SHORT_V2_PATH` (Standard `/duell`, nur ein Pfad auf diesem Host, sonst startet der Dienst nicht) `#` Fragment. Eine freie Karte im v2-Link (Karte `frei`: `p.hash` mit Inhalts-Hash, `p.root` per id; andere Karten: `p.fr`) bekommt den Kurzlink nur bei `ok` des Decks; ein Siegel auf einer anderen Karte als `frei` laesst sich hier nicht am Inhalt pruefen: `409 card-unverifiable`, die App behaelt den langen Link.
 - `GET /s/<id>` kleine Seite mit Open-Graph-Tags, Skript fuehrt nach `/duell#<f>`; abgelaufen oder geloescht `410`, unbekannt `404`, jeweils mit freundlicher Seite. Vorschau enthaelt nie Nutzertext, Bilder fest in `static/share/`.
 - `GET /api/s/<id>` -> `{f, exp}` fuer die App-Huellen; `DELETE /api/s/<id>` mit `Authorization: Bearer <token>`.
 - Daten: `SHORT_DATA_DIR/links.jsonl`, muss ein Volume sein. Ohne die Variable antwortet `POST /api/s` mit `503` und die App bleibt beim langen Link. Sicherung: `docker run --rm -v demos-shortlinks:/d:ro -v "$PWD":/b alpine tar czf /b/shortlinks.tgz -C /d .`
@@ -145,6 +146,7 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | `SHORT_IP_PER_HOUR` / `SHORT_DAILY_MAX` | 20 / 2000 | neue Links je gehashter IP und Stunde / pro UTC-Tag |
 | `SHORT_MISS_PER_HOUR` | 60 | unbekannte IDs je gehashter IP und Stunde, danach `429` (braucht `DUELL_IP_HEADER`, sonst ist die IP unbekannt) |
 | `SHORT_MAX_LIVE` | 100000 | Obergrenze gespeicherter Eintraege |
+| `SHORT_V2_PATH` | `/duell` | Pfad der neuen App fuer v2-Links (nur Pfad, kein Host) |
 | `SHORT_BASE` / `SHORT_PUBLIC_BASE` | `https://bunsenbrenner.org` / Galerie-Host | sichtbarer Link / Host fuer Bilder und `og:url` |
 
 ### Profil unter „Mein Stil“ (My Daily Idea)
