@@ -39,8 +39,8 @@ test('Fakten: Schema fest, Fragen nur bei Antwortspielen, keine Antwort des Prue
   assert.ok(!/volcano|vulkan|snowboard/i.test(FAKTEN_SYSTEM[0].text), 'keine Kalibrierfragen als Beispiel im Praefix');
 });
 
-test('Fakten vorschlag (Standard): Spiel unveraendert, Markierung als Hinweis und im Ergebnis', async () => {
-  const llm = fakeLlm(eineFalsch), r = await run(mk(llm));
+test('Fakten vorschlag: Spiel unveraendert, Markierung als Hinweis und im Ergebnis', async () => {
+  const llm = fakeLlm(eineFalsch), r = await run(mk(llm, 'vorschlag'));
   assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(questions(r), 4);
   assert.ok(r.body.note.includes('bau:fakten-vorschlag:1'));
   assert.equal(llm.calls.filter((c) => c.system === FAKTEN_SYSTEM).length, 1);
@@ -70,4 +70,17 @@ test('Kalibrierung: CSV lesen, unbewertete Zeilen werden abgelehnt, Kennzahlen s
   const v = vergleiche(m, [{ nr: 'f01', urteil: 'falsch' }, { nr: 'f02', urteil: 'unsicher' }, { nr: 'f03', urteil: 'sicher' }, { nr: 'f04', urteil: 'sicher' }], cohenKappa);
   assert.equal(v.gleich, 0.5); assert.equal(v.recall, 0.5); assert.equal(v.precision, 0.5); assert.equal(v.recallFalsch, 1); assert.equal(v.uneinig.length, 2);
   assert.throws(() => vergleiche([{ nr: 'f01', urteil: '' }], [], cohenKappa), /nicht bewertet/);
+});
+
+test('Fakten Standard ist aktiv (User 12.11.2026), und jedes gepruefte Quiz sagt offen, dass die Kalibrierung aussteht', async () => {
+  const { FAKTEN_STANDARD, FAKTEN_KALIBRIERT } = await import('../lib/duell-bau-fakten.mjs');
+  assert.equal(FAKTEN_STANDARD, 'aktiv'); assert.equal(FAKTEN_KALIBRIERT, false);
+  let llm = fakeLlm(sicher), r = await run(mk(llm));
+  assert.equal(r.status, 200); assert.equal(questions(r), 4);
+  assert.ok(r.body.note.includes('bau:fakten-unkalibriert'), r.body.note.join(','));
+  assert.equal(llm.calls.filter((c) => c.system === FAKTEN_SYSTEM).length, 1);
+  llm = fakeLlm(eineFalsch); r = await run(mk(llm));
+  assert.ok(r.body.note.includes('bau:fakten-entfernt:1') && r.body.note.includes('bau:fakten-unkalibriert'));
+  assert.equal(questions(r), 3, 'ohne Einstellung: aktiv entfernt die markierte Frage offen');
+  // Echtzeit ohne Quiz: kein Pruefaufruf, kein Hinweis
 });
