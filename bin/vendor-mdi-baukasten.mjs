@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 /** Paths relative to apps/mdi/src; the directory layout is kept, so the relative imports stay valid. */
 export const FILES = ['contract/sdk.js', 'engines/baukasten/spec.js', 'engines/baukasten/check.js', 'engines/baukasten/engine.js', 'engines/baukasten/zug.js',
-  'engines/baukasten/bot.js', 'engines/baukasten/pruefer.js', 'engines/baukasten/beispiele.js', 'engines/baukasten/karte.js'];
+  'engines/baukasten/bot.js', 'engines/baukasten/pruefer.js', 'engines/baukasten/beispiele.js', 'engines/baukasten/karte.js', 'engines/frei/seal.js'];   // karte.js braucht das Siegel (K #255)
 export const DIR = fileURLToPath(new URL('../lib/vendor/mdi-baukasten/', import.meta.url));
 export const sha = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
 
