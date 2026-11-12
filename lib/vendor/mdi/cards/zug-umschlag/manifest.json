@@ -62,6 +62,10 @@
         "de": "Erst morgen aufmachen",
         "en": "Open it tomorrow"
       },
+      "rule": {
+        "de": "Wähl einen aufmunternden Satz und in wie vielen Tagen er aufgehen darf. Vorher bleibt er zu.",
+        "en": "Pick an encouraging line and in how many days it may open. Until then it stays closed."
+      },
       "params": {
         "spiel": "morgen"
       },
@@ -74,6 +78,10 @@
       "title": {
         "de": "Happy Halloween",
         "en": "Happy Halloween"
+      },
+      "rule": {
+        "de": "Schreib einen Namen dazu, wenn du magst, und schick die Karte. Antworten geht, muss aber nicht.",
+        "en": "Add a name if you like and send the card. Replying is welcome, never required."
       },
       "params": {
         "spiel": "halloween"

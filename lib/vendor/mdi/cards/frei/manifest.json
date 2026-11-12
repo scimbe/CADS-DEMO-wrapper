@@ -216,7 +216,7 @@
       "seal": {
         "type": "string",
         "maxLength": 200,
-        "pattern": "^[A-Za-z0-9._~-]*$",
+        "pattern": "^([A-Za-z0-9._~-]{8,200})?$",
         "default": "",
         "x-field": "text",
         "x-label": {
@@ -261,7 +261,42 @@
         },
         "x-hidden": true
       }
-    }
+    },
+    "allOf": [
+      {
+        "if": {
+          "required": [
+            "seal"
+          ],
+          "properties": {
+            "seal": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "hash": {
+              "type": "string",
+              "minLength": 43
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "hash": {
+              "type": "string",
+              "maxLength": 0
+            },
+            "owner": {
+              "type": "string",
+              "maxLength": 0
+            }
+          }
+        }
+      }
+    ]
   },
   "parts": [
     {

@@ -62,6 +62,10 @@
         "de": "Tut mir leid",
         "en": "I'm sorry"
       },
+      "rule": {
+        "de": "Schreib einen Namen dazu, wenn du magst, und schick die Karte. Antworten geht, muss aber nicht.",
+        "en": "Add a name if you like and send the card. Replying is welcome, never required."
+      },
       "params": {
         "spiel": "warm-sorry"
       },

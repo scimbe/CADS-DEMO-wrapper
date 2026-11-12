@@ -62,6 +62,10 @@
         "de": "Wer ordnet gleich?",
         "en": "Who ranks alike?"
       },
+      "rule": {
+        "de": "Ordne die Liste von Top bis Müll. Der andere ordnet auch. Am Ende seht ihr, wie einig ihr seid.",
+        "en": "Rank the list from top to trash. The other ranks too. At the end you see how much you agree."
+      },
       "params": {
         "spiel": "rangliste"
       },

@@ -63,6 +63,10 @@
         "de": "Post an mich in 30 Tagen",
         "en": "Mail to me in 30 days"
       },
+      "rule": {
+        "de": "Schreib drei Vorhersagen über dein Leben und wähl einen Tag. Dann wird geprüft, was stimmte.",
+        "en": "Write three predictions about your life and pick a day. Then you check what came true."
+      },
       "params": {
         "spiel": "post"
       },

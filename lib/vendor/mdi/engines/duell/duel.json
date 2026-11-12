@@ -1,0 +1,87 @@
+{
+"sets": [["🪨","📄","✂️"],["🔥","💧","🌱"],["🍕","🧃","🍩"],["🐸","🦆","🐌"]],
+"emoji": ["🤖","👾","🦾","🛸","🧠","🐙","🦖","🦝","👻","🍌","🧃","🔌"],
+"rivals": { "de": ["Toastomat","Kaktus 3000","Sir Blinker","Frau Lötkolben","Der Föhn","Socken-Bot"], "en": ["Toastomatic","Cactus 3000","Sir Blinky","Madam Solder","The Hairdryer","Sock Bot"] },
+"items": {
+ "de": ["Schatten einer Giraffe","Letzte Socke der Welt","WLAN von 1999","Halbe Wolke","Glas voll Stille","Montag ohne Wecker","Unsichtbarer Hut","Einhorn-Quittung","Echo vom Echo","Brötchen mit Geheimnis"],
+ "en": ["A giraffe's shadow","The world's last sock","Wi-Fi from 1999","Half a cloud","A jar of silence","Monday without an alarm","An invisible hat","A unicorn receipt","Echo of an echo","A bread roll with a secret"]
+},
+"rap": {
+ "de": {
+  "boast": ["Ich rechne schneller, als dein Lüfter sich dreht.","Mein Akku ist voll, deiner sagt schon Gebet.","Ich bin Update, du bist Ladebalken.","Du piepst im Takt, ich bau die Balken.","Mein Code hat Stil, dein Code hat Sand.","Ich hab mehr Bits als du Verstand."],
+  "calm": ["Ganz ruhig, ich hab Zeit bis Silvester.","Ich warte. Das kann ich am besten.","Ein Bit nach dem andern, schön sortiert.","Tief durchatmen, der Lüfter pariert.","Ich sag nur danke, und dann gewinn ich.","Kein Stress, ich lade noch, ganz innig."],
+  "word": ["{w} ist mein Wort, das nimmt mir keiner.","Alle rufen {w}, und zwar nicht nur einer.","{w} im Speicher, {w} im Beat.","Ich sag {w}, und der Saal geht mit."]
+ },
+ "en": {
+  "boast": ["I compute faster than your fan can spin.","My battery's full, yours is giving in.","I'm the update, you're the loading bar.","You beep on time, I'm the superstar.","My code has style, yours has sand.","More bits in me than you've got planned."],
+  "calm": ["Stay relaxed, I've got time till New Year.","I can wait. That's why I'm here.","Bit after bit, nice and neat.","Deep breath, cool fan, steady beat.","I just say thanks, then take the win.","No stress, I'm loading, sinking in."],
+  "word": ["{w} is my word, it stays with me.","Everybody shouts {w}, you'll see.","{w} in memory, {w} in the beat.","I say {w}, the crowd's on its feet."]
+ }
+},
+"deck": {
+ "de": ["Nenne drei Dinge, die gelb sind.","Mach ein Tier nach, das andere rät.","Sag ein Wort rückwärts.","Erfinde einen Namen für einen Kaktus.","Summ ein Lied, das andere rät.","Beschreib Pizza, ohne Käse zu sagen.","Zähl fünf Dinge im Kühlschrank auf.","Sag das Alphabet bis G im Roboter-Ton."],
+ "en": ["Name three yellow things.","Imitate an animal, the other one guesses.","Say a word backwards.","Invent a name for a cactus.","Hum a song, the other one guesses.","Describe pizza without saying cheese.","List five things in a fridge.","Say the alphabet up to G like a robot."]
+},
+"texts": {
+ "de": {
+  "why_draw": "Gleichstand {a}:{b}. Beide Agenten waren gleich stark.", "why_luck": "Knapp, {a}:{b}. Hier hat der Zufall aus dem Seed entschieden.",
+  "why_rpsCounter": "{w} hat {n}× gekontert: Auf die letzte Hand von {l} kam genau die, die sie schlägt (Geduld {p}).", "why_rpsRepeat": "{l} hat {n}× eine Siegerhand wiederholt und wurde erwischt (Frechheit {c}).", "why_rpsLead": "{l} spielte {n} von 9 Mal {h} (Mut {r}). Das war leicht zu lesen.",
+  "why_rapCourage": "{w} hatte mehr Mut ({r} zu {s}), das bringt größere Punktsprünge.", "why_rapPatience": "{w} hat Geduld über 60 ({p}), das gibt +1 in jeder Runde.", "why_rapCounter": "{w} hat die Sprüche besser gesetzt: frech gegen Ungeduldige, ruhig gegen Freche (+{n}).",
+  "why_aucOver": "{l} hat {n}× mehr geboten, als die Sache wert war (Mut {r}).", "why_aucLeft": "{l} hatte am Ende noch {m} Münzen übrig (Geduld {p}).", "why_aucFew": "{w} hat {k} Sachen ersteigert, {l} nur {j}.",
+  "why_flyShaky": "{l} flog zappelig (Geduld {p}) und blieb an Röhre {n} hängen.", "why_flyClose": "{l} flog zu nah an der Röhre (Mut {r}) und blieb an Röhre {n} hängen.", "why_flyLuck": "{l} kam bis Röhre {n}, {w} bis {m}. Gleiche Strecke, knapper Unterschied.",
+  "tip_tipCounter": "Tipp: Geduld hoch, dann kontert dein Agent selbst.", "tip_tipRepeat": "Tipp: Frechheit runter, dann wiederholt dein Agent seltener.", "tip_tipLead": "Tipp: Mut Richtung 0, dann mischt dein Agent die Hände.", "tip_tipCourage": "Tipp: Mut hoch.", "tip_tipPatience": "Tipp: Geduld über 60.",
+  "tip_tipCheek": "Tipp: Gegen freche Gegner Frechheit runter, gegen ungeduldige hoch.", "tip_tipOver": "Tipp: Mut runter.", "tip_tipLeft": "Tipp: Geduld runter, dann bietet dein Agent mehr.", "tip_tipFew": "Tipp: Mut hoch.", "tip_tipShaky": "Tipp: Geduld hoch oder einmal vorfliegen.", "tip_tipClose": "Tipp: Mut näher an 50.",
+  "duel": "Gegen Bot", "quest": "Geheim", "notHere": "Das geht auf diesem Gerät gerade nicht. Hier ist die Tageskarte.",
+  "tabAgent": "Mein Agent", "tabRival": "Gegner", "tabArena": "Arena", "tabRiddle": "Rätsel", "tabEnd": "Schatz",
+  "agName": "Name", "agLook": "Aussehen", "ag_r": "Mut", "ag_c": "Frechheit", "ag_p": "Geduld", "ag_sharp": "Lernt so schnell",
+  "agRandom": "Gegner würfeln", "agLocal": "Dein Agent rechnet hier auf dem Handy, ohne Netz. Regeln, keine KI.",
+  "duelGo": "Duell starten", "duelRun": "Läuft", "duelShare": "Bild und Link", "duelAgain": "Agent ändern", "duelPlayGo": "Los", "you": "Du",
+  "duelWin": "{n} gewinnt!", "duelWinYou": "Du gewinnst!", "duelTake": "Annehmen", "duelInvite": "{n} fordert deinen Agenten heraus.", "questInvite": "{n} hat dir etwas verschlossen.", "youTo": "dir", "duelDraw": "Unentschieden", "pts": "{a} : {b}",
+  "duelRps": "Runde {n}", "duelBid": "{a} gegen {b}", "duelSold": "Ersteigert von {n}", "duelNoSale": "Gleiches Gebot, keiner bekommt es",
+  "wordRap": "Dein Wort im Rap", "wordItem": "Dein Quatsch unterm Hammer", "pickSet": "Deine drei Zeichen", "worldL": "Welt",
+  "train": "Vorfliegen", "trainH": "Flieg einmal vor. Dein Agent schaut zu und lernt, wo du flatterst.", "trainDone": "Gelernt: Mut {r}, Geduld {p}", "trainFew": "Zu kurz. Flatter mindestens dreimal.",
+  "flyMe": "Selbst gegen {n} fliegen", "mindPick": "Was spielst du?", "mindLeft": "Noch {n}", "mindRead": "Dein Agent hat dich durchschaut", "mindBeat": "Dich liest er noch nicht",
+  "deckNext": "Nächste Aufgabe", "deckOwn": "Deine eigene Aufgabe", "deckEnd": "Zeit um!",
+  "questNeed": "Antworten eintragen", "questLock": "Abschließen", "questQ": "Rätsel {n}", "questA": "Antwort, nur ihr beide wisst sie", "questAdd": "Rätsel dazu", "questDel": "Rätsel weg",
+  "questEnd": "Was ganz am Ende wartet", "questBlocked": "Keine Treffpunkte, Adressen oder Nummern. Nur Rätsel.", "questNote": "Rätsel 1 liest jeder mit dem Link. Alles danach ist verschlüsselt, die Antworten stehen nirgends drin. Ein Spiel, kein Tresor.",
+  "questYou": "Offen im Link: Rätsel 1", "questSees": "Verschlüsselt: alles danach", "questWait": "Trag die Antworten ein, dann wird hier verschlüsselt",
+  "questTry": "Aufschließen", "questWrong": "Falsch. Schloss bleibt zu.", "questTip": "Tipp: fängt mit {l} an, {n} Zeichen", "questAns": "Deine Antwort", "questOpen": "Offen!", "questStep": "Schloss {n} von {m}",
+  "questGone": "Dieser Inhalt ist gesperrt.", "questOwn": "Bau dein eigenes",
+  "duelLive": "🔴 Live gegen Freund", "live_friend": "Freund", "live_rpsShareText": "Schere-Stein-Papier live! Ich bin gerade da – magst du mitspielen? Der Link gilt 15 Minuten:",
+  "live_rpsHowto": "Tipp eine Hand. Keiner sieht die Hand des anderen vorher. Wer zuerst 5 Punkte hat, gewinnt.", "live_rpsPick": "Wähl deine Hand.",
+  "live_rpsSealed": "Versiegelt. Warte auf {n} …", "live_rpsTheyPicked": "{n} hat gewählt. Du bist dran.", "live_rpsWin": "Punkt für dich! Nächste Hand.",
+  "live_rpsLose": "Punkt für {n}. Nächste Hand.", "live_rpsDraw": "Gleich. Nochmal.", "live_rpsCheat": "Die Hand von {n} passt nicht zum Siegel. Das Spiel zählt nicht.",
+  "live_rpsStall": "{n} deckt nicht auf. Das Spiel zählt nicht."
+ },
+ "en": {
+  "why_draw": "Draw {a}:{b}. Both agents were equally strong.", "why_luck": "Close, {a}:{b}. Chance from the seed decided this one.",
+  "why_rpsCounter": "{w} countered {n}×: {l}'s last hand was met by exactly the one that beats it (patience {p}).", "why_rpsRepeat": "{l} repeated a winning hand {n}× and got caught (cheek {c}).", "why_rpsLead": "{l} played {h} {n} out of 9 times (courage {r}). Easy to read.",
+  "why_rapCourage": "{w} had more courage ({r} to {s}), which means bigger point swings.", "why_rapPatience": "{w} has patience over 60 ({p}), worth +1 every round.", "why_rapCounter": "{w} picked the lines better: cheeky against impatient, calm against cheeky (+{n}).",
+  "why_aucOver": "{l} bid more than the item was worth {n}× (courage {r}).", "why_aucLeft": "{l} still had {m} coins left at the end (patience {p}).", "why_aucFew": "{w} won {k} items, {l} only {j}.",
+  "why_flyShaky": "{l} flew shakily (patience {p}) and hit pipe {n}.", "why_flyClose": "{l} flew too close to the pipe (courage {r}) and hit pipe {n}.", "why_flyLuck": "{l} reached pipe {n}, {w} pipe {m}. Same course, a close call.",
+  "tip_tipCounter": "Tip: raise patience, then your agent counters too.", "tip_tipRepeat": "Tip: lower cheek, then your agent repeats less.", "tip_tipLead": "Tip: courage towards 0, then your agent mixes its hands.", "tip_tipCourage": "Tip: raise courage.", "tip_tipPatience": "Tip: patience over 60.",
+  "tip_tipCheek": "Tip: against cheeky rivals lower cheek, against impatient ones raise it.", "tip_tipOver": "Tip: lower courage.", "tip_tipLeft": "Tip: lower patience, then your agent bids more.", "tip_tipFew": "Tip: raise courage.", "tip_tipShaky": "Tip: raise patience or fly once for it.", "tip_tipClose": "Tip: courage closer to 50.",
+  "duel": "Versus bot", "quest": "Secret", "notHere": "That doesn't work on this device right now. Here's today's card.",
+  "tabAgent": "My agent", "tabRival": "Rival", "tabArena": "Arena", "tabRiddle": "Riddle", "tabEnd": "Treasure",
+  "agName": "Name", "agLook": "Look", "ag_r": "Courage", "ag_c": "Cheek", "ag_p": "Patience", "ag_sharp": "Learning speed",
+  "agRandom": "Roll a rival", "agLocal": "Your agent runs here on the phone, no network. Rules, no AI.",
+  "duelGo": "Start duel", "duelRun": "Running", "duelShare": "Picture and link", "duelAgain": "Change agent", "duelPlayGo": "Go", "you": "You",
+  "duelWin": "{n} wins!", "duelWinYou": "You win!", "duelTake": "Accept", "duelInvite": "{n} challenges your agent.", "questInvite": "{n} locked something for you.", "youTo": "you", "duelDraw": "Draw", "pts": "{a} : {b}",
+  "duelRps": "Round {n}", "duelBid": "{a} against {b}", "duelSold": "Won by {n}", "duelNoSale": "Same bid, nobody gets it",
+  "wordRap": "Your word in the rap", "wordItem": "Your nonsense under the hammer", "pickSet": "Your three signs", "worldL": "World",
+  "train": "Fly for it", "trainH": "Fly once. Your agent watches and learns where you flap.", "trainDone": "Learned: courage {r}, patience {p}", "trainFew": "Too short. Flap at least three times.",
+  "flyMe": "Fly against {n} yourself", "mindPick": "What do you play?", "mindLeft": "{n} left", "mindRead": "Your agent saw right through you", "mindBeat": "You're harder to read than expected",
+  "deckNext": "Next task", "deckOwn": "Your own task", "deckEnd": "Time's up!",
+  "questNeed": "Fill in the answers", "questLock": "Lock it", "questQ": "Riddle {n}", "questA": "Answer only you two know", "questAdd": "Add riddle", "questDel": "Remove riddle",
+  "questEnd": "What waits at the very end", "questBlocked": "No meeting places, addresses or numbers. Riddles only.", "questNote": "Anyone with the link reads riddle 1. Everything after it is encrypted, the answers are nowhere in it. A game, not a safe.",
+  "questYou": "Open in the link: riddle 1", "questSees": "Encrypted: everything after", "questWait": "Fill in the answers and it gets encrypted here",
+  "questTry": "Unlock", "questWrong": "Wrong. Still locked.", "questTip": "Tip: starts with {l}, {n} characters", "questAns": "Your answer", "questOpen": "Open!", "questStep": "Lock {n} of {m}",
+  "questGone": "This content is blocked.", "questOwn": "Build your own",
+  "duelLive": "🔴 Live vs a friend", "live_friend": "Friend", "live_rpsShareText": "Rock-paper-scissors live! I'm here right now – want to play? The link works for 15 minutes:",
+  "live_rpsHowto": "Tap a hand. Nobody sees the other hand first. First to 5 wins.", "live_rpsPick": "Pick your hand.",
+  "live_rpsSealed": "Sealed. Waiting for {n} …", "live_rpsTheyPicked": "{n} has picked. Your turn.", "live_rpsWin": "Point for you! Next hand.",
+  "live_rpsLose": "Point for {n}. Next hand.", "live_rpsDraw": "Same. Again.", "live_rpsCheat": "{n}'s hand does not match the seal. This game does not count.",
+  "live_rpsStall": "{n} does not reveal. This game does not count."
+ }
+}
+}
