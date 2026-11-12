@@ -2,7 +2,7 @@
   "repo": "scimbe/CADS-agent-marketplace",
   "path": "apps/mdi/src",
   "track": "feat/mdi-paritaet",
-  "commit": "0ca46a81c874f297750d71f7c5e23c25dee54f37",
+  "commit": "3324ab1ec86fe3f9786940bc99e352c9889f1f17",
   "generatedBy": "bin/vendor-mdi.mjs",
   "cards": [
     "flug",
