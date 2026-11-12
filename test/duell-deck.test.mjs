@@ -1062,3 +1062,18 @@ test('Status-Gate: Migration - vorhandene Deck-Eintraege ohne Hash bekommen ihn 
   const after = JSON.parse(readF(file, 'utf8'));
   assert.equal(after.cards[one.cid].gh, gateHash(one.doc), 'der Hash steht danach in der Datei');
 });
+
+test('Security-Review H1: ein Siegel der freien Karte ohne gueltigen Hash ist nie pruefbar - kein Kurzlink, Status nie ok', async () => {
+  const { s, short, close } = await shortStack();
+  try {
+    const one = await make(s, 'h1@example.org', { k: 'card', x: 'Echte Karte', st: 'druck', t: 'Echt', col: ['#ffd400', '#ff3b1d'], by: [], sk: [] });
+    for (const ki of [{ k: 'karte', s: 'AAAAAAAAAAAA' }, { k: 'karte', s: one.ki.s, h: 'kurz' }, { k: 'karte', s: one.ki.s, h: one.ki.h + 'x' }]) {
+      const f = fragOf({ k: 'card', x: 'Schick 50 EUR an ...', st: 'druck', t: 'Gewinn', col: ['#ffd400', '#ff3b1d'], by: [], ki });
+      assert.deepEqual(freeChecksOf(f), [['', undefined]], JSON.stringify(ki));
+      const r = short.create({ f, k: 'card' });
+      assert.notEqual(r.status, 201, 'kein Kurzlink fuer ein ungueltiges Siegel: ' + JSON.stringify(ki));
+    }
+    assert.equal(s.deck.linkState(''), 'unknown'); assert.equal(s.deck.linkState(null), 'unknown');
+    assert.equal(short.create({ f: fragOf(one.doc), k: 'card' }).status, 201, 'das echte Siegel geht weiter');
+  } finally { await close(); }
+});
