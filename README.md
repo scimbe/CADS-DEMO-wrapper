@@ -100,6 +100,13 @@ Toleranz, `DEMO_OIDC_SKEW_S`), `email` mit `@` und `email_verified: true`. **Sub
 je E-Mail-Adresse wird gespeichert (`DEMO_OIDC_BINDING_FILE`, Schluessel und Werte als HMAC mit
 `DEMO_OIDC_BINDING_SALT`, nichts im Klartext); ein spaeteres Token mit derselben Adresse, aber anderem Subjekt wird
 abgewiesen (`reason: subject-changed`) – eine bei einem Identity-Provider neu vergebene Adresse uebernimmt kein Konto.
+**Auch das Gate-Cookie bindet (Security-Review M3):** Liefert das Gate in seiner Antwort `X-Gate-Sub` (das OIDC-Subjekt der
+Anmeldung; gelesen aus der Antwort des Gates wie `X-Gate-Email`, nie vom Client), bindet der Cookie-Weg beim ersten Sehen genauso
+und weist ein anderes Subjekt ab. Ohne `X-Gate-Sub` (das Gate sendet es heute nicht) wird die Adresse nur als „aus dem Web
+bekannt“ markiert; ein App-Token bindet eine solche Adresse nie als erstes (`reason: link-pending`), sie wird gebunden, sobald
+das Gate das Subjekt liefert. Eine Adresse, die nie im Web war, bindet mit ihrem ersten Token wie bisher. Aussteller des
+Gate-Subjekts: `DEMO_GATE_OIDC_ISSUER` (Standard `DEMO_OIDC_ISSUER`, das Gate meldet am selben Realm an). Voraussetzung fuer
+App-Anmeldung bestehender Web-Konten: CADS-Tunnel `gate_check` sendet `X-Gate-Sub` (das Subjekt steht schon im Sitzungscookie).
 Wird ein Konto in Keycloak bewusst neu angelegt, den Eintrag entfernen: Schluessel =
 `node -e "import('./lib/oidc.mjs').then(m=>console.log(m.createSubjectBinding({file:process.argv[1],salt:process.env.DEMO_OIDC_BINDING_SALT}).key(process.argv[2])))" <datei> <adresse>`.
 JWKS: 10 min Cache, Antwort hoechstens 64 KiB (beim Lesen begrenzt), neuer `kid` loest hoechstens alle 30 s einen
