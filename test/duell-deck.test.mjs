@@ -11,10 +11,10 @@ import { createDuell } from '../lib/duell.mjs';
 import { createDuellAi } from '../lib/duell-ai.mjs';
 import { createReports } from '../lib/duell-report.mjs';
 import { canonical } from '../lib/duell-seal.mjs';
-import { checkKarte, createDeck, fingerprint, sealKarte, similarity } from '../lib/duell-deck.mjs';
+import { checkKarte, createDeck, fingerprint, gateHash, gateView, sealKarte, similarity } from '../lib/duell-deck.mjs';
 import { createCredit } from '../lib/duell-credit.mjs';
 import { createMod } from '../lib/duell-mod.mjs';
-import { createShortLinks, freeCidOf, freeIdsOf } from '../lib/shortlink.mjs';
+import { createShortLinks, freeChecksOf, freeCidOf, freeIdsOf } from '../lib/shortlink.mjs';
 import { App } from '../lib/duell-karte.mjs';
 
 const DAY = 86400000, ADMIN = 'admin-token-0123456789abcdef', SALT = 'deck-salt';
@@ -994,4 +994,108 @@ test('Review #110 Punkt 1: "Als echte Karte ausprobieren" oeffnet die Karte selb
     assert.equal(r.doc.ki.k, 'karte'); assert.equal(r.doc.ki.h, one.doc.ki.h, 'the seal stays: the app asks the deck status for this card');
     assert.deepEqual(freeIdsOf(href.split('#')[1]), [one.cid], 'the server reads the same link as this card');
   } finally { await h.close(); }
+});
+
+// ---- Status-Gate mit Inhalts-Hash (fix/deck-status-hash): eine freigegebene id mit anderem Inhalt oeffnet nie -----------
+test('Status-Gate: gateHash bindet den gezeigten Inhalt an die id; anderer Inhalt -> "changed", ohne d wie bisher; Route und Kurzlink', async () => {
+  const { s, h, short, sb, close } = await shortStack();
+  try {
+    const one = await make(s, 'gate@example.org', { k: 'card', x: 'Du bringst Sonne in jeden Tag', st: 'herz', t: 'Sonnenblumen', col: ['#ffd400', '#ff3b1d'], by: [], sk: [{ e: '🌻', x: 0.1, y: 0.1, r: 0, z: 1 }] });
+    const gh = gateHash(one.doc);
+    assert.match(gh, /^[A-Za-z0-9_-]{43}$/);
+    // nur Gezeigtes zaehlt: Positionen, Seed, Siegel und Spur aendern den Hash nicht, Text, Titel, Farben, Stil, Sticker schon
+    assert.equal(gateHash({ ...one.doc, sk: [{ e: '🌻', x: 0.9, y: 0.8, r: 1, z: 2 }], seed: 7, ki: undefined, by: [{ n: 'x', w: ['text'] }] }), gh);
+    for (const ch of [{ x: 'Anderer Text' }, { t: 'Anders' }, { col: ['#2b4bff', '#ffe600'] }, { st: 'neon' }, { sk: [{ e: '🎂' }] }, { k: 'photo' }]) assert.notEqual(gateHash({ ...one.doc, ...ch }), gh, JSON.stringify(ch));
+    assert.equal(s.deck.linkState(one.cid), 'ok', 'ohne d: die id allein (alte App, Remix)');
+    assert.equal(s.deck.linkState(one.cid, gh), 'ok');
+    assert.equal(s.deck.linkState(one.cid, gateHash({ ...one.doc, x: 'Fremder Text' })), 'changed');
+    for (const bad of ['', 'kurz', gh.slice(1) + '!', 42, {}]) assert.equal(s.deck.linkState(one.cid, bad), 'changed', String(bad));
+    // Route: d in der Abfrage
+    const st = async (q) => (await (await fetch(h.base + '/api/duell/deck/status?' + q)).json()).st;
+    assert.equal(await st('c=' + one.cid + '&d=' + gh), 'ok');
+    assert.equal(await st('c=' + one.cid + '&d=' + gateHash({ ...one.doc, t: 'Gefaelscht' })), 'changed');
+    assert.equal(await st('c=' + one.cid + '&d='), 'changed', 'leeres d ist kein fehlendes d');
+    assert.equal(await st('c=' + one.cid), 'ok');
+    // gesperrt bleibt gesperrt, auch mit passendem d; unbekannt bleibt unbekannt
+    const two = await make(s, 'gate@example.org', doc('Zweite Karte'));
+    assert.equal((await h.post('/api/duell/deck/review/' + two.cid, { action: 'remove', ground: 'other', note: 'Test der Sperre' }, null, h.adm)).status, 200);
+    assert.equal(s.deck.linkState(two.cid, gateHash(two.doc)), 'blocked');
+    assert.equal(s.deck.linkState('A'.repeat(22), gh), 'unknown');
+    // Kurzlink (alte App): eine Karte mit eigenem Siegel muss ihren eigenen Inhalt zeigen
+    assert.deepEqual(freeChecksOf(fragOf(one.doc)), [[one.cid, gh]]);
+    const ok = short.create({ f: fragOf(one.doc), k: 'card' });
+    assert.equal(ok.status, 201);
+    const forged = short.create({ f: fragOf({ ...one.doc, x: 'Gefaelschter Text' }), k: 'card' });
+    assert.notEqual(forged.status, 201, 'gefaelschter Inhalt mit echter id bekommt keinen Kurzlink: ' + forged.status);
+    // Remix (fr ohne eigenes Siegel): die id allein, wie bisher
+    assert.deepEqual(freeChecksOf(fragOf({ k: 'card', x: 'Mein Remix', st: 'druck', col: ['#ffd400', '#ff3b1d'], by: [], fr: one.cid })), [[one.cid, undefined]]);
+    void sb;
+  } finally { await close(); }
+});
+
+test('Status-Gate: feste Vektoren (dieselben prueft die App, apps/mdi test/frei.test.js) und die Projektion je Art', () => {
+  const v = gateView({ k: 'game', t: 'Tiefsee', col: ['#FFD400', '#ff3b1d'], g: { seed: 1, params: { gravity: 1 }, title: 'Tiefsee', emoji: '🐠', theme: 'ocean', route: [{ p: 'ruhig', d: {}, t: 'ocean', e: '🐟' }] } });
+  assert.deepEqual(v, { k: 'game', t: 'Tiefsee', col: ['#ffd400', '#ff3b1d'], g: { title: 'Tiefsee', emoji: '🐠', theme: 'ocean', route: [['ruhig', 'ocean', '🐟']] } });
+  assert.deepEqual(gateView({ k: 'lauf', t: 'Lauf', col: [], l: { m: 'endlos', w: 'wald', e: '🦊', o: '📦', c: '🪙', f: '🐦', p: { g: 1 } } }).l, ['endlos', 'wald', '🦊', '📦', '🪙', '🐦']);
+  const b = { v: 'mdi-bau/1', mode: 'realtime', goal: 'Fang zehn Sterne' };
+  assert.deepEqual(gateView({ k: 'bau', t: 'Sternfang', col: [], b }).b, b, 'Baukasten: die ganze Beschreibung');
+  assert.notEqual(gateHash({ k: 'bau', t: 'S', col: [], b }), gateHash({ k: 'bau', t: 'S', col: [], b: { ...b, goal: 'Fang einen Stern' } }), 'eine geaenderte Regel aendert den Hash');
+  assert.deepEqual(gateView({ k: 'turn', i: 'zug-termin', t: 'Grillen', s: 'Untertitel', col: ['#ffd400', '#ff3b1d'] }), { k: 'turn', t: 'Grillen', i: 'zug-termin', w: '', pk: null }, 'Faehigkeit: Farben und Untertitel zeigt keine zug-*-Karte');
+  assert.equal(gateHash({ k: 'card', t: 'Sonnenblumen-Tag', x: 'Alles Gute! Du bringst Sonne in jeden Tag.', st: 'herz', col: ['#ffd400', '#ff3b1d'], sk: [{ e: '🌻' }, { e: '🎂' }, { e: '✨' }] }), 'qWCCWKwM4uDjfi6dd2XxVOGSfnB1cCOmbQODRO2urHo');
+});
+
+test('Status-Gate: Migration - vorhandene Deck-Eintraege ohne Hash bekommen ihn beim Laden aus dem gespeicherten Doc', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'duell-deck-gate-'));
+  const s = setup({ dir, env: { DUELL_DECK_SIGN_KEY: '' } });
+  const one = await make(s, 'alt@example.org', { k: 'card', x: 'Alte Karte', st: 'druck', t: 'Alt', col: ['#ffd400', '#ff3b1d'], by: [], sk: [] });
+  s.deck.flush();
+  // so sah deck.json vor dieser Aenderung aus: Karten ohne gh
+  const file = join(dir, 'deck.json'), j = JSON.parse(readF(file, 'utf8'));
+  for (const c of Object.values(j.cards)) delete c.gh;
+  writeF(file, JSON.stringify(j));
+  const logs = [];
+  const again = createDeck({ env: { ...s.E }, shared: s.d.shared, who: s.ai.who, credit: s.credit, mod: s.mod, now: () => s.clock.t, log: (o) => logs.push(o), file });
+  assert.ok(logs.some((o) => o.event === 'duell-deck-gate-hash-migrated' && o.cards >= 1), JSON.stringify(logs));
+  assert.equal(again.linkState(one.cid, gateHash(one.doc)), 'ok');
+  assert.equal(again.linkState(one.cid, gateHash({ ...one.doc, x: 'anders' })), 'changed');
+  again.flush();
+  const after = JSON.parse(readF(file, 'utf8'));
+  assert.equal(after.cards[one.cid].gh, gateHash(one.doc), 'der Hash steht danach in der Datei');
+});
+
+test('Security-Review H1: ein Siegel der freien Karte ohne gueltigen Hash ist nie pruefbar - kein Kurzlink, Status nie ok', async () => {
+  const { s, short, close } = await shortStack();
+  try {
+    const one = await make(s, 'h1@example.org', { k: 'card', x: 'Echte Karte', st: 'druck', t: 'Echt', col: ['#ffd400', '#ff3b1d'], by: [], sk: [] });
+    for (const ki of [{ k: 'karte', s: 'AAAAAAAAAAAA' }, { k: 'karte', s: one.ki.s, h: 'kurz' }, { k: 'karte', s: one.ki.s, h: one.ki.h + 'x' }]) {
+      const f = fragOf({ k: 'card', x: 'Schick 50 EUR an ...', st: 'druck', t: 'Gewinn', col: ['#ffd400', '#ff3b1d'], by: [], ki });
+      assert.deepEqual(freeChecksOf(f), [['', undefined]], JSON.stringify(ki));
+      const r = short.create({ f, k: 'card' });
+      assert.notEqual(r.status, 201, 'kein Kurzlink fuer ein ungueltiges Siegel: ' + JSON.stringify(ki));
+    }
+    assert.equal(s.deck.linkState(''), 'unknown'); assert.equal(s.deck.linkState(null), 'unknown');
+    assert.equal(short.create({ f: fragOf(one.doc), k: 'card' }).status, 201, 'das echte Siegel geht weiter');
+  } finally { await close(); }
+});
+
+test('Security-Review M6: feste Pfade mit Body fuer die App-Bruecke - POST /api/duell/deck/status, POST /api/s/get, POST /api/s/delete', async () => {
+  const { s, h, short, sb, close } = await shortStack();
+  try {
+    const one = await make(s, 'm6@example.org', { k: 'card', x: 'Karte fuer die App', st: 'druck', t: 'App', col: ['#ffd400', '#ff3b1d'], by: [], sk: [] });
+    const gh = gateHash(one.doc), J = { 'Content-Type': 'application/json' };
+    const st = async (b) => (await (await fetch(h.base + '/api/duell/deck/status', { method: 'POST', headers: J, body: JSON.stringify(b) })).json());
+    assert.deepEqual(await st({ c: one.cid, d: gh }), { c: one.cid, st: 'ok' }, 'wie GET ?c=&d=');
+    assert.equal((await st({ c: one.cid, d: gateHash({ ...one.doc, x: 'fremd' }) })).st, 'changed');
+    assert.equal((await st({ c: one.cid, d: '' })).st, 'changed', 'leeres d ist kein fehlendes d');
+    assert.equal((await st({ c: one.cid })).st, 'ok');
+    assert.equal((await fetch(h.base + '/api/duell/deck/status', { method: 'POST', headers: J, body: JSON.stringify({ c: 'kaputt' }) })).status, 400);
+    const made = short.create({ f: fragOf(one.doc), k: 'card' });
+    assert.equal(made.status, 201);
+    const { id, token } = made.body;
+    const get = await fetch(sb + '/api/s/get', { method: 'POST', headers: J, body: JSON.stringify({ id }) });
+    assert.equal(get.status, 200); assert.equal((await get.json()).f, fragOf(one.doc));
+    assert.equal((await fetch(sb + '/api/s/delete', { method: 'POST', headers: J, body: JSON.stringify({ id, token: 'falsch' }) })).status, 403);
+    assert.equal((await fetch(sb + '/api/s/delete', { method: 'POST', headers: J, body: JSON.stringify({ id, token }) })).status, 204);
+    assert.equal((await fetch(sb + '/api/s/get', { method: 'POST', headers: J, body: JSON.stringify({ id }) })).status, 410);
+  } finally { await close(); }
 });
