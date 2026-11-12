@@ -36,6 +36,7 @@ function keyFrom(file) {
 function dryLlm() {
   return { configured: true, async generate(req) {
     if (req.system === MOD_SYSTEM) return { json: { risk: 0, cats: [], drink: 'none', takt: 'echtzeit', spiel: 'szene' }, stop: 'end_turn', usage: { in: 1, out: 1 } };
+    if (req.name === 'bau_fakten') { const f = JSON.parse(req.user.slice(6, -7)); return { json: { items: f.map((x) => ({ i: x.i, grund: '', urteil: 'sicher', besser: '' })) }, stop: 'end_turn', usage: { in: 1, out: 1 } }; }
     const ex = /zug/.test(req.name) ? BEISPIELE.memory : BEISPIELE.flappy;
     return { json: { ok: true, ...check(ex).desc }, stop: 'end_turn', usage: { in: 1, out: 1 } };
   } };
