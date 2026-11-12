@@ -48,7 +48,7 @@ else {
 let cur = null;
 const llm = { configured: true, async generate(req) {
   const t0 = Date.now(), r = await base.generate(req);
-  if (cur) { cur.calls.push({ name: req.name, stop: r.stop, ms: Date.now() - t0, usage: r.usage, usd: r.usd || 0 }); if (/^card_bau/.test(req.name) && r.json) cur.antworten.push(r.json); }
+  if (cur) { cur.calls.push({ name: req.name, stop: r.stop, ms: Date.now() - t0, usage: r.usage, usd: r.usd || 0 }); if (/^card_bau/.test(req.name) && r.json) cur.antworten.push({ name: req.name, json: r.json }); }
   return r;
 } };
 const d = createDuell({ env: { DUELL_DAILY_MAX: '100000', DUELL_SEAL_SECRET: 'gold-run' }, salt: 'gold', log: () => {}, llm: async () => '{}' });
@@ -57,6 +57,13 @@ let who = 'gold@example.org';
 const ai = createDuellAi({ env: { DUELL_AI_SALT: 'gold', DUELL_AI_PROOF_BITS: '0', DUELL_CREATE_FREE: '100000', DUELL_CREATE_CALLS_PER_DAY: '100000', DUELL_CREATE_BLOCKS_PER_DAY: '100000', DUELL_CREATE_NEW_PER_HOUR: '100000' },
   llm: async () => '{}', cardLlm: llm, shared: d.shared, auth: { mode: 'gate', identify: async () => ({ email: who }) }, log: () => {} });
 
+// the last round's whole description: a realtime game comes in two steps (scene, then spawn + rules)
+function letzte(a) {
+  const last = (n) => [...a].reverse().find((x) => x.name === n);
+  const z = last('card_bau_zug'); if (z) return z.json;
+  const sz = last('card_bau_szene'), rg = last('card_bau_regeln');
+  return sz ? { ...sz.json, ...(rg ? { spawn: rg.json.spawn, rules: rg.json.rules } : {}) } : null;
+}
 const rows = [];
 for (const [i, e] of entries.entries()) {
   who = 'gold' + i + '@example.org';
@@ -66,7 +73,7 @@ for (const [i, e] of entries.entries()) {
   let r;
   try { r = await ai.act(b, await ai.who({}, b), null); } catch (err) { r = { status: 0, body: { error: String(err && err.message) } }; }
   const bew = bewerte(e, r.status, r.body), o = r.body && r.body.options && r.body.options[0];
-  const row = { id: e.id, split: e.split, satz: e.satz, erwartet: e.erwartet, status: r.status, bewertung: bew, titel: o ? o.doc.t : '', ziel: o ? o.doc.b.goal || '' : '', note: r.body.note || [], absage: r.body.notyet ? { notyet: r.body.notyet, reason: r.body.reason, alt: r.body.alt } : null, error: r.body.error || '', ms: Date.now() - t0, aufrufe: cur.calls, usd: cur.calls.reduce((s, c) => s + c.usd, 0), spiel: o ? o.doc.b : null, letzteAntwort: !o && cur.antworten.length ? cur.antworten[cur.antworten.length - 1] : null };
+  const row = { id: e.id, split: e.split, satz: e.satz, erwartet: e.erwartet, status: r.status, bewertung: bew, titel: o ? o.doc.t : '', ziel: o ? o.doc.b.goal || '' : '', note: r.body.note || [], absage: r.body.notyet ? { notyet: r.body.notyet, reason: r.body.reason, alt: r.body.alt } : null, error: r.body.error || '', ms: Date.now() - t0, aufrufe: cur.calls, usd: cur.calls.reduce((s, c) => s + c.usd, 0), spiel: o ? o.doc.b : null, letzteAntwort: !o && cur.antworten.length ? letzte(cur.antworten) : null };
   rows.push(row);
   console.log(`${e.id} ${e.split} ${bew.ergebnis.padEnd(6)} ${bew.ok ? 'ok ' : 'NEIN'} ${bew.passt ? 'passt' : '     '} ${String(cur.calls.length).padStart(2)} Aufrufe ${(row.usd * 100).toFixed(2)} ct ${row.ms} ms  ${e.satz.slice(0, 50)} -> ${row.titel || (row.absage ? row.absage.reason || row.absage.notyet.what + ':' + (row.absage.notyet.name || '') : row.error || r.status)}`);
 }
