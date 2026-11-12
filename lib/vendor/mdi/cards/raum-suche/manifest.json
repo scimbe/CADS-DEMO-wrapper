@@ -1,0 +1,137 @@
+{
+  "id": "raum-suche",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.1",
+  "kind": "turn",
+  "mode": "turn",
+  "title": {
+    "de": "Such- Zettel",
+    "en": "Paper hunt"
+  },
+  "teaser": {
+    "de": "Die Antwort liegt hier im Zimmer.",
+    "en": "The answer is in this room."
+  },
+  "howto": {
+    "de": "Schreib vier Wörter auf Zettel und versteck sie mit Hinweis. Die anderen suchen sie gegen die Uhr.",
+    "en": "Write four words on notes and hide them with a clue. The others search against the clock."
+  },
+  "rule": {
+    "de": "Schreib vier Wörter auf Zettel und versteck sie mit Hinweis. Die anderen suchen sie gegen die Uhr.",
+    "en": "Write four words on notes and hide them with a clue. The others search against the clock."
+  },
+  "seats": {
+    "de": [
+      "Runde"
+    ],
+    "en": [
+      "Group"
+    ]
+  },
+  "grip": "raum",
+  "dur": 600,
+  "players": {
+    "min": 1,
+    "max": 1
+  },
+  "modes": [
+    "alone"
+  ],
+  "play": {
+    "default": "alone",
+    "offer": [
+      "alone"
+    ]
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 8192
+  },
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 0
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "accent"
+    ],
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "accent": {
+        "type": "string",
+        "enum": [
+          "yellow",
+          "red",
+          "ink",
+          "paper"
+        ],
+        "default": "yellow",
+        "x-field": "color",
+        "x-label": {
+          "de": "Kartenfarbe",
+          "en": "Card colour"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "title"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    },
+    {
+      "id": "farbe",
+      "params": [
+        "accent"
+      ],
+      "label": {
+        "de": "Kartenfarbe",
+        "en": "Card colour"
+      }
+    }
+  ]
+}

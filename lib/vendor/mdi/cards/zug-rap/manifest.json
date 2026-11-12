@@ -1,0 +1,154 @@
+{
+  "id": "zug-rap",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.1",
+  "kind": "turn",
+  "mode": "turn",
+  "title": {
+    "de": "Battle-Rap Zug um Zug",
+    "en": "Battle rap turn by turn"
+  },
+  "teaser": {
+    "de": "Wählt abwechselnd Reime: Toaster gegen Föhn.",
+    "en": "Pick rhymes in turns: toaster vs hair dryer."
+  },
+  "howto": {
+    "de": "Wähl zwei Zeilen für deinen Rap. Jeder Konter bringt einen Punkt. Mehr Konter gewinnen.",
+    "en": "Pick two lines for your rap. Each comeback scores a point. More comebacks win."
+  },
+  "rule": {
+    "de": "Wähl zwei Zeilen für deinen Rap. Jeder Konter bringt einen Punkt. Mehr Konter gewinnen.",
+    "en": "Pick two lines for your rap. Each comeback scores a point. More comebacks win."
+  },
+  "seats": {
+    "de": [
+      "Spieler 1",
+      "Spieler 2"
+    ],
+    "en": [
+      "Player 1",
+      "Player 2"
+    ]
+  },
+  "roles": {
+    "de": [
+      "Du wählst zwei Zeilen zuerst.",
+      "Du antwortest mit zwei Zeilen."
+    ],
+    "en": [
+      "You pick two lines first.",
+      "You answer with two lines."
+    ]
+  },
+  "grip": "streit",
+  "on": [
+    "12-07"
+  ],
+  "dur": 30,
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 8192
+  },
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "accent"
+    ],
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "accent": {
+        "type": "string",
+        "enum": [
+          "yellow",
+          "red",
+          "ink",
+          "paper"
+        ],
+        "default": "yellow",
+        "x-field": "color",
+        "x-label": {
+          "de": "Kartenfarbe",
+          "en": "Card colour"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "title"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    },
+    {
+      "id": "farbe",
+      "params": [
+        "accent"
+      ],
+      "label": {
+        "de": "Kartenfarbe",
+        "en": "Card colour"
+      }
+    }
+  ]
+}

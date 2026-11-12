@@ -1,0 +1,151 @@
+{
+  "id": "zug-steine",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.1",
+  "kind": "turn",
+  "mode": "turn",
+  "title": {
+    "de": "Gleiche Steine",
+    "en": "Same blocks"
+  },
+  "teaser": {
+    "de": "Dieselben Steine für beide. Kein Trick.",
+    "en": "The same blocks for both. No tricks."
+  },
+  "howto": {
+    "de": "Leg die Steine aufs Feld. Volle Reihen verschwinden und bringen Punkte. Beide bekommen dieselben Steine; mehr Punkte gewinnen.",
+    "en": "Place the blocks on the board. Full rows vanish and score. Both get the same blocks; more points win."
+  },
+  "rule": {
+    "de": "Leg die Steine aufs Feld. Volle Reihen verschwinden und bringen Punkte. Beide bekommen dieselben Steine; mehr Punkte gewinnen.",
+    "en": "Place the blocks on the board. Full rows vanish and score. Both get the same blocks; more points win."
+  },
+  "seats": {
+    "de": [
+      "Spieler 1",
+      "Spieler 2"
+    ],
+    "en": [
+      "Player 1",
+      "Player 2"
+    ]
+  },
+  "roles": {
+    "de": [
+      "Du legst die Steine zuerst.",
+      "Du legst dieselben Steine."
+    ],
+    "en": [
+      "You place the blocks first.",
+      "You place the same blocks."
+    ]
+  },
+  "grip": "pause",
+  "dur": 60,
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 8192
+  },
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "accent"
+    ],
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "accent": {
+        "type": "string",
+        "enum": [
+          "yellow",
+          "red",
+          "ink",
+          "paper"
+        ],
+        "default": "yellow",
+        "x-field": "color",
+        "x-label": {
+          "de": "Kartenfarbe",
+          "en": "Card colour"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "title"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    },
+    {
+      "id": "farbe",
+      "params": [
+        "accent"
+      ],
+      "label": {
+        "de": "Kartenfarbe",
+        "en": "Card colour"
+      }
+    }
+  ]
+}

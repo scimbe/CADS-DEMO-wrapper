@@ -1,0 +1,277 @@
+{
+  "id": "zug-auktion",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.1",
+  "kind": "turn",
+  "mode": "turn",
+  "title": {
+    "de": "Auktion im Dunkeln",
+    "en": "Auction in the dark"
+  },
+  "teaser": {
+    "de": "100 Münzen, geheim bieten. Wer kriegt was?",
+    "en": "100 coins, secret bids. Who gets what?"
+  },
+  "howto": {
+    "de": "Verteil 100 Münzen auf fünf Dinge. Wer mehr bietet, bekommt es. Wer mehr Wert sammelt, gewinnt.",
+    "en": "Spread 100 coins over five things. The higher bid gets it. Whoever collects more value wins."
+  },
+  "rule": {
+    "de": "Verteil 100 Münzen auf fünf Dinge. Wer mehr bietet, bekommt es. Wer mehr Wert sammelt, gewinnt.",
+    "en": "Spread 100 coins over five things. The higher bid gets it. Whoever collects more value wins."
+  },
+  "seats": {
+    "de": [
+      "Spieler 1",
+      "Spieler 2"
+    ],
+    "en": [
+      "Player 1",
+      "Player 2"
+    ]
+  },
+  "roles": {
+    "de": [
+      "Du bietest zuerst, verdeckt.",
+      "Du bietest danach, ebenfalls verdeckt."
+    ],
+    "en": [
+      "You bid first, hidden.",
+      "You bid second, also hidden."
+    ]
+  },
+  "grip": "pause",
+  "on": [
+    "11-26",
+    "11-30",
+    "12-11"
+  ],
+  "dur": 40,
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 8192
+  },
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "spiel",
+      "title",
+      "w",
+      "accent"
+    ],
+    "properties": {
+      "spiel": {
+        "type": "string",
+        "enum": [
+          "auktion",
+          "deal",
+          "teilen",
+          "socke",
+          "fallpreis"
+        ],
+        "default": "auktion",
+        "x-field": "choice",
+        "x-label": {
+          "de": "Spiel",
+          "en": "Game"
+        },
+        "x-names": {
+          "auktion": {
+            "de": "Auktion im Dunkeln",
+            "en": "Auction in the dark"
+          },
+          "deal": {
+            "de": "Zehn Kekse, ein Angebot",
+            "en": "Ten cookies, one offer"
+          },
+          "teilen": {
+            "de": "Teilen ohne Streit",
+            "en": "Share out without a fight"
+          },
+          "socke": {
+            "de": "Letzte Socke unterm Hammer",
+            "en": "Last sock under the hammer"
+          },
+          "fallpreis": {
+            "de": "Auktion um Quatsch",
+            "en": "Auction of nonsense"
+          }
+        }
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "w": {
+        "type": "string",
+        "maxLength": 14,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Was wird geteilt? (Zehn Kekse)",
+          "en": "What is shared? (Ten cookies)"
+        }
+      },
+      "accent": {
+        "type": "string",
+        "enum": [
+          "yellow",
+          "red",
+          "ink",
+          "paper"
+        ],
+        "default": "yellow",
+        "x-field": "color",
+        "x-label": {
+          "de": "Kartenfarbe",
+          "en": "Card colour"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "spiel",
+      "params": [
+        "spiel"
+      ],
+      "label": {
+        "de": "Spiel",
+        "en": "Game"
+      }
+    },
+    {
+      "id": "titel",
+      "params": [
+        "title",
+        "w"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    },
+    {
+      "id": "farbe",
+      "params": [
+        "accent"
+      ],
+      "label": {
+        "de": "Kartenfarbe",
+        "en": "Card colour"
+      }
+    }
+  ],
+  "variants": [
+    {
+      "id": "zug-deal",
+      "title": {
+        "de": "Zehn Kekse, ein Angebot",
+        "en": "Ten cookies, one offer"
+      },
+      "teaser": {
+        "de": "Teil fair, oder keiner kriegt was.",
+        "en": "Split fairly or nobody gets any."
+      },
+      "params": {
+        "spiel": "deal"
+      }
+    },
+    {
+      "id": "zug-teilen",
+      "title": {
+        "de": "Teilen ohne Streit",
+        "en": "Share out without a fight"
+      },
+      "teaser": {
+        "de": "Referat aufteilen, ohne Gemecker.",
+        "en": "Split the project, no moaning."
+      },
+      "params": {
+        "spiel": "teilen"
+      }
+    },
+    {
+      "id": "zug-socke",
+      "title": {
+        "de": "Letzte Socke unterm Hammer",
+        "en": "Last sock under the hammer"
+      },
+      "teaser": {
+        "de": "Bieten bis zur Dummheit.",
+        "en": "Bid until it gets silly."
+      },
+      "params": {
+        "spiel": "socke"
+      }
+    },
+    {
+      "id": "zug-fallpreis",
+      "title": {
+        "de": "Auktion um Quatsch",
+        "en": "Auction of nonsense"
+      },
+      "teaser": {
+        "de": "Der Preis fällt. Wer zuerst tippt, kauft.",
+        "en": "The price drops. First tap buys."
+      },
+      "params": {
+        "spiel": "fallpreis"
+      }
+    }
+  ]
+}

@@ -1,0 +1,151 @@
+{
+  "id": "karte-ausrede",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.1",
+  "kind": "turn",
+  "mode": "turn",
+  "title": {
+    "de": "Die beste Ausrede",
+    "en": "The best excuse"
+  },
+  "teaser": {
+    "de": "Zehn Sekunden, dann entscheidet der Stempel.",
+    "en": "Ten seconds, then the stamp decides."
+  },
+  "howto": {
+    "de": "Bau eine Ausrede aus drei Teilen. Der andere stempelt sie: durchgewunken, na gut oder niemals.",
+    "en": "Build an excuse from three parts. The other stamps it: waved through, fair enough or never."
+  },
+  "rule": {
+    "de": "Bau eine Ausrede aus drei Teilen. Der andere stempelt sie: durchgewunken, na gut oder niemals.",
+    "en": "Build an excuse from three parts. The other stamps it: waved through, fair enough or never."
+  },
+  "seats": {
+    "de": [
+      "Spieler 1",
+      "Spieler 2"
+    ],
+    "en": [
+      "Player 1",
+      "Player 2"
+    ]
+  },
+  "roles": {
+    "de": [
+      "Du baust eine Ausrede aus drei Teilen.",
+      "Du stempelst die Ausrede."
+    ],
+    "en": [
+      "You build an excuse from three parts.",
+      "You stamp the excuse."
+    ]
+  },
+  "grip": "pause",
+  "dur": 20,
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 8192
+  },
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "accent"
+    ],
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "accent": {
+        "type": "string",
+        "enum": [
+          "yellow",
+          "red",
+          "ink",
+          "paper"
+        ],
+        "default": "yellow",
+        "x-field": "color",
+        "x-label": {
+          "de": "Kartenfarbe",
+          "en": "Card colour"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "title"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    },
+    {
+      "id": "farbe",
+      "params": [
+        "accent"
+      ],
+      "label": {
+        "de": "Kartenfarbe",
+        "en": "Card colour"
+      }
+    }
+  ]
+}

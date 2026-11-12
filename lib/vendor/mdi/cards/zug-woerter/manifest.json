@@ -1,0 +1,154 @@
+{
+  "id": "zug-woerter",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.1",
+  "kind": "turn",
+  "mode": "turn",
+  "title": {
+    "de": "Wörterbuch für zwei",
+    "en": "A dictionary for two"
+  },
+  "teaser": {
+    "de": "Erfindet eure eigenen Geheimwörter.",
+    "en": "Invent your own secret words."
+  },
+  "howto": {
+    "de": "Gib einem neuen Wort eine Bedeutung. Der andere rät, welcher Moment gemeint ist. Vier Runden, abwechselnd.",
+    "en": "Give a new word a meaning. The other guesses which moment you mean. Four rounds, taking turns."
+  },
+  "rule": {
+    "de": "Gib einem neuen Wort eine Bedeutung. Der andere rät, welcher Moment gemeint ist. Vier Runden, abwechselnd.",
+    "en": "Give a new word a meaning. The other guesses which moment you mean. Four rounds, taking turns."
+  },
+  "seats": {
+    "de": [
+      "Spieler 1",
+      "Spieler 2"
+    ],
+    "en": [
+      "Player 1",
+      "Player 2"
+    ]
+  },
+  "roles": {
+    "de": [
+      "Du erfindest zuerst ein Wort und rätst dann seins.",
+      "Du rätst dein Wort und erfindest dann eins."
+    ],
+    "en": [
+      "You invent a word first, then guess theirs.",
+      "You guess their word, then invent one."
+    ]
+  },
+  "grip": "abend",
+  "on": [
+    "11-24"
+  ],
+  "dur": 60,
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 8192
+  },
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "accent"
+    ],
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "accent": {
+        "type": "string",
+        "enum": [
+          "yellow",
+          "red",
+          "ink",
+          "paper"
+        ],
+        "default": "yellow",
+        "x-field": "color",
+        "x-label": {
+          "de": "Kartenfarbe",
+          "en": "Card colour"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "title"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    },
+    {
+      "id": "farbe",
+      "params": [
+        "accent"
+      ],
+      "label": {
+        "de": "Kartenfarbe",
+        "en": "Card colour"
+      }
+    }
+  ]
+}

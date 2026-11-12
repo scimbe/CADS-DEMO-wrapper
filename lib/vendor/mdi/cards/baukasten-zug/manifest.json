@@ -1,0 +1,135 @@
+{
+  "id": "baukasten-zug",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.2",
+  "kind": "turn",
+  "mode": "turn",
+  "title": {
+    "de": "Zugspiel aus dem Baukasten",
+    "en": "Turn game from the kit"
+  },
+  "teaser": {
+    "de": "Ein Zugspiel, das aus einem Satz entstanden ist.",
+    "en": "A turn game made from one sentence."
+  },
+  "howto": {
+    "de": "Abwechselnd ziehen. Das Ziel steht oben.",
+    "en": "Take turns. The goal is shown on top."
+  },
+  "family": "frei",
+  "players": {
+    "min": 1,
+    "max": 2
+  },
+  "modes": [
+    "alone",
+    "bot",
+    "link",
+    "live"
+  ],
+  "play": {
+    "default": "bot",
+    "offer": [
+      "bot",
+      "link",
+      "live"
+    ]
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 1,
+    "stateBytes": 65536
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "desc"
+    ],
+    "properties": {
+      "desc": {
+        "type": "object",
+        "description": "Spielbeschreibung mdi-bau/1; Pruefung: src/engines/baukasten/check.js (schemaFull in spec.js)",
+        "x-field": "list",
+        "x-hidden": true,
+        "x-label": {
+          "de": "Spielbeschreibung",
+          "en": "Game description"
+        },
+        "x-note": "UEBERGANG: x-field \"spiel\" bei Strang F angefragt (kommt mit feat/mdi-w1-f2)",
+        "default": {
+          "title": "Drei in einer Reihe",
+          "goal": "Setze abwechselnd. Drei in einer Reihe gewinnen.",
+          "mode": "turn",
+          "players": 2,
+          "bg": "paper",
+          "things": [
+            {
+              "id": "kreuz",
+              "look": "emoji",
+              "emoji": "❌"
+            },
+            {
+              "id": "kreis",
+              "look": "emoji",
+              "emoji": "⭕"
+            }
+          ],
+          "turn": {
+            "kind": "place",
+            "cols": 3,
+            "rows": 3,
+            "pieces": [
+              "kreuz",
+              "kreis"
+            ],
+            "line": 3
+          },
+          "v": 1
+        }
+      }
+    }
+  },
+  "parts": [],
+  "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "t",
+      "seat"
+    ],
+    "properties": {
+      "t": {
+        "enum": [
+          "put",
+          "flip",
+          "say"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "i": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 99
+      },
+      "a": {
+        "anyOf": [
+          {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          {
+            "type": "string",
+            "maxLength": 40
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,207 @@
+{
+  "id": "zug-auftrag",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.1",
+  "kind": "turn",
+  "mode": "turn",
+  "title": {
+    "de": "Ich geb dir eine Aufgabe",
+    "en": "I give you a task"
+  },
+  "teaser": {
+    "de": "Blind tauschen, morgen ist es erledigt.",
+    "en": "Swap blind, done by tomorrow."
+  },
+  "howto": {
+    "de": "Such eine Aufgabe für den anderen aus. Er sucht eine für dich aus. Dann erfüllt ihr sie.",
+    "en": "Pick a task for the other. They pick one for you. Then you both do it."
+  },
+  "rule": {
+    "de": "Such eine Aufgabe für den anderen aus. Er sucht eine für dich aus. Dann erfüllt ihr sie.",
+    "en": "Pick a task for the other. They pick one for you. Then you both do it."
+  },
+  "seats": {
+    "de": [
+      "Spieler 1",
+      "Spieler 2"
+    ],
+    "en": [
+      "Player 1",
+      "Player 2"
+    ]
+  },
+  "roles": {
+    "de": [
+      "Du suchst eine Aufgabe für den anderen aus.",
+      "Du suchst eine Aufgabe für den anderen aus."
+    ],
+    "en": [
+      "You pick a task for the other.",
+      "You pick a task for the other."
+    ]
+  },
+  "grip": "abend",
+  "dur": 30,
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 8192
+  },
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "spiel",
+      "title",
+      "accent"
+    ],
+    "properties": {
+      "spiel": {
+        "type": "string",
+        "enum": [
+          "auftrag",
+          "mut"
+        ],
+        "default": "auftrag",
+        "x-field": "choice",
+        "x-label": {
+          "de": "Spiel",
+          "en": "Game"
+        },
+        "x-names": {
+          "auftrag": {
+            "de": "Ich geb dir eine Aufgabe",
+            "en": "I give you a task"
+          },
+          "mut": {
+            "de": "Mutproben",
+            "en": "Dares"
+          }
+        }
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "accent": {
+        "type": "string",
+        "enum": [
+          "yellow",
+          "red",
+          "ink",
+          "paper"
+        ],
+        "default": "yellow",
+        "x-field": "color",
+        "x-label": {
+          "de": "Kartenfarbe",
+          "en": "Card colour"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "spiel",
+      "params": [
+        "spiel"
+      ],
+      "label": {
+        "de": "Spiel",
+        "en": "Game"
+      }
+    },
+    {
+      "id": "titel",
+      "params": [
+        "title"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    },
+    {
+      "id": "farbe",
+      "params": [
+        "accent"
+      ],
+      "label": {
+        "de": "Kartenfarbe",
+        "en": "Card colour"
+      }
+    }
+  ],
+  "variants": [
+    {
+      "id": "zug-auftrag-mut",
+      "title": {
+        "de": "Mutproben",
+        "en": "Dares"
+      },
+      "teaser": {
+        "de": "Vier kleine Mutproben zur Wahl.",
+        "en": "Four small dares to choose from."
+      },
+      "params": {
+        "spiel": "mut"
+      },
+      "legacy": [
+        "mut-zeitlupe",
+        "mut-oper",
+        "mut-nachrichten",
+        "mut-kompliment"
+      ]
+    }
+  ]
+}

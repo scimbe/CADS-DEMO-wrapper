@@ -1,0 +1,204 @@
+{
+  "id": "zug-pokal",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.1",
+  "kind": "turn",
+  "mode": "turn",
+  "title": {
+    "de": "Der Pokal wandert",
+    "en": "The trophy moves on"
+  },
+  "teaser": {
+    "de": "Stopp blind bei 10 s. Schlag deinen Freund.",
+    "en": "Stop blind at 10 s. Beat your friend."
+  },
+  "howto": {
+    "de": "Stopp eine unsichtbare Uhr bei genau 10 Sekunden, drei Versuche. Wer näher dran ist, holt den Pokal.",
+    "en": "Stop an invisible clock at exactly 10 seconds, three tries. Whoever is closer takes the cup."
+  },
+  "rule": {
+    "de": "Stopp eine unsichtbare Uhr bei genau 10 Sekunden, drei Versuche. Wer näher dran ist, holt den Pokal.",
+    "en": "Stop an invisible clock at exactly 10 seconds, three tries. Whoever is closer takes the cup."
+  },
+  "seats": {
+    "de": [
+      "Spieler 1",
+      "Spieler 2"
+    ],
+    "en": [
+      "Player 1",
+      "Player 2"
+    ]
+  },
+  "roles": {
+    "de": [
+      "Du stoppst zuerst.",
+      "Du versuchst, näher an 10 Sekunden zu kommen."
+    ],
+    "en": [
+      "You stop first.",
+      "You try to get closer to 10 seconds."
+    ]
+  },
+  "grip": "pause",
+  "dur": 40,
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 8192
+  },
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "spiel",
+      "title",
+      "accent"
+    ],
+    "properties": {
+      "spiel": {
+        "type": "string",
+        "enum": [
+          "pokal",
+          "uhr"
+        ],
+        "default": "pokal",
+        "x-field": "choice",
+        "x-label": {
+          "de": "Spiel",
+          "en": "Game"
+        },
+        "x-names": {
+          "pokal": {
+            "de": "Der Pokal wandert",
+            "en": "The trophy moves on"
+          },
+          "uhr": {
+            "de": "Innere Uhr",
+            "en": "Inner clock"
+          }
+        }
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "accent": {
+        "type": "string",
+        "enum": [
+          "yellow",
+          "red",
+          "ink",
+          "paper"
+        ],
+        "default": "yellow",
+        "x-field": "color",
+        "x-label": {
+          "de": "Kartenfarbe",
+          "en": "Card colour"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "spiel",
+      "params": [
+        "spiel"
+      ],
+      "label": {
+        "de": "Spiel",
+        "en": "Game"
+      }
+    },
+    {
+      "id": "titel",
+      "params": [
+        "title"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    },
+    {
+      "id": "farbe",
+      "params": [
+        "accent"
+      ],
+      "label": {
+        "de": "Kartenfarbe",
+        "en": "Card colour"
+      }
+    }
+  ],
+  "variants": [
+    {
+      "id": "raum-uhr",
+      "title": {
+        "de": "Innere Uhr",
+        "en": "Inner clock"
+      },
+      "teaser": {
+        "de": "Zähl im Kopf. Tipp, wenn die Zeit um ist.",
+        "en": "Count in your head. Tap when time's up."
+      },
+      "params": {
+        "spiel": "uhr"
+      },
+      "modes": [
+        "alone"
+      ]
+    }
+  ]
+}

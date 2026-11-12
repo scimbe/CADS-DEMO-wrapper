@@ -1,0 +1,285 @@
+{
+  "id": "baukasten",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.2",
+  "kind": "realtime",
+  "mode": "realtime",
+  "title": {
+    "de": "Spiel aus dem Baukasten",
+    "en": "Game from the kit"
+  },
+  "teaser": {
+    "de": "Ein Spiel, das aus einem Satz entstanden ist.",
+    "en": "A game made from one sentence."
+  },
+  "howto": {
+    "de": "Das Ziel steht oben. Tippen, Ziehen oder Pfeiltasten steuern.",
+    "en": "The goal is shown on top. Tap, drag or use the arrow keys."
+  },
+  "family": "frei",
+  "players": {
+    "min": 1,
+    "max": 2
+  },
+  "modes": [
+    "alone",
+    "bot",
+    "live",
+    "ghost"
+  ],
+  "play": {
+    "default": "alone",
+    "offer": [
+      "alone",
+      "bot",
+      "live"
+    ]
+  },
+  "hidden": "none",
+  "uses": [
+    "audio-out"
+  ],
+  "limits": {
+    "stepBudget": 1,
+    "stateBytes": 131072
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "desc"
+    ],
+    "properties": {
+      "desc": {
+        "type": "object",
+        "description": "Spielbeschreibung mdi-bau/1; Pruefung: src/engines/baukasten/check.js (schemaFull in spec.js)",
+        "x-field": "list",
+        "x-hidden": true,
+        "x-label": {
+          "de": "Spielbeschreibung",
+          "en": "Game description"
+        },
+        "x-note": "UEBERGANG: x-field \"spiel\" bei Strang F angefragt (kommt mit feat/mdi-w1-f2)",
+        "default": {
+          "title": "Wolkenflug",
+          "goal": "Tippe zum Flattern und fliege durch 15 Luecken.",
+          "bg": "sky",
+          "world": {
+            "gravity": 2600,
+            "bottom": "open",
+            "left": "open",
+            "right": "open"
+          },
+          "things": [
+            {
+              "id": "vogel",
+              "look": "emoji",
+              "emoji": "🐤",
+              "w": 84,
+              "h": 84,
+              "gravity": true,
+              "control": "flap",
+              "power": 880
+            },
+            {
+              "id": "rohr",
+              "color": "violet",
+              "w": 150,
+              "h": 200,
+              "vx": -280
+            }
+          ],
+          "start": [
+            {
+              "thing": "vogel",
+              "x": 300,
+              "y": 760,
+              "seat": 0
+            }
+          ],
+          "spawn": [
+            {
+              "thing": "rohr",
+              "every": 1650,
+              "after": 900,
+              "x": 1100,
+              "y": 800,
+              "yr": 330,
+              "gap": 440
+            }
+          ],
+          "rules": [
+            {
+              "a": "vogel",
+              "b": "rohr",
+              "do": [
+                {
+                  "act": "life",
+                  "n": -1
+                }
+              ]
+            },
+            {
+              "when": "out",
+              "a": "vogel",
+              "b": "bottom",
+              "do": [
+                {
+                  "act": "life",
+                  "n": -1
+                }
+              ]
+            },
+            {
+              "when": "pass",
+              "a": "vogel",
+              "b": "rohr",
+              "do": [
+                {
+                  "act": "score",
+                  "on": "a",
+                  "n": 1,
+                  "thing": ""
+                }
+              ]
+            }
+          ],
+          "end": {
+            "score": 15,
+            "lives": 1
+          },
+          "bot": {
+            "kind": "flap",
+            "thing": "vogel",
+            "target": "rohr"
+          },
+          "v": 1,
+          "mode": "realtime"
+        }
+      }
+    }
+  },
+  "parts": [],
+  "rt": {
+    "tick": 60,
+    "view": {
+      "w": 1000,
+      "h": 1600,
+      "fit": "contain"
+    },
+    "numeric": "int",
+    "net": "lockstep",
+    "delay": 3,
+    "maxTicks": 18000,
+    "controls": {
+      "buttons": [
+        {
+          "id": "act",
+          "kind": "pulse",
+          "keys": [
+            "Space",
+            "Enter"
+          ],
+          "zone": "any",
+          "label": {
+            "de": "Aktion",
+            "en": "Action"
+          }
+        }
+      ],
+      "axes": {
+        "x": {
+          "keys": [
+            "ArrowLeft",
+            "ArrowRight"
+          ]
+        },
+        "y": {
+          "keys": [
+            "ArrowUp",
+            "ArrowDown"
+          ]
+        }
+      },
+      "pointer": {
+        "max": 2
+      }
+    },
+    "sounds": {
+      "flap": {
+        "synth": "tone",
+        "f0": 660,
+        "f1": 880,
+        "dur": 0.06,
+        "type": "triangle",
+        "vol": 0.15
+      },
+      "jump": {
+        "synth": "tone",
+        "f0": 440,
+        "f1": 880,
+        "dur": 0.1,
+        "type": "square",
+        "vol": 0.15
+      },
+      "hit": {
+        "synth": "tone",
+        "f0": 520,
+        "f1": 260,
+        "dur": 0.08,
+        "type": "square",
+        "vol": 0.2
+      },
+      "wall": {
+        "synth": "tone",
+        "f0": 300,
+        "f1": 240,
+        "dur": 0.05,
+        "type": "sine",
+        "vol": 0.1
+      },
+      "score": {
+        "synth": "tone",
+        "f0": 880,
+        "f1": 1320,
+        "dur": 0.12,
+        "type": "triangle",
+        "vol": 0.2
+      },
+      "minus": {
+        "synth": "tone",
+        "f0": 300,
+        "f1": 150,
+        "dur": 0.15,
+        "type": "sawtooth",
+        "vol": 0.15
+      },
+      "pop": {
+        "synth": "noise",
+        "dur": 0.12,
+        "freq": 1600,
+        "vol": 0.2
+      },
+      "hurt": {
+        "synth": "noise",
+        "dur": 0.3,
+        "freq": 500,
+        "vol": 0.35
+      },
+      "lose": {
+        "synth": "tone",
+        "f0": 330,
+        "f1": 110,
+        "dur": 0.5,
+        "type": "sawtooth",
+        "vol": 0.25
+      },
+      "win": {
+        "haptic": 80
+      }
+    },
+    "ghost": {
+      "bytes": 2000
+    }
+  }
+}

@@ -598,6 +598,31 @@
      "object",
      "null"
     ],
+    "additionalProperties": false,
+    "required": [
+     "k",
+     "s"
+    ],
+    "properties": {
+     "k": {
+      "type": "string",
+      "enum": [
+       "karte"
+      ]
+     },
+     "s": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._~-]{8,200}$"
+     },
+     "h": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$"
+     },
+     "o": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{22}$"
+     }
+    },
     "default": null,
     "x-field": "text",
     "x-hidden": true,

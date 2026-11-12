@@ -1,0 +1,207 @@
+{
+  "id": "zug-kreis",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.1",
+  "kind": "turn",
+  "mode": "turn",
+  "title": {
+    "de": "Meine Regeln, dein Problem",
+    "en": "My rules, your problem"
+  },
+  "teaser": {
+    "de": "Erfinde dein Schere-Stein-Papier. 5 Wörter.",
+    "en": "Invent your rock-paper-scissors. 5 words."
+  },
+  "howto": {
+    "de": "Leg fünf Wörter in einen Kreis: Jedes schlägt die zwei danach. Der andere testet drei Paare und nennt dann den Kreis.",
+    "en": "Put five words in a circle: each beats the next two. The other tests three pairs, then names the circle."
+  },
+  "rule": {
+    "de": "Leg fünf Wörter in einen Kreis: Jedes schlägt die zwei danach. Der andere testet drei Paare und nennt dann den Kreis.",
+    "en": "Put five words in a circle: each beats the next two. The other tests three pairs, then names the circle."
+  },
+  "seats": {
+    "de": [
+      "Spieler 1",
+      "Spieler 2"
+    ],
+    "en": [
+      "Player 1",
+      "Player 2"
+    ]
+  },
+  "roles": {
+    "de": [
+      "Du baust den Kreis aus fünf Wörtern.",
+      "Du testest drei Paare und nennst den Kreis."
+    ],
+    "en": [
+      "You build the circle of five words.",
+      "You test three pairs and name the circle."
+    ]
+  },
+  "grip": "pause",
+  "on": [
+    "11-02"
+  ],
+  "dur": 90,
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 8192
+  },
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "spiel",
+      "title",
+      "accent"
+    ],
+    "properties": {
+      "spiel": {
+        "type": "string",
+        "enum": [
+          "kreis",
+          "tuer"
+        ],
+        "default": "kreis",
+        "x-field": "choice",
+        "x-label": {
+          "de": "Spiel",
+          "en": "Game"
+        },
+        "x-names": {
+          "kreis": {
+            "de": "Meine Regeln, dein Problem",
+            "en": "My rules, your problem"
+          },
+          "tuer": {
+            "de": "Türsteher",
+            "en": "The bouncer"
+          }
+        }
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "accent": {
+        "type": "string",
+        "enum": [
+          "yellow",
+          "red",
+          "ink",
+          "paper"
+        ],
+        "default": "yellow",
+        "x-field": "color",
+        "x-label": {
+          "de": "Kartenfarbe",
+          "en": "Card colour"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "spiel",
+      "params": [
+        "spiel"
+      ],
+      "label": {
+        "de": "Spiel",
+        "en": "Game"
+      }
+    },
+    {
+      "id": "titel",
+      "params": [
+        "title"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    },
+    {
+      "id": "farbe",
+      "params": [
+        "accent"
+      ],
+      "label": {
+        "de": "Kartenfarbe",
+        "en": "Card colour"
+      }
+    }
+  ],
+  "variants": [
+    {
+      "id": "raum-tuer",
+      "title": {
+        "de": "Türsteher",
+        "en": "The bouncer"
+      },
+      "teaser": {
+        "de": "Wer darf rein? Errate die geheime Regel.",
+        "en": "Who gets in? Guess the secret rule."
+      },
+      "params": {
+        "spiel": "tuer"
+      },
+      "modes": [
+        "alone"
+      ]
+    }
+  ]
+}

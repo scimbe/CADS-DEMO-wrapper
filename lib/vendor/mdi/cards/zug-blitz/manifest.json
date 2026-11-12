@@ -1,0 +1,151 @@
+{
+  "id": "zug-blitz",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.1",
+  "kind": "turn",
+  "mode": "turn",
+  "title": {
+    "de": "Sechs Wörter, eine Minute",
+    "en": "Six words, one minute"
+  },
+  "teaser": {
+    "de": "Ein Buchstabe, keine Ausrede.",
+    "en": "One letter, no excuses."
+  },
+  "howto": {
+    "de": "Sechs Wörter mit demselben Anfangsbuchstaben, einmal je Kategorie. Es zählt nur, was der andere nicht auch hat.",
+    "en": "Six words with the same first letter, one per category. Only words the other does not also have count."
+  },
+  "rule": {
+    "de": "Sechs Wörter mit demselben Anfangsbuchstaben, einmal je Kategorie. Es zählt nur, was der andere nicht auch hat.",
+    "en": "Six words with the same first letter, one per category. Only words the other does not also have count."
+  },
+  "seats": {
+    "de": [
+      "Spieler 1",
+      "Spieler 2"
+    ],
+    "en": [
+      "Player 1",
+      "Player 2"
+    ]
+  },
+  "roles": {
+    "de": [
+      "Du schreibst sechs Wörter mit dem Buchstaben.",
+      "Du schreibst auch sechs. Doppelte zählen nicht."
+    ],
+    "en": [
+      "You write six words with the letter.",
+      "You write six too. Doubles do not count."
+    ]
+  },
+  "grip": "pause",
+  "dur": 60,
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 8192
+  },
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "title",
+      "accent"
+    ],
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "accent": {
+        "type": "string",
+        "enum": [
+          "yellow",
+          "red",
+          "ink",
+          "paper"
+        ],
+        "default": "yellow",
+        "x-field": "color",
+        "x-label": {
+          "de": "Kartenfarbe",
+          "en": "Card colour"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "title"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    },
+    {
+      "id": "farbe",
+      "params": [
+        "accent"
+      ],
+      "label": {
+        "de": "Kartenfarbe",
+        "en": "Card colour"
+      }
+    }
+  ]
+}
