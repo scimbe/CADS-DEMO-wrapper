@@ -1,16 +1,16 @@
 {
   "repo": "scimbe/CADS-agent-marketplace",
   "path": "apps/mdi/src",
-  "commit": "6250fecbb9866314e38a6cce147f0e3b8c981191",
+  "commit": "d6be001ca7bead5113d5b93119bddbe9e2fa66f9",
   "files": {
     "contract/sdk.js": {
       "sha256": "584c5b945ff2e43e54743f3450a5f69ce35ffaaba1e38aaff4eac69750b643fa"
     },
     "engines/baukasten/spec.js": {
-      "sha256": "d74462638b6d57b6855b3989d3f9e980b2cf0f4bbdf26d9ed34d6e5bfee4d94d"
+      "sha256": "30bfd44ccf7eeb16ecc455ecf6fe30c675b437813f57e669964e0210c4572010"
     },
     "engines/baukasten/check.js": {
-      "sha256": "936f12aecdb67db9ef28977e4c6cd0994aa97f3568af3f73820d8fe7b05e5c44"
+      "sha256": "a935cf91014f71e8e51105302f031221eda173c68b45da9b141df9aadd4587cc"
     },
     "engines/baukasten/engine.js": {
       "sha256": "325b0a05fd33e95e3015a86080e217f13792157a39537910c503c6c5810c5379"
@@ -19,13 +19,13 @@
       "sha256": "5603e87e2d4d50997334255060bb2e1e096918298490c401f5043af00f1dadac"
     },
     "engines/baukasten/bot.js": {
-      "sha256": "b47cdd7329c0330f54957f01ca471a5939d7148d4609172c069c84e78b1f6be0"
+      "sha256": "97ffbbeff31d6af9e0215192972b06e1f27a6a049f1c0f8a062c5355719ee76c"
     },
     "engines/baukasten/pruefer.js": {
-      "sha256": "644ec63093589ef7702d5521001bdd36beeff7a3bd670a81942ca3f3e9d2cf9d"
+      "sha256": "0e477f2f9cee883576388aa881d5e103f9a138865f9a87b518853c70305c96d8"
     },
     "engines/baukasten/beispiele.js": {
-      "sha256": "09a747355a9a0579a720cb920ea3dead73b1b1f7f26205a4d6ff0f02c9c574e4"
+      "sha256": "83a3a1b71bc789289455a5750dd84f0d9eb47dee204377736fc967efcc815a55"
     },
     "engines/baukasten/karte.js": {
       "sha256": "47e520be9f8765048b5d449c5597545869bf4d4802c1337074cde40ac89cbb0c"
