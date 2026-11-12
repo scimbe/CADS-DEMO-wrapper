@@ -6,14 +6,15 @@ import { mkdtempSync, readFileSync, writeFileSync, appendFileSync, statSync } fr
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createShortLinks, ID_RE, ALPHABET, newId, OPEN_SCRIPT, MAX_FRAGMENT, jpegSize, shareKind } from '../lib/shortlink.mjs';
+import { ID_RE, ALPHABET, newId, OPEN_SCRIPT, MAX_FRAGMENT, jpegSize, shareKind } from '../lib/shortlink.mjs';
+import { testShortLinks, withDevice } from './short-helper.mjs';
 import { createDuell } from '../lib/duell.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dir = () => mkdtempSync(join(tmpdir(), 'short-'));
 const F = 'c=eyJ2IjoxLCJkIjp7Im4iOiJNaXJhIn19';
 const DAY = 86400000;
-const mk = (env = {}, over = {}) => createShortLinks({ env: { SHORT_DATA_DIR: dir(), ...env }, log: () => {}, root, ...over });
+const mk = (env = {}, over = {}) => testShortLinks({ env: { SHORT_DATA_DIR: dir(), ...env }, log: () => {}, root, ...over });
 
 function serve(s) {
   return new Promise((ok) => {
@@ -21,7 +22,7 @@ function serve(s) {
     srv.listen(0, '127.0.0.1', () => ok({ base: `http://127.0.0.1:${srv.address().port}`, close: () => { srv.close(); srv.closeAllConnections(); } }));
   });
 }
-const post = (base, body, headers = {}) => fetch(base + '/api/s', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body) });
+const post = (base, body, headers = {}) => fetch(base + '/api/s', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(withDevice(body)) });
 
 test('id: eight characters from the readable alphabet, enough entropy, no counter', () => {
   assert.equal(ALPHABET.length, 56);
@@ -63,11 +64,11 @@ test('storage: survives a restart, half written last line is skipped, file is pr
 });
 
 test('storage: without SHORT_DATA_DIR or with an unusable one the service is off, 503, so the app keeps the long link', () => {
-  const off = createShortLinks({ env: {}, log: () => {} });
+  const off = testShortLinks({ env: {}, log: () => {} });
   assert.equal(off.create({ f: F }).status, 503);
   const f = join(dir(), 'file'); writeFileSync(f, 'x');
   const events = [];
-  const bad = createShortLinks({ env: { SHORT_DATA_DIR: join(f, 'sub') }, log: (e) => events.push(e.event) });
+  const bad = testShortLinks({ env: { SHORT_DATA_DIR: join(f, 'sub') }, log: (e) => events.push(e.event) });
   assert.equal(bad.enabled(), false); assert.equal(bad.create({ f: F }).status, 503);
   assert.deepEqual(events, ['shortlink-off']);
 });

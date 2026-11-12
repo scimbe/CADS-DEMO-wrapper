@@ -103,6 +103,16 @@ services:
       - SHORT_DAILY_MAX=${SHORT_DAILY_MAX:-2000}
       - SHORT_MISS_PER_HOUR=${SHORT_MISS_PER_HOUR:-60}
       - SHORT_MAX_LIVE=${SHORT_MAX_LIVE:-100000}
+      # Kurzlinks je Konto bzw. Geraet (Security-Review M2); ein Anteil von Tag und Speicher bleibt fuer Konten
+      - SHORT_ACCOUNT_PER_HOUR=${SHORT_ACCOUNT_PER_HOUR:-30}
+      - SHORT_ACCOUNT_PER_DAY=${SHORT_ACCOUNT_PER_DAY:-200}
+      - SHORT_DEVICE_PER_HOUR=${SHORT_DEVICE_PER_HOUR:-5}
+      - SHORT_DEVICE_PER_DAY=${SHORT_DEVICE_PER_DAY:-20}
+      - SHORT_NEW_DEVICES_PER_HOUR=${SHORT_NEW_DEVICES_PER_HOUR:-60}
+      - SHORT_ACCOUNT_RESERVE_PCT=${SHORT_ACCOUNT_RESERVE_PCT:-50}
+      - SHORT_PROOF_BITS=${SHORT_PROOF_BITS:-16}
+      # Pfad der neuen App fuer v2-Links: Produktion /duell, Staging laut Runbook
+      - SHORT_V2_PATH=${SHORT_V2_PATH:-/duell}
       - SHORT_BASE=${SHORT_BASE:-https://bunsenbrenner.org}
       - SHORT_PUBLIC_BASE=${SHORT_PUBLIC_BASE:-https://demos-34a13a96.bunsenbrenner.org}
       # My Daily Idea, Profil unter "Mein Stil" (siehe lib/duell-profile.mjs). Ohne DUELL_PROFILE_SALT (fest, mind. 16 Zeichen)
