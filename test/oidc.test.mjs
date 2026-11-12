@@ -182,10 +182,11 @@ function mkAuth(o = {}) {
   const fetchImpl = async (url, init) => {
     if (String(url).includes('/protocol/openid-connect/certs')) return j.fetch(url, init);
     gateCalls.push(init.headers.cookie);
-    // the gate answers the cookie "ct_gate_session=<anything>" with Lea; X-Gate-Sub as the gate sends it (o.gateSub; null: not at all)
+    // the gate answers any session cookie with o.gateEmail (default Lea) and X-Gate-Sub as the gate sends it (o.gateSub)
     const sub = o.gateSub === undefined ? 'u1' : o.gateSub;
-    const mail = /mail=([^;]+)/.exec(init.headers.cookie);
-    return new Response(null, { status: 200, headers: { 'x-gate-email': mail ? mail[1] : 'lea@example.org', ...(sub ? { 'x-gate-sub': sub } : {}) } });
+    // o.gateSub: the subject the gate reports; '' = header present and EMPTY (the gate's contract for a session without a
+    // subject, CADS-Tunnel gate_check); null = no header at all (a gate from before X-Gate-Sub)
+    return new Response(null, { status: 200, headers: { 'x-gate-email': o.gateEmail ?? 'lea@example.org', ...(sub !== null ? { 'x-gate-sub': sub } : {}) } });
   };
   const env = { ...GATE, ...(o.oidc === false ? {} : ENV) };
   const logs = [];
@@ -338,5 +339,27 @@ test('M3: the binding file keeps the web marks across a restart, loads files fro
   assert.equal(ro.seenWeb('lea@example.org'), false);
   const { a } = mkAuth({ binding: ro, gateSub: null });
   assert.deepEqual(await a.identify(req({ cookie: 'ct_gate_session=web9' })), { email: null }, 'web login refused when it cannot be marked');
+});
+
+test('M3 with the gate contract (CADS-Tunnel gate_check): X-Gate-Sub on every 200, empty = this session has no subject', async () => {
+  // a session from before sessions carried the subject: email set, X-Gate-Sub present but empty -> only marked, never bound
+  const { a, binding } = mkAuth({ gateSub: '' });
+  assert.deepEqual(await a.identify(req({ cookie: 'ct_gate_session=pre' })), { email: 'lea@example.org', via: 'cookie' });
+  assert.equal(binding.size(), 0, 'an empty subject binds nothing');
+  assert.equal(binding.webOnly(), 1);
+  assert.deepEqual(await a.identify(req({ authorization: 'Bearer ' + token({ jti: 'g1' }) })), { email: null }, 'link-pending as without the header');
+  // the next login (new session with its subject): binds, the app with the same subject works
+  const b = mkAuth({ binding, gateSub: 'u1' });
+  assert.equal((await b.a.identify(req({ cookie: 'ct_gate_session=new' }))).email, 'lea@example.org');
+  assert.equal(binding.size(), 1);
+  assert.equal((await b.a.identify(req({ authorization: 'Bearer ' + token({ jti: 'g2' }) }))).email, 'Lea@Example.org');
+  // a subject the gate would never send (overlong, control characters) is no subject: only marked, never bound
+  const c = mkAuth({ gateSub: 'x'.repeat(256) });
+  assert.equal((await c.a.identify(req({ cookie: 'ct_gate_session=long' }))).email, 'lea@example.org');
+  assert.equal(c.binding.size(), 0); assert.equal(c.binding.webOnly(), 1);
+  // a share-link session (the gate sends "share:<id>" and an empty subject): no account at all
+  const d = mkAuth({ gateSub: '', gateEmail: 'share:abc' });
+  assert.deepEqual(await d.a.identify(req({ cookie: 'ct_gate_session=x' })), { email: null });
+  assert.equal(d.binding.webOnly(), 0, 'nothing marked for a share link');
 });
 
