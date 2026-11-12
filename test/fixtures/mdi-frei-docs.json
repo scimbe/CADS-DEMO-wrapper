@@ -1,0 +1,253 @@
+{
+ "herkunft": "Antworten dieses Servers (POST /api/duell/ai kind karte, options[0] doc + ki) aus apps/mdi test/fixtures/wrapper-frei.json @ feat/mdi-paritaet 0ca46a8 (scripts/record-frei.mjs). Gate-Hash je Doc: lib/duell-deck.mjs gateHash.",
+ "docs": {
+  "karte-ok-card": {
+   "doc": {
+    "k": "card",
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "by": [],
+    "t": "Sonnenblumen-Tag",
+    "x": "Alles Gute! Du bringst Sonne in jeden Tag.",
+    "st": "herz",
+    "sk": [
+     {
+      "e": "🌻",
+      "x": 0.119,
+      "y": 0.147,
+      "r": -0.172,
+      "z": 1.038
+     },
+     {
+      "e": "🎂",
+      "x": 0.144,
+      "y": 0.851,
+      "r": -0.156,
+      "z": 0.998
+     },
+     {
+      "e": "✨",
+      "x": 0.883,
+      "y": 0.111,
+      "r": 0.08,
+      "z": 0.991
+     }
+    ]
+   },
+   "ki": {
+    "k": "karte",
+    "s": "s2.karte.mwbw1pc0.XcjB3oJ9mEDMdWVoEi9Zi5to5iNRAUL1",
+    "h": "6v-iwp49U8t5g-4w8DvGrXbw43BI8NPS_-X_dBRl5hc",
+    "o": "4J2kZ7tMNA9cHUKBOyIiCH"
+   }
+  },
+  "karte-ok-meme": {
+   "doc": {
+    "k": "photo",
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "by": [],
+    "t": "Kein Leckerli",
+    "x": "Wenn du sagst",
+    "y": "Heute kein Leckerli",
+    "st": "meme",
+    "sk": []
+   },
+   "ki": {
+    "k": "karte",
+    "s": "s2.karte.mwbw1pc0.EkjLrwkMU12Lwh8WxHRpkgPA7LjqJSX0",
+    "h": "MWy0AHydhtXc9gpBACJUZL6D6xq_XEdhM7XEFmqHpAQ",
+    "o": "6mtrwxf4b2I1ppYJqGB0ay"
+   }
+  },
+  "karte-ok-game": {
+   "doc": {
+    "k": "game",
+    "col": [
+     "#ffd400",
+     "#ff3b1d"
+    ],
+    "by": [],
+    "t": "Tiefsee-Sturm",
+    "g": {
+     "seed": 1197465097,
+     "params": {
+      "gravity": 1800,
+      "jump": 430,
+      "gap": 140,
+      "speed": 130
+     },
+     "theme": "ocean",
+     "title": "Tiefsee-Sturm",
+     "emoji": "🐠",
+     "look": {
+      "d": "bubbles"
+     },
+     "route": [
+      {
+       "p": "ruhig",
+       "d": {
+        "gravity": -200,
+        "gap": 20,
+        "speed": -20
+       },
+       "t": "ocean",
+       "e": "🐟"
+      },
+      {
+       "p": "sturm",
+       "d": {
+        "gap": -15,
+        "speed": 30
+       },
+       "t": "night",
+       "e": "⚡"
+      },
+      {
+       "p": "schnell",
+       "d": {
+        "speed": 40
+       },
+       "t": "ocean",
+       "e": "🐳"
+      }
+     ]
+    }
+   },
+   "ki": {
+    "k": "karte",
+    "s": "s2.karte.mwbw1pc0.5HNNXonbvcIfZlgOHchXobj9XAphQWrn",
+    "h": "FWdrf3LLBZRYE7H_1VVEP_xAG8a4Zvrp1vHyUuTJSL8",
+    "o": "lPIHZyE2kSiva-l4cFAgcj"
+   }
+  },
+  "karte-ok-lauf": {
+   "doc": {
+    "k": "lauf",
+    "col": [
+     "#2b4bff",
+     "#ffe600"
+    ],
+    "by": [],
+    "t": "Brückenlauf",
+    "l": {
+     "m": "endlos",
+     "seed": 1843114889,
+     "w": "bruecke",
+     "e": "🦊",
+     "o": "📦",
+     "c": "🪙",
+     "f": "🐦",
+     "fp": [
+      "geh"
+     ],
+     "p": {
+      "g": 2000,
+      "j": 700,
+      "v": 200,
+      "a": 9,
+      "vm": 360,
+      "lu": 45,
+      "lw": 75,
+      "hi": 40,
+      "du": 0,
+      "mu": 60,
+      "ge": 0,
+      "fa": 0,
+      "hv": 35,
+      "len": 700
+     },
+     "ev": 1
+    }
+   },
+   "ki": {
+    "k": "karte",
+    "s": "s2.karte.mwbw1pc0.i271SXpURrxeZQpO2tMHxzr-ufodpCIy",
+    "h": "zP47rJBxw4fp1HnmOV82wdHDTDpTq0Vezr43q3ffG6A",
+    "o": "HKx472QpYH4hYtzjKRkvaA"
+   }
+  },
+  "karte-ok-quiz": {
+   "doc": {
+    "k": "turn",
+    "col": [
+     "#ff6a1f",
+     "#1b2bd8"
+    ],
+    "by": [],
+    "t": "Unser Sonnensystem",
+    "g": "quiz",
+    "seed": 145462858,
+    "q": "",
+    "f": "bolt",
+    "pk": {
+     "t": "Unser Sonnensystem",
+     "m": "l",
+     "q": [
+      [
+       "Welcher Planet ist der Sonne am nächsten?",
+       "Merkur",
+       "Venus",
+       "Mars",
+       "Erde"
+      ],
+      [
+       "Welcher Planet ist der größte?",
+       "Jupiter",
+       "Saturn",
+       "Neptun",
+       "Erde"
+      ],
+      [
+       "Wie heißt der rote Planet?",
+       "Mars",
+       "Venus",
+       "Uranus",
+       "Merkur"
+      ],
+      [
+       "Was umkreist die Erde?",
+       "Der Mond",
+       "Die Sonne",
+       "Der Mars",
+       "Ein Komet"
+      ]
+     ]
+    }
+   },
+   "ki": {
+    "k": "karte",
+    "s": "s2.karte.mwbw1pc0.24G0_lcIWF4Fdj4z2vey-4guHpu6udXu",
+    "h": "K3K7AJM0DUBL8uyj5_gedU3wzYWzMGcBF3raQjXmjlQ",
+    "o": "tKth2odsojBqLziO0Em5h6"
+   }
+  },
+  "karte-ok-faehigkeit": {
+   "doc": {
+    "k": "turn",
+    "col": [
+     "#ff4fa3",
+     "#0a7f55"
+    ],
+    "by": [],
+    "i": "zug-termin",
+    "t": "Grillabend",
+    "s": "Termine antippen, alle stimmen ab.",
+    "g": "termin",
+    "seed": 3943903906,
+    "q": "",
+    "f": "star"
+   },
+   "ki": {
+    "k": "karte",
+    "s": "s2.karte.mwbw1pc0.MdOpyO6QQrGe2HEHVvP5MOBbWQ243rCd",
+    "h": "SQlqBYjKWLukRUUoS8F9XBtoD7HwGTL2q9u9m_I7TkE",
+    "o": "2IUb7YhYxs0ilALZr5tsMc"
+   }
+  }
+ }
+}

@@ -1,0 +1,206 @@
+{
+  "id": "zug-einig",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.2",
+  "kind": "turn",
+  "mode": "turn",
+  "order": 15,
+  "title": {
+    "de": "Worauf einigen wir uns?",
+    "en": "What can we agree on?"
+  },
+  "teaser": {
+    "de": "Ihr ordnet 5 Sachen. Wo seid ihr euch einig?",
+    "en": "You both rank 5 things. Where do you agree?"
+  },
+  "howto": {
+    "de": "Du schreibst 5 Möglichkeiten und ordnest sie, die andere Person ordnet auch. Gewonnen hat, worüber ihr euch am meisten einig seid.",
+    "en": "You write 5 options and rank them; the other person ranks too. What you agree on most wins."
+  },
+  "rule": {
+    "de": "Du schreibst 5 Möglichkeiten und ordnest sie, die andere Person ordnet auch. Gewonnen hat, worüber ihr euch am meisten einig seid.",
+    "en": "You write 5 options and rank them; the other person ranks too. What you agree on most wins."
+  },
+  "seats": {
+    "de": [
+      "Schlägt vor",
+      "Ordnet"
+    ],
+    "en": [
+      "Suggests",
+      "Ranks"
+    ]
+  },
+  "players": {
+    "min": 2,
+    "max": 2
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 4096
+  },
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone"
+    ]
+  },
+  "modes": [
+    "alone",
+    "link"
+  ],
+  "legacy": [
+    "zug-einig"
+  ],
+  "variants": [
+    {
+      "id": "zug-rangliste",
+      "title": {
+        "de": "Wer ordnet gleich?",
+        "en": "Who ranks alike?"
+      },
+      "rule": {
+        "de": "Ordne die Liste von Top bis Müll. Der andere ordnet auch. Am Ende seht ihr, wie einig ihr seid.",
+        "en": "Rank the list from top to trash. The other ranks too. At the end you see how much you agree."
+      },
+      "params": {
+        "spiel": "rangliste"
+      },
+      "legacy": [
+        "zug-rangliste"
+      ]
+    }
+  ],
+  "on": [
+    "11-04",
+    "11-20"
+  ],
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "ans",
+          "close"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9
+      },
+      "a": {},
+      "d": {
+        "type": "integer",
+        "minimum": 10000,
+        "maximum": 100000
+      }
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "titel",
+      "spiel"
+    ],
+    "properties": {
+      "titel": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "Worauf einigen wir uns?",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "spiel": {
+        "type": "string",
+        "enum": [
+          "einig",
+          "rangliste"
+        ],
+        "default": "einig",
+        "x-field": "choice",
+        "x-label": {
+          "de": "Art",
+          "en": "Kind"
+        }
+      },
+      "ki": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "additionalProperties": false,
+        "required": [
+          "k",
+          "s",
+          "h"
+        ],
+        "properties": {
+          "k": {
+            "type": "string",
+            "const": "karte"
+          },
+          "s": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._~-]{8,200}$"
+          },
+          "h": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "o": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{22}$"
+          }
+        },
+        "default": null,
+        "x-field": "text",
+        "x-hidden": true,
+        "x-label": {
+          "de": "KI-Siegel",
+          "en": "AI seal"
+        }
+      },
+      "fr": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^[A-Za-z0-9_-]{22}$",
+        "default": null,
+        "x-field": "text",
+        "x-hidden": true,
+        "x-label": {
+          "de": "Freie Karte",
+          "en": "Free card"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "titel",
+      "params": [
+        "titel"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    }
+  ]
+}
