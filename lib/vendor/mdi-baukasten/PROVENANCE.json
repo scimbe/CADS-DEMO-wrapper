@@ -1,7 +1,7 @@
 {
   "repo": "scimbe/CADS-agent-marketplace",
   "path": "apps/mdi/src",
-  "commit": "2a6d8abcf7700b8c4898a1f6c74a3343461a7661",
+  "commit": "73a76ec9703f0d24e949672f19876b815eb9b463",
   "files": {
     "contract/sdk.js": {
       "sha256": "584c5b945ff2e43e54743f3450a5f69ce35ffaaba1e38aaff4eac69750b643fa"
