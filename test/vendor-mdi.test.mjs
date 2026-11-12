@@ -46,15 +46,14 @@ test('vendor mdi: loads and converts with DOM, network, clock, storage and timer
   assert.equal(Number(out), PROV.cards.length);
 });
 
-// The gate projection exists twice today: the server's (lib/duell-deck.mjs, it hashes what it stores) and the app's (vendored).
-// For every kind the app makes they must agree byte for byte; the server's extra kind "bau" (Genre G3 Baukasten) is not in
-// the app yet. When the app learns it, this test fails on purpose: then lib/duell-deck.mjs takes gateView from lib/vendor/mdi.
-test('vendor mdi: the app\'s gateView equals the server\'s for every kind the app makes; "bau" is the known gap', () => {
+// The gate projection exists once: lib/duell-deck.mjs (what the server stores) takes the app's gateView from lib/vendor/mdi.
+test('vendor mdi: one gate projection, the app\'s, also for what the server stores (all kinds, k "bau" included)', () => {
+  assert.equal(serverGateView, appGateView, 'lib/duell-deck.mjs must re-export the vendored gateView, not its own');
+  const B = JSON.parse(readFileSync(new URL('./fixtures/mdi-baukasten-gate.json', import.meta.url), 'utf8'));
+  for (const [n, doc] of Object.entries(B.docs)) assert.equal(gateHash(doc), B.gateHash[n], `baukasten ${n}: the hash the server stored before the switch`);
   const docs = JSON.parse(readFileSync(new URL('./fixtures/mdi-frei-docs.json', import.meta.url), 'utf8')).docs;
-  for (const [n, { doc, ki }] of Object.entries(docs)) assert.deepEqual(appGateView({ ...doc, ki }), serverGateView({ ...doc, ki }), n);
-  const bau = { k: 'bau', t: 'Turm', col: ['#ffd400', '#ff3b1d'], b: { regeln: ['stapeln'] } };
-  assert.notDeepEqual(appGateView(bau), serverGateView(bau), 'the app learned "bau": switch lib/duell-deck.mjs to the vendored gateView');
-  assert.ok(gateHash(bau));
+  const before = { 'karte-ok-card': 'qWCCWKwM4uDjfi6dd2XxVOGSfnB1cCOmbQODRO2urHo', 'karte-ok-meme': 'ouLFoTqLQTmVig2Uf7PFW6ny9zdSYOkMiA2j9f82YBU', 'karte-ok-game': 'ij8OEP9c9Tn7AiDF7OswI-V9cH5OgAUpq-u2HQsEJUs', 'karte-ok-lauf': 'mS66KxnjeIkNUVFfhACKeHuosjpaNYuyn09BBEy82so', 'karte-ok-quiz': '3UJyWF0hRI82BazIFMzXZlDdYjM8RC2VOEZU-WpOctI', 'karte-ok-faehigkeit': 'cghkxuz6YziV-IkK1q8TRgfl9bUF3qptFDlWDlbsZuA' };
+  for (const [n, h] of Object.entries(before)) assert.equal(gateHash({ ...docs[n].doc, ki: docs[n].ki }), h, n + ': stored hashes stay valid');
 });
 
 const SRC = process.env.MDI_SRC;
