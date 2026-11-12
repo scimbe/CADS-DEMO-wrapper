@@ -106,7 +106,8 @@ und weist ein anderes Subjekt ab. Ohne `X-Gate-Sub` (das Gate sendet es heute ni
 bekannt“ markiert; ein App-Token bindet eine solche Adresse nie als erstes (`reason: link-pending`), sie wird gebunden, sobald
 das Gate das Subjekt liefert. Eine Adresse, die nie im Web war, bindet mit ihrem ersten Token wie bisher. Aussteller des
 Gate-Subjekts: `DEMO_GATE_OIDC_ISSUER` (Standard `DEMO_OIDC_ISSUER`, das Gate meldet am selben Realm an). Voraussetzung fuer
-App-Anmeldung bestehender Web-Konten: CADS-Tunnel `gate_check` sendet `X-Gate-Sub` (das Subjekt steht schon im Sitzungscookie).
+App-Anmeldung bestehender Web-Konten: CADS-Tunnel `gate_check` sendet `X-Gate-Sub` (scimbe/CADS-Tunnel#900; auf jeder `200`, leer fuer
+Sitzungen ohne Subjekt, Share-Links und Dienstkonten – leer heisst wie fehlend: nur markieren, nie binden).
 Wird ein Konto in Keycloak bewusst neu angelegt, den Eintrag entfernen: Schluessel =
 `node -e "import('./lib/oidc.mjs').then(m=>console.log(m.createSubjectBinding({file:process.argv[1],salt:process.env.DEMO_OIDC_BINDING_SALT}).key(process.argv[2])))" <datei> <adresse>`.
 JWKS: 10 min Cache, Antwort hoechstens 64 KiB (beim Lesen begrenzt), neuer `kid` loest hoechstens alle 30 s einen
