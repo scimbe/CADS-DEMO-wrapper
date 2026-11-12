@@ -1037,6 +1037,9 @@ test('Status-Gate: feste Vektoren (dieselben prueft die App, apps/mdi test/frei.
   const v = gateView({ k: 'game', t: 'Tiefsee', col: ['#FFD400', '#ff3b1d'], g: { seed: 1, params: { gravity: 1 }, title: 'Tiefsee', emoji: '🐠', theme: 'ocean', route: [{ p: 'ruhig', d: {}, t: 'ocean', e: '🐟' }] } });
   assert.deepEqual(v, { k: 'game', t: 'Tiefsee', col: ['#ffd400', '#ff3b1d'], g: { title: 'Tiefsee', emoji: '🐠', theme: 'ocean', route: [['ruhig', 'ocean', '🐟']] } });
   assert.deepEqual(gateView({ k: 'lauf', t: 'Lauf', col: [], l: { m: 'endlos', w: 'wald', e: '🦊', o: '📦', c: '🪙', f: '🐦', p: { g: 1 } } }).l, ['endlos', 'wald', '🦊', '📦', '🪙', '🐦']);
+  const b = { v: 'mdi-bau/1', mode: 'realtime', goal: 'Fang zehn Sterne' };
+  assert.deepEqual(gateView({ k: 'bau', t: 'Sternfang', col: [], b }).b, b, 'Baukasten: die ganze Beschreibung');
+  assert.notEqual(gateHash({ k: 'bau', t: 'S', col: [], b }), gateHash({ k: 'bau', t: 'S', col: [], b: { ...b, goal: 'Fang einen Stern' } }), 'eine geaenderte Regel aendert den Hash');
   assert.deepEqual(gateView({ k: 'turn', i: 'zug-termin', t: 'Grillen', col: [] }), { k: 'turn', t: 'Grillen', col: [], i: 'zug-termin', s: '', w: '', pk: null });
   assert.equal(gateHash({ k: 'card', t: 'Sonnenblumen-Tag', x: 'Alles Gute! Du bringst Sonne in jeden Tag.', st: 'herz', col: ['#ffd400', '#ff3b1d'], sk: [{ e: '🌻' }, { e: '🎂' }, { e: '✨' }] }), 'qWCCWKwM4uDjfi6dd2XxVOGSfnB1cCOmbQODRO2urHo');
 });
