@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDuell } from '../lib/duell.mjs';
 
-const CARD = 'card-zug-abfragen.0123456789ab.js', THUMB = 'thumbs-0.abcdef012345.js', LIVE = 'live-frame.0123456789.html';
+const CARD = 'card-zug-abfragen.0123456789ab.js', THUMB = 'thumbs-0.abcdef012345.js', LIVE = 'live-frame.0123456789.html', FEAT = 'feat-klang-rap.fedcba987654.js';
 /** A dist folder as apps/mdi scripts/build.js writes it. */
 function mdiDist(extra = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'duell-parts-')), parts = join(dir, 'parts');
@@ -17,11 +17,12 @@ function mdiDist(extra = {}) {
   writeFileSync(join(dir, 'index.html'), '<!doctype html><title>My Daily Idea</title>');
   writeFileSync(join(parts, CARD), 'window.Card=1;\n');
   writeFileSync(join(parts, THUMB), 'window.Thumbs=1;\n');
+  writeFileSync(join(parts, FEAT), 'window.Feat=1;\n');
   writeFileSync(join(parts, LIVE), '<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src \'none\'"><title>live</title>\n');
   writeFileSync(join(parts, 'card-unlisted.0123456789ab.js'), 'window.Unlisted=1;\n');   // lies there, but the app does not list it
   writeFileSync(join(parts, 'notes.txt'), 'secret');
   writeFileSync(join(dir, 'secret.txt'), 'outside parts');
-  const build = { parts: { live: { file: 'parts/' + LIVE } }, report: { core: 1, parts: { ['parts/' + LIVE]: 1, 'remote/play-frame.html': 1, ['parts/' + CARD]: 1, ['parts/' + THUMB]: 1, 'parts/../secret.txt': 1, 'parts/Card-X.0123456789ab.js': 1 } }, ...extra };
+  const build = { feats: { 'klang-rap': { file: 'parts/' + FEAT, sri: 'sha384-x' } }, parts: { live: { file: 'parts/' + LIVE } }, report: { core: 1, parts: { ['parts/' + LIVE]: 1, 'remote/play-frame.html': 1, ['parts/' + CARD]: 1, ['parts/' + THUMB]: 1, ['parts/' + FEAT]: 1, 'parts/feat-Klang.0123456789ab.js': 1, 'parts/../secret.txt': 1, 'parts/Card-X.0123456789ab.js': 1 } }, ...extra };
   writeFileSync(join(dir, 'build.json'), JSON.stringify(build));
   return dir;
 }
@@ -36,7 +37,7 @@ async function serve(t, webFile, logs = []) {
 
 test('L1: the parts of apps/mdi are served with their type, a year of immutable cache and nosniff', async (t) => {
   const dir = mdiDist(), h = await serve(t, join(dir, 'index.html'));
-  for (const [name, type, body] of [[CARD, /^text\/javascript; charset=utf-8$/, 'window.Card=1;\n'], [THUMB, /^text\/javascript; charset=utf-8$/, 'window.Thumbs=1;\n']]) {
+  for (const [name, type, body] of [[CARD, /^text\/javascript; charset=utf-8$/, 'window.Card=1;\n'], [THUMB, /^text\/javascript; charset=utf-8$/, 'window.Thumbs=1;\n'], [FEAT, /^text\/javascript; charset=utf-8$/, 'window.Feat=1;\n']]) {
     const r = await fetch(`${h.base}/duell/parts/${name}`);
     assert.equal(r.status, 200, name); assert.match(r.headers.get('content-type'), type);
     assert.equal(r.headers.get('cache-control'), 'public, max-age=31536000, immutable');
@@ -77,6 +78,7 @@ test('L1: only names the app lists; nothing else from parts/, nothing outside it
   // names in build.json that do not fit the app's own naming are refused (and logged), "parts/../secret.txt" included
   assert.ok(logs.some((o) => o.event === 'duell-part-name-refused' && o.name === '../secret.txt'));
   assert.ok(logs.some((o) => o.event === 'duell-part-name-refused' && o.name === 'Card-X.0123456789ab.js'));
+  assert.ok(logs.some((o) => o.event === 'duell-part-name-refused' && o.name === 'feat-Klang.0123456789ab.js'), 'feature parts: same strict form');
   h.close();
 });
 
