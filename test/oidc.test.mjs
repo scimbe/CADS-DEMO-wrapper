@@ -182,11 +182,17 @@ function mkAuth(o = {}) {
   const fetchImpl = async (url, init) => {
     if (String(url).includes('/protocol/openid-connect/certs')) return j.fetch(url, init);
     gateCalls.push(init.headers.cookie);
-    return new Response(null, { status: 200, headers: { 'x-gate-email': 'lea@example.org' } });
+    // the gate answers any session cookie with o.gateEmail (default Lea) and X-Gate-Sub as the gate sends it (o.gateSub)
+    const sub = o.gateSub === undefined ? 'u1' : o.gateSub;
+    // o.gateSub: the subject the gate reports; '' = header present and EMPTY (the gate's contract for a session without a
+    // subject, CADS-Tunnel gate_check); null = no header at all (a gate from before X-Gate-Sub)
+    return new Response(null, { status: 200, headers: { 'x-gate-email': o.gateEmail ?? 'lea@example.org', ...(sub !== null ? { 'x-gate-sub': sub } : {}) } });
   };
   const env = { ...GATE, ...(o.oidc === false ? {} : ENV) };
-  const a = createAuth({ env, fetchImpl, now: () => T0, log: () => {}, bearer: o.oidc === false ? undefined : createBearer({ env, fetchImpl: j.fetch, now: () => T0, log: () => {}, binding: freshBinding() }) });
-  return { a, gateCalls, j };
+  const logs = [];
+  const binding = o.binding || freshBinding();
+  const a = createAuth({ env, fetchImpl, now: () => T0, log: (x) => logs.push(x), bearer: o.oidc === false ? undefined : createBearer({ env, fetchImpl: j.fetch, now: () => T0, log: () => {}, binding }) });
+  return { a, gateCalls, j, logs, binding };
 }
 const req = (headers) => ({ method: 'POST', headers });
 
@@ -285,3 +291,75 @@ test('JWKS: concurrent first requests wait for the one running fetch; the body i
   const declared = async () => new Response('{}', { status: 200, headers: { 'content-length': '999999' } });
   assert.deepEqual(await createBearer({ env: ENV, fetchImpl: declared, now: () => T0, log: () => {}, binding: freshBinding() }).verify(token()), { error: true });
 });
+
+// ---- security review M3: the gate cookie takes part in the subject binding ----
+test('M3: with X-Gate-Sub the cookie binds at first sight; an app token with another subject is refused, and the other way round', async () => {
+  const { a } = mkAuth();
+  assert.deepEqual(await a.identify(req({ cookie: 'ct_gate_session=web1' })), { email: 'lea@example.org', via: 'cookie' }, 'first sight on the web binds (u1)');
+  assert.deepEqual(await a.identify(req({ authorization: 'Bearer ' + token({ sub: 'u-attacker', jti: 'a1' }) })), { email: null }, 'an app token with another subject');
+  assert.deepEqual(await a.identify(req({ authorization: 'Bearer ' + token({ jti: 'a2' }) })), { email: 'Lea@Example.org', via: 'bearer' }, 'the same subject');
+  // the app came first: the web login with another subject is refused (logged, without the address)
+  const b = mkAuth({ gateSub: 'u-other' });
+  assert.equal((await b.a.identify(req({ authorization: 'Bearer ' + token({ jti: 'b1' }) }))).email, 'Lea@Example.org');
+  assert.deepEqual(await b.a.identify(req({ cookie: 'ct_gate_session=web2' })), { email: null });
+  assert.deepEqual(b.logs.map((x) => [x.event, x.reason]), [['auth-cookie-refused', 'subject-changed']]);
+  assert.ok(!JSON.stringify(b.logs).includes('lea@'), 'no address in the log');
+});
+
+test('M3: without X-Gate-Sub an address known from the web is never bound first by an app token ("link-pending"); a new address is', async () => {
+  const { a, binding } = mkAuth({ gateSub: null });
+  assert.deepEqual(await a.identify(req({ cookie: 'ct_gate_session=web1' })), { email: 'lea@example.org', via: 'cookie' }, 'the web login itself works as before');
+  assert.equal(binding.webOnly(), 1);
+  assert.deepEqual(await a.identify(req({ authorization: 'Bearer ' + token({ jti: 'p1' }) })), { email: null }, 'first come does not bind a web account');
+  const b = mk({ binding });
+  assert.equal((await b.b.verify(token({ jti: 'p2' }))).reason, 'link-pending');
+  assert.equal((await b.b.verify(token({ sub: 'u9', email: 'neu@example.org', jti: 'p3' }))).email, 'neu@example.org', 'an address never seen on the web binds with its first token');
+  // once the gate sends the subject, the web login binds and the app with the same subject works
+  const c = mkAuth({ binding });
+  assert.equal((await c.a.identify(req({ cookie: 'ct_gate_session=web3' }))).email, 'lea@example.org');
+  assert.equal((await c.a.identify(req({ authorization: 'Bearer ' + token({ jti: 'p4' }) }))).email, 'Lea@Example.org');
+  assert.equal(binding.webOnly(), 0);
+});
+
+test('M3: the binding file keeps the web marks across a restart, loads files from before M3, and an unwritable file refuses (fail closed)', async () => {
+  const file = bindFile();
+  const one = createSubjectBinding({ file, salt: SALT });
+  assert.equal(one.seenWeb('lea@example.org'), true);
+  assert.equal(createSubjectBinding({ file, salt: SALT }).bind('lea@example.org', ISS, 'u1', 'bearer'), 'pending', 'after a restart');
+  const raw = readFileSync(file, 'utf8');
+  assert.ok(!raw.includes('lea') && !raw.includes('example'), 'only HMACs');
+  // a file written before M3 ({ v: 1, b } without c)
+  const old = bindFile(); writeFileSync(old, JSON.stringify({ v: 1, b: {} }));
+  assert.equal(createSubjectBinding({ file: old, salt: SALT }).bind('tom@example.org', ISS, 'u2', 'bearer'), 'ok');
+  writeFileSync(old, JSON.stringify({ v: 1, b: {}, c: [] }));
+  assert.throws(() => createSubjectBinding({ file: old, salt: SALT }), /not a binding file/);
+  // unwritable: neither a binding nor a web mark is taken as given
+  const dirRo = mkdtempSync(join(tmpdir(), 'oidc-ro-')), ro = createSubjectBinding({ file: join(dirRo, 'sub', 'x.json'), salt: SALT, log: () => {} });
+  assert.equal(ro.bind('lea@example.org', ISS, 'u1', 'cookie'), 'unwritable');
+  assert.equal(ro.seenWeb('lea@example.org'), false);
+  const { a } = mkAuth({ binding: ro, gateSub: null });
+  assert.deepEqual(await a.identify(req({ cookie: 'ct_gate_session=web9' })), { email: null }, 'web login refused when it cannot be marked');
+});
+
+test('M3 with the gate contract (CADS-Tunnel gate_check): X-Gate-Sub on every 200, empty = this session has no subject', async () => {
+  // a session from before sessions carried the subject: email set, X-Gate-Sub present but empty -> only marked, never bound
+  const { a, binding } = mkAuth({ gateSub: '' });
+  assert.deepEqual(await a.identify(req({ cookie: 'ct_gate_session=pre' })), { email: 'lea@example.org', via: 'cookie' });
+  assert.equal(binding.size(), 0, 'an empty subject binds nothing');
+  assert.equal(binding.webOnly(), 1);
+  assert.deepEqual(await a.identify(req({ authorization: 'Bearer ' + token({ jti: 'g1' }) })), { email: null }, 'link-pending as without the header');
+  // the next login (new session with its subject): binds, the app with the same subject works
+  const b = mkAuth({ binding, gateSub: 'u1' });
+  assert.equal((await b.a.identify(req({ cookie: 'ct_gate_session=new' }))).email, 'lea@example.org');
+  assert.equal(binding.size(), 1);
+  assert.equal((await b.a.identify(req({ authorization: 'Bearer ' + token({ jti: 'g2' }) }))).email, 'Lea@Example.org');
+  // a subject the gate would never send (overlong, control characters) is no subject: only marked, never bound
+  const c = mkAuth({ gateSub: 'x'.repeat(256) });
+  assert.equal((await c.a.identify(req({ cookie: 'ct_gate_session=long' }))).email, 'lea@example.org');
+  assert.equal(c.binding.size(), 0); assert.equal(c.binding.webOnly(), 1);
+  // a share-link session (the gate sends "share:<id>" and an empty subject): no account at all
+  const d = mkAuth({ gateSub: '', gateEmail: 'share:abc' });
+  assert.deepEqual(await d.a.identify(req({ cookie: 'ct_gate_session=x' })), { email: null });
+  assert.equal(d.binding.webOnly(), 0, 'nothing marked for a share link');
+});
+

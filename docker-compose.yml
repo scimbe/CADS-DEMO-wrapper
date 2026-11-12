@@ -84,6 +84,8 @@ services:
       # erstes (iss, sub) je Adresse; Salt geheim und stabil halten (sonst gelten alle Bindungen als neu)
       - DEMO_OIDC_BINDING_FILE=${DEMO_OIDC_BINDING_FILE:-/var/lib/duell-ai/oidc-subjects.json}
       - DEMO_OIDC_BINDING_SALT=${DEMO_OIDC_BINDING_SALT:-}
+      # Aussteller des Gate-Subjekts X-Gate-Sub (M3); leer = DEMO_OIDC_ISSUER
+      - DEMO_GATE_OIDC_ISSUER=${DEMO_GATE_OIDC_ISSUER:-}
       # Wetterkarte: Grenzen je gehashter IP und pro UTC-Tag (siehe lib/duell-weather.mjs).
       - DUELL_WEATHER_IP_PER_HOUR=${DUELL_WEATHER_IP_PER_HOUR:-30}
       - DUELL_WEATHER_DAILY_MAX=${DUELL_WEATHER_DAILY_MAX:-1000}
