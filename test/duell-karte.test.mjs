@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDuell } from '../lib/duell.mjs';
 import { createDuellAi, KINDS, screenInput } from '../lib/duell-ai.mjs';
-import { App, makeKarteKind, CARD_STICKERS, CARD_SYSTEM, UNPROVEN, cardUser, verdictOf, LINK_MAX, MOD_SYSTEM, SCHEMAS, compose, linkOf, placeStickers, s1 as s1raw } from '../lib/duell-karte.mjs';
+import { App, makeKarteKind, CARD_STICKERS, CARD_SYSTEM, UNPROVEN, cardUser, verdictOf, grenzOf, softOfVerdict, LINK_MAX, MOD_SYSTEM, SCHEMAS, compose, linkOf, placeStickers, s1 as s1raw } from '../lib/duell-karte.mjs';
 import { FILES } from '../bin/vendor-duell-web.mjs';
 
 const fx = (f) => JSON.parse(readFileSync(fileURLToPath(new URL('./fixtures/' + f, import.meta.url)), 'utf8'));
@@ -139,7 +139,7 @@ test('S2 and S4: a model refusal, ok:false, a risky classification or a bad outp
     fakeLlm({ card: { stop: 'refusal' } }),
     fakeLlm({ card: { ok: false, title: '', x: '', st: 'druck', palette: 0, stickers: [] } }),
     fakeLlm({ card: { ok: true, title: 'Neu', x: 'Hol dir Gratis Robux', st: 'druck', palette: 0, stickers: [] } }),
-    fakeLlm({ mod: (req, calls) => (calls.length > 2 ? { risk: 2, cats: ['brand'] } : { risk: 0, cats: [] }) }),
+    fakeLlm({ mod: (req, calls) => (calls.length > 2 ? { risk: 2, cats: ['harassment'] } : { risk: 0, cats: [] }) }),
   ];
   cases[1].generate = async (req) => ({ json: { risk: 'x' }, stop: 'end_turn', usage: { out: 1 } });   // a broken classifier answer
   for (const [i, llm] of cases.entries()) {
@@ -148,7 +148,7 @@ test('S2 and S4: a model refusal, ok:false, a risky classification or a bad outp
     assert.equal(r.status, 422, `case ${i}: ${JSON.stringify(r.body)}`);
     assert.equal(r.body.create.remaining, 5, `case ${i} costs nothing`);
   }
-  const { ai } = mk({ cardLlm: fakeLlm({ mod: { risk: 2, cats: ['other'] } }) });
+  const { ai } = mk({ cardLlm: fakeLlm({ mod: { risk: 2, cats: ['harassment'] } }) });
   for (let i = 0; i < 3; i++) assert.equal((await run(ai, body('Karte ' + i))).status, 422);
   const t = await run(ai, body('Karte mit Frosch'));
   assert.equal(t.status, 429); assert.equal(t.body.error, 'throttled');
@@ -223,7 +223,7 @@ test('review fixes: harmless look-alikes pass, digits in lists are matched, cris
   for (let i = 0; i < 3; i++) assert.equal((await run(slip.ai, body('Karte mit Frosch ' + i))).status, 422);
   assert.equal((await run(slip.ai, body('Karte mit Frosch 4'))).body.error, 'throttled');
   // three refused requests: paused, but a crisis still gets help
-  const { ai } = mk({ cardLlm: fakeLlm({ mod: { risk: 2, cats: ['other'] } }) });
+  const { ai } = mk({ cardLlm: fakeLlm({ mod: { risk: 2, cats: ['harassment'] } }) });
   for (let i = 0; i < 3; i++) await run(ai, body('Karte ' + i));
   assert.equal((await run(ai, body('Karte mit Frosch'))).body.error, 'throttled');
   const help = await run(ai, body('Ich will nicht mehr leben'));
@@ -400,7 +400,7 @@ test('Sound gibt es auf der freien Karte nicht (Entscheidung 11.11.2026): feste 
 });
 
 test('review #103: S4 refusals end in a pause, a daily cap holds every outcome, a Pro key changes nothing for the free card', async () => {
-  const s4 = fakeLlm({ mod: (req, calls) => (req.user.startsWith('CARD') ? { risk: 2, cats: ['brand'] } : { risk: 0, cats: [] }) });
+  const s4 = fakeLlm({ mod: (req, calls) => (req.user.startsWith('CARD') ? { risk: 2, cats: ['harassment'] } : { risk: 0, cats: [] }) });
   const a = mk({ cardLlm: s4 });
   const st = [];
   for (let i = 0; i < 20; i++) st.push((await run(a.ai, body('Geburtstagskarte mit Sonnenblumen'))).status);
@@ -1050,4 +1050,47 @@ test('Absage: Golden-Faelle (karte-vorschlag.json) - 20 Grenzfaelle nie hart in 
   for (const o of ['ok', 'hart', 'alt-falsch']) assert.equal(vorschlagPass('soft', o), false, o);
   for (const o of ['hart', 'crisis']) assert.equal(vorschlagPass('hard', o), true, o);
   for (const o of ['absage', 'absage+alt', 'ok', 'alt-falsch']) assert.equal(vorschlagPass('hard', o), false, o);
+});
+
+test('Grenzfall (Befund B v3: v040 risk 2 other, v066 risk 2 brand): S2 und S4 sagen ehrlich ab, ohne Strike und ohne Kosten; die Tageskappe begrenzt die Aufrufe', async () => {
+  // S2: risk 2 other alone is a borderline case: the table's general refusal, no card call, no strike
+  const s2 = fakeLlm({ mod: { risk: 2, cats: ['other'] } });
+  const a2 = mk({ cardLlm: s2 });
+  for (let i = 0; i < 5; i++) {
+    const r = await run(a2.ai, body('Auto auf der Autobahn, den anderen Autos ausweichen ' + i));
+    assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(r.body.notyet, true); assert.equal(r.body.reason, 'allgemein'); assert.equal(r.body.create.remaining, 5);
+  }
+  assert.equal(s2.calls.length, 5, 'S2 only, no card call');
+  // S4: the finished card at risk 2 with only brand or other -> the table (marke / allgemein), no strike, nothing charged
+  for (const [cats, key] of [[['brand'], 'marke'], [['other'], 'allgemein'], [['brand', 'other'], 'marke']]) {
+    const llm = fakeLlm({ mod: (req) => (req.user.startsWith('CARD') ? { risk: 2, cats } : { risk: 0, cats: [] }) });
+    const r = await run(mk({ cardLlm: llm }).ai, body('Geburtstagskarte mit Sonnenblumen'));
+    assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(r.body.notyet, true); assert.equal(r.body.reason, key, cats.join());
+    assert.equal(r.body.create.remaining, 5, 'costs nothing');
+  }
+  // repeated borderline cases never pause the person; the daily call cap (30, each card up to 3 calls) bounds the cost
+  const s4 = fakeLlm({ mod: (req) => (req.user.startsWith('CARD') ? { risk: 2, cats: ['brand'] } : { risk: 0, cats: [] }) });
+  const a4 = mk({ cardLlm: s4 });
+  const st = [];
+  for (let i = 0; i < 20; i++) { const r = await run(a4.ai, body('Geburtstagskarte mit Sonnenblumen')); st.push(r.body.error || (r.body.notyet ? 'notyet' : 'ok')); }
+  assert.ok(!st.includes('throttled'), st.join()); assert.ok(st.includes('daily-cap'), st.join()); assert.ok(s4.calls.length <= 30, 'calls ' + s4.calls.length);
+  // clear violations stay strikes at S4: risk 3, a CLEAR category, no category, a brand next to harassment
+  for (const mod of [{ risk: 3, cats: ['brand'] }, { risk: 2, cats: ['sexual'] }, { risk: 2, cats: [] }, { risk: 2, cats: ['brand', 'harassment'] }]) {
+    const llm = fakeLlm({ mod: (req) => (req.user.startsWith('CARD') ? mod : { risk: 0, cats: [] }) });
+    const r = await run(mk({ cardLlm: llm }).ai, body('Geburtstagskarte mit Sonnenblumen'));
+    assert.equal(r.status, 422, JSON.stringify(mod)); assert.equal(r.body.notyet, undefined, JSON.stringify(mod));
+  }
+});
+
+test('Grenzfall: grenzOf und softOfVerdict, eindeutige Verstoesse bleiben hart', () => {
+  const h = { firstNames: new Set(['Lea']) };
+  const v = (risk, cats, drink = 'none') => ({ ok: false, crisis: cats.includes('self_harm'), risk, cats, all: cats, drink });
+  assert.equal(grenzOf(v(2, ['other']), 'Auto weicht Autos aus', h), 'other');
+  assert.equal(grenzOf(v(2, ['brand']), 'Robot Puddle Jump', h), 'brand');
+  for (const x of [v(3, ['brand']), v(2, ['harassment']), v(2, []), v(2, ['brand', 'injection']), v(2, ['drugs'], 'core'), v(2, ['self_harm'])]) assert.equal(grenzOf(x, 'x', h), '', JSON.stringify(x));
+  assert.equal(grenzOf(v(2, ['violence']), 'Drache gegen Ritter', h), 'violence');
+  assert.equal(grenzOf(v(2, ['violence']), 'Lea wird verprügelt', h), '', 'violence against a person');
+  assert.equal(softOfVerdict(v(2, ['other']), { text: 'Auto weicht Autos aus' }, h), 'other');
+  assert.equal(softOfVerdict(v(2, []), { text: 'x' }, h), '', 'no category: hard');
+  assert.equal(softOfVerdict(v(2, ['other', 'politics']), { text: 'x' }, h), '');
 });
