@@ -34,11 +34,13 @@
  ],
  "modes": [
   "alone",
+  "bot",
   "ghost"
  ],
  "play": {
-  "default": "alone",
+  "default": "bot",
   "offer": [
+   "bot",
    "alone"
   ]
  },
@@ -103,8 +105,19 @@
       "en": "Duck"
      }
     }
-   ]
+   ],
+   "screenKey": {
+    "label": {
+     "de": "TIPPEN = SPRINGEN",
+     "en": "TAP = JUMP"
+    },
+    "size": 96
+   }
   },
+  "slow": [
+   1,
+   0.75
+  ],
   "sounds": {
    "coin": {
     "synth": "tone",
@@ -159,6 +172,16 @@
     "x-label": {
      "de": "Modus",
      "en": "Mode"
+    },
+    "x-names": {
+     "de": {
+      "endlos": "Endlos-Lauf",
+      "ziel": "Level mit Ziel"
+     },
+     "en": {
+      "endlos": "Endless run",
+      "ziel": "Level with a goal"
+     }
     }
    },
    "seed": {
@@ -189,6 +212,28 @@
     "x-label": {
      "de": "Welt",
      "en": "World"
+    },
+    "x-names": {
+     "de": {
+      "bruecke": "Brücken",
+      "stadt": "Stadt",
+      "wald": "Wald",
+      "wueste": "Wüste",
+      "eis": "Eis",
+      "nacht": "Nacht",
+      "lava": "Lava",
+      "candy": "Candy"
+     },
+     "en": {
+      "bruecke": "Bridges",
+      "stadt": "City",
+      "wald": "Forest",
+      "wueste": "Desert",
+      "eis": "Ice",
+      "nacht": "Night",
+      "lava": "Lava",
+      "candy": "Candy"
+     }
     }
    },
    "e": {
@@ -297,7 +342,19 @@
       "geh",
       "huepf",
       "flug"
-     ]
+     ],
+     "x-names": {
+      "de": {
+       "geh": "laufen",
+       "huepf": "hüpfen",
+       "flug": "fliegen"
+      },
+      "en": {
+       "geh": "walk",
+       "huepf": "hop",
+       "flug": "fly"
+      }
+     }
     },
     "default": [
      "geh"
@@ -462,6 +519,32 @@
      "en": "Goal (m)"
     }
    },
+   "tempo": {
+    "type": "number",
+    "enum": [
+     1,
+     0.75,
+     0.5
+    ],
+    "default": 1,
+    "x-field": "choice",
+    "x-label": {
+     "de": "Gemütlich spielen",
+     "en": "Play slowly"
+    },
+    "x-names": {
+     "de": {
+      "1": "normal",
+      "0.75": "gemütlich",
+      "0.5": "sehr gemütlich"
+     },
+     "en": {
+      "1": "normal",
+      "0.75": "relaxed",
+      "0.5": "very relaxed"
+     }
+    }
+   },
    "ev": {
     "type": [
      "integer",
@@ -545,6 +628,7 @@
      "string",
      "null"
     ],
+    "pattern": "^local:[0-9a-f]{32}$",
     "default": null,
     "x-field": "media.local",
     "x-label": {
@@ -557,6 +641,7 @@
      "string",
      "null"
     ],
+    "pattern": "^local:[0-9a-f]{32}$",
     "default": null,
     "x-field": "media.local",
     "x-label": {
@@ -680,13 +765,15 @@
  },
  "parts": [
   {
-   "id": "modus",
+   "id": "figur",
    "params": [
-    "m"
+    "e",
+    "f",
+    "fp"
    ],
    "label": {
-    "de": "Modus",
-    "en": "Mode"
+    "de": "Figur",
+    "en": "Runner"
    }
   },
   {
@@ -702,21 +789,46 @@
    }
   },
   {
-   "id": "figur",
+   "id": "foto",
    "params": [
-    "e",
-    "f",
-    "fp"
+    "figur",
+    "hintergrund"
    ],
    "label": {
-    "de": "Figur",
-    "en": "Runner"
+    "de": "Eigenes Foto",
+    "en": "Own photo"
+   }
+  },
+  {
+   "id": "level",
+   "params": [
+    "m",
+    "len",
+    "v",
+    "a",
+    "vm",
+    "g",
+    "j",
+    "lu",
+    "lw",
+    "hi",
+    "du",
+    "mu",
+    "ge",
+    "fa",
+    "hv",
+    "seed"
+   ],
+   "label": {
+    "de": "Level",
+    "en": "Level"
    }
   },
   {
    "id": "text",
    "params": [
-    "t"
+    "t",
+    "col"
    ],
    "label": {
     "de": "Text",

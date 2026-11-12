@@ -61,7 +61,10 @@
   "lf_w_candy": "Candy",
   "bestN": "Dein Rekord: {n}",
   "kiBadge": "KI",
-  "kiBadgeL": "Mit KI erstellt"
+  "kiBadgeL": "Mit KI erstellt",
+  "lf_hud2": "{m} m · {c} Münzen",
+  "lf_over2": "Ende: {m} Meter · {c} Münzen.",
+  "lf_goal2": "Ziel erreicht! {m} Meter · {c} Münzen."
  },
  "en": {
   "lf_def": "My run",
@@ -125,6 +128,9 @@
   "lf_w_candy": "Candy",
   "bestN": "Your best: {n}",
   "kiBadge": "AI",
-  "kiBadgeL": "Made with AI"
+  "kiBadgeL": "Made with AI",
+  "lf_hud2": "{m} m · {c} coins",
+  "lf_over2": "Over: {m} metres · {c} coins.",
+  "lf_goal2": "Goal! {m} metres · {c} coins."
  }
 }

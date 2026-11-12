@@ -52,11 +52,13 @@
  ],
  "modes": [
   "alone",
+  "bot",
   "ghost"
  ],
  "play": {
-  "default": "alone",
+  "default": "bot",
   "offer": [
+   "bot",
    "alone"
   ]
  },
@@ -93,8 +95,19 @@
       "en": "Flap"
      }
     }
-   ]
+   ],
+   "screenKey": {
+    "label": {
+     "de": "TIPPEN = FLATTERN",
+     "en": "TAP = FLAP"
+    },
+    "size": 96
+   }
   },
+  "slow": [
+   1,
+   0.75
+  ],
   "sounds": {
    "flap": {
     "synth": "tone",
@@ -346,6 +359,28 @@
     "x-label": {
      "de": "Welt",
      "en": "World"
+    },
+    "x-names": {
+     "de": {
+      "day": "Tag",
+      "night": "Nacht",
+      "sunset": "Abend",
+      "retro": "Retro",
+      "candy": "Zucker",
+      "neon": "Neon",
+      "ocean": "Meer",
+      "lava": "Lava"
+     },
+     "en": {
+      "day": "Day",
+      "night": "Night",
+      "sunset": "Sunset",
+      "retro": "Retro",
+      "candy": "Candy",
+      "neon": "Neon",
+      "ocean": "Ocean",
+      "lava": "Lava"
+     }
     }
    },
    "title": {
@@ -607,8 +642,20 @@
     "default": 1,
     "x-field": "choice",
     "x-label": {
-     "de": "Zeitlupe",
-     "en": "Slow motion"
+     "de": "Gemütlich spielen",
+     "en": "Play slowly"
+    },
+    "x-names": {
+     "de": {
+      "1": "normal",
+      "0.75": "gemütlich",
+      "0.5": "sehr gemütlich"
+     },
+     "en": {
+      "1": "normal",
+      "0.75": "relaxed",
+      "0.5": "very relaxed"
+     }
     }
    },
    "agent": {
@@ -714,6 +761,7 @@
      "string",
      "null"
     ],
+    "pattern": "^local:[0-9a-f]{32}$",
     "default": null,
     "x-field": "media.local",
     "x-label": {
@@ -726,6 +774,7 @@
      "string",
      "null"
     ],
+    "pattern": "^local:[0-9a-f]{32}$",
     "default": null,
     "x-field": "media.local",
     "x-label": {
@@ -849,40 +898,56 @@
  },
  "parts": [
   {
-   "id": "welt",
-   "params": [
-    "theme"
-   ],
-   "label": {
-    "de": "Welt",
-    "en": "World"
-   }
-  },
-  {
-   "id": "figur",
+   "id": "vogel",
    "params": [
     "emoji"
    ],
    "label": {
-    "de": "Figur",
-    "en": "Hero"
+    "de": "Vogel",
+    "en": "Bird"
    }
   },
   {
-   "id": "tempo",
+   "id": "lava",
    "params": [
-    "tempo"
+    "theme"
    ],
    "label": {
-    "de": "Zeitlupe",
-    "en": "Slow motion"
+    "de": "Lava",
+    "en": "Lava"
+   }
+  },
+  {
+   "id": "foto",
+   "params": [
+    "figur",
+    "hintergrund"
+   ],
+   "label": {
+    "de": "Eigenes Foto",
+    "en": "Own photo"
+   }
+  },
+  {
+   "id": "level",
+   "params": [
+    "gravity",
+    "jump",
+    "gap",
+    "speed",
+    "seed"
+   ],
+   "label": {
+    "de": "Level",
+    "en": "Level"
    }
   },
   {
    "id": "text",
    "params": [
     "title",
-    "t"
+    "t",
+    "col"
    ],
    "label": {
     "de": "Text",
@@ -901,6 +966,10 @@
     "de": "Feuer, Drache, kein Mitleid.",
     "en": "Fire, dragon, zero mercy."
    },
+   "chip": {
+    "de": "Klassisch",
+    "en": "Classic"
+   },
    "legacy": [
     "spiel-lava"
    ],
@@ -914,6 +983,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
@@ -977,6 +1047,10 @@
     "de": "Fast keine Schwerkraft. Fast.",
     "en": "Almost no gravity. Almost."
    },
+   "chip": {
+    "de": "Mond",
+    "en": "Moon"
+   },
    "legacy": [
     "spiel-mond"
    ],
@@ -990,6 +1064,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
@@ -1066,6 +1141,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
@@ -1129,6 +1205,10 @@
     "de": "Unten ist es schön. Und eng.",
     "en": "Nice down there. And tight."
    },
+   "chip": {
+    "de": "Unterwasser",
+    "en": "Underwater"
+   },
    "legacy": [
     "spiel-tiefsee"
    ],
@@ -1142,6 +1222,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
@@ -1215,6 +1296,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
@@ -1278,6 +1360,10 @@
     "de": "Spukt schön durch die Nacht.",
     "en": "Haunt your way through the night."
    },
+   "chip": {
+    "de": "Nacht",
+    "en": "Night"
+   },
    "legacy": [
     "spiel-geist"
    ],
@@ -1291,6 +1377,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
@@ -1367,6 +1454,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
@@ -1443,6 +1531,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
@@ -1666,6 +1755,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
@@ -1753,6 +1843,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
@@ -1843,6 +1934,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
@@ -1933,6 +2025,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
@@ -2024,6 +2117,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
@@ -2114,6 +2208,7 @@
    },
    "modes": [
     "alone",
+    "bot",
     "ghost"
    ],
    "tags": [
