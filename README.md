@@ -87,6 +87,20 @@ mit dem Gate-Mechanismus allein nicht moeglich (er gilt je Hostname); sie werden
 Onboard a ct-agent with `CT_AGENT_ORIGIN=127.0.0.1:8790` (plain TCP proxy) — see the deploy
 notes. No `CT_AGENT_SERVICE_HANDLER` needed (that is the channel path, not plain onboard/serve).
 
+## Nach einem Deploy pruefen (Staging L4, L8)
+
+`node bin/deploy-check.mjs <basis-url> [--deadline 30] [--no-auth]` prueft `/duell`, `/api/status` und `/auth/me` mit einem
+erfundenen Sitzungscookie. Letzteres laeuft durch die ganze Login-Pruefung (DNS des Gates, TLS, Antwort des Gates) ohne
+Konto: `200 {authenticated:false}` heisst bereit, `503` heisst nicht bereit. Fertig ist ein Deploy erst, wenn alle drei
+bestehen (Exit 0), nicht schon, wenn `/duell` antwortet.
+
+Kompression (`lib/compress.mjs`): hoechstens `COMPRESS_PARALLEL` (Standard 1) zlib-Auftraege gleichzeitig im ganzen Prozess,
+Anfragen vor dem Vorwaermen. Vorher belegte das Vorwaermen aller Teile beim Start den libuv-Threadpool: der DNS-Lookup der
+Login-Pruefung lief in sein 3-s-Timeout (rund 15 s lang `503` nach jedem Start auf Staging), und `process.exit` wartete auf
+alle laufenden Auftraege (`docker stop` bis zu seinem 10-s-Kill). Gemessen im Container mit 2 CPUs und 85 Teilen:
+`docker stop` waehrend des Vorwaermens 3,9 s → 0,2 s, alle drei Pruefungen bereit nach 4,3 s → 0,7 s. Der SIGTERM-Handler
+war nie das Problem (Node als PID 1 mit und ohne `--init`: 0,4 s im Leerlauf).
+
 ## Route planen (travel)
 `/d/travel` ruft die Route-Bridge (signiertes Bundle `manifests/travel`, Dauerdienst auf dem Service-Host)
 serverseitig ueber ihre oeffentliche Tunnel-URL auf (`bridgeUrl` in `demos.json`, ueberschreibbar mit
@@ -129,6 +143,7 @@ Code: `lib/duell.mjs`, Tests: `test/duell.test.mjs`. Alle drei Routen sind oeffe
 | `DUELL_IP_SALT` | zufaellig je Start | Salz fuer den IP-Hash |
 | `DUELL_CORS_ORIGINS` | `https://appassets.androidplatform.net` | erlaubte Herkunft (kommagetrennt); andere Browser-Herkuenfte bekommen `403` |
 | `DUELL_WEB_FILE` | `apps/duell-web/dist/index.html` | Spieldatei fuer `/duell` |
+| `COMPRESS_PARALLEL` | 1 | zlib-Auftraege gleichzeitig (Brotli/gzip aller Dateien aus dem Speicher); hoeher nur mit groesserem `UV_THREADPOOL_SIZE` |
 | `DUELL_BIZ_FILE` | `business/index.html` neben `DUELL_WEB_FILE` | Seite fuer `/duell/business/` |
 | `DUELL_ASSETLINKS_SHA256` / `DUELL_ANDROID_PACKAGE` | Release-Fingerabdruck / `org.bunsenbrenner.cads` | Inhalt der assetlinks.json |
 

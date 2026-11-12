@@ -81,6 +81,8 @@ services:
       - DUELL_WEATHER_DAILY_MAX=${DUELL_WEATHER_DAILY_MAX:-1000}
       # Ohne DUELL_IP_HEADER gibt es keine Grenzen je IP (siehe README, Kurzlinks und KI-Aktionen).
       - DUELL_IP_HEADER=${DUELL_IP_HEADER:-}
+      # zlib-Auftraege gleichzeitig (Staging L4/L8: sonst blockiert das Vorwaermen DNS und Stop)
+      - COMPRESS_PARALLEL=${COMPRESS_PARALLEL:-1}
       - DUELL_IP_SALT=${DUELL_IP_SALT:-}
       # "Installationen speichern": aus, solange kein Token gesetzt ist (siehe lib/installations.mjs).
       - INSTALLATIONS_DELEGATE_TOKEN=${INSTALLATIONS_DELEGATE_TOKEN:-}
