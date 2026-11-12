@@ -20,9 +20,13 @@ import { check } from '../lib/vendor/mdi-baukasten/engines/baukasten/check.js';
 
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : ''; };
 const has = (k) => process.argv.includes(k);
-const KORPUS = JSON.parse(readFileSync(new URL('../test/fixtures/bau-gold.json', import.meta.url), 'utf8'));
+// --korpus test/fixtures/bau-dev.json (Tuning) | bau-gold.json (v1) | bau-gold-v2.json (Test); --split dev|test|test2
+// --strategie repair|drafts, --beispiele basis|mehr (lib/duell-bau.mjs); --wdh n: jeden Satz n-mal (Streuung des Modells)
+const KORPUS_PATH = arg('--korpus') || 'test/fixtures/bau-gold.json';
+const KORPUS = JSON.parse(readFileSync(new URL('../' + KORPUS_PATH, import.meta.url), 'utf8'));
 const nur = arg('--nur') ? new Set(arg('--nur').split(',')) : null;
-const entries = KORPUS.eintraege.filter((e) => !nur || nur.has(e.id));
+const split = arg('--split'), wdh = Math.max(1, Number(arg('--wdh') || 1));
+const entries = KORPUS.eintraege.filter((e) => (!nur || nur.has(e.id)) && (!split || e.split === split)).flatMap((e) => Array.from({ length: wdh }, (_, k) => (wdh > 1 ? { ...e, id: e.id + '.' + k } : e)));
 
 function keyFrom(file) {
   const m = /^\s*ANTHROPIC_API_KEY\s*=\s*"?([^"\r\n]+)"?\s*$/m.exec(readFileSync(file, 'utf8'));
@@ -54,7 +58,7 @@ const llm = { configured: true, async generate(req) {
 const d = createDuell({ env: { DUELL_DAILY_MAX: '100000', DUELL_SEAL_SECRET: 'gold-run' }, salt: 'gold', log: () => {}, llm: async () => '{}' });
 d.shared.age16 = () => true; d.shared.age18 = () => false;
 let who = 'gold@example.org';
-const ai = createDuellAi({ env: { DUELL_AI_SALT: 'gold', DUELL_AI_PROOF_BITS: '0', DUELL_CREATE_FREE: '100000', DUELL_CREATE_CALLS_PER_DAY: '100000', DUELL_CREATE_BLOCKS_PER_DAY: '100000', DUELL_CREATE_NEW_PER_HOUR: '100000' },
+const ai = createDuellAi({ env: { DUELL_AI_SALT: 'gold', DUELL_AI_PROOF_BITS: '0', DUELL_CREATE_FREE: '100000', DUELL_CREATE_CALLS_PER_DAY: '100000', DUELL_CREATE_BLOCKS_PER_DAY: '100000', DUELL_CREATE_NEW_PER_HOUR: '100000', DUELL_BAU_STRATEGIE: arg('--strategie'), DUELL_BAU_BEISPIELE: arg('--beispiele') },
   llm: async () => '{}', cardLlm: llm, shared: d.shared, auth: { mode: 'gate', identify: async () => ({ email: who }) }, log: () => {} });
 
 // the last round's whole description: a realtime game comes in two steps (scene, then spawn + rules)
@@ -82,4 +86,4 @@ sum.usd = Math.round(rows.reduce((s, r) => s + r.usd, 0) * 10000) / 10000;
 sum.aufrufe = rows.reduce((s, r) => s + r.aufrufe.length, 0);
 sum.cacheRead = rows.flatMap((r) => r.aufrufe).reduce((s, c) => s + ((c.usage && c.usage.cacheRead) || 0), 0);
 console.log(JSON.stringify(sum, null, 1));
-if (arg('--out')) writeFileSync(arg('--out'), JSON.stringify({ korpus: 'test/fixtures/bau-gold.json', modell: has('--dry') ? 'dry' : (process.env.DUELL_CARD_MODEL || 'claude-haiku-5-5'), zeit: new Date().toISOString(), zusammenfassung: sum, zeilen: rows }, null, 1) + '\n');
+if (arg('--out')) writeFileSync(arg('--out'), JSON.stringify({ korpus: KORPUS_PATH, split: split || 'alle', strategie: arg('--strategie') || 'repair', beispiele: arg('--beispiele') || 'basis', wdh, modell: has('--dry') ? 'dry' : (process.env.DUELL_CARD_MODEL || 'claude-haiku-5-5'), zeit: new Date().toISOString(), zusammenfassung: sum, zeilen: rows }, null, 1) + '\n');
