@@ -1,0 +1,637 @@
+{
+  "id": "duell-liest",
+  "version": "1.0.0",
+  "sdk": "mdi-sdk/0.1",
+  "kind": "turn",
+  "mode": "turn",
+  "title": {
+    "de": "Dein Agent liest dich",
+    "en": "Your agent reads you"
+  },
+  "teaser": {
+    "de": "Zehn Runden. Er zählt mit.",
+    "en": "Ten rounds. It keeps count."
+  },
+  "howto": {
+    "de": "Stell deinen Agenten ein: Mut, Frechheit, Geduld. Er spielt allein gegen den Gegner. Danach forderst du jemanden heraus, dessen Agent gegen deinen antritt.",
+    "en": "Set up your agent: courage, cheek, patience. It plays on its own against the rival. Then you challenge someone whose agent takes on yours."
+  },
+  "rule": {
+    "de": "Dein Agent spielt nach seinen Reglern. Wer mehr Punkte holt, gewinnt.",
+    "en": "Your agent plays by its sliders. More points wins."
+  },
+  "seats": {
+    "de": [
+      "Du",
+      "Herausgefordert"
+    ],
+    "en": [
+      "You",
+      "Challenged"
+    ]
+  },
+  "roles": {
+    "de": [
+      "Du stellst deinen Agenten ein und forderst heraus.",
+      "Du stellst deinen Agenten gegen den des anderen."
+    ],
+    "en": [
+      "You set up your agent and challenge someone.",
+      "You set your agent against the other one."
+    ]
+  },
+  "grip": "pause",
+  "family": "bluff",
+  "dur": 60,
+  "players": {
+    "min": 1,
+    "max": 2
+  },
+  "modes": [
+    "alone",
+    "bot",
+    "link"
+  ],
+  "play": {
+    "default": "link",
+    "offer": [
+      "link",
+      "alone",
+      "bot"
+    ]
+  },
+  "hidden": "none",
+  "uses": [],
+  "limits": {
+    "stepBudget": 64,
+    "stateBytes": 4096
+  },
+  "inputs": {
+    "type": "object",
+    "required": [
+      "t",
+      "seat"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "t": {
+        "enum": [
+          "agent",
+          "hand",
+          "ok",
+          "again",
+          "done"
+        ]
+      },
+      "seat": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "a": {}
+    }
+  },
+  "params": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "m",
+      "set",
+      "w",
+      "bn",
+      "be",
+      "br",
+      "bc",
+      "bp",
+      "ar",
+      "ac",
+      "ap",
+      "title",
+      "accent",
+      "ki",
+      "fr"
+    ],
+    "properties": {
+      "m": {
+        "type": "string",
+        "enum": [
+          "rps",
+          "mind",
+          "rap",
+          "auction",
+          "deck"
+        ],
+        "default": "mind",
+        "x-field": "choice",
+        "x-label": {
+          "de": "Arena",
+          "en": "Arena"
+        },
+        "x-names": {
+          "rps": {
+            "de": "Schere, Stein, Papier",
+            "en": "Rock, paper, scissors"
+          },
+          "mind": {
+            "de": "Er liest dich",
+            "en": "It reads you"
+          },
+          "rap": {
+            "de": "Rap",
+            "en": "Rap"
+          },
+          "auction": {
+            "de": "Auktion",
+            "en": "Auction"
+          },
+          "deck": {
+            "de": "Partydeck",
+            "en": "Party deck"
+          }
+        }
+      },
+      "set": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 3,
+        "default": 0,
+        "x-field": "number",
+        "x-label": {
+          "de": "Deine drei Zeichen",
+          "en": "Your three signs"
+        }
+      },
+      "w": {
+        "type": "string",
+        "maxLength": 24,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Dein Wort (Rap, Auktion, Deck)",
+          "en": "Your word (rap, auction, deck)"
+        }
+      },
+      "bn": {
+        "type": "string",
+        "maxLength": 16,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "Dein Agent",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Name des Gegners",
+          "en": "Rival name"
+        }
+      },
+      "be": {
+        "type": "string",
+        "maxLength": 12,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "🧠",
+        "x-field": "text",
+        "x-label": {
+          "de": "Aussehen des Gegners",
+          "en": "Rival look"
+        }
+      },
+      "br": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100,
+        "default": 50,
+        "x-field": "slide",
+        "x-label": {
+          "de": "Mut des Gegners",
+          "en": "Rival courage"
+        }
+      },
+      "bc": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100,
+        "default": 75,
+        "x-field": "slide",
+        "x-label": {
+          "de": "Frechheit des Gegners",
+          "en": "Rival cheek"
+        }
+      },
+      "bp": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100,
+        "default": 50,
+        "x-field": "slide",
+        "x-label": {
+          "de": "Geduld des Gegners",
+          "en": "Rival patience"
+        }
+      },
+      "ar": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100,
+        "default": 50,
+        "x-field": "slide",
+        "x-label": {
+          "de": "Mut deines Agenten (Start)",
+          "en": "Your agent courage (start)"
+        }
+      },
+      "ac": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100,
+        "default": 50,
+        "x-field": "slide",
+        "x-label": {
+          "de": "Frechheit deines Agenten (Start)",
+          "en": "Your agent cheek (start)"
+        }
+      },
+      "ap": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100,
+        "default": 50,
+        "x-field": "slide",
+        "x-label": {
+          "de": "Geduld deines Agenten (Start)",
+          "en": "Your agent patience (start)"
+        }
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 40,
+        "pattern": "^[^\\u0000-\\u001f\\u007f<>]*$",
+        "default": "",
+        "x-field": "text",
+        "x-model": true,
+        "x-label": {
+          "de": "Titel",
+          "en": "Title"
+        }
+      },
+      "accent": {
+        "type": "string",
+        "enum": [
+          "yellow",
+          "red",
+          "ink",
+          "paper"
+        ],
+        "default": "ink",
+        "x-field": "color",
+        "x-label": {
+          "de": "Kartenfarbe",
+          "en": "Card colour"
+        }
+      },
+      "ki": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "additionalProperties": false,
+        "required": [
+          "k",
+          "s",
+          "h"
+        ],
+        "properties": {
+          "k": {
+            "type": "string",
+            "const": "karte"
+          },
+          "s": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._~-]{8,200}$"
+          },
+          "h": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "o": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{22}$"
+          }
+        },
+        "default": null,
+        "x-field": "text",
+        "x-hidden": true,
+        "x-label": {
+          "de": "KI-Siegel",
+          "en": "AI seal"
+        }
+      },
+      "fr": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^[A-Za-z0-9_-]{22}$",
+        "default": null,
+        "x-field": "text",
+        "x-hidden": true,
+        "x-label": {
+          "de": "Freie Karte",
+          "en": "Free card"
+        }
+      }
+    }
+  },
+  "parts": [
+    {
+      "id": "arena",
+      "params": [
+        "m",
+        "set",
+        "w"
+      ],
+      "label": {
+        "de": "Arena",
+        "en": "Arena"
+      }
+    },
+    {
+      "id": "gegner",
+      "params": [
+        "bn",
+        "be",
+        "br",
+        "bc",
+        "bp"
+      ],
+      "label": {
+        "de": "Gegner",
+        "en": "Rival"
+      }
+    },
+    {
+      "id": "agent",
+      "params": [
+        "ar",
+        "ac",
+        "ap"
+      ],
+      "label": {
+        "de": "Mein Agent",
+        "en": "My agent"
+      }
+    },
+    {
+      "id": "titel",
+      "params": [
+        "title"
+      ],
+      "label": {
+        "de": "Titel",
+        "en": "Title"
+      }
+    },
+    {
+      "id": "farbe",
+      "params": [
+        "accent"
+      ],
+      "label": {
+        "de": "Kartenfarbe",
+        "en": "Card colour"
+      }
+    }
+  ],
+  "variants": [
+    {
+      "id": "duell-ssp",
+      "title": {
+        "de": "Dein Agent gegen meinen",
+        "en": "Your agent vs mine"
+      },
+      "teaser": {
+        "de": "Stell ihn ein. Schick ihn los.",
+        "en": "Tune it. Send it out."
+      },
+      "rule": {
+        "de": "Schere, Stein, Papier: Stell deinen Agenten ein, er spielt neun Runden gegen den Kaktus. Mehr Siege gewinnen.",
+        "en": "Rock, paper, scissors: set up your agent, it plays nine rounds against the cactus. More wins win."
+      },
+      "params": {
+        "m": "rps",
+        "set": 0,
+        "w": "",
+        "bn": "Kaktus 3000",
+        "be": "🌵",
+        "br": 30,
+        "bc": 70,
+        "bp": 40,
+        "ar": 50,
+        "ac": 50,
+        "ap": 50
+      }
+    },
+    {
+      "id": "duell-bluff",
+      "title": {
+        "de": "Agent im Bluff-Modus",
+        "en": "Agent in bluff mode"
+      },
+      "teaser": {
+        "de": "Viel Mut, wenig Plan.",
+        "en": "All courage, no plan."
+      },
+      "rule": {
+        "de": "Schere, Stein, Papier gegen einen geduldigen Gegner: Viel Mut und Frechheit gegen viel Geduld. Mehr Siege gewinnen.",
+        "en": "Rock, paper, scissors against a patient rival: lots of courage and cheek against lots of patience. More wins win."
+      },
+      "params": {
+        "m": "rps",
+        "set": 0,
+        "w": "",
+        "bn": "Sir Blinker",
+        "be": "🛸",
+        "br": 20,
+        "bc": 20,
+        "bp": 90,
+        "ar": 90,
+        "ac": 80,
+        "ap": 10
+      }
+    },
+    {
+      "id": "duell-unlesbar",
+      "title": {
+        "de": "Sei unberechenbar",
+        "en": "Be unpredictable"
+      },
+      "teaser": {
+        "de": "Schlag die Statistik.",
+        "en": "Beat the statistics."
+      },
+      "rule": {
+        "de": "Spiel zehn Hände gegen einen Agenten, der dich lesen will. Sei unberechenbar, dann gewinnst du.",
+        "en": "Play ten hands against an agent that tries to read you. Be unpredictable to win."
+      },
+      "params": {
+        "m": "mind",
+        "set": 3,
+        "w": "",
+        "bn": "Der Zähler",
+        "be": "🐙",
+        "br": 50,
+        "bc": 95,
+        "bp": 50,
+        "ar": 50,
+        "ac": 50,
+        "ap": 50
+      }
+    },
+    {
+      "id": "rap-hoeflich",
+      "title": {
+        "de": "Höflichster Rap der Welt",
+        "en": "Politest rap on earth"
+      },
+      "teaser": {
+        "de": "Geduld auf hundert. Bitte, danke.",
+        "en": "Patience at 100. Please, thank you."
+      },
+      "rule": {
+        "de": "Dein Agent rappt vier Runden gegen Sir Blinker, so höflich wie möglich. Mehr Punkte gewinnen.",
+        "en": "Your agent raps four rounds against Sir Blinky, as politely as possible. More points win."
+      },
+      "params": {
+        "m": "rap",
+        "set": 0,
+        "w": "Danke",
+        "bn": "Sir Blinker",
+        "be": "🛸",
+        "br": 20,
+        "bc": 5,
+        "bp": 100,
+        "ar": 20,
+        "ac": 5,
+        "ap": 100
+      }
+    },
+    {
+      "id": "rap-montag",
+      "title": {
+        "de": "Rap gegen den Montag",
+        "en": "Rap against Monday"
+      },
+      "teaser": {
+        "de": "Montag ist der Gegner.",
+        "en": "Monday is the rival."
+      },
+      "rule": {
+        "de": "Dein Agent rappt vier Runden gegen den Montag. Mehr Punkte gewinnen.",
+        "en": "Your agent raps four rounds against Monday. More points win."
+      },
+      "params": {
+        "m": "rap",
+        "set": 0,
+        "w": "Wecker",
+        "bn": "Der Montag",
+        "be": "👻",
+        "br": 80,
+        "bc": 80,
+        "bp": 20,
+        "ar": 50,
+        "ac": 50,
+        "ap": 50
+      }
+    },
+    {
+      "id": "auktion-quatsch",
+      "title": {
+        "de": "Auktion um Quatsch",
+        "en": "Nonsense auction"
+      },
+      "teaser": {
+        "de": "Hundert Münzen. Null Vernunft.",
+        "en": "100 coins. Zero sense."
+      },
+      "rule": {
+        "de": "Dein Agent bietet mit 100 Münzen auf vier Quatsch-Dinge. Wer mehr Gewinn macht, gewinnt.",
+        "en": "Your agent bids 100 coins on four nonsense items. More profit wins."
+      },
+      "params": {
+        "m": "auction",
+        "set": 0,
+        "w": "Halber Keks",
+        "bn": "Toastomat",
+        "be": "🍌",
+        "br": 50,
+        "bc": 50,
+        "bp": 50,
+        "ar": 50,
+        "ac": 50,
+        "ap": 50
+      }
+    },
+    {
+      "id": "anruf-quiz",
+      "title": {
+        "de": "60 Sekunden Quiz",
+        "en": "60 second quiz"
+      },
+      "teaser": {
+        "de": "Im Anruf. Uhr läuft.",
+        "en": "On the call. Clock's ticking."
+      },
+      "rule": {
+        "de": "60 Sekunden: Löst Aufgabe um Aufgabe, zum Beispiel im Videoanruf.",
+        "en": "60 seconds: solve task after task, for example on a video call."
+      },
+      "params": {
+        "m": "deck",
+        "set": 0,
+        "w": "Reim auf Keks",
+        "bn": "Dein Anruf",
+        "be": "📞",
+        "br": 50,
+        "bc": 50,
+        "bp": 50,
+        "ar": 50,
+        "ac": 50,
+        "ap": 50
+      },
+      "modes": [
+        "alone"
+      ]
+    },
+    {
+      "id": "anruf-stimme",
+      "title": {
+        "de": "Stimmen- Rätsel",
+        "en": "Voice riddle"
+      },
+      "teaser": {
+        "de": "Verstell dich. Sie raten.",
+        "en": "Change your voice. They guess."
+      },
+      "rule": {
+        "de": "60 Sekunden Aufgaben mit verstellter Stimme, zum Beispiel im Videoanruf.",
+        "en": "60 seconds of tasks with a disguised voice, for example on a video call."
+      },
+      "params": {
+        "m": "deck",
+        "set": 0,
+        "w": "Sprich wie Roboter",
+        "bn": "Dein Anruf",
+        "be": "🎙️",
+        "br": 50,
+        "bc": 50,
+        "bp": 50,
+        "ar": 50,
+        "ac": 50,
+        "ap": 50
+      },
+      "modes": [
+        "alone"
+      ]
+    }
+  ]
+}

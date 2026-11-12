@@ -340,6 +340,30 @@ test('free card v2: a short link only while the deck says ok for that content; l
   h.close();
 });
 
+// Security review H1 (strang-k, poc_srv.mjs): a forged seal without its hash on the card "frei". Before apps/mdi #269 the app
+// treated it as no free card, so the server gave it a short link without asking the deck. Now gateChecksOf reports
+// {cid: null}; the server answers "unknown" for it and never 201, whatever the deck says.
+test('H1: a seal without its hash never gets a short link, not even from a deck that says ok to everything', async () => {
+  const p = { kind: 'card', title: 'Gewinn', text: 'fremder Text', top: '', bottom: '', style: 'druck', palette: 'gelb', stickers: [], seal: 'AAAAAAAAAAAA', hash: '', owner: '', root: '' };
+  const f = frei(p);
+  const asked = [];
+  const yes = { linkState: (cid, d) => { asked.push(cid); return 'ok'; }, sharedAs() {} };
+  const s = mk({}, { free: () => yes });
+  assert.deepEqual(freeChecksOf(f).map(([cid]) => cid), [null], 'the app reports a free card it cannot check');
+  assert.deepEqual(s.create({ f, k: 'card', l: 'de' }).body, { error: 'card-unknown' });
+  assert.deepEqual(asked, [], 'decided here, the deck is not even asked');
+  const h = await serve(s);
+  const r = await post(h.base, { f, k: 'card', l: 'de' });
+  assert.equal(r.status, 409); assert.deepEqual(await r.json(), { error: 'card-unknown' });
+  h.close();
+  // the script's second case: a hash that is not the card's own, with a deck that blocks everything -> blocked, no 201
+  const no = mk({}, { free: () => ({ linkState: () => 'blocked', sharedAs() {} }) });
+  assert.deepEqual(no.create({ f: frei({ ...p, hash: 'A'.repeat(43) }), k: 'card', l: 'de' }).body, { error: 'card-blocked' });
+  // the same holds for c= links of the old app (#131 H1: '' as id)
+  const old = 'c=' + Buffer.from(JSON.stringify({ v: 1, d: { k: 'card', x: 'fremd', ki: { k: 'karte', s: 'AAAAAAAAAAAA' } } })).toString('base64url');
+  assert.deepEqual(s.create({ f: old, k: 'card' }).body, { error: 'card-unknown' });
+});
+
 test('fragmentOk: the forms this server keeps, nothing else', () => {
   for (const f of [FC, FG, 'c=eyJ2IjoxfQ', 'i=quiz-chaos']) assert.equal(fragmentOk(f), true, f.slice(0, 20));
   for (const f of ['p=c2VjcmV0', 'v2.live.' + b64('{"t":"' + 'A'.repeat(22) + '"}'), 'v2.card.x', '#' + FC, null, 5, 'c=' + 'A'.repeat(2047)]) assert.equal(fragmentOk(f), false, String(f).slice(0, 20));

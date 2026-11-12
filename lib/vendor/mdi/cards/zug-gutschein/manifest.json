@@ -62,6 +62,10 @@
         "de": "Rubbellos",
         "en": "Scratch card"
       },
+      "rule": {
+        "de": "Wähl einen Preis und versteck ihn in einem von sechs Feldern. Der andere hat drei Versuche.",
+        "en": "Pick a prize and hide it in one of six fields. The other has three tries."
+      },
       "params": {
         "spiel": "rubbellos"
       },

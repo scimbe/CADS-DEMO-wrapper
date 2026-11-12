@@ -62,6 +62,10 @@
         "de": "Urkunde für nix",
         "en": "Certificate for nothing"
       },
+      "rule": {
+        "de": "Wähl, wofür es die Urkunde gibt, und bewerte Stil, Ausdauer und Drama. Daraus wird Blech, Bronze, Silber oder Gold.",
+        "en": "Pick what the certificate is for and rate style, stamina and drama. That makes tin, bronze, silver or gold."
+      },
       "params": {
         "spiel": "urkunde"
       },
@@ -78,6 +82,10 @@
         "de": "Urkunde für nix",
         "en": "Award for nothing"
       },
+      "rule": {
+        "de": "Schreib einen Namen dazu, wenn du magst, und schick die Karte. Antworten geht, muss aber nicht.",
+        "en": "Add a name if you like and send the card. Replying is welcome, never required."
+      },
       "params": {
         "spiel": "karte-lob"
       },
@@ -90,6 +98,10 @@
       "title": {
         "de": "Du bist toll",
         "en": "You are awesome"
+      },
+      "rule": {
+        "de": "Schreib einen Namen dazu, wenn du magst, und schick die Karte. Antworten geht, muss aber nicht.",
+        "en": "Add a name if you like and send the card. Replying is welcome, never required."
       },
       "params": {
         "spiel": "warm-toll"
@@ -104,6 +116,10 @@
         "de": "Danke, dass es dich gibt",
         "en": "So glad you exist"
       },
+      "rule": {
+        "de": "Schreib einen Namen dazu, wenn du magst, und schick die Karte. Antworten geht, muss aber nicht.",
+        "en": "Add a name if you like and send the card. Replying is welcome, never required."
+      },
       "params": {
         "spiel": "warm-danke"
       },
@@ -116,6 +132,10 @@
       "title": {
         "de": "Das hast du super gemacht",
         "en": "You did great"
+      },
+      "rule": {
+        "de": "Schreib einen Namen dazu, wenn du magst, und schick die Karte. Antworten geht, muss aber nicht.",
+        "en": "Add a name if you like and send the card. Replying is welcome, never required."
       },
       "params": {
         "spiel": "warm-super"
@@ -130,6 +150,10 @@
         "de": "Ich denk an dich",
         "en": "Thinking of you"
       },
+      "rule": {
+        "de": "Schreib einen Namen dazu, wenn du magst, und schick die Karte. Antworten geht, muss aber nicht.",
+        "en": "Add a name if you like and send the card. Replying is welcome, never required."
+      },
       "params": {
         "spiel": "warm-denke"
       },
@@ -142,6 +166,10 @@
       "title": {
         "de": "Ich drück dir die Daumen",
         "en": "Fingers crossed"
+      },
+      "rule": {
+        "de": "Schreib einen Namen dazu, wenn du magst, und schick die Karte. Antworten geht, muss aber nicht.",
+        "en": "Add a name if you like and send the card. Replying is welcome, never required."
       },
       "params": {
         "spiel": "warm-daumen"
@@ -156,6 +184,10 @@
         "de": "Dein Lachen steckt an",
         "en": "Your laugh is contagious"
       },
+      "rule": {
+        "de": "Schreib einen Namen dazu, wenn du magst, und schick die Karte. Antworten geht, muss aber nicht.",
+        "en": "Add a name if you like and send the card. Replying is welcome, never required."
+      },
       "params": {
         "spiel": "warm-lachen"
       },
@@ -168,6 +200,10 @@
       "title": {
         "de": "Schön, dass wir Freunde sind",
         "en": "Glad we're friends"
+      },
+      "rule": {
+        "de": "Schreib einen Namen dazu, wenn du magst, und schick die Karte. Antworten geht, muss aber nicht.",
+        "en": "Add a name if you like and send the card. Replying is welcome, never required."
       },
       "params": {
         "spiel": "warm-freunde"
@@ -182,6 +218,10 @@
         "de": "Ich bin stolz auf dich",
         "en": "Proud of you"
       },
+      "rule": {
+        "de": "Schreib einen Namen dazu, wenn du magst, und schick die Karte. Antworten geht, muss aber nicht.",
+        "en": "Add a name if you like and send the card. Replying is welcome, never required."
+      },
       "params": {
         "spiel": "warm-mutig"
       },
@@ -195,6 +235,10 @@
         "de": "Gute Besserung",
         "en": "Get well soon"
       },
+      "rule": {
+        "de": "Schreib einen Namen dazu, wenn du magst, und schick die Karte. Antworten geht, muss aber nicht.",
+        "en": "Add a name if you like and send the card. Replying is welcome, never required."
+      },
       "params": {
         "spiel": "warm-besserung"
       },
@@ -207,6 +251,10 @@
       "title": {
         "de": "Kleiner Gruß für deinen Tag",
         "en": "Have a good one"
+      },
+      "rule": {
+        "de": "Schreib einen Namen dazu, wenn du magst, und schick die Karte. Antworten geht, muss aber nicht.",
+        "en": "Add a name if you like and send the card. Replying is welcome, never required."
       },
       "params": {
         "spiel": "warm-gruss"

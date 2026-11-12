@@ -95,7 +95,9 @@
     "required": [
       "spiel",
       "title",
-      "accent"
+      "accent",
+      "ki",
+      "fr"
     ],
     "properties": {
       "spiel": {
@@ -147,6 +149,57 @@
           "de": "Kartenfarbe",
           "en": "Card colour"
         }
+      },
+      "ki": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "additionalProperties": false,
+        "required": [
+          "k",
+          "s",
+          "h"
+        ],
+        "properties": {
+          "k": {
+            "type": "string",
+            "const": "karte"
+          },
+          "s": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._~-]{8,200}$"
+          },
+          "h": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "o": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{22}$"
+          }
+        },
+        "default": null,
+        "x-field": "text",
+        "x-hidden": true,
+        "x-label": {
+          "de": "KI-Siegel",
+          "en": "AI seal"
+        }
+      },
+      "fr": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^[A-Za-z0-9_-]{22}$",
+        "default": null,
+        "x-field": "text",
+        "x-hidden": true,
+        "x-label": {
+          "de": "Freie Karte",
+          "en": "Free card"
+        }
       }
     }
   },
@@ -192,6 +245,10 @@
       "teaser": {
         "de": "Vier kleine Mutproben zur Wahl.",
         "en": "Four small dares to choose from."
+      },
+      "rule": {
+        "de": "Such dem anderen eine kleine Mutprobe aus. Er sucht eine für dich aus. Dann traut ihr euch.",
+        "en": "Pick a small dare for the other. They pick one for you. Then you both go for it."
       },
       "params": {
         "spiel": "mut"

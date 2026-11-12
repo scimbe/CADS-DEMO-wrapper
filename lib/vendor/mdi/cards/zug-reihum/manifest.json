@@ -66,6 +66,10 @@
         "de": "Kerzen auspusten",
         "en": "Blow out the candles"
       },
+      "rule": {
+        "de": "Schreib einen Satz hinter die Kerzen. Die andere Person pustet sie aus und liest ihn.",
+        "en": "Write a line behind the candles. The other person blows them out and reads it."
+      },
       "params": {
         "spiel": "kerzen"
       },

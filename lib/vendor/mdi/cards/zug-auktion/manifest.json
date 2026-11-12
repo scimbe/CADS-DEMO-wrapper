@@ -101,7 +101,9 @@
       "spiel",
       "title",
       "w",
-      "accent"
+      "accent",
+      "ki",
+      "fr"
     ],
     "properties": {
       "spiel": {
@@ -180,6 +182,57 @@
           "de": "Kartenfarbe",
           "en": "Card colour"
         }
+      },
+      "ki": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "additionalProperties": false,
+        "required": [
+          "k",
+          "s",
+          "h"
+        ],
+        "properties": {
+          "k": {
+            "type": "string",
+            "const": "karte"
+          },
+          "s": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._~-]{8,200}$"
+          },
+          "h": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "o": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{22}$"
+          }
+        },
+        "default": null,
+        "x-field": "text",
+        "x-hidden": true,
+        "x-label": {
+          "de": "KI-Siegel",
+          "en": "AI seal"
+        }
+      },
+      "fr": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^[A-Za-z0-9_-]{22}$",
+        "default": null,
+        "x-field": "text",
+        "x-hidden": true,
+        "x-label": {
+          "de": "Freie Karte",
+          "en": "Free card"
+        }
       }
     }
   },
@@ -227,6 +280,10 @@
         "de": "Teil fair, oder keiner kriegt was.",
         "en": "Split fairly or nobody gets any."
       },
+      "rule": {
+        "de": "Du teilst zehn: Wie viele gibst du ab? Der andere sagt, ab wie viel er annimmt. Darunter bekommt keiner etwas.",
+        "en": "You split ten: how many do you give away? The other says from how many they accept. Below that nobody gets anything."
+      },
       "params": {
         "spiel": "deal"
       }
@@ -240,6 +297,10 @@
       "teaser": {
         "de": "Referat aufteilen, ohne Gemecker.",
         "en": "Split the project, no moaning."
+      },
+      "rule": {
+        "de": "Verteil 10 Punkte auf die Aufgaben, die du am liebsten machst. Wer mehr setzt, bekommt die Aufgabe.",
+        "en": "Spread 10 points over the tasks you like best. The higher bid gets the task."
       },
       "params": {
         "spiel": "teilen"
@@ -255,6 +316,10 @@
         "de": "Bieten bis zur Dummheit.",
         "en": "Bid until it gets silly."
       },
+      "rule": {
+        "de": "Leg geheim fest, bis wie viel du für eine linke Socke mitbietest. Wer höher geht, bekommt sie.",
+        "en": "Secretly set how far you bid for a left sock. Whoever goes higher gets it."
+      },
       "params": {
         "spiel": "socke"
       }
@@ -268,6 +333,10 @@
       "teaser": {
         "de": "Der Preis fällt. Wer zuerst tippt, kauft.",
         "en": "The price drops. First tap buys."
+      },
+      "rule": {
+        "de": "Der Preis fällt. Tipp, wenn er dir reicht. Wer mehr Gewinn macht, gewinnt.",
+        "en": "The price drops. Tap when it is low enough. More profit wins."
       },
       "params": {
         "spiel": "fallpreis"
