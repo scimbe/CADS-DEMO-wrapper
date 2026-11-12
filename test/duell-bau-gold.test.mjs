@@ -71,3 +71,13 @@ test('Gold G3 v2: unabhaengig geschrieben und vor dem Tuning eingefroren; >= 100
   const s2 = new Set(v2.eintraege.map((e) => e.satz.toLowerCase()));
   assert.ok(!dev.eintraege.some((e) => s2.has(e.satz.toLowerCase())), 'kein Satz in Dev und Test zugleich');
 });
+
+test('Gold G3 v3: unabhaengig geschrieben, vor jedem Tuning eingefroren, ohne Ueberschneidung mit v1/v2/Dev', () => {
+  const raw = readFileSync(new URL('./fixtures/bau-gold-v3.json', import.meta.url));
+  assert.equal(createHash('sha256').update(raw).digest('hex'), '6cab89d236879949203fbf99d7b73fa28c7e93ca1d9b15e95405067ef04ee40d', 'v3 geaendert: neue Version anlegen');
+  const v3 = JSON.parse(raw), d = check(BEISPIELE.flappy).desc;
+  assert.equal(v3.eintraege.length, 140); assert.ok(v3.eintraege.every((e) => e.split === 'test3'));
+  for (const e of v3.eintraege) if (e.erwartet.ergebnis === 'spiel') for (const m of e.erwartet.merkmale) assert.doesNotThrow(() => merkmalOk(d, m), e.id + ' ' + m);
+  const prev = new Set(['bau-gold.json', 'bau-gold-v2.json', 'bau-dev.json'].flatMap((f) => JSON.parse(readFileSync(new URL('./fixtures/' + f, import.meta.url), 'utf8')).eintraege.map((e) => e.satz.toLowerCase())));
+  assert.ok(!v3.eintraege.some((e) => prev.has(e.satz.toLowerCase())));
+});
