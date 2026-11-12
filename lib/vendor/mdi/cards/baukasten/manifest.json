@@ -17,6 +17,7 @@
     "en": "The goal is shown on top. Tap, drag or use the arrow keys."
   },
   "family": "frei",
+  "shelf": false,
   "players": {
     "min": 1,
     "max": 2
@@ -53,13 +54,11 @@
       "desc": {
         "type": "object",
         "description": "Spielbeschreibung mdi-bau/1; Pruefung: src/engines/baukasten/check.js (schemaFull in spec.js)",
-        "x-field": "list",
-        "x-hidden": true,
+        "x-field": "spiel",
         "x-label": {
           "de": "Spielbeschreibung",
           "en": "Game description"
         },
-        "x-note": "UEBERGANG: x-field \"spiel\" bei Strang F angefragt (kommt mit feat/mdi-w1-f2)",
         "default": {
           "title": "Wolkenflug",
           "goal": "Tippe zum Flattern und fliege durch 15 Luecken.",
@@ -155,6 +154,57 @@
           },
           "v": 1,
           "mode": "realtime"
+        }
+      },
+      "ki": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "additionalProperties": false,
+        "required": [
+          "k",
+          "s",
+          "h"
+        ],
+        "properties": {
+          "k": {
+            "type": "string",
+            "const": "karte"
+          },
+          "s": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._~-]{8,200}$"
+          },
+          "h": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "o": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{22}$"
+          }
+        },
+        "default": null,
+        "x-field": "text",
+        "x-hidden": true,
+        "x-label": {
+          "de": "KI-Siegel",
+          "en": "AI seal"
+        }
+      },
+      "fr": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "pattern": "^[A-Za-z0-9_-]{22}$",
+        "default": null,
+        "x-field": "text",
+        "x-hidden": true,
+        "x-label": {
+          "de": "Freie Karte",
+          "en": "Free card"
         }
       }
     }
