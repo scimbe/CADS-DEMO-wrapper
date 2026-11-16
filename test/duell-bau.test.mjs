@@ -248,3 +248,12 @@ test('Bau: zu langer Text – der Reparaturhinweis nennt Text, Laenge und Wortza
   const r = ra({ ok: true, ...JSON.parse(JSON.stringify(B.pong)), goal }, (v) => v);
   assert.match(r.bad, /yours has 116/);
 });
+
+test('Bau: Gegenvorschlag fuer einen Wunsch folgt seinen Worten (Schlange -> Schlangenspiel), sonst dem Takt', async () => {
+  const { gegenOf: g, wishKeyOf } = await import('../lib/duell-bau.mjs');
+  assert.equal(g(null, 'echtzeit', 'de', 'Ein Spiel wie Snake, die Schlange frisst Äpfel').satz, GEGEN.steer.satz.de);
+  assert.equal(g(null, 'echtzeit', 'en', 'Schlangenspiel ').satz, GEGEN.steer.satz.en);
+  assert.equal(wishKeyOf('Memory mit Hunden'), 'flip'); assert.equal(wishKeyOf('Hase hüpft über Steine'), 'jump'); assert.equal(wishKeyOf('Tic Tac Toe'), 'place');
+  assert.equal(g(null, 'zug', 'de', 'Kochrezept').satz, GEGEN.flip.satz.de, 'ohne Stichwort: wie bisher nach dem Takt');
+  assert.equal(g(null, 'echtzeit', 'de').satz, GEGEN.flap.satz.de);
+});
