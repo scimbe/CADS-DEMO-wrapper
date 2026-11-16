@@ -2,7 +2,7 @@
   "repo": "scimbe/CADS-agent-marketplace",
   "path": "apps/mdi/src",
   "track": "feat/mdi-paritaet",
-  "commit": "20e9a9b898ee1d71c34b3fc12da38d64187e03d2",
+  "commit": "0c6586c85022d01d33eb36fe0e3d96ae08c1b201",
   "generatedBy": "bin/vendor-mdi.mjs",
   "cards": [
     "baukasten",
