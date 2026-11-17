@@ -115,6 +115,48 @@
           "meme",
           "glitch"
         ],
+        "x-names": {
+          "druck": {
+            "de": "Druck",
+            "en": "Print"
+          },
+          "zettel": {
+            "de": "Zettel",
+            "en": "Note"
+          },
+          "stempel": {
+            "de": "Stempel",
+            "en": "Stamp"
+          },
+          "neon": {
+            "de": "Neon",
+            "en": "Neon"
+          },
+          "herz": {
+            "de": "Herz",
+            "en": "Heart"
+          },
+          "advent": {
+            "de": "Advent",
+            "en": "Advent"
+          },
+          "poster": {
+            "de": "Poster",
+            "en": "Poster"
+          },
+          "sticker": {
+            "de": "Sticker",
+            "en": "Sticker"
+          },
+          "meme": {
+            "de": "Meme",
+            "en": "Meme"
+          },
+          "glitch": {
+            "de": "Glitch",
+            "en": "Glitch"
+          }
+        },
         "default": "druck",
         "x-field": "choice",
         "x-label": {
@@ -328,7 +370,11 @@
       "label": {
         "de": "Meme-Texte",
         "en": "Meme texts"
-      }
+      },
+      "at": [
+        0.5,
+        0.5
+      ]
     },
     {
       "id": "stil",
@@ -338,7 +384,11 @@
       "label": {
         "de": "Stil",
         "en": "Style"
-      }
+      },
+      "at": [
+        0.85,
+        0.15
+      ]
     },
     {
       "id": "farbe",
@@ -358,7 +408,11 @@
       "label": {
         "de": "Sticker",
         "en": "Stickers"
-      }
+      },
+      "at": [
+        0.85,
+        0.85
+      ]
     }
   ],
   "order": 9000

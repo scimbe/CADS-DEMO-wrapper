@@ -52,6 +52,16 @@ services:
       - DUELL_CARD_MODEL=${DUELL_CARD_MODEL:-claude-haiku-5-5}
       - DUELL_ANTHROPIC_KEY_FILE=${DUELL_ANTHROPIC_KEY_FILE:-}
       - DUELL_CARD_BUDGET_USD=${DUELL_CARD_BUDGET_USD:-5}
+      # KI antwortet nicht (Limit, Guthaben, Rate-Limit, Ausfall, Schluessel; lib/ki-ausfall.mjs): Nutzer sehen einen ehrlichen
+      # Hinweis, /api/status zeigt ki { ok, klasse, at }, der Betreiber bekommt eine Mail (je Klasse hoechstens 1 pro Stunde).
+      # Ohne OPS_ALERT_MAIL: WARN im Log beim Start und bei jedem Ereignis. Das Passwort nur als Datei (read-only mounten,
+      # z. B. ~/demos-wrapper-secrets/smtp.pass:/run/secrets/smtp.pass:ro und SMTP_PASS_FILE=/run/secrets/smtp.pass).
+      - OPS_ALERT_MAIL=${OPS_ALERT_MAIL:-}
+      - SMTP_PASS_FILE=${SMTP_PASS_FILE:-}
+      - SMTP_HOST=${SMTP_HOST:-smtp.strato.de}
+      - SMTP_PORT=${SMTP_PORT:-465}
+      - SMTP_FROM=${SMTP_FROM:-no-reply@bunsenbrenner.org}
+      - SMTP_USER=${SMTP_USER:-no-reply@bunsenbrenner.org}
       # Notschalter nur fuer die freie Karte (1 = aus, die Seite zeigt "gerade nicht verfuegbar")
       - DUELL_KARTE_OFF=${DUELL_KARTE_OFF:-}
       - DUELL_CARD_BUDGET_FILE=${DUELL_CARD_BUDGET_FILE:-/var/lib/duell-ai/card-budget.json}
@@ -62,6 +72,10 @@ services:
       - DUELL_CREATE_PERIOD=${DUELL_CREATE_PERIOD:-ever}
       - DUELL_CREATE_BLOCKS_PER_DAY=${DUELL_CREATE_BLOCKS_PER_DAY:-3}
       - DUELL_CREATE_NEW_PER_HOUR=${DUELL_CREATE_NEW_PER_HOUR:-20}
+      # Tester: nur die Tagesgrenze der Modellaufrufe (DUELL_CREATE_CALLS_PER_DAY, 30) steigt fuer diese Login-Adressen
+      # (Kommaliste, Konto = E-Mail; eine andere Anmelde-Adresse ist ein anderes Konto). Kostendeckel, Strikes, Moderation bleiben.
+      - DUELL_TESTER_ACCTS=${DUELL_TESTER_ACCTS:-}
+      - DUELL_TESTER_CALLS_PER_DAY=${DUELL_TESTER_CALLS_PER_DAY:-300}
       # Gutscheine fuer die freie Karte (lib/duell-voucher.mjs): sha256hex:anzahl:jeKontoTag:gesamtTag:wiederholbar, nur hier, nie im Repo.
       - DUELL_VOUCHERS=${DUELL_VOUCHERS:-}
       - DUELL_VOUCHER_TRIES_PER_HOUR=${DUELL_VOUCHER_TRIES_PER_HOUR:-5}

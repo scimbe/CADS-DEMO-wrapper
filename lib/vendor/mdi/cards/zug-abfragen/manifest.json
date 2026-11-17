@@ -53,6 +53,16 @@
           "abfragen",
           "quiz"
         ],
+        "x-names": {
+          "abfragen": {
+            "de": "Abfragen",
+            "en": "Test each other"
+          },
+          "quiz": {
+            "de": "Quiz",
+            "en": "Quiz"
+          }
+        },
         "default": "abfragen",
         "x-field": "choice",
         "x-label": {
@@ -81,6 +91,72 @@
           "egypt",
           "weather"
         ],
+        "x-names": {
+          "planeten": {
+            "de": "Unsere Planeten",
+            "en": "Unsere Planeten"
+          },
+          "koerper": {
+            "de": "Körper und Skelett",
+            "en": "Körper und Skelett"
+          },
+          "photosynthese": {
+            "de": "Photosynthese",
+            "en": "Photosynthese"
+          },
+          "bundeslaender": {
+            "de": "Bundesländer und Hauptstädte",
+            "en": "Bundesländer und Hauptstädte"
+          },
+          "mittelalter": {
+            "de": "Ritter und Burgen",
+            "en": "Ritter und Burgen"
+          },
+          "dinosaurier": {
+            "de": "Dinosaurier",
+            "en": "Dinosaurier"
+          },
+          "wasserkreislauf": {
+            "de": "Der Wasserkreislauf",
+            "en": "Der Wasserkreislauf"
+          },
+          "rom": {
+            "de": "Das Römische Reich",
+            "en": "Das Römische Reich"
+          },
+          "hauptstaedte": {
+            "de": "Hauptstädte in Europa",
+            "en": "Hauptstädte in Europa"
+          },
+          "vulkane": {
+            "de": "Vulkane und Erdbeben",
+            "en": "Vulkane und Erdbeben"
+          },
+          "erfindungen": {
+            "de": "Erfinder und Erfindungen",
+            "en": "Erfinder und Erfindungen"
+          },
+          "wald": {
+            "de": "Tiere und Pflanzen im Wald",
+            "en": "Tiere und Pflanzen im Wald"
+          },
+          "solar": {
+            "de": "Our solar system",
+            "en": "Our solar system"
+          },
+          "ocean": {
+            "de": "Oceans and sea life",
+            "en": "Oceans and sea life"
+          },
+          "egypt": {
+            "de": "Ancient Egypt",
+            "en": "Ancient Egypt"
+          },
+          "weather": {
+            "de": "Weather and the water cycle",
+            "en": "Weather and the water cycle"
+          }
+        },
         "default": "",
         "x-field": "choice",
         "x-label": {

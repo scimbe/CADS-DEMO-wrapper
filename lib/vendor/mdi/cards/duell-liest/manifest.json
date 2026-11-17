@@ -156,6 +156,24 @@
         "maximum": 3,
         "default": 0,
         "x-field": "number",
+        "x-names": {
+          "0": {
+            "de": "🪨 📄 ✂️",
+            "en": "🪨 📄 ✂️"
+          },
+          "1": {
+            "de": "🔥 💧 🌱",
+            "en": "🔥 💧 🌱"
+          },
+          "2": {
+            "de": "🍕 🧃 🍩",
+            "en": "🍕 🧃 🍩"
+          },
+          "3": {
+            "de": "🐸 🦆 🐌",
+            "en": "🐸 🦆 🐌"
+          }
+        },
         "x-label": {
           "de": "Deine drei Zeichen",
           "en": "Your three signs"
@@ -379,7 +397,11 @@
       "label": {
         "de": "Mein Agent",
         "en": "My agent"
-      }
+      },
+      "at": [
+        0.3,
+        0.6
+      ]
     },
     {
       "id": "titel",
