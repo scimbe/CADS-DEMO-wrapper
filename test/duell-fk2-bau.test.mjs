@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDuell } from '../lib/duell.mjs';
 import { createKlaerung } from '../lib/duell-klaerung.mjs';
-import { createBau, MAIL_TEXT, KARTE_KINDS, CODE_MAX } from '../lib/duell-fk2-bau.mjs';
+import { createBau, MAIL_TEXT, KARTE_KINDS, CODE_MAX, ausNetz } from '../lib/duell-fk2-bau.mjs';
 import { KARTE_KINDS as PUSH_KARTE } from '../lib/duell-push.mjs';
 
 const P = { account: true, acct: 'aKonto12345', mail: 'lea@example.org' };
@@ -42,7 +42,7 @@ function setup({ guthaben = 5, env = {}, mailOn = true, pushOn = true } = {}) {
   const push = { on: () => pushOn, notify: async (mark, kind, auftrag) => { pushes.push([mark, kind, auftrag]); return 'sent'; } };
   const mail = { on: () => mailOn, send: async (m) => { mails.push(m); return { ok: true }; } };
   let t = Date.parse('2026-11-18T10:00:00Z');
-  const benv = { DUELL_BAU: 'on', DUELL_BAU_TOKEN_FILE: join(dir, 'token'), DUELL_SPIEL_ORIGIN: 'https://spiel-f29c55da.bunsenbrenner.org', DUELL_SPIEL_MODULE_DIR: join(dir, 'spiele'), DUELL_APP_URL: 'https://demos-34a13a96.bunsenbrenner.org/duell', DUELL_IP_HEADER: 'X-Real-IP', ...env };
+  const benv = { DUELL_BAU: 'on', DUELL_BAU_TOKEN_FILE: join(dir, 'token'), DUELL_SPIEL_ORIGIN: 'https://spiel-f29c55da.bunsenbrenner.org', DUELL_SPIEL_MODULE_DIR: join(dir, 'spiele'), DUELL_APP_URL: 'https://demos-34a13a96.bunsenbrenner.org/duell', DUELL_IP_HEADER: 'X-Real-IP', DUELL_BAU_NETZ: '172.31.250.0/28', ...env };
   const bau = createBau({ env: benv, store: k.store, shared: d.shared, push, mail, now: () => t, log: (o) => logs.push(o) });
   k.useBau(bau);
   // the worker gets its answer at once; the notification runs on its own (review S4): erg() waits for both
@@ -328,4 +328,13 @@ test('Review S5 und Nit 14: ohne DUELL_IP_HEADER bleibt der Bau aus; Zahlen des 
   s.k.loeschen(P);
   assert.equal(existsSync(f), false, 'mit dem Auftrag geht sein Spiel');
   void id;
+});
+
+test('Bau-Netz: vom Netz des Workers beantwortet der oeffentliche Port nichts; ohne DUELL_BAU_NETZ bleibt der Bau aus', () => {
+  const s = setup();
+  assert.equal(s.bau.ausBauNetz('172.31.250.5'), true); assert.equal(s.bau.ausBauNetz('::ffff:172.31.250.14'), true);
+  assert.equal(s.bau.ausBauNetz('172.31.250.16'), false); assert.equal(s.bau.ausBauNetz('127.0.0.1'), false); assert.equal(s.bau.ausBauNetz(undefined), false);
+  assert.equal(ausNetz('kaputt', '172.31.250.5'), false);
+  assert.equal(createBau({ env: { ...s.benv, DUELL_BAU_NETZ: '' }, store: s.k.store, log: () => {} }).on(), false);
+  assert.equal(createBau({ env: { ...s.benv, DUELL_BAU_NETZ: '300.1.1.0/28' }, store: s.k.store, log: () => {} }).on(), false);
 });

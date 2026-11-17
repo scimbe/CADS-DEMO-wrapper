@@ -1128,8 +1128,9 @@ async function route(req, res) {
   if (await DUELL_PROFILE.route(req, res, url)) return; // My Daily Idea profile, reads the login itself
   if (await REPORTS.route(req, res, url)) return; // report, seal check (public); reviewer routes need DUELL_ADMIN_TOKEN
   if (await BILD.route(req, res, url)) return; // KI-Bilder: /api/duell/bild/* (login), /duell/bild/<id> (public by id), lib/duell-bild.mjs
-  // Freie Karte 2: /api/intern/* never on this (public, tunnelled) port; the build worker has its own listener below
-  if (p.startsWith('/api/intern/')) { req.resume(); res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('not found'); return; }
+  // Freie Karte 2: /api/intern/* never on this (public, tunnelled) port; the build worker has its own listener below, and from
+  // the worker's network (DUELL_BAU_NETZ) this port answers nothing at all
+  if (p.startsWith('/api/intern/') || (BAU.on() && BAU.ausBauNetz(req.socket.remoteAddress))) { req.resume(); res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('not found'); return; }
   if (await KLAERUNG.route(req, res, url)) return; // Freie Karte 2: /api/duell/klaerung/* (login), lib/duell-klaerung.mjs
   if (await VOUCHERS.route(req, res, url)) return; // POST /api/duell/credit/redeem (login), lib/duell-voucher.mjs
   if (await DECK.route(req, res, url)) return; // community deck (public), use/thumbs/credit/appeal (login), review (DUELL_ADMIN_TOKEN)
