@@ -1,8 +1,8 @@
 {
   "repo": "scimbe/CADS-agent-marketplace",
   "path": "apps/mdi/src",
-  "track": "release/fix3-20261118",
-  "commit": "5359c9777cf89cd7fd58e40619b684e8861ed97f",
+  "track": "main",
+  "commit": "b996a3efb1caac6dab777098bf2b278331637287",
   "generatedBy": "bin/vendor-mdi.mjs",
   "cards": [
     "baukasten",
