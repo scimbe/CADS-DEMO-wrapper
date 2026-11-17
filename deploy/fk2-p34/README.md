@@ -22,7 +22,7 @@ und labor-setup.com werden nicht angefasst.
 | `demos-wrapper` (bestehend) | `cads-demos-wrapper:<tag>` | Token, smtp.pass (read-only) | wie bisher; zusätzlich per `network connect` in `mdi-bau-net`; interner Listener `DUELL_BAU_PORT=8791` **ohne** veröffentlichten Port; aus `DUELL_BAU_NETZ` beantwortet der öffentliche Port nichts |
 | `mdi-bau` (neu) | `mdi-bau:<tag>` (`apps/mdi/bau/Dockerfile`) | API-Key, Token (read-only) | nur `mdi-bau-net` und `mdi-pruef-net`, beide `--internal` (kein Ausgang, kein externes DNS); zur Modell-API nur über `HTTPS_PROXY=http://mdi-egress:3128` |
 | `mdi-egress` (neu) | dasselbe Image, `node bau/egress-proxy.mjs` | keine | `mdi-egress-net` (normal) und `mdi-bau-net`; lässt nur `CONNECT api.anthropic.com:443` durch, löst DNS auf, sonst 403/405 |
-| `mdi-pruef` (neu) | dasselbe Image, `node bau/pruef-dienst.mjs` | **keine** | nur `mdi-pruef-net` (`--internal`, kein Ausgang); Chromium mit Sandbox (`MDI_CHROMIUM_SANDBOX=1`, seccomp-Profil), ohne WebRTC |
+| `mdi-pruef` (neu) | dasselbe Image, `node bau/pruef-dienst.mjs` | **keine** | nur `mdi-pruef-net` (`--internal`, kein Ausgang); Chromium mit Sandbox (`MDI_CHROMIUM_SANDBOX=1`, seccomp-Profil, `--cap-drop ALL --cap-add SYS_CHROOT`), ohne WebRTC |
 | `mdi-spiel-dienst` (neu) | dasselbe Image, `node bau/spiel-dienst.mjs` | keine | `127.0.0.1:8795`, dahinter der Tunnel `spiel-agent` |
 
 Getrennt: Fremder Code läuft nur in `mdi-pruef`, der weder Key noch Token sieht und kein Netz nach außen hat. Der Worker

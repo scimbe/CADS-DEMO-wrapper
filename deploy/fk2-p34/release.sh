@@ -116,8 +116,10 @@ do_ docker run -d --name mdi-spiel-dienst --restart unless-stopped \
   "mdi-bau:$TAG" node bau/spiel-dienst.mjs
 
 say "== 4 Pruef-Dienst: Chromium mit Sandbox, ohne Geheimnisse, nur im internen Netz =="
+# Die Sandbox von Chromium braucht im Begrenzungs-Set SYS_CHROOT (gemessen auf ssh-united am 18.11.: mit --cap-drop ALL allein
+# "Check failed: sys_chroot"); pwuser selbst hat keine wirksamen Rechte.
 do_ docker run -d --name mdi-pruef --restart unless-stopped --network "$PRUEF_NET" \
-  --security-opt "seccomp=$SECCOMP" --security-opt no-new-privileges --cap-drop ALL --pids-limit 512 --memory 2g --cpus 1.5 \
+  --security-opt "seccomp=$SECCOMP" --security-opt no-new-privileges --cap-drop ALL --cap-add SYS_CHROOT --pids-limit 512 --memory 2g --cpus 1.5 \
   --shm-size 512m --read-only --tmpfs /tmp:size=512m \
   -e MDI_CHROMIUM_SANDBOX=1 -e PRUEF_PORT=8796 \
   "mdi-bau:$TAG" node bau/pruef-dienst.mjs
@@ -132,7 +134,8 @@ do_ docker network connect --alias mdi-egress "$BAU_NET" mdi-egress
 say "== 6 Bau-Worker: Key und Token, kein Browser, kein Port, nur --internal-Netze =="
 KEY_ARGS=(-v "$SECRETS/anthropic.key:/run/secrets/anthropic.key:ro" -e MDI_ANTHROPIC_KEY_FILE=/run/secrets/anthropic.key)
 [ "$DOUBLE" = 1 ] && KEY_ARGS=(-e MDI_BAU_MODELL_DOUBLE=1)
-do_ docker run -d --name mdi-bau --restart unless-stopped --network "$BAU_NET" \
+# als Eigentuemer der Geheimnis-Dateien (Modus 600), nicht als pwuser des Images
+do_ docker run -d --name mdi-bau --restart unless-stopped -u "$(id -u):$(id -g)" --network "$BAU_NET" \
   --cap-drop ALL --security-opt no-new-privileges --pids-limit 128 --memory 512m --cpus 1 --read-only --tmpfs /tmp:size=64m \
   -v mdi-bau-state:/var/lib/mdi-bau \
   -v "$SECRETS/fk2-bau.token:/run/secrets/fk2-bau.token:ro" "${KEY_ARGS[@]}" \
