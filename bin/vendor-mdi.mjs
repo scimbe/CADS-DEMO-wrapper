@@ -20,7 +20,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const DIR = fileURLToPath(new URL('../lib/vendor/mdi/', import.meta.url));
 export const REPO = 'scimbe/CADS-agent-marketplace';
-export const MODULES = ['features/frei/doc.js', 'app/link.js'];   // besides the cards: the app's gate projection and link decoder
+export const MODULES = ['features/frei/doc.js', 'app/link.js', 'features/frei/klaerung.js'];   // besides the cards: gate projection, link decoder, contract of the clarification dialog (Freie Karte 2)
 
 const sha = (buf) => createHash('sha256').update(buf).digest('hex');
 /** One hash over the whole bundle: sorted "path sha256" lines. */
