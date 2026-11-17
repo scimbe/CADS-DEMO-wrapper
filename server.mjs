@@ -37,6 +37,8 @@ import { createStats } from './lib/duell-stat.mjs';
 import { createBild } from './lib/duell-bild.mjs';
 import { createKlaerung } from './lib/duell-klaerung.mjs';
 import { createPush } from './lib/duell-push.mjs';
+import { createBau } from './lib/duell-fk2-bau.mjs';
+import { createMail } from './lib/duell-mail.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
 import { shortDigest } from './lib/prompt-core.mjs';
@@ -1095,6 +1097,10 @@ const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.b
 const DUELL_PROFILE = createDuellProfile({ auth: AUTH, shared: DUELL.shared }); // profile under "Mein Stil": account (16+) or sync code, lib/duell-profile.mjs
 const STATS = createStats({ shared: DUELL.shared, auth: AUTH }); // card statistics, thumbs up/down; votes only with a verified account (lib/duell-stat.mjs)
 const PUSH = createPush({ shared: DUELL.shared, webFile: DUELL.cfg.webFile }); // push as a wake-up signal only (kind, no content), off without DUELL_VAPID_*, lib/duell-push.mjs
+// Freie Karte 2 P3/P4: build queue for the separate build worker (internal, token), result, credit, "Karte fertig" by push/mail
+// (opt-in only). Off unless DUELL_BAU=on; mail off without SMTP_* (lib/duell-mail.mjs). lib/duell-fk2-bau.mjs
+const BAU = createBau({ store: KLAERUNG.store, shared: DUELL.shared, push: PUSH, mail: createMail() });
+KLAERUNG.useBau(BAU);
 DECK.useStat(STATS); // the Statistik tab on /duell/pruefen reads STATS.readAdmin (no k mask, admin token only)
 // Deck, credit, moderation and statistics write debounced; 'exit' writes what is pending however the process ends (signal or another handler).
 process.on('exit', () => { for (const s of [DECK, CREDIT, MOD, STATS, BILD, PUSH]) try { s.flush(); } catch { /* one failing store does not stop the others */ } });
@@ -1112,6 +1118,7 @@ async function route(req, res) {
   if (await DUELL_PROFILE.route(req, res, url)) return; // My Daily Idea profile, reads the login itself
   if (await REPORTS.route(req, res, url)) return; // report, seal check (public); reviewer routes need DUELL_ADMIN_TOKEN
   if (await BILD.route(req, res, url)) return; // KI-Bilder: /api/duell/bild/* (login), /duell/bild/<id> (public by id), lib/duell-bild.mjs
+  if (await BAU.route(req, res, url)) return; // Freie Karte 2: /api/intern/fk2/* (build worker only: token, never through the tunnel), lib/duell-fk2-bau.mjs
   if (await KLAERUNG.route(req, res, url)) return; // Freie Karte 2: /api/duell/klaerung/* (login), lib/duell-klaerung.mjs
   if (await VOUCHERS.route(req, res, url)) return; // POST /api/duell/credit/redeem (login), lib/duell-voucher.mjs
   if (await DECK.route(req, res, url)) return; // community deck (public), use/thumbs/credit/appeal (login), review (DUELL_ADMIN_TOKEN)

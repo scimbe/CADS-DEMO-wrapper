@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { createDuell } from '../lib/duell.mjs';
 import { writeFileSync, readdirSync, statSync } from 'node:fs';
 import { createKlaerung, fileHandoff, ohneVerneinung, MOD_KLAERUNG, ARCADE, RETENTION_DAYS, HARNESS_MAX_BYTES } from '../lib/duell-klaerung.mjs';
+import { createBau } from '../lib/duell-fk2-bau.mjs';
 import { KINDS } from '../lib/duell-ai.mjs';
 import * as K from '../lib/vendor/mdi/features/frei/klaerung.js';
 
@@ -38,12 +39,23 @@ function fakeLlm(by = {}) {
     return { json: v === undefined ? null : v };
   } };
 }
-function setup({ llm = fakeLlm({ klaerung_fragen: FRAGEN, klaerung_liste: liste() }), env = {}, age16 = () => true } = {}) {
+const MARK = 'M'.repeat(22);
+/** the build (P3) attached as in server.mjs, with doubles for credit, push and mail */
+function withBau(k, shared, dir) {
+  const bau = createBau({ env: { DUELL_BAU: 'on', DUELL_BAU_TOKEN_FILE: join(dir, 'token'), DUELL_SPIEL_ORIGIN: 'https://spiel-f29c55da.bunsenbrenner.org', DUELL_SPIEL_MODULE_DIR: join(dir, 'spiele'), DUELL_APP_URL: 'https://demos.example/duell' },
+    store: k.store, shared, push: { on: () => true, notify: async () => 'sent' }, mail: { on: () => true, send: async () => ({ ok: true }) }, log: () => {} });
+  k.useBau(bau);
+  return bau;
+}
+function setup({ llm = fakeLlm({ klaerung_fragen: FRAGEN, klaerung_liste: liste() }), env = {}, age16 = () => true, guthaben = 5 } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'klaerung-'));
   const d = createDuell({ env: {}, salt: 's', log: () => {}, llm: async () => '{}' });
-  Object.assign(d.shared, { age16, mod: { canCreate: () => ({ ok: true }) } });
+  const spent = [];
+  const credit = { available: () => guthaben - spent.length, spend: (k, n) => { if (guthaben - spent.length < n) return false; spent.push([k, n]); return true; } };
+  Object.assign(d.shared, { age16, mod: { canCreate: () => ({ ok: true }) }, credit });
   const k = createKlaerung({ env: { DUELL_KLAERUNG: 'on', DUELL_KLAERUNG_DIR: dir, DUELL_ADMIN_TOKEN: 'admin-token-123456', ...env }, shared: d.shared, who: async (req) => (req.headers['x-acct'] ? { ...P, acct: req.headers['x-acct'] } : { account: false }), llm, log: () => {} });
-  return { k, llm, dir, store: fileHandoff(dir) };
+  const bau = withBau(k, d.shared, dir);
+  return { k, llm, dir, store: fileHandoff(dir), bau, spent, shared: d.shared };
 }
 const ANT = [{ art: 'kachel', kachel: 0 }, { art: 'eigen', text: 'Wasserbomben, die bunt platzen' }, { art: 'egal' }];
 async function toOrder(s) {
@@ -53,10 +65,11 @@ async function toOrder(s) {
   const a = s.k.auftrag(P, { id: f.body.id });
   return { f, l, a };
 }
-/** P3 writes the result through the store; here test data with one missing point */
+/** P3 writes the result through the store; here test data with one missing point (test/duell-fk2-bau.test.mjs: the real path) */
 function withResult(s, id, fehlt = true) {
   const o = s.store.get(id);
-  o.ergebnis = { titel: 'Segelboot gegen Piraten', punkte: o.punkte.map((x, i) => ({ id: x.id, erfuellt: !(fehlt && i === 2), notiz: fehlt && i === 2 ? 'bleibt gleich schnell' : '' })) };
+  o.ergebnis = { titel: 'Segelboot gegen Piraten', punkte: o.punkte.map((x, i) => ({ id: x.id, erfuellt: !(fehlt && i === 2), notiz: fehlt && i === 2 ? 'bleibt gleich schnell' : '', geprueft: 'gespielt' })) };
+  o.spiel = { sha256: 'a'.repeat(64) }; o.bau = { status: 'fertig', art: 'neu', at: o.at };
   s.store.put(o);
 }
 
@@ -184,8 +197,13 @@ test('Ja, so bauen: Bauauftrag als JSON fuer P3, genau die gesehene Liste; doppe
   assert.deepEqual(o.fragen[0].antwort, { art: 'kachel', kachel: 0, label: 'Ein Segelboot' });
   assert.deepEqual(o.kosten, { guthaben: 1, nurBeiErfolg: true, abgebucht: false });
   assert.deepEqual(o.optin, { push: false, mail: false }, 'no consent until ticked');
-  assert.deepEqual(s.k.optin(P, { auftrag: a.body.auftrag, push: true, mail: false }).body.optin, { push: true, mail: false });
-  assert.equal(s.store.get(a.body.auftrag).optin.push, true);
+  assert.deepEqual(s.k.optin(P, { auftrag: a.body.auftrag, push: true, mail: false, mark: MARK }).body.optin, { push: true, mail: false });
+  assert.equal(s.store.get(a.body.auftrag).optin.push, true); assert.equal(s.store.get(a.body.auftrag).optin.mark, MARK);
+  assert.equal(s.k.optin(P, { auftrag: a.body.auftrag, push: true, mail: false }).status, 409, 'a push needs the mark of this device');
+  assert.equal(s.k.optin(P, { auftrag: a.body.auftrag, push: false, mail: true }).status, 200);
+  assert.equal(s.store.get(a.body.auftrag).optin.adresse, P.mail, 'the address only while mail is ticked');
+  assert.equal(s.k.optin(P, { auftrag: a.body.auftrag, push: false, mail: false }).status, 200);
+  assert.ok(!JSON.stringify(s.store.get(a.body.auftrag)).includes(P.mail), 'unticked: the address is gone');
   assert.equal(s.k.optin({ ...P, acct: 'aAnderer123' }, { auftrag: a.body.auftrag, push: true, mail: true }).status, 404);
   assert.equal(s.k.optin(P, { auftrag: a.body.auftrag, push: 'ja', mail: false }).status, 400);
   // without a list there is no order
@@ -197,45 +215,47 @@ test('Nachbessern: hoechstens 3x, im Server gezaehlt; jedes erst nach einem NEUE
   const s = setup();
   const { a } = await toOrder(s);
   const id = a.body.auftrag;
-  assert.equal(s.k.status(P, { auftrag: id }).body.error, 'kein-ergebnis');
+  assert.equal(s.k.status(P, { auftrag: id }).body.status, 'baut', 'queued for the build worker');
   withResult(s, id);
   const st = s.k.status(P, { auftrag: id });
   assert.equal(st.body.nachbessernLeft, 3); assert.equal(st.body.ergebnis.fehlt, 1); assert.equal(st.body.kosten, 1);
   assert.equal((await s.k.melden(P, { auftrag: id, text: 'zu frueh' })).body.error, 'noch-nachbessern', 'report only after the repairs');
   // three times in a row WITHOUT a new result: only the first counts, the counter is not used up without a rebuild
-  assert.equal(s.k.nachbessern(P, { auftrag: id }).body.nachbessernLeft, 2);
-  assert.equal(s.k.nachbessern(P, { auftrag: id }).body.error, 'wird-nachgebessert');
-  assert.equal(s.k.nachbessern(P, { auftrag: id }).body.error, 'wird-nachgebessert');
+  assert.equal((await s.k.nachbessern(P, { auftrag: id })).body.nachbessernLeft, 2);
+  assert.equal((await s.k.nachbessern(P, { auftrag: id })).body.error, 'wird-nachgebessert');
+  assert.equal((await s.k.nachbessern(P, { auftrag: id })).body.error, 'wird-nachgebessert');
   assert.equal(s.store.get(id).nachbessert, 1);
   const wait = s.k.status(P, { auftrag: id }).body;
   assert.equal(wait.status, 'nachbessern'); assert.equal(wait.ergebnis, null); assert.equal(wait.nachbessernLeft, 2);
   assert.equal(s.k.behalten(P, { auftrag: id }).body.error, 'wird-nachgebessert', 'keep only a result that exists');
   // P3 writes a new result each time
-  withResult(s, id); assert.equal(s.k.nachbessern(P, { auftrag: id }).body.nachbessernLeft, 1);
-  withResult(s, id); assert.equal(s.k.nachbessern(P, { auftrag: id }).body.nachbessernLeft, 0);
+  withResult(s, id); assert.equal((await s.k.nachbessern(P, { auftrag: id })).body.nachbessernLeft, 1);
+  withResult(s, id); assert.equal((await s.k.nachbessern(P, { auftrag: id })).body.nachbessernLeft, 0);
   withResult(s, id);
-  const fourth = s.k.nachbessern(P, { auftrag: id });
+  const fourth = await s.k.nachbessern(P, { auftrag: id });
   assert.equal(fourth.status, 409); assert.equal(fourth.body.error, 'limit');
   assert.equal(s.store.get(id).nachbessert, 3, 'the 4th try changed nothing');
   assert.equal(s.store.get(id).ergebnisse.length, 3, 'earlier results are kept with the order');
   // a fresh server (restart) keeps the count: it lives with the order, not in the app or in memory
-  const s2 = { ...s, k: createKlaerung({ env: { DUELL_KLAERUNG: 'on', DUELL_KLAERUNG_DIR: s.dir }, shared: Object.assign(createDuell({ env: {}, salt: 's', log: () => {} }).shared, { age16: () => true }), who: async () => P, llm: fakeLlm(), log: () => {} }) };
+  const sh2 = Object.assign(createDuell({ env: {}, salt: 's', log: () => {} }).shared, { age16: () => true });
+  const s2 = { ...s, k: createKlaerung({ env: { DUELL_KLAERUNG: 'on', DUELL_KLAERUNG_DIR: s.dir }, shared: sh2, who: async () => P, llm: fakeLlm(), log: () => {} }) };
+  withBau(s2.k, sh2, s.dir);
   assert.equal(s2.k.status(P, { auftrag: id }).body.nachbessernLeft, 0);
-  assert.equal(s2.k.nachbessern(P, { auftrag: id }).body.error, 'limit');
+  assert.equal((await s2.k.nachbessern(P, { auftrag: id })).body.error, 'limit');
   s2.k.stop();
   // nothing missing: nothing to repair
   const s3 = setup(); const o3 = await toOrder(s3); withResult(s3, o3.a.body.auftrag, false);
-  assert.equal(s3.k.nachbessern(P, { auftrag: o3.a.body.auftrag }).body.error, 'nichts-fehlt');
+  assert.equal((await s3.k.nachbessern(P, { auftrag: o3.a.body.auftrag })).body.error, 'nichts-fehlt');
 });
 
 /** three repairs, each with a new result of P3 */
-function repairAll(s, id) { for (let i = 0; i < 3; i++) { withResult(s, id); assert.equal(s.k.nachbessern(P, { auftrag: id }).status, 200); } withResult(s, id); }
+async function repairAll(s, id) { for (let i = 0; i < 3; i++) { withResult(s, id); assert.equal((await s.k.nachbessern(P, { auftrag: id })).status, 200); } withResult(s, id); }
 
 test('Melden: Text optional, gleiche Moderation, gespeichert mit Liste und fehlt-Punkten, Harness-Datensatz, Pruefansicht; Karte kostenlos, Behalten bleibt', async () => {
   const s = setup({ llm: fakeLlm({ klaerung_fragen: FRAGEN, klaerung_liste: liste(), check: (req) => (/Idioten/.test(req.user) ? { json: { risk: 2, cats: ['harassment'], drink: 'none' } } : OK_MOD) }) });
   const { a } = await toOrder(s);
   const id = a.body.auftrag;
-  repairAll(s, id);
+  await await repairAll(s, id);
   assert.equal((await s.k.melden(P, { auftrag: id, text: 'x'.repeat(501) })).status, 400, 'max 500');
   const no = await s.k.melden(P, { auftrag: id, text: 'ihr seid Idioten' });
   assert.equal(no.status, 422, 'same moderation as the wish');
@@ -253,9 +273,9 @@ test('Melden: Text optional, gleiche Moderation, gespeichert mit Liste und fehlt
   assert.equal(readFileSync(join(s.dir, 'meldungen', 'harness.jsonl'), 'utf8').trim().split('\n').length, 1);
   // "Trotzdem so behalten" stays possible and charges nothing in P1
   assert.deepEqual(s.k.behalten(P, { auftrag: id }).body, { behalten: true, abgebucht: false, guthaben: 1 });
-  assert.equal(s.k.nachbessern(P, { auftrag: id }).body.error, 'abgeschlossen');
+  assert.equal((await s.k.nachbessern(P, { auftrag: id })).body.error, 'abgeschlossen');
   // no text at all is fine (no required fields)
-  const t = setup(); const o2 = await toOrder(t); repairAll(t, o2.a.body.auftrag);
+  const t = setup(); const o2 = await toOrder(t); await repairAll(t, o2.a.body.auftrag);
   assert.equal((await t.k.melden(P, { auftrag: o2.a.body.auftrag })).body.gemeldet, true);
   assert.equal(t.store.meldungen()[0].text, '');
 
@@ -287,9 +307,9 @@ test('Tageskappe zaehlt echte Modellaufrufe; nach 3 Strikes nur Neues gesperrt, 
   const { a } = await toOrder(t); const id = a.body.auftrag; withResult(t, id);
   for (let i = 0; i < 3; i++) assert.equal((await t.k.fragen(P, { satz: 'ein Spiel mit nackten Leuten' })).body.error, 'blocked');
   assert.equal((await t.k.fragen(P, { satz: 'Space Invaders mit Segelbooten' })).body.error, 'throttled');
-  assert.equal(t.k.nachbessern(P, { auftrag: id }).body.error, 'throttled', 'a repair is new');
+  assert.equal((await t.k.nachbessern(P, { auftrag: id })).body.error, 'throttled', 'a repair is new');
   assert.equal(t.k.status(P, { auftrag: id }).status, 200);
-  assert.equal(t.k.optin(P, { auftrag: id, push: true, mail: false }).status, 200);
+  assert.equal(t.k.optin(P, { auftrag: id, push: true, mail: false, mark: MARK }).status, 200);
   assert.equal(t.k.behalten(P, { auftrag: id }).status, 200);
   // the switch over HTTP: no login, and the account service down does not matter
   const down = createKlaerung({ env: { DUELL_KLAERUNG: 'on', DUELL_KLAERUNG_DIR: t.dir }, shared: createDuell({ env: {}, salt: 's', log: () => {} }).shared, who: async () => ({ status: 503 }), llm: fakeLlm(), log: () => {} });
@@ -305,7 +325,7 @@ test('Tageskappe zaehlt echte Modellaufrufe; nach 3 Strikes nur Neues gesperrt, 
 test('Melden: nie nach Behalten (Server), nur einmal auch bei gleichzeitigen Anfragen', async () => {
   const s = setup();
   const { a } = await toOrder(s); const id = a.body.auftrag;
-  repairAll(s, id);
+  await await repairAll(s, id);
   assert.equal(s.k.behalten(P, { auftrag: id }).status, 200);
   const r = await s.k.melden(P, { auftrag: id, text: 'nach behalten' });
   assert.equal(r.status, 409); assert.equal(r.body.error, 'abgeschlossen');
@@ -315,7 +335,7 @@ test('Melden: nie nach Behalten (Server), nur einmal auch bei gleichzeitigen Anf
   const gateCheck = new Promise((r) => { release = r; });
   const slow = fakeLlm({ klaerung_fragen: FRAGEN, klaerung_liste: liste(), check: (req) => (/REPORT/.test(req.user) ? gateCheck.then(() => OK_MOD) : OK_MOD) });
   const t = setup({ llm: slow });
-  const o = await toOrder(t); const tid = o.a.body.auftrag; repairAll(t, tid);
+  const o = await toOrder(t); const tid = o.a.body.auftrag; await repairAll(t, tid);
   const p1 = t.k.melden(P, { auftrag: tid, text: 'erste Meldung' });
   const p2 = t.k.melden(P, { auftrag: tid, text: 'zweite Meldung' });
   // keep while the report is being checked: the re-read after the check sees it and refuses the report
@@ -324,7 +344,7 @@ test('Melden: nie nach Behalten (Server), nur einmal auch bei gleichzeitigen Anf
   assert.deepEqual([r1.status, r2.status].sort(), [200, 409]); assert.equal([r1, r2].find((x) => x.status === 409).body.error, 'laeuft');
   assert.equal(t.store.meldungen().length, 1);
   const u = setup({ llm: fakeLlm({ klaerung_fragen: FRAGEN, klaerung_liste: liste(), check: (req) => (/REPORT/.test(req.user) ? new Promise((ok) => setTimeout(() => ok(OK_MOD), 30)) : OK_MOD) }) });
-  const o3 = await toOrder(u); const uid = o3.a.body.auftrag; repairAll(u, uid);
+  const o3 = await toOrder(u); const uid = o3.a.body.auftrag; await repairAll(u, uid);
   const pm = u.k.melden(P, { auftrag: uid, text: 'dauert' });
   u.k.behalten(P, { auftrag: uid });
   assert.equal((await pm).body.error, 'abgeschlossen', 'kept during the check: no report');
