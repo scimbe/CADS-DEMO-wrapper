@@ -14,7 +14,8 @@ import { canonical } from '../lib/duell-seal.mjs';
 import { checkKarte, createDeck, fingerprint, gateHash, gateView, sealKarte, similarity } from '../lib/duell-deck.mjs';
 import { createCredit } from '../lib/duell-credit.mjs';
 import { createMod } from '../lib/duell-mod.mjs';
-import { createShortLinks, freeChecksOf, freeCidOf, freeIdsOf } from '../lib/shortlink.mjs';
+import { freeChecksOf, freeCidOf, freeIdsOf } from '../lib/shortlink.mjs';
+import { testShortLinks } from './short-helper.mjs';
 import { App } from '../lib/duell-karte.mjs';
 
 const DAY = 86400000, ADMIN = 'admin-token-0123456789abcdef', SALT = 'deck-salt';
@@ -853,7 +854,7 @@ const bareOf = (d) => 'c=' + Buffer.from(JSON.stringify(d)).toString('base64url'
 async function shortStack(env = {}) {
   let short = null;
   const s = setup({ env, blockLink: (id) => short.block(id) });
-  short = createShortLinks({ env: { SHORT_DATA_DIR: join(s.dir, 'short') }, now: () => s.clock.t, log: () => {}, free: () => s.deck });
+  short = testShortLinks({ env: { SHORT_DATA_DIR: join(s.dir, 'short') }, now: () => s.clock.t, log: () => {}, free: () => s.deck });
   const h = await serve(s);
   const srv = http.createServer(async (q, r) => { const url = new URL(q.url, 'http://x'); if (!(await short.route(q, r, url))) r.writeHead(404).end(); });
   await new Promise((r) => srv.listen(0, '127.0.0.1', r));
@@ -931,7 +932,7 @@ test('Umbau Teil 2: fail-closed - eine unbekannte Karte ist nie "ok", ohne lesba
     assert.equal((await fetch(sb + '/api/s/' + id)).status, 503);
     s.deck.linkState = real;
     assert.equal((await fetch(sb + '/api/s/' + id)).status, 200);
-    const lone = createShortLinks({ env: { SHORT_DATA_DIR: join(s.dir, 'short2') }, log: () => {} });   // no deck wired at all
+    const lone = testShortLinks({ env: { SHORT_DATA_DIR: join(s.dir, 'short2') }, log: () => {} });   // no deck wired at all
     assert.equal(lone.create({ f: fragOf(one.doc), k: 'card' }).status, 503, 'a free card needs the deck to be checked');
     // two removals: two strikes (graded: a flag for a human, never an automatic pause); after strikeDays they lapse
     const two = await make(s, 'zwei@example.org');

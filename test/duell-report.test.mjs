@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { createDuell } from '../lib/duell.mjs';
 import { createDuellAi } from '../lib/duell-ai.mjs';
 import { createReports, REASONS } from '../lib/duell-report.mjs';
-import { createShortLinks } from '../lib/shortlink.mjs';
+import { testShortLinks } from './short-helper.mjs';
 
 const DEV = 'a'.repeat(32), ADMIN = 'admin-token-0123456789abcdef';
 const GOOD = JSON.stringify({ options: ['Heute bin ich ein Keks', 'Montag, wir muessen reden', 'Frosch im Hals'] });
@@ -21,7 +21,7 @@ function setup({ env = {}, llm } = {}) {
   const fn = llm || (async (s, u) => (u.startsWith('<wish>') ? CONF : GOOD));
   const d = createDuell({ env: { DUELL_SEAL_SECRET: 'seal-secret', DUELL_IP_PER_HOUR: '99', ...env }, salt: 's', log, llm: fn });
   const ai = createDuellAi({ env: { DUELL_AI_SALT: 'x', DUELL_AI_PROOF_BITS: '0', ...env }, llm: fn, shared: d.shared, log });
-  const short = createShortLinks({ env: { SHORT_DATA_DIR: join(dir, 'short') }, log: () => {} });
+  const short = testShortLinks({ env: { SHORT_DATA_DIR: join(dir, 'short') }, log: () => {} });
   const rep = createReports({ env: { DUELL_REPORT_DIR: join(dir, 'reports'), DUELL_ADMIN_TOKEN: ADMIN, ...env }, shared: d.shared, blockLink: (id) => short.block(id), log });
   return { d, ai, short, rep, logs, dir };
 }
