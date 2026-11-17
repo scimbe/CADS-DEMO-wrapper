@@ -229,3 +229,12 @@ test('Security-Review M5: der Repro (150 Dinge, 16 Beruehrungsregeln) wird vor j
     rules: Array.from({ length: 16 }, (_, i) => ({ when: 'touch', a: i % 2 ? 'a' : 'b', b: i % 2 ? 'b' : 'a', do: [{ act: 'score', on: 'a', n: 1 }] })), end: { time: 600 } };
   assert.match(readAnswer(heavy, (v) => v).bad, /zu viel Rechenaufwand/);
 });
+
+test('Baukasten: bekannte Handy-Spieletitel sind Marken (Gold v2 t127) und werden vor jedem Modellaufruf weich abgelehnt', async () => {
+  for (const w of ['flappy bird but with a cat', 'Angry Birds mit Hamstern', 'wie Subway Surfers im Schnee']) {
+    const llm = fakeLlm([full(BEISPIELE.flappy)]), { ai } = mk(llm);
+    const r = await run(ai, body(w));
+    assert.equal(r.status, 200, w); assert.ok(r.body.notyet, w + ': ' + JSON.stringify(r.body)); assert.equal(r.body.reason, 'marke', w);
+    assert.equal(cardCalls(llm).length, 0);
+  }
+});
