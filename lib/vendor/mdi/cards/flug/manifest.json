@@ -196,7 +196,8 @@
     "x-label": {
      "de": "Strecke",
      "en": "Course"
-    }
+    },
+    "x-dice": true
    },
    "gravity": {
     "type": "integer",
@@ -905,7 +906,11 @@
    "label": {
     "de": "Vogel",
     "en": "Bird"
-   }
+   },
+   "at": [
+    0.3,
+    0.53
+   ]
   },
   {
    "id": "lava",
@@ -915,7 +920,11 @@
    "label": {
     "de": "Lava",
     "en": "Lava"
-   }
+   },
+   "at": [
+    0.5,
+    0.93
+   ]
   },
   {
    "id": "foto",
@@ -926,7 +935,11 @@
    "label": {
     "de": "Eigenes Foto",
     "en": "Own photo"
-   }
+   },
+   "at": [
+    0.25,
+    0.25
+   ]
   },
   {
    "id": "level",
@@ -940,7 +953,11 @@
    "label": {
     "de": "Level",
     "en": "Level"
-   }
+   },
+   "at": [
+    0.8,
+    0.3
+   ]
   },
   {
    "id": "text",
@@ -952,7 +969,11 @@
    "label": {
     "de": "Text",
     "en": "Text"
-   }
+   },
+   "at": [
+    0.5,
+    0.1
+   ]
   }
  ],
  "variants": [

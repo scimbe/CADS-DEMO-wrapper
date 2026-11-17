@@ -98,7 +98,8 @@
   "rg_speed3": "schnell",
   "rg_speed4": "Rakete",
   "gaps": "{n} Lücken!",
-  "vsLine": "{w}: {n}."
+  "vsLine": "{w}: {n}.",
+  "still": "{w} fliegt noch."
  },
  "en": {
   "wishH_game": "One sentence builds rules, hero, world and a route of 3 sections. Whoever opens your link flies exactly the same one.",
@@ -199,6 +200,7 @@
   "rg_speed3": "fast",
   "rg_speed4": "rocket",
   "gaps": "{n} gaps!",
-  "vsLine": "{w}: {n}."
+  "vsLine": "{w}: {n}.",
+  "still": "{w} is still flying."
  }
 }

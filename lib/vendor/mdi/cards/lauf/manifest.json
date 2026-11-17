@@ -193,7 +193,8 @@
     "x-label": {
      "de": "Neue Strecke",
      "en": "New track"
-    }
+    },
+    "x-dice": true
    },
    "w": {
     "type": "string",
@@ -774,7 +775,11 @@
    "label": {
     "de": "Figur",
     "en": "Runner"
-   }
+   },
+   "at": [
+    0.35,
+    0.6
+   ]
   },
   {
    "id": "welt",
@@ -786,7 +791,11 @@
    "label": {
     "de": "Welt",
     "en": "World"
-   }
+   },
+   "at": [
+    0.7,
+    0.15
+   ]
   },
   {
    "id": "foto",
@@ -797,7 +806,11 @@
    "label": {
     "de": "Eigenes Foto",
     "en": "Own photo"
-   }
+   },
+   "at": [
+    0.2,
+    0.3
+   ]
   },
   {
    "id": "level",
@@ -822,7 +835,11 @@
    "label": {
     "de": "Level",
     "en": "Level"
-   }
+   },
+   "at": [
+    0.6,
+    0.78
+   ]
   },
   {
    "id": "text",
@@ -833,7 +850,11 @@
    "label": {
     "de": "Text",
     "en": "Text"
-   }
+   },
+   "at": [
+    0.5,
+    0.06
+   ]
   }
  ],
  "thumb": {
