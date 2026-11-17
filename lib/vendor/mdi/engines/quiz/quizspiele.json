@@ -1,0 +1,461 @@
+{
+ "about": "Fixed packs of the quiz cards biz-quiz-phishing (game phish) and quiz-preis (game preis), src/quizspiele.js. Written and checked by hand, no AI. Every example is made up: firms, names and domains are fictional, all domains end in .example (RFC 2606), no real brand. Prices are rounded estimates for Germany, dated, never a shop's or brand's price. The facts (phish.ok, preis.c) go into the core with the build, the texts into the part quiz.",
+ "phish": {
+  "ok": [
+   1,
+   0,
+   1,
+   0,
+   1,
+   0,
+   1,
+   0,
+   1,
+   0,
+   1,
+   0,
+   1,
+   0
+  ]
+ },
+ "preis": {
+  "stand": "2026-11",
+  "c": [95, 180, 105, 165, 300, 100, 190, 360, 750, 450, 120, 130]
+ },
+ "de": {
+  "ui": {
+   "phi_intro_h": "So geht's",
+   "phi_intro": "Zehn ausgedachte Mails und SMS. Jeweils antippen: echt oder Phishing?",
+   "phi_free": "Freiwillig. Nicht-Teilnahme hat keine Folgen.",
+   "phi_br": "Für den Betriebsrat: gedacht als mitbestimmungsfrei, weil freiwillig, ohne Namen und ohne Auswertung je Person. Keine Phishing-Simulation an Kolleginnen und Kollegen.",
+   "phi_school": "Übung zum Mitreden, ersetzt keine Pflichtschulung.",
+   "phi_q": "Echt oder Phishing?",
+   "phi_nr": "Ausgedachtes Beispiel {i} von {m}",
+   "phi_real": "✓ Echt",
+   "phi_fake": "⚠ Phishing",
+   "phi_why_h": "Auflösung",
+   "phi_right": "Richtig.",
+   "phi_wrong": "Daneben.",
+   "phi_is_fake": "Das ist Phishing.",
+   "phi_is_real": "Das ist echt.",
+   "phi_mine": "{n} von {m} richtig erkannt.",
+   "phi_only_me": "Das eigene Ergebnis steht nur auf diesem Gerät. Im Link stehen die Antworten ohne Namen.",
+   "phi_hard": "Am häufigsten verwechselt: „{s}“ ({p} % richtig)",
+   "phi_you": "Eigenes Ergebnis",
+   "phi_allright": "Jedes Beispiel hat das ganze Team erkannt.",
+   "phi_from": "Von",
+   "phi_sub": "Betreff",
+   "phi_sms": "SMS von",
+   "phi_made": "Ausgedachtes Beispiel",
+   "phi_tell": "Darauf kommt es an:",
+   "pre_go": "Schieb auf deinen Tipp.",
+   "pre_nr": "Preis {i} von {m}",
+   "pre_q": "{s}: Was kostet das?",
+   "pre_line": "{s} {p} (Tipps {a} / {b})",
+   "pk_near": "{w}: {s}",
+   "pk_t0": "Alles genau getroffen!",
+   "pk_t1": "Ganz nah dran.",
+   "pk_t2": "Gut geschätzt.",
+   "pk_t3": "Da war noch Luft. Revanche?",
+   "pk_ql": "{q} ({z}): {a}",
+   "pk_dn": "{n} daneben",
+   "pk_d0": "genau getroffen"
+  },
+  "phish": [
+   {
+    "k": "mail",
+    "from": "IT-Service <it-service@musterflrma.example>",
+    "sub": "Ihr Postfach ist voll – jetzt bestätigen",
+    "body": "Ihr Postfach wird heute um 17:00 Uhr gesperrt. Melden Sie sich hier an, um Speicher freizugeben:",
+    "link": "https://musterflrma.example/login",
+    "mark": "musterflrma",
+    "why": "Ein Buchstabe ist vertauscht: „musterflrma“ statt „musterfirma“. Dazu Zeitdruck und ein Link zum Anmelden."
+   },
+   {
+    "k": "mail",
+    "from": "Personalabteilung <personal@musterfirma.example>",
+    "sub": "Erinnerung: Betriebsversammlung am Donnerstag",
+    "body": "Die Betriebsversammlung beginnt um 10 Uhr in der Kantine. Die Tagesordnung hängt am Schwarzen Brett und steht im Intranet.",
+    "link": "",
+    "mark": "steht im Intranet",
+    "why": "Richtige Absenderadresse, kein Link, keine Bitte um Daten. Alles lässt sich auf dem bekannten Weg prüfen."
+   },
+   {
+    "k": "sms",
+    "from": "Paketdienst",
+    "sub": "",
+    "body": "Ihr Paket konnte nicht zugestellt werden. Zollgebühr 1,99 € offen. Jetzt zahlen:",
+    "link": "paket-zustellung-de.example/z",
+    "mark": "Zollgebühr 1,99 €",
+    "why": "Kleiner Betrag, fremder Link, nichts selbst bestellt: typisch für Paket-SMS. Sendungen nur in der App oder auf der Seite prüfen, die man selbst öffnet."
+   },
+   {
+    "k": "mail",
+    "from": "Kantine <kantine@musterfirma.example>",
+    "sub": "Speiseplan nächste Woche",
+    "body": "Montag Linsensuppe, Dienstag Gemüsecurry, Mittwoch Nudeln mit Tomatensoße. Guten Appetit!",
+    "link": "",
+    "mark": "kantine@musterfirma.example",
+    "why": "Erwartete Info vom bekannten Absender, kein Link, kein Anhang, keine Forderung."
+   },
+   {
+    "k": "mail",
+    "from": "Geschäftsführung <gf.musterfirma@freemail.example>",
+    "sub": "Dringend und vertraulich",
+    "body": "Ich sitze im Termin. Kaufen Sie bitte sofort fünf Geschenkkarten zu je 100 € und schicken Sie mir die Codes. Bitte mit niemandem darüber sprechen.",
+    "link": "",
+    "mark": "Geschenkkarten",
+    "why": "Die „Chef-Masche“: private Adresse, Eile, Geheimhaltung und Geschenkkarten. Immer über einen bekannten Weg nachfragen."
+   },
+   {
+    "k": "mail",
+    "from": "IT-Service <it-service@musterfirma.example>",
+    "sub": "Wartung am Samstag",
+    "body": "Am Samstag von 8 bis 12 Uhr ist das Netzlaufwerk nicht erreichbar. Sie müssen nichts tun. Fragen: Durchwahl 1234.",
+    "link": "",
+    "mark": "Sie müssen nichts tun",
+    "why": "Keine Anmeldung, kein Link, keine Eile. Rückfragen gehen über die bekannte Durchwahl, nicht über die Mail."
+   },
+   {
+    "k": "mail",
+    "from": "Buchhaltung Lieferant <rechnung@lieferant-beispiel.example>",
+    "sub": "Neue Bankverbindung ab sofort",
+    "body": "Bitte überweisen Sie offene Rechnungen ab heute auf unser neues Konto. Die alte Verbindung gilt nicht mehr.",
+    "link": "",
+    "mark": "neues Konto",
+    "why": "Neue Bankdaten per Mail sind ein häufiger Betrug. Wie Phishing behandeln, bis es telefonisch unter der bekannten Nummer bestätigt ist."
+   },
+   {
+    "k": "sms",
+    "from": "Musterfirma",
+    "sub": "",
+    "body": "Ihr Anmeldecode: 482913. Sie haben die Anmeldung gerade selbst gestartet? Sonst ignorieren und der IT melden.",
+    "link": "",
+    "mark": "gerade selbst gestartet",
+    "why": "Ein gerade selbst angeforderter Code ohne Link. Trotzdem nie weitergeben, auch nicht am Telefon."
+   },
+   {
+    "k": "mail",
+    "from": "Dokumente teilen <noreply@dokumente-teilen.example>",
+    "sub": "Anna hat ein Dokument mit Ihnen geteilt",
+    "body": "Gehalt_Übersicht.pdf wurde für Sie freigegeben. Zum Öffnen mit Ihrem Firmenpasswort anmelden:",
+    "link": "https://dokumente-teilen.example/oeffnen",
+    "mark": "mit Ihrem Firmenpasswort anmelden",
+    "why": "Neugier als Köder und ein fremder Dienst, der das Firmenpasswort will. Freigaben kommen über das Werkzeug, das die Firma nutzt."
+   },
+   {
+    "k": "mail",
+    "from": "Reisestelle <reise@musterfirma.example>",
+    "sub": "Ihre Buchung für den 3. Dezember",
+    "body": "Ihre Bahnfahrt nach Köln ist gebucht, wie im Antrag vom 20. November. Die Fahrkarte liegt im Reiseportal.",
+    "link": "",
+    "mark": "wie im Antrag vom 20. November",
+    "why": "Bezieht sich auf einen eigenen Antrag und verweist aufs bekannte Portal statt auf einen Link."
+   },
+   {
+    "k": "mail",
+    "from": "Sicherheitsteam <security@musterfirma-support.example>",
+    "sub": "Ungewöhnliche Anmeldung erkannt",
+    "body": "Jemand hat sich aus dem Ausland angemeldet. Wenn Sie das nicht waren, bestätigen Sie Ihr Konto innerhalb von 24 Stunden, sonst wird es gelöscht:",
+    "link": "https://musterfirma-support.example/konto",
+    "mark": "musterfirma-support.example",
+    "why": "Die Domain sieht ähnlich aus, gehört aber nicht der Firma. Drohung und Frist sollen zur Eile drängen."
+   },
+   {
+    "k": "mail",
+    "from": "Betriebsrat <betriebsrat@musterfirma.example>",
+    "sub": "Sprechstunde im Dezember",
+    "body": "Unsere Sprechstunde ist jeden Dienstag von 13 bis 14 Uhr in Raum 2.14. Eine Anmeldung ist nicht nötig.",
+    "link": "",
+    "mark": "Eine Anmeldung ist nicht nötig",
+    "why": "Info ohne Link, ohne Anhang, ohne Bitte um Daten. Nichts daran drängt zur Eile."
+   },
+   {
+    "k": "sms",
+    "from": "Unbekannte Nummer",
+    "sub": "",
+    "body": "Hallo, hier ist Ben aus dem Einkauf, neue Nummer. Gleich kommt bei dir ein Code per SMS, schick ihn mir bitte kurz weiter.",
+    "link": "",
+    "mark": "schick ihn mir bitte kurz weiter",
+    "why": "Wer nach einem Code fragt, will ein Konto übernehmen. Bei einer neuen Nummer über die alte Nummer oder persönlich nachfragen."
+   },
+   {
+    "k": "mail",
+    "from": "Empfang <empfang@musterfirma.example>",
+    "sub": "Paket für Sie am Empfang",
+    "body": "Für Sie ist ein Paket angekommen. Sie können es bis 16 Uhr am Empfang im Erdgeschoss abholen.",
+    "link": "",
+    "mark": "am Empfang im Erdgeschoss abholen",
+    "why": "Kein Link, keine Gebühr, keine Daten. Abholen geht nur persönlich, das lässt sich leicht prüfen."
+   }
+  ],
+  "preis": [
+   {
+    "t": "Eine Brezel beim Bäcker",
+    "s": "Brezel"
+   },
+   {
+    "t": "250 g Butter im Supermarkt",
+    "s": "Butter"
+   },
+   {
+    "t": "1 Liter Vollmilch im Supermarkt",
+    "s": "Milch"
+   },
+   {
+    "t": "1 kg Bananen",
+    "s": "Bananen"
+   },
+   {
+    "t": "10 Eier aus Freilandhaltung",
+    "s": "Eier"
+   },
+   {
+    "t": "500 g Spaghetti im Supermarkt",
+    "s": "Spaghetti"
+   },
+   {
+    "t": "Eine Kugel Eis in der Eisdiele",
+    "s": "Eiskugel"
+   },
+   {
+    "t": "Ein Cappuccino im Café",
+    "s": "Cappuccino"
+   },
+   {
+    "t": "Ein Döner im Imbiss",
+    "s": "Döner"
+   },
+   {
+    "t": "Ein Brot (1 kg) vom Bäcker",
+    "s": "Brot"
+   },
+   {
+    "t": "1 kg Kartoffeln",
+    "s": "Kartoffeln"
+   },
+   {
+    "t": "Eine Tafel Schokolade (100 g) im Supermarkt",
+    "s": "Schokolade"
+   }
+  ]
+ },
+ "en": {
+  "ui": {
+   "phi_intro_h": "How it works",
+   "phi_intro": "Ten made-up mails and texts. Tap for each: real or phishing?",
+   "phi_free": "Voluntary. Not taking part has no consequences.",
+   "phi_br": "For the works council: meant to need no co-determination, because it is voluntary, without names and without results per person. No phishing simulation on colleagues.",
+   "phi_school": "Practice to talk about, does not replace mandatory training.",
+   "phi_q": "Real or phishing?",
+   "phi_nr": "Made-up example {i} of {m}",
+   "phi_real": "✓ Real",
+   "phi_fake": "⚠ Phishing",
+   "phi_why_h": "Answer",
+   "phi_right": "Right.",
+   "phi_wrong": "Not quite.",
+   "phi_is_fake": "This is phishing.",
+   "phi_is_real": "This is real.",
+   "phi_mine": "{n} of {m} right.",
+   "phi_only_me": "Only you see your result. The link carries your answers without your name.",
+   "phi_hard": "Mixed up most: “{s}” ({p}% right)",
+   "phi_you": "Your result",
+   "phi_allright": "The whole team got every example right.",
+   "phi_from": "From",
+   "phi_sub": "Subject",
+   "phi_sms": "Text from",
+   "phi_made": "Made-up example",
+   "phi_tell": "What gives it away:",
+   "pre_go": "Slide to your guess.",
+   "pre_nr": "Price {i} of {m}",
+   "pre_q": "{s}: what does it cost?",
+   "pre_line": "{s} {p} (guesses {a} / {b})",
+   "pk_near": "{w}: {s}",
+   "pk_t0": "Spot on, every one!",
+   "pk_t1": "Very close.",
+   "pk_t2": "Good guessing.",
+   "pk_t3": "Some room left. Rematch?",
+   "pk_ql": "{q} ({z}): {a}",
+   "pk_dn": "{n} off",
+   "pk_d0": "spot on"
+  },
+  "phish": [
+   {
+    "k": "mail",
+    "from": "IT Service <it-service@sarnplecorp.example>",
+    "sub": "Your mailbox is full – confirm now",
+    "body": "Your mailbox will be locked today at 5 pm. Sign in here to free up space:",
+    "link": "https://sarnplecorp.example/login",
+    "mark": "sarnplecorp",
+    "why": "Two letters stand in for one: “sarnplecorp” instead of “samplecorp”. Add time pressure and a sign-in link."
+   },
+   {
+    "k": "mail",
+    "from": "HR <hr@samplecorp.example>",
+    "sub": "Reminder: staff meeting on Thursday",
+    "body": "The staff meeting starts at 10 am in the canteen. The agenda is on the notice board and on the intranet.",
+    "link": "",
+    "mark": "on the intranet",
+    "why": "Right sender address, no link, no request for data. Everything can be checked the usual way."
+   },
+   {
+    "k": "sms",
+    "from": "Parcel service",
+    "sub": "",
+    "body": "Your parcel could not be delivered. Customs fee €1.99 unpaid. Pay now:",
+    "link": "parcel-delivery-uk.example/z",
+    "mark": "Customs fee €1.99",
+    "why": "Small sum, unknown link, nothing you ordered: typical of parcel texts. Only check deliveries in the app or site you open yourself."
+   },
+   {
+    "k": "mail",
+    "from": "Canteen <canteen@samplecorp.example>",
+    "sub": "Menu next week",
+    "body": "Monday lentil soup, Tuesday vegetable curry, Wednesday pasta with tomato sauce. Enjoy!",
+    "link": "",
+    "mark": "canteen@samplecorp.example",
+    "why": "Expected news from a known sender, no link, no attachment, no demand."
+   },
+   {
+    "k": "mail",
+    "from": "Managing director <md.samplecorp@freemail.example>",
+    "sub": "Urgent and confidential",
+    "body": "I am in a meeting. Please buy five gift cards of €100 each right away and send me the codes. Do not tell anyone.",
+    "link": "",
+    "mark": "gift cards",
+    "why": "The “boss scam”: private address, hurry, secrecy and gift cards. Always ask back through a channel you know."
+   },
+   {
+    "k": "mail",
+    "from": "IT Service <it-service@samplecorp.example>",
+    "sub": "Maintenance on Saturday",
+    "body": "On Saturday from 8 am to 12 noon the network drive is offline. You do not need to do anything. Questions: extension 1234.",
+    "link": "",
+    "mark": "You do not need to do anything",
+    "why": "No sign-in, no link, no hurry. Questions go to the known extension, not to the mail."
+   },
+   {
+    "k": "mail",
+    "from": "Supplier accounts <invoice@supplier-sample.example>",
+    "sub": "New bank details from today",
+    "body": "From today please pay open invoices into our new account. The old details are no longer valid.",
+    "link": "",
+    "mark": "new account",
+    "why": "New bank details by mail are a common fraud. Treat it as phishing until it is confirmed by phone on the number you know."
+   },
+   {
+    "k": "sms",
+    "from": "Samplecorp",
+    "sub": "",
+    "body": "Your sign-in code: 482913. Did you just start signing in yourself? If not, ignore this and tell IT.",
+    "link": "",
+    "mark": "just start signing in yourself",
+    "why": "A code you just asked for yourself, without a link. Still never pass it on, not even on the phone."
+   },
+   {
+    "k": "mail",
+    "from": "Share documents <noreply@share-documents.example>",
+    "sub": "Anna shared a document with you",
+    "body": "Salary_overview.pdf has been shared with you. Sign in with your company password to open it:",
+    "link": "https://share-documents.example/open",
+    "mark": "Sign in with your company password",
+    "why": "Curiosity as bait and an unknown service that wants the company password. Shares come through the tool your company uses."
+   },
+   {
+    "k": "mail",
+    "from": "Travel desk <travel@samplecorp.example>",
+    "sub": "Your booking for 3 December",
+    "body": "Your train to Cologne is booked, as in your request of 20 November. The ticket is in the travel portal.",
+    "link": "",
+    "mark": "as in your request of 20 November",
+    "why": "It refers to something you asked for yourself and points to the known portal instead of a link."
+   },
+   {
+    "k": "mail",
+    "from": "Security team <security@samplecorp-support.example>",
+    "sub": "Unusual sign-in detected",
+    "body": "Someone signed in from abroad. If this was not you, confirm your account within 24 hours or it will be deleted:",
+    "link": "https://samplecorp-support.example/account",
+    "mark": "samplecorp-support.example",
+    "why": "The domain looks similar but is not the company's. Threat and deadline are meant to rush you."
+   },
+   {
+    "k": "mail",
+    "from": "Works council <council@samplecorp.example>",
+    "sub": "Office hours in December",
+    "body": "Our office hours are every Tuesday from 1 to 2 pm in room 2.14. No need to sign up.",
+    "link": "",
+    "mark": "No need to sign up",
+    "why": "News without a link, without an attachment, without a request for data. Nothing in it rushes you."
+   },
+   {
+    "k": "sms",
+    "from": "Unknown number",
+    "sub": "",
+    "body": "Hi, it's Ben from purchasing, new number. You will get a code by text in a moment, please just forward it to me.",
+    "link": "",
+    "mark": "please just forward it to me",
+    "why": "Whoever asks for a code wants to take over an account. With a new number, ask back on the old number or in person."
+   },
+   {
+    "k": "mail",
+    "from": "Reception <reception@samplecorp.example>",
+    "sub": "A parcel for you at reception",
+    "body": "A parcel has arrived for you. You can collect it at reception on the ground floor until 4 pm.",
+    "link": "",
+    "mark": "at reception on the ground floor",
+    "why": "No link, no fee, no data. Collecting only works in person, which is easy to check."
+   }
+  ],
+  "preis": [
+   {
+    "t": "A pretzel from the bakery",
+    "s": "Pretzel"
+   },
+   {
+    "t": "250 g of butter in the supermarket",
+    "s": "Butter"
+   },
+   {
+    "t": "1 litre of whole milk in the supermarket",
+    "s": "Milk"
+   },
+   {
+    "t": "1 kg of bananas",
+    "s": "Bananas"
+   },
+   {
+    "t": "10 free-range eggs",
+    "s": "Eggs"
+   },
+   {
+    "t": "500 g of spaghetti in the supermarket",
+    "s": "Spaghetti"
+   },
+   {
+    "t": "One scoop of ice cream at an ice cream parlour",
+    "s": "Ice cream"
+   },
+   {
+    "t": "A cappuccino in a café",
+    "s": "Cappuccino"
+   },
+   {
+    "t": "A doner kebab from a takeaway",
+    "s": "Doner"
+   },
+   {
+    "t": "A loaf of bread (1 kg) from the bakery",
+    "s": "Bread"
+   },
+   {
+    "t": "1 kg of potatoes",
+    "s": "Potatoes"
+   },
+   {
+    "t": "A bar of chocolate (100 g) in the supermarket",
+    "s": "Chocolate"
+   }
+  ]
+ }
+}

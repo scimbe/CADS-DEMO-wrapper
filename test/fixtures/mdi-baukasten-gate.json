@@ -1,0 +1,161 @@
+{
+ "herkunft": "Server-Docs aus CADS-DEMO-wrapper feat/duell-baukasten lib/duell-bau.mjs docOf(BEISPIELE.flappy|memory) mit dem Siegel aus wrapper-frei.json (karte-ok-faehigkeit); Gate-Hash aus CADS-DEMO-wrapper fix/deck-status-hash (#131) lib/duell-deck.mjs gateHash, berechnet am 2026-11-12",
+ "docs": {
+  "flappy": {
+   "k": "bau",
+   "t": "Wolkenflug",
+   "b": {
+    "title": "Wolkenflug",
+    "goal": "Tippe zum Flattern und fliege durch 15 Luecken.",
+    "bg": "sky",
+    "world": {
+     "gravity": 2600,
+     "bottom": "open",
+     "left": "open",
+     "right": "open"
+    },
+    "things": [
+     {
+      "id": "vogel",
+      "look": "emoji",
+      "emoji": "🐤",
+      "w": 84,
+      "h": 84,
+      "gravity": true,
+      "control": "flap",
+      "power": 880
+     },
+     {
+      "id": "rohr",
+      "color": "violet",
+      "w": 150,
+      "h": 200,
+      "vx": -280
+     }
+    ],
+    "start": [
+     {
+      "thing": "vogel",
+      "x": 300,
+      "y": 760,
+      "seat": 0
+     }
+    ],
+    "spawn": [
+     {
+      "thing": "rohr",
+      "every": 1650,
+      "after": 900,
+      "x": 1100,
+      "y": 800,
+      "yr": 330,
+      "gap": 440
+     }
+    ],
+    "rules": [
+     {
+      "a": "vogel",
+      "b": "rohr",
+      "do": [
+       {
+        "act": "life",
+        "n": -1
+       }
+      ]
+     },
+     {
+      "when": "out",
+      "a": "vogel",
+      "b": "bottom",
+      "do": [
+       {
+        "act": "life",
+        "n": -1
+       }
+      ]
+     },
+     {
+      "when": "pass",
+      "a": "vogel",
+      "b": "rohr",
+      "do": [
+       {
+        "act": "score",
+        "on": "a",
+        "n": 1,
+        "thing": ""
+       }
+      ]
+     }
+    ],
+    "end": {
+     "score": 15,
+     "lives": 1
+    },
+    "bot": {
+     "kind": "flap",
+     "thing": "vogel",
+     "target": "rohr"
+    },
+    "v": 1,
+    "mode": "realtime"
+   },
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "by": [],
+   "ki": {
+    "k": "karte",
+    "s": "s2.karte.mwbw1pc0.MdOpyO6QQrGe2HEHVvP5MOBbWQ243rCd",
+    "h": "SQlqBYjKWLukRUUoS8F9XBtoD7HwGTL2q9u9m_I7TkE",
+    "o": "2IUb7YhYxs0ilALZr5tsMc"
+   },
+   "fr": "2IUb7YhYxs0ilALZr5tsMc"
+  },
+  "memory": {
+   "k": "bau",
+   "t": "Tier-Memory",
+   "b": {
+    "title": "Tier-Memory",
+    "goal": "Finde alle Paare. Wer mehr Paare hat, gewinnt.",
+    "mode": "turn",
+    "players": 2,
+    "bg": "paper",
+    "turn": {
+     "kind": "flip",
+     "cols": 4,
+     "rows": 4,
+     "pairs": [
+      "🐶",
+      "🐱",
+      "🦊",
+      "🐸",
+      "🐼",
+      "🐨",
+      "🦁",
+      "🐷"
+     ],
+     "again": true
+    },
+    "v": 1
+   },
+   "col": [
+    "#ffd400",
+    "#ff3b1d"
+   ],
+   "by": [],
+   "ki": {
+    "k": "karte",
+    "s": "s2.karte.mwbw1pc0.MdOpyO6QQrGe2HEHVvP5MOBbWQ243rCd",
+    "h": "SQlqBYjKWLukRUUoS8F9XBtoD7HwGTL2q9u9m_I7TkE",
+    "o": "2IUb7YhYxs0ilALZr5tsMc"
+   },
+   "fr": "2IUb7YhYxs0ilALZr5tsMc"
+  }
+ },
+ "gateHash": {
+  "flappy": "AUluWkDoci8N4ZhF7sEL7SQQOdaAAKilXOIaeR1HYGM",
+  "memory": "CgyZeoUpe0NUc_diyZ_XBkxaEr50ihoKK_2E8UEe3_I"
+ }
+}

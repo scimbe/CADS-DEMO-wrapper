@@ -1,0 +1,10 @@
+{
+  "herkunft": "ideas.json @ pre-legacy-removal, eingeklappte Karten mut-zeitlupe, mut-oper, mut-nachrichten, mut-kompliment (to: zug-auftrag), Feld lines[0] de/en",
+  "ids": ["mut-zeitlupe", "mut-oper", "mut-nachrichten", "mut-kompliment"],
+  "lines": [
+    "Eine Runde Zeitlupe: Geh einmal durch den Raum, als wäre es ein Actionfilm.|One round of slow motion: cross the room like it's an action movie.",
+    "Sing eine Einkaufsliste wie auf der großen Bühne. Dramatisch bitte.|Sing a shopping list like it's the big stage. Dramatic, please.",
+    "Sprich die Nachrichten: Was gerade um dich herum passiert, als wäre es weltbewegend.|Report what's happening around you as if it were world-changing news.",
+    "Sag drei Leuten etwas Nettes, das stimmt. Ohne zu lachen.|Tell three people something nice and true. Without laughing."
+  ]
+}

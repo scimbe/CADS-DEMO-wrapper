@@ -1,0 +1,1436 @@
+{
+ "v": 1,
+ "max": 100,
+ "checked": "2026-11-05",
+ "model": "local-qwen36-35b-a3b-coding",
+ "packs": [
+  {
+   "id": "planeten",
+   "lang": "de",
+   "m": "lernen",
+   "ab": 8,
+   "pk": {
+    "t": "Unsere Planeten",
+    "m": "l",
+    "q": [
+     [
+      "Welcher Planet ist der Sonne am nächsten?",
+      "Merkur",
+      "Venus",
+      "Mars",
+      "Jupiter"
+     ],
+     [
+      "Wie viele Planeten hat unser Sonnensystem?",
+      "8",
+      "7",
+      "9",
+      "10"
+     ],
+     [
+      "Welcher ist der größte Planet?",
+      "Jupiter",
+      "Saturn",
+      "Neptun",
+      "Uranus"
+     ],
+     [
+      "Welcher Planet wird „Roter Planet“ genannt?",
+      "Mars",
+      "Venus",
+      "Merkur",
+      "Jupiter"
+     ],
+     [
+      "Welcher Planet ist der heißeste?",
+      "Venus",
+      "Merkur",
+      "Mars",
+      "Jupiter"
+     ],
+     [
+      "Wie viele Monde hat der Mars?",
+      "2",
+      "0",
+      "1",
+      "4"
+     ],
+     [
+      "Wie viele Tage braucht die Erde ungefähr für eine Runde um die Sonne?",
+      "365",
+      "30",
+      "100",
+      "1000"
+     ]
+    ],
+    "z": [
+     0,
+     8,
+     0,
+     0,
+     0,
+     2,
+     365
+    ]
+   }
+  },
+  {
+   "id": "koerper",
+   "lang": "de",
+   "m": "lernen",
+   "ab": 10,
+   "pk": {
+    "t": "Körper und Skelett",
+    "m": "l",
+    "q": [
+     [
+      "Welches Organ pumpt das Blut durch den Körper?",
+      "Herz",
+      "Leber",
+      "Lunge",
+      "Magen"
+     ],
+     [
+      "Wie viele Knochen hat ein erwachsener Mensch?",
+      "206",
+      "100",
+      "150",
+      "300"
+     ],
+     [
+      "Mit welchem Organ nehmen wir Sauerstoff aus der Luft auf?",
+      "Lunge",
+      "Herz",
+      "Niere",
+      "Magen"
+     ],
+     [
+      "Wie viele Rippen hat ein Mensch normalerweise?",
+      "24",
+      "18",
+      "20",
+      "30"
+     ],
+     [
+      "Welches Organ filtert das Blut und bildet Urin?",
+      "Niere",
+      "Herz",
+      "Magen",
+      "Lunge"
+     ],
+     [
+      "Wie viele Halswirbel hat ein Mensch?",
+      "7",
+      "3",
+      "5",
+      "12"
+     ],
+     [
+      "Wie heißt der längste Knochen des Körpers?",
+      "Oberschenkelknochen",
+      "Schienbein",
+      "Oberarmknochen",
+      "Elle"
+     ]
+    ],
+    "z": [
+     0,
+     206,
+     0,
+     24,
+     0,
+     7,
+     0
+    ]
+   }
+  },
+  {
+   "id": "photosynthese",
+   "lang": "de",
+   "m": "lernen",
+   "ab": 11,
+   "pk": {
+    "t": "Photosynthese",
+    "m": "l",
+    "q": [
+     [
+      "Welches Gas nehmen Pflanzen bei der Photosynthese auf?",
+      "Kohlenstoffdioxid",
+      "Sauerstoff",
+      "Stickstoff",
+      "Helium"
+     ],
+     [
+      "Welches Gas geben Pflanzen bei der Photosynthese ab?",
+      "Sauerstoff",
+      "Kohlenstoffdioxid",
+      "Stickstoff",
+      "Methan"
+     ],
+     [
+      "Welcher grüne Farbstoff fängt das Licht ein?",
+      "Chlorophyll",
+      "Melanin",
+      "Hämoglobin",
+      "Keratin"
+     ],
+     [
+      "In welchem Zellbestandteil läuft die Photosynthese ab?",
+      "Chloroplast",
+      "Mitochondrium",
+      "Zellkern",
+      "Vakuole"
+     ],
+     [
+      "Welcher Zucker entsteht bei der Photosynthese?",
+      "Glucose",
+      "Laktose",
+      "Koffein",
+      "Insulin"
+     ],
+     [
+      "Wie viele Kohlenstoffatome hat ein Glucose-Molekül?",
+      "6",
+      "2",
+      "3",
+      "12"
+     ],
+     [
+      "Welches Metall sitzt in der Mitte des Chlorophyll-Moleküls?",
+      "Magnesium",
+      "Eisen",
+      "Calcium",
+      "Zink"
+     ]
+    ],
+    "z": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     6,
+     0
+    ]
+   }
+  },
+  {
+   "id": "bundeslaender",
+   "lang": "de",
+   "m": "lernen",
+   "ab": 9,
+   "pk": {
+    "t": "Bundesländer und Hauptstädte",
+    "m": "l",
+    "q": [
+     [
+      "Wie heißt die Hauptstadt von Bayern?",
+      "München",
+      "Nürnberg",
+      "Augsburg",
+      "Regensburg"
+     ],
+     [
+      "Wie heißt die Hauptstadt von Nordrhein-Westfalen?",
+      "Düsseldorf",
+      "Köln",
+      "Dortmund",
+      "Essen"
+     ],
+     [
+      "Wie heißt die Hauptstadt von Sachsen?",
+      "Dresden",
+      "Leipzig",
+      "Chemnitz",
+      "Zwickau"
+     ],
+     [
+      "Wie viele Bundesländer hat Deutschland?",
+      "16",
+      "12",
+      "14",
+      "18"
+     ],
+     [
+      "Wie heißt die Hauptstadt von Baden-Württemberg?",
+      "Stuttgart",
+      "Karlsruhe",
+      "Mannheim",
+      "Freiburg"
+     ],
+     [
+      "Wie heißt die Hauptstadt von Hessen?",
+      "Wiesbaden",
+      "Frankfurt am Main",
+      "Kassel",
+      "Darmstadt"
+     ],
+     [
+      "Wie heißt die Hauptstadt von Schleswig-Holstein?",
+      "Kiel",
+      "Lübeck",
+      "Flensburg",
+      "Husum"
+     ],
+     [
+      "Wie heißt die Hauptstadt von Niedersachsen?",
+      "Hannover",
+      "Braunschweig",
+      "Osnabrück",
+      "Göttingen"
+     ]
+    ],
+    "z": [
+     0,
+     0,
+     0,
+     16,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "mittelalter",
+   "lang": "de",
+   "m": "lernen",
+   "ab": 9,
+   "pk": {
+    "t": "Ritter und Burgen",
+    "m": "l",
+    "q": [
+     [
+      "Wie heißt der Hauptturm einer Burg?",
+      "Bergfried",
+      "Palas",
+      "Zwinger",
+      "Torhaus"
+     ],
+     [
+      "Wie heißt das Gitter, das vor dem Burgtor herabgelassen werden konnte?",
+      "Fallgitter",
+      "Zugbrücke",
+      "Schießscharte",
+      "Zinne"
+     ],
+     [
+      "Wie hieß der Wohnbau einer Burg?",
+      "Palas",
+      "Bergfried",
+      "Zwinger",
+      "Burggraben"
+     ],
+     [
+      "Wie hieß ein junger Mann, der ab etwa 14 Jahren zum Ritter ausgebildet wurde?",
+      "Knappe",
+      "Herold",
+      "Vogt",
+      "Mönch"
+     ],
+     [
+      "Wie heißt die feierliche Aufnahme in den Ritterstand?",
+      "Ritterschlag",
+      "Turnier",
+      "Krönung",
+      "Taufe"
+     ],
+     [
+      "Wie hieß der Wettkampf der Ritter zu Pferd?",
+      "Turnier",
+      "Marathon",
+      "Regatta",
+      "Parade"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "dinosaurier",
+   "lang": "de",
+   "m": "lernen",
+   "ab": 8,
+   "pk": {
+    "t": "Dinosaurier",
+    "m": "l",
+    "q": [
+     [
+      "In welchem Erdzeitalter lebten die Dinosaurier?",
+      "Erdmittelalter (Mesozoikum)",
+      "Erdaltertum",
+      "Erdneuzeit",
+      "Eiszeit"
+     ],
+     [
+      "Welcher Dinosaurier hatte drei Hörner am Kopf?",
+      "Triceratops",
+      "Velociraptor",
+      "Stegosaurus",
+      "Brachiosaurus"
+     ],
+     [
+      "Welche heutigen Tiere stammen von Dinosauriern ab?",
+      "Vögel",
+      "Krokodile",
+      "Eidechsen",
+      "Schildkröten"
+     ],
+     [
+      "Welcher Dinosaurier hatte große Knochenplatten auf dem Rücken?",
+      "Stegosaurus",
+      "Triceratops",
+      "Tyrannosaurus",
+      "Diplodocus"
+     ],
+     [
+      "Wie viele Finger hatte der Tyrannosaurus rex an jeder Hand?",
+      "2",
+      "1",
+      "3",
+      "5"
+     ],
+     [
+      "Vor wie vielen Millionen Jahren starben die meisten Dinosaurier aus?",
+      "66",
+      "6",
+      "300",
+      "1000"
+     ],
+     [
+      "Wie heißen Forschende, die Fossilien von Dinosauriern untersuchen?",
+      "Paläontologen",
+      "Archäologen",
+      "Astronomen",
+      "Meteorologen"
+     ]
+    ],
+    "z": [
+     0,
+     0,
+     0,
+     0,
+     2,
+     66,
+     0
+    ]
+   }
+  },
+  {
+   "id": "wasserkreislauf",
+   "lang": "de",
+   "m": "lernen",
+   "ab": 9,
+   "pk": {
+    "t": "Der Wasserkreislauf",
+    "m": "l",
+    "q": [
+     [
+      "Wie heißt es, wenn Wasser durch Wärme zu Wasserdampf wird?",
+      "Verdunstung",
+      "Kondensation",
+      "Gefrieren",
+      "Schmelzen"
+     ],
+     [
+      "Wie heißt es, wenn Wasserdampf abkühlt und zu Tröpfchen wird?",
+      "Kondensation",
+      "Verdunstung",
+      "Schmelzen",
+      "Versickern"
+     ],
+     [
+      "Wie nennt man Regen, Schnee und Hagel zusammen?",
+      "Niederschlag",
+      "Verdunstung",
+      "Grundwasser",
+      "Abfluss"
+     ],
+     [
+      "Was entsteht am Himmel, wenn Wasserdampf kondensiert?",
+      "Wolken",
+      "Wind",
+      "Sonnenschein",
+      "Luftdruck"
+     ],
+     [
+      "Wo ist das meiste Wasser der Erde?",
+      "In den Ozeanen",
+      "In Flüssen",
+      "In Wolken",
+      "Im Grundwasser"
+     ],
+     [
+      "Wie heißt Wasser, das im Boden versickert und sich unter der Erde sammelt?",
+      "Grundwasser",
+      "Meerwasser",
+      "Regenwasser",
+      "Tauwasser"
+     ],
+     [
+      "Wie viel Prozent des Wassers auf der Erde ist ungefähr Salzwasser?",
+      "97",
+      "30",
+      "50",
+      "70"
+     ]
+    ],
+    "z": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     97
+    ]
+   }
+  },
+  {
+   "id": "rom",
+   "lang": "de",
+   "m": "lernen",
+   "ab": 11,
+   "pk": {
+    "t": "Das Römische Reich",
+    "m": "l",
+    "q": [
+     [
+      "Welche Sprache sprachen die alten Römer?",
+      "Latein",
+      "Griechisch",
+      "Gallisch",
+      "Germanisch"
+     ],
+     [
+      "Wie hieß der erste römische Kaiser?",
+      "Augustus",
+      "Nero",
+      "Julius Caesar",
+      "Konstantin"
+     ],
+     [
+      "Wie viele Konsuln regierten in der Römischen Republik gleichzeitig?",
+      "2",
+      "1",
+      "3",
+      "4"
+     ],
+     [
+      "Wie heißt das große Amphitheater in Rom?",
+      "Kolosseum",
+      "Pantheon",
+      "Forum Romanum",
+      "Circus Maximus"
+     ],
+     [
+      "Wie heißt eine römische Wasserleitung über Brückenbögen?",
+      "Aquädukt",
+      "Limes",
+      "Forum",
+      "Therme"
+     ],
+     [
+      "Wie hieß der Grenzwall der Römer in Germanien?",
+      "Limes",
+      "Hadrianswall",
+      "Rubikon",
+      "Via Appia"
+     ],
+     [
+      "In welchem Jahr wurde Rom der Sage nach gegründet?",
+      "753 v. Chr.",
+      "44 v. Chr.",
+      "476 n. Chr.",
+      "1000 v. Chr."
+     ]
+    ],
+    "z": [
+     0,
+     0,
+     2,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "hauptstaedte",
+   "lang": "de",
+   "m": "lernen",
+   "ab": 10,
+   "pk": {
+    "t": "Hauptstädte in Europa",
+    "m": "l",
+    "q": [
+     [
+      "Wie heißt die Hauptstadt von Frankreich?",
+      "Paris",
+      "Lyon",
+      "Marseille",
+      "Nizza"
+     ],
+     [
+      "Wie heißt die Hauptstadt von Italien?",
+      "Rom",
+      "Mailand",
+      "Neapel",
+      "Venedig"
+     ],
+     [
+      "Wie heißt die Hauptstadt von Spanien?",
+      "Madrid",
+      "Barcelona",
+      "Sevilla",
+      "Valencia"
+     ],
+     [
+      "Wie heißt die Hauptstadt von Polen?",
+      "Warschau",
+      "Krakau",
+      "Danzig",
+      "Breslau"
+     ],
+     [
+      "Wie heißt die Hauptstadt von Schweden?",
+      "Stockholm",
+      "Göteborg",
+      "Malmö",
+      "Uppsala"
+     ],
+     [
+      "Wie heißt die Hauptstadt von Österreich?",
+      "Wien",
+      "Salzburg",
+      "Graz",
+      "Linz"
+     ],
+     [
+      "Wie viele Länder gehören zur EU (Stand 2025)?",
+      "27",
+      "25",
+      "28",
+      "30"
+     ]
+    ],
+    "z": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     27
+    ]
+   }
+  },
+  {
+   "id": "vulkane",
+   "lang": "de",
+   "m": "lernen",
+   "ab": 10,
+   "pk": {
+    "t": "Vulkane und Erdbeben",
+    "m": "l",
+    "q": [
+     [
+      "Wie heißt geschmolzenes Gestein unter der Erdoberfläche?",
+      "Magma",
+      "Lava",
+      "Asche",
+      "Basalt"
+     ],
+     [
+      "Wie heißt geschmolzenes Gestein, das aus einem Vulkan austritt?",
+      "Lava",
+      "Magma",
+      "Granit",
+      "Kies"
+     ],
+     [
+      "Mit welchem Gerät misst man Erdbebenwellen?",
+      "Seismograf",
+      "Barometer",
+      "Thermometer",
+      "Kompass"
+     ],
+     [
+      "Wie heißt der Punkt an der Erdoberfläche über einem Erdbebenherd?",
+      "Epizentrum",
+      "Hypozentrum",
+      "Krater",
+      "Magmakammer"
+     ],
+     [
+      "Wie heißt die Öffnung oben auf einem Vulkan?",
+      "Krater",
+      "Magmakammer",
+      "Lavastrom",
+      "Geysir"
+     ],
+     [
+      "Wie heißt der große aktive Vulkan auf Sizilien?",
+      "Ätna",
+      "Vesuv",
+      "Fuji",
+      "Hekla"
+     ],
+     [
+      "Wie heißen die großen Stücke, in die die Erdkruste zerbrochen ist?",
+      "Erdplatten",
+      "Kontinente",
+      "Meeresgräben",
+      "Gebirge"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "erfindungen",
+   "lang": "de",
+   "m": "lernen",
+   "ab": 11,
+   "pk": {
+    "t": "Erfinder und Erfindungen",
+    "m": "l",
+    "q": [
+     [
+      "Wer erfand um 1450 den Buchdruck mit beweglichen Lettern in Europa?",
+      "Johannes Gutenberg",
+      "Martin Luther",
+      "Leonardo da Vinci",
+      "Albrecht Dürer"
+     ],
+     [
+      "Wer baute 1903 das erste gesteuerte Motorflugzeug?",
+      "Die Brüder Wright",
+      "Otto Lilienthal",
+      "Graf Zeppelin",
+      "Carl Benz"
+     ],
+     [
+      "Wer meldete 1886 ein Automobil mit Benzinmotor zum Patent an?",
+      "Carl Benz",
+      "Henry Ford",
+      "Rudolf Diesel",
+      "Ferdinand Porsche"
+     ],
+     [
+      "Wer gilt als Erfinder des Telefons?",
+      "Alexander Graham Bell",
+      "Thomas Edison",
+      "Samuel Morse",
+      "Nikola Tesla"
+     ],
+     [
+      "Wer entdeckte 1928 das Penicillin?",
+      "Alexander Fleming",
+      "Robert Koch",
+      "Louis Pasteur",
+      "Marie Curie"
+     ],
+     [
+      "Wer baute 1941 mit der Z3 einen frühen programmierbaren Computer?",
+      "Konrad Zuse",
+      "Alan Turing",
+      "Charles Babbage",
+      "Bill Gates"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "wald",
+   "lang": "de",
+   "m": "lernen",
+   "ab": 8,
+   "pk": {
+    "t": "Tiere und Pflanzen im Wald",
+    "m": "l",
+    "q": [
+     [
+      "Welcher Baum trägt Eicheln?",
+      "Eiche",
+      "Buche",
+      "Fichte",
+      "Birke"
+     ],
+     [
+      "An welchem Baum wachsen Bucheckern?",
+      "Buche",
+      "Eiche",
+      "Ahorn",
+      "Kiefer"
+     ],
+     [
+      "Wie viele Beine hat ein Insekt, zum Beispiel ein Käfer?",
+      "6",
+      "4",
+      "8",
+      "10"
+     ],
+     [
+      "Wie viele Beine hat eine Spinne?",
+      "8",
+      "6",
+      "10",
+      "12"
+     ],
+     [
+      "Welches Waldtier trägt ein Geweih?",
+      "Rothirsch",
+      "Wildschwein",
+      "Fuchs",
+      "Dachs"
+     ],
+     [
+      "Welcher Nadelbaum verliert im Herbst seine Nadeln?",
+      "Lärche",
+      "Fichte",
+      "Tanne",
+      "Kiefer"
+     ],
+     [
+      "Wie heißt ein junges Wildschwein?",
+      "Frischling",
+      "Kitz",
+      "Welpe",
+      "Fohlen"
+     ],
+     [
+      "Welches Tier baut im Wald große Hügel aus Nadeln?",
+      "Rote Waldameise",
+      "Maulwurf",
+      "Igel",
+      "Eichhörnchen"
+     ]
+    ],
+    "z": [
+     0,
+     0,
+     6,
+     8,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "solar",
+   "lang": "en",
+   "m": "lernen",
+   "ab": 8,
+   "pk": {
+    "t": "Our solar system",
+    "m": "l",
+    "q": [
+     [
+      "Which is the largest planet?",
+      "Jupiter",
+      "Saturn",
+      "Neptune",
+      "Uranus"
+     ],
+     [
+      "How many planets orbit the Sun?",
+      "8",
+      "7",
+      "9",
+      "10"
+     ],
+     [
+      "Which planet is called the Red Planet?",
+      "Mars",
+      "Venus",
+      "Mercury",
+      "Jupiter"
+     ],
+     [
+      "Which planet is closest to the Sun?",
+      "Mercury",
+      "Venus",
+      "Earth",
+      "Mars"
+     ],
+     [
+      "Which is the hottest planet?",
+      "Venus",
+      "Mercury",
+      "Mars",
+      "Jupiter"
+     ],
+     [
+      "Which planet is farthest from the Sun?",
+      "Neptune",
+      "Uranus",
+      "Saturn",
+      "Jupiter"
+     ],
+     [
+      "How many moons does Mars have?",
+      "2",
+      "0",
+      "1",
+      "4"
+     ],
+     [
+      "About how many days does Earth take to go once around the Sun?",
+      "365",
+      "30",
+      "100",
+      "1000"
+     ]
+    ],
+    "z": [
+     0,
+     8,
+     0,
+     0,
+     0,
+     0,
+     2,
+     365
+    ]
+   }
+  },
+  {
+   "id": "ocean",
+   "lang": "en",
+   "m": "lernen",
+   "ab": 9,
+   "pk": {
+    "t": "Oceans and sea life",
+    "m": "l",
+    "q": [
+     [
+      "Which is the largest ocean on Earth?",
+      "Pacific Ocean",
+      "Atlantic Ocean",
+      "Indian Ocean",
+      "Arctic Ocean"
+     ],
+     [
+      "How many hearts does an octopus have?",
+      "3",
+      "1",
+      "2",
+      "4"
+     ],
+     [
+      "Which is the largest animal in the ocean?",
+      "Blue whale",
+      "Humpback whale",
+      "Orca",
+      "Whale shark"
+     ],
+     [
+      "What is the deepest place in the ocean called?",
+      "Mariana Trench",
+      "Great Barrier Reef",
+      "Red Sea",
+      "North Sea"
+     ],
+     [
+      "Which is the largest fish?",
+      "Whale shark",
+      "Great white shark",
+      "Tuna",
+      "Swordfish"
+     ],
+     [
+      "How many arms does an octopus have?",
+      "8",
+      "6",
+      "10",
+      "12"
+     ],
+     [
+      "How many legs does a crab have, claws included?",
+      "10",
+      "6",
+      "8",
+      "12"
+     ]
+    ],
+    "z": [
+     0,
+     3,
+     0,
+     0,
+     0,
+     8,
+     10
+    ]
+   }
+  },
+  {
+   "id": "egypt",
+   "lang": "en",
+   "m": "lernen",
+   "ab": 10,
+   "pk": {
+    "t": "Ancient Egypt",
+    "m": "l",
+    "q": [
+     [
+      "Which river was the lifeline of Ancient Egypt?",
+      "Nile",
+      "Amazon",
+      "Danube",
+      "Euphrates"
+     ],
+     [
+      "What were the rulers of Ancient Egypt called?",
+      "Pharaohs",
+      "Emperors",
+      "Sultans",
+      "Consuls"
+     ],
+     [
+      "What is the Egyptian picture writing called?",
+      "Hieroglyphs",
+      "Cuneiform",
+      "Runes",
+      "Latin letters"
+     ],
+     [
+      "Which god had the head of a jackal?",
+      "Anubis",
+      "Ra",
+      "Osiris",
+      "Horus"
+     ],
+     [
+      "How many large pyramids stand at Giza?",
+      "3",
+      "1",
+      "5",
+      "7"
+     ],
+     [
+      "What did Egyptians write on, made from a river plant?",
+      "Papyrus",
+      "Parchment",
+      "Bamboo",
+      "Silk"
+     ],
+     [
+      "What is the statue with a lion's body and a human head at Giza?",
+      "The Great Sphinx",
+      "The Colossus",
+      "The Obelisk",
+      "The Pharos"
+     ]
+    ],
+    "z": [
+     0,
+     0,
+     0,
+     0,
+     3,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "weather",
+   "lang": "en",
+   "m": "lernen",
+   "ab": 9,
+   "pk": {
+    "t": "Weather and the water cycle",
+    "m": "l",
+    "q": [
+     [
+      "What is it called when water turns into vapour?",
+      "Evaporation",
+      "Condensation",
+      "Precipitation",
+      "Freezing"
+     ],
+     [
+      "What do we call rain, snow and hail falling down?",
+      "Precipitation",
+      "Evaporation",
+      "Transpiration",
+      "Runoff"
+     ],
+     [
+      "What is it called when plants release water into the air?",
+      "Transpiration",
+      "Evaporation",
+      "Condensation",
+      "Runoff"
+     ],
+     [
+      "What is it called when vapour cools into droplets?",
+      "Condensation",
+      "Evaporation",
+      "Infiltration",
+      "Runoff"
+     ],
+     [
+      "Which instrument measures air pressure?",
+      "Barometer",
+      "Thermometer",
+      "Anemometer",
+      "Hygrometer"
+     ],
+     [
+      "At how many degrees Celsius does water boil at sea level?",
+      "100",
+      "50",
+      "80",
+      "120"
+     ]
+    ],
+    "z": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     100
+    ]
+   }
+  },
+  {
+   "id": "datenschutz",
+   "lang": "de",
+   "m": "firma",
+   "ab": 16,
+   "pk": {
+    "t": "Datenschutz im Büro",
+    "m": "f",
+    "q": [
+     [
+      "Wofür steht die Abkürzung DSGVO?",
+      "Datenschutz-Grundverordnung",
+      "Digitale Sicherheitsverordnung",
+      "Datensicherungs-Gesetzesordnung",
+      "Deutsche Steuerverordnung"
+     ],
+     [
+      "Seit wann gilt die DSGVO verbindlich?",
+      "Seit Mai 2018",
+      "Seit 2001",
+      "Seit 2010",
+      "Seit 2022"
+     ],
+     [
+      "Wie viele Artikel hat die DSGVO?",
+      "99",
+      "50",
+      "120",
+      "200"
+     ],
+     [
+      "Binnen wie vieler Stunden muss eine Datenpanne in der Regel der Aufsichtsbehörde gemeldet werden?",
+      "72",
+      "24",
+      "48",
+      "168"
+     ],
+     [
+      "Was sind personenbezogene Daten?",
+      "Alles, womit man eine Person erkennen kann",
+      "Nur Daten aus dem Ausweis",
+      "Nur Gesundheitsdaten",
+      "Nur Passwörter"
+     ],
+     [
+      "Wer berät viele Firmen zum Datenschutz?",
+      "Datenschutzbeauftragte",
+      "Pressesprecher",
+      "Steuerberater",
+      "Notare"
+     ]
+    ],
+    "z": [
+     0,
+     0,
+     99,
+     72,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "id": "phishing",
+   "lang": "de",
+   "m": "firma",
+   "ab": 16,
+   "pk": {
+    "t": "Gefälschte E-Mails erkennen",
+    "m": "f",
+    "q": [
+     [
+      "Was ist ein typisches Zeichen einer gefälschten E-Mail?",
+      "Drängt zu schnellem Handeln",
+      "Kommt zur Arbeitszeit",
+      "Hat eine Signatur",
+      "Ist kurz"
+     ],
+     [
+      "Wie heißt der Betrug mit gefälschten Mails, die an Passwörter kommen wollen?",
+      "Phishing",
+      "Spoofing-Abo",
+      "Caching",
+      "Streaming"
+     ],
+     [
+      "Was tust du mit einem unerwarteten Anhang von Unbekannten?",
+      "Nicht öffnen und melden",
+      "Öffnen und prüfen",
+      "An alle weiterleiten",
+      "Ausdrucken"
+     ],
+     [
+      "Woran erkennt man oft eine gefälschte Mail?",
+      "Absenderadresse passt nicht zur Firma",
+      "Die Mail hat ein Logo",
+      "Die Mail ist auf Deutsch",
+      "Die Mail hat einen Betreff"
+     ],
+     [
+      "Wen fragst du bei einer verdächtigen Mail?",
+      "Die IT oder das Sicherheitsteam",
+      "Den Absender per Antwort",
+      "Niemanden",
+      "Eine Suchmaschine"
+     ],
+     [
+      "Was tun, wenn du auf einen falschen Link geklickt hast?",
+      "Sofort der IT Bescheid geben",
+      "Abwarten",
+      "Den Rechner verschenken",
+      "Nichts sagen"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "klassenfahrt",
+   "lang": "de",
+   "m": "gruppe",
+   "ab": 10,
+   "pk": {
+    "t": "Klassenfahrt: Wer bist du?",
+    "m": "g",
+    "q": [
+     [
+      "Regentag. Was machst du?",
+      [
+       "Spiel für drinnen planen",
+       0
+      ],
+      [
+       "Party draus machen",
+       1
+      ],
+      [
+       "Neuen Ort suchen",
+       2
+      ]
+     ],
+     [
+      "Zelte einpacken. Und du?",
+      [
+       "Sorgfältig packen",
+       0
+      ],
+      [
+       "Wettrennen draus machen",
+       1
+      ],
+      [
+       "Einen Trick testen",
+       2
+      ]
+     ],
+     [
+      "Dein bester Moment?",
+      [
+       "Wenn alles klappt",
+       0
+      ],
+      [
+       "Abends am Lagerfeuer",
+       1
+      ],
+      [
+       "Der Ausflug ins Neue",
+       2
+      ]
+     ],
+     [
+      "Der Plan ändert sich. Und du?",
+      [
+       "Schnell neu planen",
+       0
+      ],
+      [
+       "Sofort dabei sein",
+       1
+      ],
+      [
+       "Neugierig sein",
+       2
+      ]
+     ],
+     [
+      "Was muss mit?",
+      [
+       "Die Packliste",
+       0
+      ],
+      [
+       "Die Musikbox",
+       1
+      ],
+      [
+       "Die Karte",
+       2
+      ]
+     ],
+     [
+      "Verlaufen! Was tust du?",
+      [
+       "Auf den Plan schauen",
+       0
+      ],
+      [
+       "Alle aufmuntern",
+       1
+      ],
+      [
+       "Neuen Weg finden",
+       2
+      ]
+     ]
+    ],
+    "y": [
+     [
+      "Organisationstalent",
+      "Mit dir vergisst niemand etwas."
+     ],
+     [
+      "Stimmungskanone",
+      "Du machst aus Langeweile Abenteuer."
+     ],
+     [
+      "Entdeckergeist",
+      "Du findest, was sonst keiner sieht."
+     ]
+    ]
+   }
+  },
+  {
+   "id": "teamtyp",
+   "lang": "de",
+   "m": "gruppe",
+   "ab": 10,
+   "pk": {
+    "t": "Welcher Team-Typ bist du?",
+    "m": "g",
+    "q": [
+     [
+      "Spiel verloren. Und du?",
+      [
+       "Sagen, wie es weitergeht",
+       0
+      ],
+      [
+       "Den Fehler suchen",
+       1
+      ],
+      [
+       "Alle aufmuntern",
+       2
+      ]
+     ],
+     [
+      "Deine Rolle im Training?",
+      [
+       "Ansagen machen",
+       0
+      ],
+      [
+       "Taktik tüfteln",
+       1
+      ],
+      [
+       "Neue mitnehmen",
+       2
+      ]
+     ],
+     [
+      "Neue Aufgabe. Und du?",
+      [
+       "Die Führung übernehmen",
+       0
+      ],
+      [
+       "Einen Plan machen",
+       1
+      ],
+      [
+       "Fragen, wer mitmacht",
+       2
+      ]
+     ],
+     [
+      "Was bringst du mit?",
+      [
+       "Die Trillerpfeife",
+       0
+      ],
+      [
+       "Die Taktiktafel",
+       1
+      ],
+      [
+       "Die Musikbox",
+       2
+      ]
+     ],
+     [
+      "Sieg! Wie feierst du?",
+      [
+       "Mit einer kurzen Rede",
+       0
+      ],
+      [
+       "Mit der Statistik",
+       1
+      ],
+      [
+       "Mit dem ganzen Team",
+       2
+      ]
+     ]
+    ],
+    "y": [
+     [
+      "Kapitän",
+      "Du gibst dem Team Richtung."
+     ],
+     [
+      "Stratege",
+      "Du findest die beste Lösung."
+     ],
+     [
+      "Teamgeist",
+      "Du bringst alle zusammen."
+     ]
+    ]
+   }
+  }
+ ]
+}

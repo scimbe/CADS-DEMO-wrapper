@@ -24,3 +24,23 @@ jobs:
       # Dependency-free: no install step. Boots the server without LLM credentials; the vendored wasm
       # is checked against static/vendor/manifest-core-wasm/PROVENANCE.json.
       - run: node --test test/*.mjs
+
+  # lib/vendor/mdi is the new app's own code (bin/vendor-mdi.mjs). This job compares it with apps/mdi on the branch named in
+  # its PROVENANCE.json ("track") and fails on drift, so a change in the app's adapters never goes unnoticed on the server.
+  vendor-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: prov
+        run: echo "track=$(node -p "require('./lib/vendor/mdi/PROVENANCE.json').track")" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: scimbe/CADS-agent-marketplace
+          ref: ${{ steps.prov.outputs.track }}
+          path: mp
+          sparse-checkout: apps/mdi/src
+      - run: MDI_SRC=mp/apps/mdi/src node --test test/vendor-mdi.test.mjs

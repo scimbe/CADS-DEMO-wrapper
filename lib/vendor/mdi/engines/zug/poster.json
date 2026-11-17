@@ -1,0 +1,423 @@
+{
+ "herkunft": "Katalog ideas.json (Tag pre-legacy-removal), Felder de/en t,s,lines, style, warm, col, set, re der eingeklappten Karten",
+ "posters": {
+  "karte-lob": {
+   "de": {
+    "t": "Urkunde|für nix",
+    "s": "Auszeichnung fürs Durchhalten.",
+    "lines": [
+     "Goldmedaille im Aufstehen.",
+     "Hat heute Wasser getrunken.",
+     "Weltmeister im Weitermachen.",
+     "Ist überhaupt gekommen."
+    ]
+   },
+   "en": {
+    "t": "Award|for nothing",
+    "s": "A trophy for showing up.",
+    "lines": [
+     "Gold medal in getting up.",
+     "Drank water today.",
+     "World champion of carrying on.",
+     "Actually showed up."
+    ]
+   },
+   "style": null,
+   "warm": null,
+   "col": null,
+   "set": null,
+   "re": []
+  },
+  "warm-toll": {
+   "de": {
+    "t": "Du bist|toll",
+    "s": "Einfach so. Ohne Grund.",
+    "lines": [
+     "Ich wollte dir nur mal sagen: Du bist toll.",
+     "Nur kurz: Du bist toll.",
+     "Kein Anlass. Du bist einfach toll."
+    ]
+   },
+   "en": {
+    "t": "You are|awesome",
+    "s": "Just because. No reason.",
+    "lines": [
+     "Just wanted to tell you: You're awesome.",
+     "Quick note: You're awesome.",
+     "No reason. You're just awesome."
+    ]
+   },
+   "style": "herz",
+   "warm": "herz",
+   "col": [
+    "#f2705f",
+    "#ffc9a3"
+   ],
+   "set": "herz",
+   "re": [
+    "warm-danke",
+    "warm-freunde"
+   ]
+  },
+  "warm-danke": {
+   "de": {
+    "t": "Danke, dass|es dich gibt",
+    "s": "Einfach mal Danke sagen.",
+    "lines": [
+     "Danke, dass es dich gibt.",
+     "Gut, dass es dich gibt.",
+     "Mit dir ist vieles leichter. Danke."
+    ]
+   },
+   "en": {
+    "t": "So glad|you exist",
+    "s": "Just saying thanks.",
+    "lines": [
+     "So glad you exist.",
+     "I'm glad you're in my life.",
+     "Things are easier with you. Thanks."
+    ]
+   },
+   "style": "herz",
+   "warm": "blume",
+   "col": [
+    "#e8833a",
+    "#ffdda8"
+   ],
+   "set": "herz",
+   "re": [
+    "warm-toll",
+    "warm-freunde"
+   ]
+  },
+  "warm-super": {
+   "de": {
+    "t": "Das hast du|super gemacht",
+    "s": "Für das, was du geschafft hast.",
+    "lines": [
+     "Das war richtig stark von dir.",
+     "Ich hab's gesehen. Richtig stark.",
+     "Du bist drangeblieben. Respekt."
+    ]
+   },
+   "en": {
+    "t": "You did|great",
+    "s": "For what you pulled off.",
+    "lines": [
+     "That was seriously good.",
+     "I saw it. Really strong.",
+     "You kept going. Respect."
+    ]
+   },
+   "style": "herz",
+   "warm": "stern",
+   "col": [
+    "#f9d648",
+    "#d9483b"
+   ],
+   "set": "herz",
+   "re": [
+    "warm-danke",
+    "warm-freunde"
+   ]
+  },
+  "warm-denke": {
+   "de": {
+    "t": "Ich denk|an dich",
+    "s": "Wenn gerade viel los ist.",
+    "lines": [
+     "Ich denk an dich.",
+     "Du bist nicht allein. Ich denk an dich.",
+     "Heute denk ich ganz fest an dich."
+    ]
+   },
+   "en": {
+    "t": "Thinking|of you",
+    "s": "When a lot is going on.",
+    "lines": [
+     "Thinking of you.",
+     "You're not alone. Thinking of you.",
+     "Thinking of you extra today."
+    ]
+   },
+   "style": "herz",
+   "warm": "mond",
+   "col": [
+    "#6b3a5e",
+    "#e3b04b"
+   ],
+   "set": "herz",
+   "re": [
+    "warm-denke",
+    "warm-danke"
+   ]
+  },
+  "warm-daumen": {
+   "de": {
+    "t": "Ich drück dir|die Daumen",
+    "s": "Vor der Prüfung, dem Spiel, dem Auftritt.",
+    "lines": [
+     "Ich drück dir die Daumen. Egal wie es ausgeht.",
+     "Tief durchatmen. Ich bin bei dir.",
+     "Du schaffst das. Ich glaub an dich."
+    ]
+   },
+   "en": {
+    "t": "Fingers|crossed",
+    "s": "Before the test, the match, the show.",
+    "lines": [
+     "Fingers crossed for you. Whatever happens.",
+     "Deep breath. I'm with you.",
+     "You've got this. I believe in you."
+    ]
+   },
+   "style": "herz",
+   "warm": "klee",
+   "col": [
+    "#1f6f78",
+    "#f2c94c"
+   ],
+   "set": "herz",
+   "re": [
+    "warm-danke",
+    "warm-toll"
+   ]
+  },
+  "warm-lachen": {
+   "de": {
+    "t": "Dein Lachen|steckt an",
+    "s": "Weil du gute Laune verbreitest.",
+    "lines": [
+     "Dein Lachen steckt an. Danke dafür.",
+     "Mit dir lache ich am meisten.",
+     "Du machst gute Laune. Einfach so."
+    ]
+   },
+   "en": {
+    "t": "Your laugh|is contagious",
+    "s": "Because you spread good vibes.",
+    "lines": [
+     "Your laugh is contagious. Thanks for that.",
+     "I laugh the most with you.",
+     "You bring the good mood. Just like that."
+    ]
+   },
+   "style": "herz",
+   "warm": "regenbogen",
+   "col": [
+    "#f4a6b8",
+    "#ffe27a"
+   ],
+   "set": "herz",
+   "re": [
+    "warm-freunde",
+    "warm-danke"
+   ]
+  },
+  "warm-freunde": {
+   "de": {
+    "t": "Schön, dass wir|Freunde sind",
+    "s": "Für die, die immer da sind.",
+    "lines": [
+     "Schön, dass wir Freunde sind.",
+     "Mit dir ist sogar Montag okay.",
+     "Gut, dass wir uns kennen."
+    ]
+   },
+   "en": {
+    "t": "Glad we're|friends",
+    "s": "For the ones who are always there.",
+    "lines": [
+     "Glad we're friends.",
+     "Even Mondays are fine with you.",
+     "So glad we know each other."
+    ]
+   },
+   "style": "herz",
+   "warm": "ballon",
+   "col": [
+    "#e2574c",
+    "#f7d154"
+   ],
+   "set": "herz",
+   "re": [
+    "warm-freunde",
+    "warm-danke"
+   ]
+  },
+  "warm-mutig": {
+   "de": {
+    "t": "Ich bin|stolz auf dich",
+    "s": "Weil du dich getraut hast.",
+    "lines": [
+     "Das war mutig von dir. Respekt.",
+     "Egal wie es ausgeht: Ich find's stark, dass du es gemacht hast.",
+     "Ich bin stolz auf dich."
+    ]
+   },
+   "en": {
+    "t": "Proud|of you",
+    "s": "Because you went for it.",
+    "lines": [
+     "That was brave of you. Respect.",
+     "Whatever happens: Respect for doing it.",
+     "I'm proud of you."
+    ]
+   },
+   "style": "herz",
+   "warm": "sonne",
+   "col": [
+    "#ef7b2e",
+    "#f7b733"
+   ],
+   "set": "herz",
+   "re": [
+    "warm-danke",
+    "warm-freunde"
+   ]
+  },
+  "warm-besserung": {
+   "de": {
+    "t": "Gute|Besserung",
+    "s": "Werd in Ruhe wieder fit.",
+    "lines": [
+     "Gute Besserung! Ich vermiss dich schon.",
+     "Werd gesund. Wir sind da, wenn du wieder fit bist.",
+     "Ruh dich aus. Der Rest kann warten."
+    ]
+   },
+   "en": {
+    "t": "Get well|soon",
+    "s": "Take your time getting better.",
+    "lines": [
+     "Get well soon! Missing you already.",
+     "Get better. We're here when you're back.",
+     "Rest up. Everything else can wait."
+    ]
+   },
+   "style": "herz",
+   "warm": "pflaster",
+   "col": [
+    "#f0b8b0",
+    "#ffe9d6"
+   ],
+   "set": "herz",
+   "re": [
+    "warm-danke",
+    "warm-denke"
+   ]
+  },
+  "warm-gruss": {
+   "de": {
+    "t": "Kleiner Gruß|für deinen Tag",
+    "s": "Für den Start in den Tag.",
+    "lines": [
+     "Mach was Schönes aus dem Tag.",
+     "Heute wird gut. Ich drück die Daumen.",
+     "Kleiner Gruß für deinen Tag."
+    ]
+   },
+   "en": {
+    "t": "Have|a good one",
+    "s": "For the start of your day.",
+    "lines": [
+     "Have a good one.",
+     "Today's going to be good. Fingers crossed.",
+     "Just a little hello for your day."
+    ]
+   },
+   "style": "herz",
+   "warm": "tasse",
+   "col": [
+    "#c98a4b",
+    "#ffe9c8"
+   ],
+   "set": "herz",
+   "re": [
+    "warm-gruss",
+    "warm-danke"
+   ]
+  },
+  "halloween": {
+   "de": {
+    "t": "Happy|Halloween",
+    "s": "Mach deine Gruselkarte.",
+    "lines": [
+     "Süßes oder Saures? Ich nehm beides.",
+     "Ich bin nicht verkleidet. Ich seh morgens so aus.",
+     "Heute Nacht darf alles spuken. Auch dein Akku."
+    ]
+   },
+   "en": {
+    "t": "Happy|Halloween",
+    "s": "Make your spooky card.",
+    "lines": [
+     "Trick or treat? I'll take both.",
+     "This is no costume. I look like this every morning.",
+     "Tonight everything haunts. Even your battery."
+    ]
+   },
+   "style": "neon",
+   "warm": null,
+   "col": [
+    "#120b1f",
+    "#ff7a00"
+   ],
+   "set": "grusel",
+   "re": []
+  },
+  "warm-sorry": {
+   "de": {
+    "t": "Tut mir|leid",
+    "s": "Wenn du was gutmachen willst.",
+    "lines": [
+     "Tut mir leid. Können wir reden?",
+     "Das war nicht okay von mir. Sorry.",
+     "Ich vermiss uns. Sorry für vorhin."
+    ]
+   },
+   "en": {
+    "t": "I'm|sorry",
+    "s": "When you want to make things right.",
+    "lines": [
+     "I'm sorry. Can we talk?",
+     "That wasn't okay of me. Sorry.",
+     "I miss us. Sorry about earlier."
+    ]
+   },
+   "style": "herz",
+   "warm": "brief",
+   "col": [
+    "#b5656b",
+    "#ffe0c7"
+   ],
+   "set": "herz",
+   "re": [
+    "warm-freunde",
+    "warm-denke"
+   ]
+  }
+ },
+ "text": {
+  "de": {
+   "pos_line": "Welcher Satz?",
+   "pos_to": "Für wen? (Vorname, darf leer bleiben)",
+   "pos_from": "Von wem? (darf leer bleiben)",
+   "pos_got": "Für dich",
+   "pos_sig": "Von {n}",
+   "pos_reply": "Antworten mit: {t}",
+   "pos_h": "{s}",
+   "dan_variant": "Art"
+  },
+  "en": {
+   "pos_line": "Which line?",
+   "pos_to": "For whom? (first name, may stay empty)",
+   "pos_from": "From whom? (may stay empty)",
+   "pos_got": "For you",
+   "pos_sig": "From {n}",
+   "pos_reply": "Reply with: {t}",
+   "pos_h": "{s}",
+   "dan_variant": "Kind"
+  }
+ }
+}

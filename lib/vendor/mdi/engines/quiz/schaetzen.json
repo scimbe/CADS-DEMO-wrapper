@@ -1,0 +1,94 @@
+{
+ "guess": [
+  [
+   "Wie viele Knochen hat ein Erwachsener?",
+   "How many bones does an adult have?",
+   206,
+   500
+  ],
+  [
+   "Wie viele Tasten hat ein Klavier?",
+   "How many keys does a piano have?",
+   88,
+   200
+  ],
+  [
+   "Wie viele Zähne hat ein Erwachsener?",
+   "How many teeth does an adult have?",
+   32,
+   60
+  ],
+  [
+   "Wie hoch ist der Eiffelturm in Metern?",
+   "How tall is the Eiffel Tower in metres?",
+   330,
+   1000
+  ],
+  [
+   "Wie viele Felder hat ein Schachbrett?",
+   "How many squares does a chessboard have?",
+   64,
+   200
+  ],
+  [
+   "Wie hoch ist der Everest in Metern?",
+   "How tall is Everest in metres?",
+   8849,
+   12000
+  ],
+  [
+   "Wie viele Herzen hat ein Krake?",
+   "How many hearts does an octopus have?",
+   3,
+   10
+  ],
+  [
+   "Wie viele Tage hat ein Marsjahr?",
+   "How many days are in a Mars year?",
+   687,
+   1000
+  ],
+  [
+   "Wie viele Karten hat ein Pokerspiel ohne Joker?",
+   "How many cards in a deck without jokers?",
+   52,
+   100
+  ],
+  [
+   "Wie viele Planeten hat unser Sonnensystem?",
+   "How many planets are in our solar system?",
+   8,
+   20
+  ],
+  [
+   "Wie viele Sekunden hat eine Stunde?",
+   "How many seconds are in an hour?",
+   3600,
+   10000
+  ],
+  [
+   "Wie viele Kilometer hat ein Marathon?",
+   "How many kilometres is a marathon?",
+   42,
+   100
+  ],
+  [
+   "Wie viele Beine hat eine Spinne?",
+   "How many legs does a spider have?",
+   8,
+   20
+  ],
+  [
+   "Wie viele Stunden hat eine Woche?",
+   "How many hours are in a week?",
+   168,
+   500
+  ],
+  [
+   "Wie viele Minuten hat ein Tag?",
+   "How many minutes are in a day?",
+   1440,
+   5000
+  ]
+ ]
+}

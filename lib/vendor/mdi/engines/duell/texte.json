@@ -1,0 +1,5 @@
+{
+  "herkunft": "Ergänzungen zu duel.json (Altcode) für die Vertragskarte; alle übrigen Texte stammen wörtlich aus duel.json",
+  "de": { "rivalIs": "Gegner:", "challenge": "Jemanden herausfordern", "next": "Wie weiter?", "friend": "Jemand", "mindGo": "Los geht's", "mindLast": "Du {a}, Agent {b} · {s}:{t}", "deckGo": "60 Sekunden: Aufgabe lösen, dann die nächste.", "deckCount": "{n} Aufgaben geschafft" },
+  "en": { "rivalIs": "Rival:", "challenge": "Challenge someone", "next": "What next?", "friend": "Someone", "mindGo": "Let's go", "mindLast": "You {a}, agent {b} · {s}:{t}", "deckGo": "60 seconds: solve a task, then the next.", "deckCount": "{n} tasks done" }
+}
