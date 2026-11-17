@@ -76,6 +76,14 @@ services:
       - DUELL_BILD_BACKEND=${DUELL_BILD_BACKEND:-off}
       - DUELL_BILD_URL=${DUELL_BILD_URL:-}
       - DUELL_BILD_TOKEN_FILE=${DUELL_BILD_TOKEN_FILE:-}
+      # App-Anmeldung iOS/Android (lib/oidc.mjs): Access-Token aus Keycloak als Bearer, gleiche Identitaet wie das Gate-Cookie.
+      # Aus, solange die drei leer sind; nur zusammen und nur mit DEMO_AUTH_MODE=gate. Runbook: mdi-greenfield 07-protokoll/2026-11-11-oidc-apps.md
+      - DEMO_OIDC_ISSUER=${DEMO_OIDC_ISSUER:-}
+      - DEMO_OIDC_AUDIENCE=${DEMO_OIDC_AUDIENCE:-}
+      - DEMO_OIDC_CLIENT_IDS=${DEMO_OIDC_CLIENT_IDS:-}
+      # erstes (iss, sub) je Adresse; Salt geheim und stabil halten (sonst gelten alle Bindungen als neu)
+      - DEMO_OIDC_BINDING_FILE=${DEMO_OIDC_BINDING_FILE:-/var/lib/duell-ai/oidc-subjects.json}
+      - DEMO_OIDC_BINDING_SALT=${DEMO_OIDC_BINDING_SALT:-}
       # Wetterkarte: Grenzen je gehashter IP und pro UTC-Tag (siehe lib/duell-weather.mjs).
       - DUELL_WEATHER_IP_PER_HOUR=${DUELL_WEATHER_IP_PER_HOUR:-30}
       - DUELL_WEATHER_DAILY_MAX=${DUELL_WEATHER_DAILY_MAX:-1000}

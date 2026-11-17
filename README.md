@@ -83,6 +83,44 @@ Entzug wirkt nach spaetestens 60 s. Logs enthalten nur einen HMAC-Pseudonym-Prae
 Ohne `DEMO_AUTH_MODE=gate` (Default `off`) bleibt das Verhalten unveraendert (offen). Pfadregeln sind
 mit dem Gate-Mechanismus allein nicht moeglich (er gilt je Hostname); sie werden hier im Origin umgesetzt.
 
+### App-Anmeldung (iOS/Android, OIDC + PKCE)
+
+Die App-Huellen von My Daily Idea melden sich per Authorization Code + PKCE (S256) im System-Browser am Realm
+`ct-demo` an (oeffentlicher Client `cads-mobile`) und rufen `/api/duell/*` und `/auth/me` **nativ** mit
+`Authorization: Bearer <Access-Token>` auf; das Token erreicht nie JavaScript. `lib/auth.mjs` `identify()` bleibt die
+eine Stelle, die aus einer Anfrage ein Konto macht: Gate-Cookie ODER Bearer ergeben dieselbe E-Mail-Identitaet, alle
+Regeln (Toepfe, 16+, Moderation, Limits) bleiben serverseitig und unveraendert. Traegt eine Anfrage einen
+`Authorization`-Header, entscheidet er allein (ungueltig = nicht angemeldet, kein Rueckfall aufs Cookie).
+
+Pruefung (`lib/oidc.mjs`, fail closed): JWS hoechstens 8 KiB, `alg` nur RS256/ES256 und passend zum Schluessel, `kid`
+Pflicht, Schluessel nur aus dem JWKS des Issuers (kein `jku`/`jwk`/`x5u`, kein `crit`); `iss` exakt, `aud` enthaelt
+`DEMO_OIDC_AUDIENCE`, `azp` in `DEMO_OIDC_CLIENT_IDS`, `typ` = `Bearer` (Pflicht), `sub` Pflicht, kein `cnf` (gebundene
+Tokens werden hier nicht angenommen), `exp` und `iat` Pflicht mit `exp - iat` hoechstens 15 min, `nbf` beachtet (je 5 s
+Toleranz, `DEMO_OIDC_SKEW_S`), `email` mit `@` und `email_verified: true`. **Subjekt-Bindung:** das erste `(iss, sub)`
+je E-Mail-Adresse wird gespeichert (`DEMO_OIDC_BINDING_FILE`, Schluessel und Werte als HMAC mit
+`DEMO_OIDC_BINDING_SALT`, nichts im Klartext); ein spaeteres Token mit derselben Adresse, aber anderem Subjekt wird
+abgewiesen (`reason: subject-changed`) – eine bei einem Identity-Provider neu vergebene Adresse uebernimmt kein Konto.
+Wird ein Konto in Keycloak bewusst neu angelegt, den Eintrag entfernen: Schluessel =
+`node -e "import('./lib/oidc.mjs').then(m=>console.log(m.createSubjectBinding({file:process.argv[1],salt:process.env.DEMO_OIDC_BINDING_SALT}).key(process.argv[2])))" <datei> <adresse>`.
+JWKS: 10 min Cache, Antwort hoechstens 64 KiB (beim Lesen begrenzt), neuer `kid` loest hoechstens alle 30 s einen
+Abruf aus (Rotation, kein Verstaerker fuer zufaellige kids), gleichzeitige Anfragen warten auf einen laufenden Abruf;
+Keycloak nicht erreichbar und keine Schluessel: `503`; Schluessel aelter als 2 h gelten nicht mehr. Abweisungen werden nur mit Grund geloggt (hoechstens einmal pro Minute und Grund), nie mit Token
+oder E-Mail. CORS: keine Aenderung; die App ruft nativ (ohne `Origin`), und `Authorization` ist fuer Browser-Seiten
+fremder Herkunft nicht freigegeben (kein `Access-Control-Allow-Headers: Authorization`).
+
+**Betrieb (Achtung):** Ist die App-Anmeldung an, entscheidet ein `Authorization`-Header allein. Setzt etwas vor dem
+Wrapper (Proxy, Monitoring) einen eigenen `Authorization`-Header (Basic oder Bearer), wird ein Browser mit gueltigem
+Gate-Cookie als nicht angemeldet behandelt. Der Pfad Edge → Agent → Wrapper setzt heute keinen solchen Header; bei
+Aenderungen dort pruefen.
+
+Konfiguration (alle drei oder keine; nur mit `DEMO_AUTH_MODE=gate`, dazu `DEMO_OIDC_BINDING_FILE` und
+`DEMO_OIDC_BINDING_SALT` (mindestens 16 Zeichen, geheim, stabil); sonst startet der Server nicht):
+`DEMO_OIDC_ISSUER=https://auth.bunsenbrenner.org/realms/ct-demo`, `DEMO_OIDC_AUDIENCE=mydailyidea-api`,
+`DEMO_OIDC_CLIENT_IDS=cads-mobile`; optional `DEMO_OIDC_JWKS_URL` (Default `<issuer>/protocol/openid-connect/certs`).
+`/auth/me` meldet zusaetzlich `app_login: true|false`. Keycloak-Schritte (Audience-Mapper, DPoP-Bindung der
+Refresh-Tokens) und Rueckweg: Runbook `mdi-greenfield/docs/greenfield/07-protokoll/2026-11-11-oidc-apps.md`.
+Tests: `test/oidc.test.mjs` (lokal erzeugte Schluessel, falsches JWKS, kein Netz).
+
 ## Behind demos.bunsenbrenner.org (CADS-Tunnel, Browser Plane)
 Onboard a ct-agent with `CT_AGENT_ORIGIN=127.0.0.1:8790` (plain TCP proxy) — see the deploy
 notes. No `CT_AGENT_SERVICE_HANDLER` needed (that is the channel path, not plain onboard/serve).
