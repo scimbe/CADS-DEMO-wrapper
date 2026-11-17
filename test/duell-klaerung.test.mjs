@@ -51,7 +51,7 @@ function setup({ llm = fakeLlm({ klaerung_fragen: FRAGEN, klaerung_liste: liste(
   const dir = mkdtempSync(join(tmpdir(), 'klaerung-'));
   const d = createDuell({ env: {}, salt: 's', log: () => {}, llm: async () => '{}' });
   const spent = [];
-  const credit = { available: () => guthaben - spent.length, spend: (k, n) => { if (guthaben - spent.length < n) return false; spent.push([k, n]); return true; } };
+  const credit = { available: () => guthaben - spent.length, spend: (k, n) => { if (guthaben - spent.length < n) return false; spent.push([k, n]); return true; }, refund: (k, n) => { const i = spent.findIndex((x) => x[0] === k && x[1] === n); if (i < 0) return false; spent.splice(i, 1); return true; } };
   Object.assign(d.shared, { age16, mod: { canCreate: () => ({ ok: true }) }, credit });
   const k = createKlaerung({ env: { DUELL_KLAERUNG: 'on', DUELL_KLAERUNG_DIR: dir, DUELL_ADMIN_TOKEN: 'admin-token-123456', ...env }, shared: d.shared, who: async (req) => (req.headers['x-acct'] ? { ...P, acct: req.headers['x-acct'] } : { account: false }), llm, log: () => {} });
   const bau = withBau(k, d.shared, dir);
@@ -196,7 +196,7 @@ test('Ja, so bauen: Bauauftrag als JSON fuer P3, genau die gesehene Liste; doppe
   assert.deepEqual(o.punkte, l.body.punkte); assert.equal(o.satz, 'Space Invaders mit Segelbooten');
   assert.deepEqual(o.fragen[1].antwort, { art: 'eigen', text: 'Wasserbomben, die bunt platzen' });
   assert.deepEqual(o.fragen[0].antwort, { art: 'kachel', kachel: 0, label: 'Ein Segelboot' });
-  assert.deepEqual(o.kosten, { guthaben: 1, nurBeiErfolg: true, abgebucht: false });
+  assert.equal(o.kosten.guthaben, 1); assert.equal(o.kosten.abgebucht, false); assert.equal(o.kosten.stand, 'vorgemerkt', '1 credit reserved, not charged');
   assert.deepEqual(o.optin, { push: false, mail: false }, 'no consent until ticked');
   assert.deepEqual(s.k.optin(P, { auftrag: a.body.auftrag, push: true, mail: false, mark: MARK }).body.optin, { push: true, mail: false });
   assert.equal(s.store.get(a.body.auftrag).optin.push, true); assert.equal(s.store.get(a.body.auftrag).optin.mark, MARK);

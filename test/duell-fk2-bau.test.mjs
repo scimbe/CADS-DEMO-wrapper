@@ -33,11 +33,13 @@ function setup({ guthaben = 5, env = {}, mailOn = true, pushOn = true } = {}) {
   writeFileSync(join(dir, 'token'), TOKEN + '\n');
   const d = createDuell({ env: {}, salt: 's', log: () => {}, llm: async () => '{}' });
   const spent = [];
-  const credit = { available: () => guthaben - spent.reduce((a, x) => a + x[1], 0), spend: (k, n) => { if (credit.available() < n) return false; spent.push([k, n]); return true; } };
+  // the credit book as lib/duell-credit.mjs: spend raises the spent count, refund lowers it
+  const credit = { available: () => guthaben - spent.reduce((a, x) => a + x[1], 0), spend: (k, n) => { if (credit.available() < n) return false; spent.push([k, n]); return true; },
+    refund: (k, n) => { const i = spent.findIndex((x) => x[0] === k && x[1] === n); if (i < 0) return false; spent.splice(i, 1); return true; } };
   Object.assign(d.shared, { age16: () => true, mod: { canCreate: () => ({ ok: true }) }, credit });
   const k = createKlaerung({ env: { DUELL_KLAERUNG: 'on', DUELL_KLAERUNG_DIR: join(dir, 'auftraege') }, shared: d.shared, who: async () => P, llm: fakeLlm(), log: () => {} });
   const pushes = [], mails = [], logs = [];
-  const push = { on: () => pushOn, notify: async (mark, kind) => { pushes.push([mark, kind]); return 'sent'; } };
+  const push = { on: () => pushOn, notify: async (mark, kind, auftrag) => { pushes.push([mark, kind, auftrag]); return 'sent'; } };
   const mail = { on: () => mailOn, send: async (m) => { mails.push(m); return { ok: true }; } };
   let t = Date.parse('2026-11-18T10:00:00Z');
   const benv = { DUELL_BAU: 'on', DUELL_BAU_TOKEN_FILE: join(dir, 'token'), DUELL_SPIEL_ORIGIN: 'https://spiel-f29c55da.bunsenbrenner.org', DUELL_SPIEL_MODULE_DIR: join(dir, 'spiele'), DUELL_APP_URL: 'https://demos-34a13a96.bunsenbrenner.org/duell', DUELL_IP_HEADER: 'X-Real-IP', ...env };
@@ -55,7 +57,7 @@ async function order(s) {
 const punkte = (ids, fehlt = []) => ids.map((id) => ({ id, erfuellt: !fehlt.includes(id), notiz: fehlt.includes(id) ? 'Die Boote werden noch nicht schneller.' : '', geprueft: id === 'p3' ? 'gelesen' : 'gespielt' }));
 const okBody = (job, fehlt = []) => ({ auftrag: job.auftrag.id, lease: job.lease, art: job.art, ok: true, titel: job.auftrag.titel, punkte: punkte(job.auftrag.punkte.map((p) => p.id), fehlt), spiel: { code: CODE, sha256: SHA }, plan: { typ: 'echtzeit', spielplan: 'x', punkte: [] }, ms: 1000, usd: 0.01 });
 
-test('Auftrag: nur mit Guthaben (nichts abgebucht), dann in der Warteschlange; Kanaele ehrlich', async () => {
+test('Auftrag: 1 Guthaben wird vorgemerkt (ohne Guthaben kein Auftrag), dann in der Warteschlange; Kanaele ehrlich', async () => {
   const arm = setup({ guthaben: 0 });
   const f = await arm.k.fragen(P, { satz: 'Space Invaders mit Segelbooten', lang: 'de' });
   await arm.k.liste(P, { id: f.body.id, antworten: [{ art: 'kachel', kachel: 0 }] });
@@ -65,8 +67,9 @@ test('Auftrag: nur mit Guthaben (nichts abgebucht), dann in der Warteschlange; K
   await s.k.liste(P, { id: f2.body.id, antworten: [{ art: 'kachel', kachel: 0 }] });
   const a = s.k.auftrag(P, { id: f2.body.id });
   assert.deepEqual(a.body.kanaele, { push: true, mail: false }, 'mail off: not offered');
-  assert.equal(s.spent.length, 0, 'nothing charged for an order');
-  assert.equal(s.k.status(P, { auftrag: a.body.auftrag }).body.status, 'baut');
+  assert.deepEqual(s.spent, [[P.acct, 1]], 'reserved at the order');
+  const st0 = s.k.status(P, { auftrag: a.body.auftrag }).body;
+  assert.equal(st0.status, 'baut'); assert.equal(st0.vorgemerkt, true); assert.equal(st0.abgebucht, false);
   assert.equal(s.k.optin(P, { auftrag: a.body.auftrag, push: false, mail: true }).status, 409, 'a channel that cannot deliver is refused');
   assert.deepEqual(s.bau._queue, [a.body.auftrag]);
 });
@@ -117,8 +120,9 @@ test('Ergebnis: alles erfuellt -> Modul geschrieben, 1 Guthaben abgebucht, Push 
   assert.equal(st.status, 'fertig'); assert.equal(st.abgebucht, true); assert.equal(st.ergebnis.fehlt, 0);
   assert.deepEqual(st.spiel, { rahmen: 'https://spiel-f29c55da.bunsenbrenner.org/frame.html', modul: `https://spiel-f29c55da.bunsenbrenner.org/m/${SHA}.js`, sha256: SHA });
   assert.deepEqual(st.ergebnis.punkte.map((p) => p.geprueft), ['gespielt', 'gespielt', 'gelesen']);
-  assert.deepEqual(s.spent, [[P.acct, 1]]);
-  assert.deepEqual(s.pushes, [[MARK, 'karte-fertig']]);
+  assert.deepEqual(s.spent, [[P.acct, 1]], 'the reservation became the charge: still exactly one credit');
+  assert.equal(st.vorgemerkt, false);
+  assert.deepEqual(s.pushes, [[MARK, 'karte-fertig', id]]);
   assert.equal(s.mails.length, 1);
   assert.equal(s.mails[0].to, P.mail); assert.equal(s.mails[0].subject, 'Deine Karte ist fertig');
   assert.match(s.mails[0].text, /„Segelboot gegen Piraten“ ist fertig\. Alle 3 Punkte sind erfüllt\. 1 Guthaben ist abgebucht\./);
@@ -136,7 +140,7 @@ test('Teilerfolg: nichts abgebucht, Benachrichtigung "fast fertig"; Nachbessern 
   const job = s.bau.holen().body;
   await s.bau.ergebnis(okBody(job, ['p3']));
   let st = s.k.status(P, { auftrag: id }).body;
-  assert.equal(st.ergebnis.fehlt, 1); assert.equal(st.abgebucht, false); assert.equal(s.spent.length, 0);
+  assert.equal(st.ergebnis.fehlt, 1); assert.equal(st.abgebucht, false); assert.equal(st.vorgemerkt, true); assert.deepEqual(s.spent, [[P.acct, 1]], 'still only reserved');
   assert.equal(s.mails[0].subject, 'Deine Karte ist fast fertig');
   assert.match(s.mails[0].text, /ist fast fertig – ein Punkt fehlt noch\. Abgebucht ist nichts\./);
   assert.ok(JSON.stringify(s.k.store.get(id)).includes(P.mail), 'a repair may still notify: the address stays until the card is settled');
@@ -159,13 +163,16 @@ test('Teilerfolg: nichts abgebucht, Benachrichtigung "fast fertig"; Nachbessern 
   // keeping a partial result costs 1 credit
   const b = s.k.behalten(P, { auftrag: id });
   assert.deepEqual(b.body, { behalten: true, abgebucht: true, guthaben: 1 });
-  assert.deepEqual(s.spent, [[P.acct, 1]]);
+  assert.deepEqual(s.spent, [[P.acct, 1]], 'keeping books the reservation, no second credit');
   assert.ok(!JSON.stringify(s.k.store.get(id)).includes(P.mail), 'kept: the address is gone');
-  // without credit keeping is refused and nothing changes
+  // the reservation released after VORMERK_TAGE without a decision; keeping later needs credit again (402 without)
   const arm = setup({ guthaben: 1 });
   const id2 = await order(arm);
-  arm.credit.spend('jemand', 1);
   const j = arm.bau.holen().body; await arm.bau.ergebnis(okBody(j, ['p2']));
+  arm.tick(31 * 86400000);
+  assert.equal(arm.bau.verfallen(), 1);
+  assert.deepEqual(arm.spent, [], 'never decided: released');
+  arm.credit.spend('jemand', 1);
   assert.deepEqual(arm.k.behalten(P, { auftrag: id2 }), { status: 402, body: { error: 'guthaben' } });
   assert.equal(arm.k.store.get(id2).behalten, undefined);
 });
@@ -186,7 +193,7 @@ test('Ergebnis wird geprueft: falsche Punkte, Hash, Groesse, Technik-Text oder G
     const st = s.k.status(P, { auftrag: id }).body;
     assert.equal(st.status, 'gescheitert'); assert.equal(st.grund, 'fehler');
   }
-  assert.equal(s.spent.length, 0);
+  assert.equal(s.spent.length, 0, 'no game: every reservation released');
   assert.equal(existsSync(join(s.benv.DUELL_SPIEL_MODULE_DIR, 'f'.repeat(64) + '.js')), false);
   const id = await order(s);
   const job = s.bau.holen().body;
@@ -203,4 +210,44 @@ test('Neustart: wartende und laufende Bauten stehen wieder in der Warteschlange;
   assert.deepEqual(again._queue.slice().sort(), [a, b].sort());
   for (const L of ['de', 'en']) for (const kind of KARTE_KINDS) assert.ok(MAIL_TEXT[L][kind].subject && MAIL_TEXT[L][kind].text({ titel: 'T', link: 'L', n: 3, fehlt: 1, kosten: 1 }).includes('L'), L + kind);
   assert.deepEqual(PUSH_KARTE, KARTE_KINDS);
+});
+
+test('Guthaben nebenlaeufig: zwei Auftraege mit 1 Guthaben -> einer; Behalten und Melden gleichzeitig buchen oder geben genau einmal frei', async () => {
+  const s = setup({ guthaben: 1 });
+  const fa = await s.k.fragen(P, { satz: 'Space Invaders mit Segelbooten', lang: 'de' }), fb = await s.k.fragen(P, { satz: 'Snake mit Raupe', lang: 'de' });
+  await s.k.liste(P, { id: fa.body.id, antworten: [{ art: 'kachel', kachel: 0 }] }); await s.k.liste(P, { id: fb.body.id, antworten: [{ art: 'kachel', kachel: 0 }] });
+  const [a, b] = await Promise.all([Promise.resolve().then(() => s.k.auftrag(P, { id: fa.body.id })), Promise.resolve().then(() => s.k.auftrag(P, { id: fb.body.id }))]);
+  assert.deepEqual([a.status, b.status].sort(), [202, 402]);
+  assert.deepEqual(s.spent, [[P.acct, 1]]);
+  assert.equal(s.k.auftrag(P, { id: fa.body.id }).status, 202, 'tapped twice: the same order, no second reservation');
+  assert.deepEqual(s.spent, [[P.acct, 1]]);
+  // report (slow moderation) and keep at once after three repairs: exactly one wins, the credit moves exactly once
+  const t = setup({ guthaben: 1 });
+  const id = await order(t);
+  for (let i = 0; i < 4; i++) {
+    const job = t.bau.holen().body;
+    await t.bau.ergebnis(okBody(job, ['p3']));
+    if (i < 3) assert.equal((await t.k.nachbessern(P, { auftrag: id })).status, 200);
+  }
+  const meld = t.k.melden(P, { auftrag: id, text: 'zu langsam' });
+  const keep = t.k.behalten(P, { auftrag: id });
+  const m = await meld;
+  const o = t.k.store.get(id);
+  assert.equal(keep.status, 200); assert.equal(m.status, 409, 'kept first: no report after keeping');
+  assert.equal(o.kosten.stand, 'gebucht'); assert.deepEqual(t.spent, [[P.acct, 1]]);
+  assert.equal(t.bau.freigeben(o, 'nochmal'), false, 'a booked credit is never released'); assert.equal(t.bau.buchen(o), false, 'and never booked twice');
+  // report alone: released exactly once, keeping afterwards stays free
+  const u = setup({ guthaben: 1 });
+  const id3 = await order(u);
+  for (let i = 0; i < 4; i++) { const job = u.bau.holen().body; await u.bau.ergebnis(okBody(job, ['p3'])); if (i < 3) await u.k.nachbessern(P, { auftrag: id3 }); }
+  const [m1, m2] = await Promise.all([u.k.melden(P, { auftrag: id3 }), u.k.melden(P, { auftrag: id3 })]);
+  assert.deepEqual([m1.status, m2.status], [200, 200]);
+  assert.deepEqual(u.spent, [], 'released once');
+  assert.deepEqual(u.k.behalten(P, { auftrag: id3 }).body, { behalten: true, abgebucht: false, guthaben: 1 }, 'reported: the card is free');
+  assert.deepEqual(u.spent, []);
+  // deleting an order with a reservation gives the credit back
+  const v = setup({ guthaben: 1 });
+  await order(v);
+  assert.equal(v.k.loeschen(P).status, 200);
+  assert.deepEqual(v.spent, []);
 });

@@ -197,6 +197,30 @@ test('HTTP: Routen hinter dem echten Server-Gerüst (CORS, JSON, Service Worker 
   } finally { server.close(); rmSync(dir, { recursive: true, force: true }); }
 });
 
+test('Freie Karte 2: "Karte fertig" nur vom Server (notify) mit Art und Auftrags-id; nie ueber /wake; eigener Service Worker der neuen App', async () => {
+  const { svc, push } = mk(), d = device();
+  const s = push.subscribe({ sub: d.sub }, 'k1');
+  const id = 'A'.repeat(22);
+  for (const r of ['karte-fertig', 'karte-fast', 'karte-nicht']) assert.equal((await push.wake({ mark: s.body.mark, r }, 'k2')).status, 400, r + ' gibt es nicht ueber die oeffentliche Route');
+  assert.equal(svc.got.length, 0);
+  assert.equal(await push.notify(s.body.mark, 'karte-fast', id), 'sent');
+  assert.equal(d.decrypt(svc.got[0].body), JSON.stringify({ r: 'karte-fast', a: id }));
+  assert.equal(await push.notify(s.body.mark, 'reply', id), 'off', 'nur die Karten-Arten');
+  assert.equal(await push.notify(s.body.mark, 'karte-fertig', 'kurz'), 'off', 'nur echte Auftrags-ids');
+  assert.equal(svc.got.length, 1);
+  const dir = mkdtempSync(join(tmpdir(), 'pushweb2-')), web = join(dir, 'index.html');
+  writeFileSync(web, '<!doctype html>'); writeFileSync(join(dir, 'push-sw.js'), 'alt'); writeFileSync(join(dir, 'mdi-push-sw.js'), 'neu');
+  const p2 = createPush({ env: ENV, shared: createDuell({ env: {}, log: () => {} }).shared, webFile: web, fetchImpl: svc.fetchImpl, file: '', log: () => {} });
+  const server = http.createServer(async (req, res) => { if (!(await p2.route(req, res, new URL(req.url, 'http://x')))) res.writeHead(404).end(); });
+  await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const neu = await fetch(base + '/duell/mdi-push-sw.js');
+    assert.equal(await neu.text(), 'neu'); assert.equal(neu.headers.get('service-worker-allowed'), '/duell');
+    assert.equal(await (await fetch(base + '/duell/push-sw.js')).text(), 'alt', 'der alte Service Worker bleibt unberuehrt');
+  } finally { server.close(); rmSync(dir, { recursive: true, force: true }); }
+});
+
 test('bin/duell-vapid.mjs schreibt die Schlüssel nur in eine Datei mit Modus 600 und gibt den privaten Schlüssel nicht aus', () => {
   const dir = mkdtempSync(join(tmpdir(), 'vapid-')), out = join(dir, 'v.env');
   try {
