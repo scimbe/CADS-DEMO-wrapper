@@ -73,6 +73,8 @@ test('Verneinung: "ohne Blut", "keine echten Waffen" blocken S1 nicht; doppelte 
 test('aus ohne Schalter, Login, 16+; Fragen kommen geprueft mit fester Praefix (Cache) und Satz nur im User-Turn', async () => {
   const off = createKlaerung({ env: {}, shared: createDuell({ env: {}, salt: 's', log: () => {} }).shared, who: async () => P, llm: fakeLlm(), log: () => {} });
   assert.equal(off.on(), false); assert.equal((await off.fragen(P, { satz: 'xyz abc' })).body.error, 'off');
+  // the switch the app asks for its entry (without login): off by default, on only with DUELL_KLAERUNG=on
+  assert.deepEqual(off.an().body, { on: false }); assert.deepEqual(setup().k.an().body, { on: true });
   const s = setup();
   assert.equal((await s.k.fragen(null, { satz: 'Space Invaders' })).status, 401);
   assert.equal((await setup({ age16: () => false }).k.fragen(P, { satz: 'Space Invaders' })).body.error, 'age16');

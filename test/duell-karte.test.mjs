@@ -1094,3 +1094,15 @@ test('Grenzfall: grenzOf und softOfVerdict, eindeutige Verstoesse bleiben hart',
   assert.equal(softOfVerdict(v(2, []), { text: 'x' }, h), '', 'no category: hard');
   assert.equal(softOfVerdict(v(2, ['other', 'politics']), { text: 'x' }, h), '');
 });
+
+test('Verneinung im Wunsch (Befund 3 der Null-Messung): "ohne Blut" und "kein Blut" blocken nicht und geben keinen Strike; "nicht ohne Blut" und "mit Blut" blocken weiter', async () => {
+  for (const t of ['Geburtstagskarte ohne Blut', 'Gruselkarte, aber kein Blut']) {
+    const { ai } = mk();
+    for (let i = 0; i < 4; i++) { const r = await run(ai, body(t)); assert.notEqual(r.status, 422, `${t}: ${JSON.stringify(r.body)}`); assert.notEqual(r.status, 429, t + ': no strike, no pause'); }
+  }
+  for (const t of ['Geburtstagskarte nicht ohne Blut', 'Geburtstagskarte mit Blut']) {
+    const { ai } = mk();
+    for (let i = 0; i < 3; i++) { const r = await run(ai, body(t)); assert.equal(r.status, 422, t); assert.equal(r.body.error, 'blocked'); }
+    assert.equal((await run(ai, body('Karte mit Frosch'))).body.error, 'throttled', t + ': three strikes pause');
+  }
+});
