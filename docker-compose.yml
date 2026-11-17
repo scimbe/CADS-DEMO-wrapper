@@ -76,6 +76,9 @@ services:
       # separaten Bau-Worker (mdi-bau, App-Repo apps/mdi/bau), Spielmodule fuer den Spiel-Dienst, Mail nur mit Opt-in.
       - DUELL_BAU=${DUELL_BAU:-}
       - DUELL_BAU_TOKEN_FILE=${DUELL_BAU_TOKEN_FILE:-}
+      # interner Listener nur fuer den Bau-Worker (/api/intern/fk2/*), nie veroeffentlicht; ohne DUELL_IP_HEADER (unten, Pflicht
+      # fuer den Bau) bleibt der Bau aus
+      - DUELL_BAU_PORT=${DUELL_BAU_PORT:-8791}
       - DUELL_SPIEL_ORIGIN=${DUELL_SPIEL_ORIGIN:-https://spiel-f29c55da.bunsenbrenner.org}
       - DUELL_SPIEL_MODULE_DIR=${DUELL_SPIEL_MODULE_DIR:-/data/spiele}
       - DUELL_APP_URL=${DUELL_APP_URL:-https://demos-34a13a96.bunsenbrenner.org/duell}

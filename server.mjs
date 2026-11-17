@@ -1111,6 +1111,15 @@ http.createServer((req, res) => route(req, res).catch((e) => {
   console.log(JSON.stringify({ event: 'request-error', path: String(req.url).split('?')[0].slice(0, 120), error: String(e && e.message || e).slice(0, 200) }));
   if (res.headersSent) res.destroy(); else res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }).end('server error');
 })).listen(PORT, HOST, () => console.log(`wrapper on http://${HOST}:${PORT}`));
+// Freie Karte 2 P3: the build worker's only door, a second listener with nothing but /api/intern/fk2/* (token). It is never
+// published: only the container network mdi-bau-net reaches it (deploy/fk2-p34). Without DUELL_BAU=on and its config it
+// does not exist.
+if (BAU.on()) {
+  http.createServer((req, res) => BAU.route(req, res, new URL(req.url, 'http://intern')).then((ours) => { if (!ours) { req.resume(); res.writeHead(404).end(); } }).catch((e) => {
+    console.log(JSON.stringify({ event: 'bau-request-error', error: String(e && e.message || e).slice(0, 200) }));
+    if (res.headersSent) res.destroy(); else res.writeHead(500).end();
+  })).listen(BAU.cfg.port, HOST, () => console.log(`build queue on http://${HOST}:${BAU.cfg.port}/api/intern/fk2/`));
+}
 
 async function route(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
@@ -1119,7 +1128,8 @@ async function route(req, res) {
   if (await DUELL_PROFILE.route(req, res, url)) return; // My Daily Idea profile, reads the login itself
   if (await REPORTS.route(req, res, url)) return; // report, seal check (public); reviewer routes need DUELL_ADMIN_TOKEN
   if (await BILD.route(req, res, url)) return; // KI-Bilder: /api/duell/bild/* (login), /duell/bild/<id> (public by id), lib/duell-bild.mjs
-  if (await BAU.route(req, res, url)) return; // Freie Karte 2: /api/intern/fk2/* (build worker only: token, never through the tunnel), lib/duell-fk2-bau.mjs
+  // Freie Karte 2: /api/intern/* never on this (public, tunnelled) port; the build worker has its own listener below
+  if (p.startsWith('/api/intern/')) { req.resume(); res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('not found'); return; }
   if (await KLAERUNG.route(req, res, url)) return; // Freie Karte 2: /api/duell/klaerung/* (login), lib/duell-klaerung.mjs
   if (await VOUCHERS.route(req, res, url)) return; // POST /api/duell/credit/redeem (login), lib/duell-voucher.mjs
   if (await DECK.route(req, res, url)) return; // community deck (public), use/thumbs/credit/appeal (login), review (DUELL_ADMIN_TOKEN)

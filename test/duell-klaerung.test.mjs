@@ -42,7 +42,7 @@ function fakeLlm(by = {}) {
 const MARK = 'M'.repeat(22);
 /** the build (P3) attached as in server.mjs, with doubles for credit, push and mail */
 function withBau(k, shared, dir) {
-  const bau = createBau({ env: { DUELL_BAU: 'on', DUELL_BAU_TOKEN_FILE: join(dir, 'token'), DUELL_SPIEL_ORIGIN: 'https://spiel-f29c55da.bunsenbrenner.org', DUELL_SPIEL_MODULE_DIR: join(dir, 'spiele'), DUELL_APP_URL: 'https://demos.example/duell' },
+  const bau = createBau({ env: { DUELL_BAU: 'on', DUELL_BAU_TOKEN_FILE: join(dir, 'token'), DUELL_SPIEL_ORIGIN: 'https://spiel-f29c55da.bunsenbrenner.org', DUELL_SPIEL_MODULE_DIR: join(dir, 'spiele'), DUELL_APP_URL: 'https://demos.example/duell', DUELL_IP_HEADER: 'X-Real-IP' },
     store: k.store, shared, push: { on: () => true, notify: async () => 'sent' }, mail: { on: () => true, send: async () => ({ ok: true }) }, log: () => {} });
   k.useBau(bau);
   return bau;

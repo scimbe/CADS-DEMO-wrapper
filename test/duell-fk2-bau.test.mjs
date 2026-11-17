@@ -45,7 +45,9 @@ function setup({ guthaben = 5, env = {}, mailOn = true, pushOn = true } = {}) {
   const benv = { DUELL_BAU: 'on', DUELL_BAU_TOKEN_FILE: join(dir, 'token'), DUELL_SPIEL_ORIGIN: 'https://spiel-f29c55da.bunsenbrenner.org', DUELL_SPIEL_MODULE_DIR: join(dir, 'spiele'), DUELL_APP_URL: 'https://demos-34a13a96.bunsenbrenner.org/duell', DUELL_IP_HEADER: 'X-Real-IP', ...env };
   const bau = createBau({ env: benv, store: k.store, shared: d.shared, push, mail, now: () => t, log: (o) => logs.push(o) });
   k.useBau(bau);
-  return { dir, k, bau, spent, pushes, mails, logs, credit, benv, shared: d.shared, push, mail, tick: (ms) => { t += ms; } };
+  // the worker gets its answer at once; the notification runs on its own (review S4): erg() waits for both
+  const erg = async (b) => { const r = await bau.ergebnis(b); await new Promise((ok) => setTimeout(ok, 5)); return r; };
+  return { dir, k, bau, erg, spent, pushes, mails, logs, credit, benv, shared: d.shared, push, mail, tick: (ms) => { t += ms; } };
 }
 async function order(s) {
   const f = await s.k.fragen(P, { satz: 'Space Invaders mit Segelbooten', lang: 'de' });
@@ -113,7 +115,7 @@ test('Ergebnis: alles erfuellt -> Modul geschrieben, 1 Guthaben abgebucht, Push 
   const id = await order(s);
   assert.equal(s.k.optin(P, { auftrag: id, push: true, mail: true, mark: MARK }).status, 200);
   const job = s.bau.holen().body;
-  assert.deepEqual(await s.bau.ergebnis(okBody(job)), { status: 200, body: { ok: true } });
+  assert.deepEqual(await s.erg(okBody(job)), { status: 200, body: { ok: true } });
   const f = join(s.benv.DUELL_SPIEL_MODULE_DIR, SHA + '.js');
   assert.equal(readFileSync(f, 'utf8'), CODE);
   const st = s.k.status(P, { auftrag: id }).body;
@@ -138,7 +140,7 @@ test('Teilerfolg: nichts abgebucht, Benachrichtigung "fast fertig"; Nachbessern 
   const id = await order(s);
   s.k.optin(P, { auftrag: id, push: false, mail: true });
   const job = s.bau.holen().body;
-  await s.bau.ergebnis(okBody(job, ['p3']));
+  await s.erg(okBody(job, ['p3']));
   let st = s.k.status(P, { auftrag: id }).body;
   assert.equal(st.ergebnis.fehlt, 1); assert.equal(st.abgebucht, false); assert.equal(st.vorgemerkt, true); assert.deepEqual(s.spent, [[P.acct, 1]], 'still only reserved');
   assert.equal(s.mails[0].subject, 'Deine Karte ist fast fertig');
@@ -157,7 +159,7 @@ test('Teilerfolg: nichts abgebucht, Benachrichtigung "fast fertig"; Nachbessern 
   assert.equal(job2.auftrag.nachbessern.kundentext, 'Die Boote sollen schneller werden.');
   assert.deepEqual(job2.auftrag.nachbessern.punkte.filter((p) => !p.erfuellt).map((p) => p.id), ['p3']);
   // the repair fails the check: the previous version stays, said honestly; the counter stays used
-  await s.bau.ergebnis({ auftrag: id, lease: job2.lease, art: 'nachbessern', ok: false, grund: 'nicht_geschafft', alt: true, ms: 1, usd: 0 });
+  await s.erg({ auftrag: id, lease: job2.lease, art: 'nachbessern', ok: false, grund: 'nicht_geschafft', alt: true, ms: 1, usd: 0 });
   st = s.k.status(P, { auftrag: id }).body;
   assert.equal(st.status, 'fertig'); assert.equal(st.hinweis, 'nachbessern_nicht_geschafft'); assert.equal(st.nachbessernLeft, 2); assert.equal(st.ergebnis.fehlt, 1);
   // keeping a partial result costs 1 credit
@@ -168,7 +170,7 @@ test('Teilerfolg: nichts abgebucht, Benachrichtigung "fast fertig"; Nachbessern 
   // the reservation released after VORMERK_TAGE without a decision; keeping later needs credit again (402 without)
   const arm = setup({ guthaben: 1 });
   const id2 = await order(arm);
-  const j = arm.bau.holen().body; await arm.bau.ergebnis(okBody(j, ['p2']));
+  const j = arm.bau.holen().body; await arm.erg(okBody(j, ['p2']));
   arm.tick(31 * 86400000);
   assert.equal(arm.bau.verfallen(), 1);
   assert.deepEqual(arm.spent, [], 'never decided: released');
@@ -189,7 +191,7 @@ test('Ergebnis wird geprueft: falsche Punkte, Hash, Groesse, Technik-Text oder G
   for (const f of bad) {
     const id = await order(s);
     const job = s.bau.holen().body;
-    assert.equal((await s.bau.ergebnis(f(okBody(job)))).status, 200);
+    assert.equal((await s.erg(f(okBody(job)))).status, 200);
     const st = s.k.status(P, { auftrag: id }).body;
     assert.equal(st.status, 'gescheitert'); assert.equal(st.grund, 'fehler');
   }
@@ -197,8 +199,8 @@ test('Ergebnis wird geprueft: falsche Punkte, Hash, Groesse, Technik-Text oder G
   assert.equal(existsSync(join(s.benv.DUELL_SPIEL_MODULE_DIR, 'f'.repeat(64) + '.js')), false);
   const id = await order(s);
   const job = s.bau.holen().body;
-  assert.equal((await s.bau.ergebnis({ auftrag: id, lease: job.lease, art: 'neu', ok: false, grund: 'irgendwas' })).status, 400);
-  await s.bau.ergebnis({ auftrag: id, lease: job.lease, art: 'neu', ok: false, grund: 'kein_spiel', ms: 1, usd: 0 });
+  assert.equal((await s.erg({ auftrag: id, lease: job.lease, art: 'neu', ok: false, grund: 'irgendwas' })).status, 400);
+  await s.erg({ auftrag: id, lease: job.lease, art: 'neu', ok: false, grund: 'kein_spiel', ms: 1, usd: 0 });
   assert.deepEqual([s.k.status(P, { auftrag: id }).body.status, s.k.status(P, { auftrag: id }).body.grund], ['gescheitert', 'kein_spiel']);
 });
 
@@ -226,7 +228,7 @@ test('Guthaben nebenlaeufig: zwei Auftraege mit 1 Guthaben -> einer; Behalten un
   const id = await order(t);
   for (let i = 0; i < 4; i++) {
     const job = t.bau.holen().body;
-    await t.bau.ergebnis(okBody(job, ['p3']));
+    await t.erg(okBody(job, ['p3']));
     if (i < 3) assert.equal((await t.k.nachbessern(P, { auftrag: id })).status, 200);
   }
   const meld = t.k.melden(P, { auftrag: id, text: 'zu langsam' });
@@ -235,11 +237,11 @@ test('Guthaben nebenlaeufig: zwei Auftraege mit 1 Guthaben -> einer; Behalten un
   const o = t.k.store.get(id);
   assert.equal(keep.status, 200); assert.equal(m.status, 409, 'kept first: no report after keeping');
   assert.equal(o.kosten.stand, 'gebucht'); assert.deepEqual(t.spent, [[P.acct, 1]]);
-  assert.equal(t.bau.freigeben(o, 'nochmal'), false, 'a booked credit is never released'); assert.equal(t.bau.buchen(o), false, 'and never booked twice');
+  assert.equal(t.bau.freigeben(o, 'nochmal')(), false, 'a booked credit is never released'); assert.equal(t.bau.buchen(o), false, 'and never booked twice');
   // report alone: released exactly once, keeping afterwards stays free
   const u = setup({ guthaben: 1 });
   const id3 = await order(u);
-  for (let i = 0; i < 4; i++) { const job = u.bau.holen().body; await u.bau.ergebnis(okBody(job, ['p3'])); if (i < 3) await u.k.nachbessern(P, { auftrag: id3 }); }
+  for (let i = 0; i < 4; i++) { const job = u.bau.holen().body; await u.erg(okBody(job, ['p3'])); if (i < 3) await u.k.nachbessern(P, { auftrag: id3 }); }
   const [m1, m2] = await Promise.all([u.k.melden(P, { auftrag: id3 }), u.k.melden(P, { auftrag: id3 })]);
   assert.deepEqual([m1.status, m2.status], [200, 200]);
   assert.deepEqual(u.spent, [], 'released once');
@@ -250,4 +252,80 @@ test('Guthaben nebenlaeufig: zwei Auftraege mit 1 Guthaben -> einer; Behalten un
   await order(v);
   assert.equal(v.k.loeschen(P).status, 200);
   assert.deepEqual(v.spent, []);
+});
+
+test('Review S2: nach dem Verfall wird ein spaeterer Erfolg erneut vorgemerkt und gebucht; ohne Guthaben bleibt das Teilergebnis', async () => {
+  for (const guthaben of [2, 1]) {
+    const s = setup({ guthaben });
+    const id = await order(s);
+    await s.erg(okBody(s.bau.holen().body, ['p3']));
+    s.tick(31 * 86400000); assert.equal(s.bau.verfallen(), 1); assert.deepEqual(s.spent, []);
+    if (guthaben === 1) s.credit.spend('jemand', 1);   // the credit went elsewhere meanwhile
+    assert.equal((await s.k.nachbessern(P, { auftrag: id })).status, 200);
+    await s.erg(okBody(s.bau.holen().body));            // the repair meets every point
+    const st = s.k.status(P, { auftrag: id }).body;
+    if (guthaben === 2) {
+      assert.equal(st.ergebnis.fehlt, 0); assert.equal(st.abgebucht, true); assert.deepEqual(s.spent, [[P.acct, 1]], 'reserved again and booked');
+    } else {
+      assert.equal(st.ergebnis.fehlt, 1, 'the previous partial result stays'); assert.equal(st.hinweis, 'guthaben_fehlt'); assert.equal(st.abgebucht, false);
+      assert.deepEqual(s.spent, [['jemand', 1]]);
+    }
+  }
+});
+
+test('Review S3/S4: der Worker bekommt sofort 200; ein Loeschen waehrend des Sendens bleibt geloescht', async () => {
+  const s = setup();
+  const id = await order(s);
+  s.k.optin(P, { auftrag: id, push: false, mail: true });
+  let weiter;
+  s.mail.send = (m) => { s.mails.push(m); return new Promise((ok) => { weiter = () => ok({ ok: true }); }); };   // a slow SMTP server
+  const r = await s.bau.ergebnis(okBody(s.bau.holen().body));
+  assert.equal(r.status, 200, 'answered before the mail is out');
+  await new Promise((ok) => setTimeout(ok, 5));
+  assert.equal(s.mails.length, 1);
+  assert.ok(!JSON.stringify(s.k.store.get(id)).includes(P.mail), 'settled: the address went before the send');
+  assert.equal(s.k.loeschen(P).status, 200);
+  weiter(); await new Promise((ok) => setTimeout(ok, 5));
+  assert.equal(s.k.store.get(id), null, 'the deletion stays');
+});
+
+test('Review S9: speichert der Store nicht, bewegt sich kein Guthaben (Melden, Behalten, Bauende)', async () => {
+  const s = setup({ guthaben: 3 });
+  const id = await order(s);
+  for (let i = 0; i < 4; i++) { await s.erg(okBody(s.bau.holen().body, ['p3'])); if (i < 3) await s.k.nachbessern(P, { auftrag: id }); }
+  const put = s.k.store.put;
+  s.k.store.put = () => { throw Object.assign(new Error('voll'), { code: 'ENOSPC' }); };
+  assert.equal((await s.k.melden(P, { auftrag: id })).status, 503);
+  assert.deepEqual(s.spent, [[P.acct, 1]], 'report not stored: the reservation stays');
+  // keeping after the reservation was released: the new spend goes back when it cannot be saved
+  s.k.store.put = put;
+  s.tick(31 * 86400000); s.bau.verfallen(); assert.deepEqual(s.spent, []);
+  s.k.store.put = () => { throw Object.assign(new Error('voll'), { code: 'ENOSPC' }); };
+  assert.equal(s.k.behalten(P, { auftrag: id }).status, 503);
+  assert.deepEqual(s.spent, [], 'not kept: no credit taken');
+  // a build that ends without a game and cannot be saved keeps its reservation
+  s.k.store.put = put;
+  const id2 = await order(s);
+  const job = s.bau.holen().body;
+  s.k.store.put = () => { throw Object.assign(new Error('voll'), { code: 'ENOSPC' }); };
+  await s.erg({ auftrag: id2, lease: job.lease, art: 'neu', ok: false, grund: 'zeit', ms: 1, usd: 0 });
+  assert.deepEqual(s.spent, [[P.acct, 1]]);
+  s.k.store.put = put;
+});
+
+test('Review S5 und Nit 14: ohne DUELL_IP_HEADER bleibt der Bau aus; Zahlen des Workers geprueft; Module ohne Auftrag werden entfernt', async () => {
+  const s = setup();
+  const off = createBau({ env: { ...s.benv, DUELL_IP_HEADER: '' }, store: s.k.store, log: () => {} });
+  assert.equal(off.on(), false);
+  const id = await order(s);
+  const job = s.bau.holen().body;
+  for (const bad of [{ ms: -1 }, { ms: 'x' }, { usd: NaN }, { usd: 1e9 }]) assert.equal((await s.bau.ergebnis({ ...okBody(job), ...bad })).status, 400, JSON.stringify(bad));
+  await s.erg(okBody(job));
+  const f = join(s.benv.DUELL_SPIEL_MODULE_DIR, SHA + '.js');
+  writeFileSync(join(s.benv.DUELL_SPIEL_MODULE_DIR, 'e'.repeat(64) + '.js'), 'alt');
+  assert.equal(s.bau.aufraeumen(), 1, 'nur das Modul ohne Auftrag');
+  assert.ok(existsSync(f));
+  s.k.loeschen(P);
+  assert.equal(existsSync(f), false, 'mit dem Auftrag geht sein Spiel');
+  void id;
 });
