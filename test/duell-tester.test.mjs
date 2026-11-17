@@ -57,10 +57,10 @@ test('empty or invalid DUELL_TESTER_ACCTS: no testers, with a WARN instead of a 
   assert.ok(none.lines.some((l) => l.note === 'Tester-Konten: 0'));
 });
 
-test('lib/duell-tester.mjs parse: trimmed, lower-cased, only keys kept; invalid entries counted; unset is not given', async () => {
-  const { parse } = await import('../lib/duell-tester.mjs');
-  const t = parse(' A@Example.org ,kaputt,, b@example.org', (m) => 'k:' + m);
-  assert.deepEqual([t.count, t.bad, t.given], [2, 1, true]);
-  assert.equal(t.isTester('k:a@example.org'), true); assert.equal(t.isTester('k:c@example.org'), false); assert.equal(t.isTester(undefined), false);
-  assert.deepEqual([parse(undefined, String).count, parse(undefined, String).given, parse('', String).given], [0, false, true]);
+test('lib/duell-tester.mjs (shared with feat/fk2-klaerung): addresses trimmed and lower-cased, only keys kept, no acctOf = nobody', async () => {
+  const { parse, createTesters } = await import('../lib/duell-tester.mjs');
+  assert.deepEqual(parse(' A@Example.org ,kaputt,, b@example.org'), ['a@example.org', 'b@example.org']);
+  const t = createTesters({ env: { DUELL_TESTER_ACCTS: 'A@Example.org' }, acctOf: (m) => 'k:' + m });
+  assert.equal(t.size, 1); assert.equal(t.isTester('k:a@example.org'), true); assert.equal(t.isTester('k:c@example.org'), false); assert.equal(t.isTester(undefined), false);
+  assert.equal(createTesters({ env: { DUELL_TESTER_ACCTS: 'a@example.org' } }).size, 0);
 });
