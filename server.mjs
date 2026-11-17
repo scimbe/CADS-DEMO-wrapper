@@ -36,6 +36,7 @@ import { createWeather } from './lib/duell-weather.mjs';
 import { createStats } from './lib/duell-stat.mjs';
 import { createBild } from './lib/duell-bild.mjs';
 import { createKlaerung } from './lib/duell-klaerung.mjs';
+import { createTesters } from './lib/duell-tester.mjs';
 import { createPush } from './lib/duell-push.mjs';
 import { createBau } from './lib/duell-fk2-bau.mjs';
 import { createMail } from './lib/duell-mail.mjs';
@@ -1092,7 +1093,7 @@ const DECK = createDeck({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDI
 const VOUCHERS = createVouchers({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDIT }); // "Aufladen per Gutschein": codes only from DUELL_VOUCHERS
 Object.assign(DUELL.shared, { credit: CREDIT, mod: MOD, vouchers: VOUCHERS });
 const BILD = createBild({ shared: DUELL.shared, who: DUELL_AI.who, llm: DUELL_AI.cardLlm }); // KI-Bilder auf Wunsch (login, 30 s, checked before shown), lib/duell-bild.mjs
-const KLAERUNG = createKlaerung({ shared: DUELL.shared, who: DUELL_AI.who, llm: DUELL_AI.cardLlm }); // Freie Karte 2 P1: Klaerungsdialog vor dem Bau (login, 16+, DUELL_KLAERUNG=on), lib/duell-klaerung.mjs
+const KLAERUNG = createKlaerung({ shared: DUELL.shared, who: DUELL_AI.who, llm: DUELL_AI.cardLlm, testers: createTesters({ acctOf: DUELL_AI.acctOf }) }); // Freie Karte 2 P1: Klaerungsdialog vor dem Bau (login, 16+, DUELL_KLAERUNG=on), lib/duell-klaerung.mjs
 const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id), onCard: DECK, onBild: BILD }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
 const DUELL_PROFILE = createDuellProfile({ auth: AUTH, shared: DUELL.shared }); // profile under "Mein Stil": account (16+) or sync code, lib/duell-profile.mjs
 const STATS = createStats({ shared: DUELL.shared, auth: AUTH }); // card statistics, thumbs up/down; votes only with a verified account (lib/duell-stat.mjs)

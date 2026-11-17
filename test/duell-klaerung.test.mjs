@@ -12,7 +12,7 @@ import { createDuell } from '../lib/duell.mjs';
 import { writeFileSync, readdirSync, statSync } from 'node:fs';
 import { createKlaerung, fileHandoff, ohneVerneinung, MOD_KLAERUNG, ARCADE, RETENTION_DAYS, HARNESS_MAX_BYTES } from '../lib/duell-klaerung.mjs';
 import { createBau } from '../lib/duell-fk2-bau.mjs';
-import { KINDS } from '../lib/duell-ai.mjs';
+import { KINDS, createDuellAi } from '../lib/duell-ai.mjs';
 import * as K from '../lib/vendor/mdi/features/frei/klaerung.js';
 
 const P = { account: true, acct: 'aKonto12345', mail: 'lea@example.org' };
@@ -189,6 +189,7 @@ test('Ja, so bauen: Bauauftrag als JSON fuer P3, genau die gesehene Liste; doppe
   const s = setup();
   const { f, l, a } = await toOrder(s);
   assert.equal(a.status, 202);
+  assert.equal(a.body.bau, 'wartet', 'the build (P3) is attached: queued');
   assert.deepEqual(s.k.auftrag(P, { id: f.body.id }).body.auftrag, a.body.auftrag);
   const o = JSON.parse(readFileSync(join(s.dir, a.body.auftrag + '.json'), 'utf8'));
   assert.equal(o.v, K.AUFTRAG_V); assert.equal(o.status, 'bestaetigt'); assert.equal(o.owner, P.acct); assert.ok(!JSON.stringify(o).includes(P.mail), 'no e-mail in the order');
@@ -384,4 +385,65 @@ test('Speicher: kaputte Dateien werden uebersprungen und protokolliert; harness.
   const s = setup(); const { a } = await toOrder(s);
   assert.ok(s.k.loeschen(P).body.geloescht >= 1); assert.equal(s.store.get(a.body.auftrag), null);
   assert.equal(s.k.loeschen(null).status, 401);
+});
+
+test('Schalter tester: nur Konten aus DUELL_TESTER_ACCTS (wie who() geschluesselt), alle Endpunkte pruefen es; on und aus wie bisher', async () => {
+  const { parseTesterMails, createTesters } = await import('../lib/duell-tester.mjs');
+  assert.deepEqual(parseTesterMails(' Lea@Example.org, ,tom@example.org,keine-adresse, lea@example.org'), ['lea@example.org', 'tom@example.org']);
+  // the key exactly as who() builds it for a login
+  const ai = createDuellAi({ env: {}, salt: 'salz', shared: createDuell({ env: {}, salt: 'salz', log: () => {} }).shared, log: () => {}, llm: async () => '{}' });
+  const testers = createTesters({ env: { DUELL_TESTER_ACCTS: ' LEA@example.org ' }, acctOf: ai.acctOf });
+  const lea = { account: true, acct: ai.acctOf('lea@example.org'), mail: 'lea@example.org' }, tom = { account: true, acct: ai.acctOf('tom@example.org'), mail: 'tom@example.org' };
+  assert.equal(testers.size, 1); assert.equal(testers.isTester(lea.acct), true); assert.equal(testers.isTester(tom.acct), false); assert.equal(testers.isTester(''), false);
+  assert.equal(createTesters({ env: { DUELL_TESTER_ACCTS: 'lea@example.org' } }).isTester(lea.acct), false, 'without acctOf nobody (fail closed)');
+  const lines = [];
+  const mk = (mode, whoFn) => {
+    const dir = mkdtempSync(join(tmpdir(), 'klaerung-t-'));
+    const d = createDuell({ env: {}, salt: 's', log: () => {}, llm: async () => '{}' });
+    Object.assign(d.shared, { age16: () => true, mod: { canCreate: () => ({ ok: true }) } });
+    return createKlaerung({ env: { DUELL_KLAERUNG: mode, DUELL_KLAERUNG_DIR: dir, DUELL_TESTER_ACCTS: 'lea@example.org' }, shared: d.shared, who: whoFn, llm: fakeLlm({ klaerung_fragen: FRAGEN, klaerung_liste: liste() }), testers, log: (o) => lines.push(o) });
+  };
+  const asWho = (h) => (h === 'lea' ? lea : h === 'tom' ? tom : { account: false });
+  const anOf = async (k) => {
+    const srv = http.createServer(async (q, r) => { if (!(await k.route(q, r, new URL(q.url, 'http://x')))) r.writeHead(404).end(); });
+    await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+    const base = `http://127.0.0.1:${srv.address().port}/api/duell/klaerung/an`;
+    const q = async (h) => { const r = await fetch(base, { method: 'POST', headers: { 'content-type': 'application/json', ...(h ? { 'x-who': h } : {}) }, body: '{}' }); return [r.status, (await r.json()).on]; };
+    try { return { lea: await q('lea'), tom: await q('tom'), anon: await q('') }; } finally { await new Promise((r) => srv.close(r)); k.stop(); }
+  };
+  const who = async (req) => asWho(req.headers['x-who']);
+  assert.deepEqual(await anOf(mk('tester', who)), { lea: [200, true], tom: [200, false], anon: [200, false] });
+  assert.deepEqual(await anOf(mk('on', who)), { lea: [200, true], tom: [200, true], anon: [200, true] });
+  assert.deepEqual(await anOf(mk('', who)), { lea: [200, false], tom: [200, false], anon: [200, false] });
+  // the account service down in tester mode: off, never 503
+  assert.deepEqual(await anOf(mk('tester', async () => ({ status: 503, error: 'auth-unavailable' }))), { lea: [200, false], tom: [200, false], anon: [200, false] });
+  assert.deepEqual(await anOf(mk('tester', async () => { throw new Error('down'); })), { lea: [200, false], tom: [200, false], anon: [200, false] });
+  // every endpoint checks it on the server: a non-tester gets the same answer as "off"
+  const k = mk('tester', who);
+  const f = await k.fragen(lea, { satz: 'Space Invaders mit Segelbooten' });
+  assert.equal(f.status, 200);
+  assert.equal((await k.fragen(tom, { satz: 'Space Invaders mit Segelbooten' })).body.error, 'off');
+  assert.equal((await k.fragen(null, { satz: 'Space Invaders mit Segelbooten' })).body.error, 'off');
+  assert.equal((await k.antwort(tom, { id: f.body.id, frage: 1, text: 'Seife' })).body.error, 'off');
+  assert.equal((await k.liste(tom, { id: f.body.id, antworten: ANT })).body.error, 'off');
+  assert.equal(k.auftrag(tom, { id: f.body.id }).body.error, 'off');
+  for (const op of ['optin', 'status', 'nachbessern', 'behalten', 'loeschen']) assert.equal((await k[op](tom, { auftrag: 'A'.repeat(22), push: true, mail: false })).body.error, 'off', op);
+  assert.equal((await k.melden(tom, { auftrag: 'A'.repeat(22) })).body.error, 'off');
+  assert.equal((await k.liste(lea, { id: f.body.id, antworten: ANT })).status, 200);
+  k.stop();
+  assert.ok(!JSON.stringify(lines).includes('example.org'), 'addresses are never logged');
+});
+
+test('Bau-Worker: ohne angeschlossenen Bau (P3) sagt der Server "nicht-verfuegbar", mit ihm "wartet"', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'klaerung-w-'));
+  const d = createDuell({ env: {}, salt: 's', log: () => {}, llm: async () => '{}' });
+  Object.assign(d.shared, { age16: () => true, mod: { canCreate: () => ({ ok: true }) }, credit: { available: () => 5, spend: () => true, refund: () => true } });
+  const k = createKlaerung({ env: { DUELL_KLAERUNG: 'on', DUELL_KLAERUNG_DIR: dir }, shared: d.shared, who: async () => P, llm: fakeLlm({ klaerung_fragen: FRAGEN, klaerung_liste: liste() }), log: () => {} });
+  const ohne = async () => { const f = await k.fragen(P, { satz: 'Space Invaders mit Segelbooten' }); await k.liste(P, { id: f.body.id, antworten: ANT }); return k.auftrag(P, { id: f.body.id }).body; };
+  const a = await ohne();
+  assert.equal(a.bau, 'nicht-verfuegbar');
+  assert.deepEqual(k.status(P, { auftrag: a.auftrag }).body, { error: 'kein-ergebnis', bau: 'nicht-verfuegbar' });
+  withBau(k, d.shared, dir);
+  assert.equal((await ohne()).bau, 'wartet');
+  k.stop();
 });
