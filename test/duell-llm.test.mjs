@@ -183,7 +183,8 @@ test('a paid model without a price row is not configured; an alias gets its row 
 
 test('a call that times out is booked at its worst case; an HTTP error is not', async () => {
   const slow = createLlm({ env: { ANTHROPIC_API_KEY: 'k' }, fetchImpl: (u, i) => new Promise((_, no) => i.signal.addEventListener('abort', () => no(new Error('aborted')))), log: quiet });
-  await assert.rejects(slow.generate({ system: SYS, user: 'u', timeoutMs: 20 }), /aborted/);
+  // the timeout is a fault of the KI (lib/ki-ausfall.mjs, class ki-ausfall), still booked at its worst case
+  await assert.rejects(slow.generate({ system: SYS, user: 'u', timeoutMs: 20 }), (e) => e.code === 'ki-nicht-verfuegbar' && e.grund === 'ki-ausfall');
   assert.ok(slow.budget().usd > 0);
   const bad = createLlm({ env: { ANTHROPIC_API_KEY: 'k' }, fetchImpl: async () => ({ ok: false, status: 400, json: async () => ({}) }), log: quiet });
   await assert.rejects(bad.generate({ system: SYS, user: 'u' }), /llm-http-400/);

@@ -11,6 +11,8 @@
 //     lib/auth.mjs (DNS of the gate host, TLS, the gate's answer) without an account: a gate that is unreachable or a
 //     DNS lookup that times out answers 503. --no-auth skips it (DEMO_AUTH_MODE=off, where /auth/me does not exist).
 // Prints when each check passed first, ms after the start of the check; exit 0 when all passed, 1 otherwise.
+// Then the state of the model (field ki of /api/status, lib/ki-ausfall.mjs): "WARN ki <class> since <time>" while the model
+// does not answer, "OK ki" otherwise. It does not change the exit code: a deploy cannot fix an API limit, but it must be seen.
 
 const args = process.argv.slice(2);
 const base = String(args.find((a) => !a.startsWith('--')) || '').replace(/\/+$/, '');
@@ -44,4 +46,9 @@ while (passed.size < CHECKS.length && Date.now() - t0 < deadlineMs) {
   if (passed.size < CHECKS.length) await new Promise((r) => setTimeout(r, 250));
 }
 for (const c of CHECKS) console.log(passed.has(c.name) ? `PASS ${c.name} after ${passed.get(c.name)} ms` : `FAIL ${c.name}: ${last.get(c.name) || 'no answer'} (deadline ${deadlineMs / 1000} s)`);
+try {
+  const k = (await (await fetch(base + '/api/status', { signal: AbortSignal.timeout(5000) })).json()).ki;
+  if (!k || typeof k.ok !== 'boolean') console.log('INFO ki: /api/status has no ki field (wrapper before lib/ki-ausfall.mjs)');
+  else console.log(k.ok ? `OK ki${k.klasse ? ` (last fault ${k.klasse} at ${k.at})` : ''}` : `WARN ki ${k.klasse} since ${k.at}: the model does not answer, users see "KI nicht erreichbar"`);
+} catch { console.log('INFO ki: /api/status not readable as JSON'); }
 process.exit(passed.size === CHECKS.length ? 0 : 1);
