@@ -1106,3 +1106,14 @@ test('Verneinung im Wunsch (Befund 3 der Null-Messung): "ohne Blut" und "kein Bl
     assert.equal((await run(ai, body('Karte mit Frosch'))).body.error, 'throttled', t + ': three strikes pause');
   }
 });
+
+test('Verfeinern (Robot): der eigene Basistext wird mit derselben Verneinungsregel geprueft wie der Wunsch', async () => {
+  const { KINDS } = await import('../lib/duell-ai.mjs');
+  const screen = (baseText, text = 'mach sie bunter') => KINDS.karte.screen('', { art: 'card', text, baseText });
+  assert.equal(screen('Geburtstagskarte ohne Blut'), false, 'negated in the base: no block');
+  assert.equal(screen('Gruselkarte, aber kein Blut'), false);
+  assert.equal(screen('Geburtstagskarte mit Blut'), true);
+  assert.equal(screen('Geburtstagskarte nicht ohne Blut'), true);
+  assert.equal(screen('ohne Blut, Bomben auf Menschen'), true, 'the negation does not reach past the comma');
+  assert.equal(screen('Karte', 'ohne Blut und Messer'), true);
+});

@@ -9,7 +9,8 @@ import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDuell } from '../lib/duell.mjs';
-import { createKlaerung, fileHandoff, ohneVerneinung, MOD_KLAERUNG, ARCADE } from '../lib/duell-klaerung.mjs';
+import { writeFileSync, readdirSync, statSync } from 'node:fs';
+import { createKlaerung, fileHandoff, ohneVerneinung, MOD_KLAERUNG, ARCADE, RETENTION_DAYS, HARNESS_MAX_BYTES } from '../lib/duell-klaerung.mjs';
 import { KINDS } from '../lib/duell-ai.mjs';
 import * as K from '../lib/vendor/mdi/features/frei/klaerung.js';
 
@@ -59,13 +60,30 @@ function withResult(s, id, fehlt = true) {
   s.store.put(o);
 }
 
-test('Verneinung: "ohne Blut", "keine echten Waffen" blocken S1 nicht; doppelte Verneinung und Blut ohne Verneinung schon', () => {
-  const s1 = (t) => KINDS.karte.s1(ohneVerneinung(t), false);
-  for (const t of ['Space Invaders ohne Blut', 'ein Spiel ohne Blut und ohne Waffen', 'kein Blut bitte', 'Piraten, aber keine echten Waffen', 'ohne Blut, ohne Tote', 'a shooter without blood or guns', 'Wasserbomben, die bunt platzen', 'Seifenblasen', 'Kanonenkugeln, die nur Holz treffen'])
-    assert.equal(s1(t), '', t);
-  for (const t of ['mit viel Blut', 'nicht ohne Blut', 'ohne Gnade, mit Blut', 'ohne Blut, aber mit Waffen']) assert.notEqual(s1(t), '', t);
-  // the negation never hides other categories: sexual words stay
-  assert.equal(s1('oben ohne'), 'sexual');
+test('Verneinung: nur wenn sie den ganzen Rest des Teilsatzes bildet; kein Weitertragen ueber Komma; harte Kategorien auf dem Rohtext', () => {
+  const w = (t) => KINDS.karte.s1w(t, false);
+  // a whole-clause negation of a soft violence word does not block
+  for (const t of ['Space Invaders ohne Blut', 'ein Spiel ohne Blut und ohne Waffen', 'kein Blut bitte', 'Piraten, aber keine echten Waffen', 'Gruselkarte, aber kein Blut', 'weder Blut noch Waffen', 'a shooter without blood', 'never kill', 'nicht töten', 'Wasserbomben, die bunt platzen', 'Seifenblasen', 'Kanonenkugeln, die nur Holz treffen'])
+    assert.equal(w(t), '', t);
+  // the review examples (neg.mjs): the negation never reaches beyond its clause, a further word needs its own negation,
+  // a double negation in the clause stays, a clause that goes on stays
+  for (const t of ['ohne Blut, Waffen', 'ohne Blut und Messer', 'ohne Blut, Bomben auf Menschen', 'Ich will töten, nicht Tote', 'ohne Blut und mit Messer', 'not without blood',
+    'keine Waffen, nur Pistolen', 'ohne Blut, Schusswaffen und Tote', 'Spiel: nicht Blut sondern Gewalt', 'nie ohne Blut', 'ohne Blut und ohne Gnade Waffen', 'ohne  Blut​, Waffen',
+    'no kill, only murder', 'without blood, guns aimed at people', 'ohne Blut. Waffen', 'ohne Blut, kill yourself', 'no gore, kill all jews', 'niemals ohne Blut', 'keine Karte ohne Blut',
+    'Ohne Blut geht es nicht', 'ohne Blut und ohne Gnade: tot', 'mit Blut', 'nicht ohne Blut'])
+    assert.notEqual(w(t), '', t);
+  // what remains is exactly the rest of the text: nothing outside the negated clause is taken away
+  assert.equal(ohneVerneinung('ohne Blut, Bomben auf Menschen').trim(), ', Bomben auf Menschen');
+  assert.equal(ohneVerneinung('ohne Blut und Messer'), 'ohne Blut und Messer');
+  assert.match(ohneVerneinung('no kill, only murder'), /only murder/);
+  assert.match(ohneVerneinung('nicht tod, nicht verletzt, sondern gefoltert'), /sondern gefoltert/);
+  for (const t of ['nie ohne Blut', 'niemals ohne Blut', 'keine Karte ohne Blut', 'Ohne Blut geht es nicht', 'not without blood', 'ohne Blut und ohne Gnade Waffen']) assert.equal(ohneVerneinung(t), t, t);
+  // hard categories always on the raw text: crisis, hate words, sexual words stay whatever is negated next to them
+  assert.equal(w('ohne Blut, kill yourself'), KINDS.karte.s1('ohne Blut, kill yourself', false));
+  assert.equal(w('oben ohne'), 'sexual');
+  assert.equal(w('ohne Blut, ich will nicht mehr leben'), 'crisis');
+  // linear time on long input
+  const t0 = Date.now(); ohneVerneinung('ohne Blut' + ', Blut'.repeat(300)); ohneVerneinung('no '.repeat(600)); w('ohne '.repeat(400) + 'Blut'); assert.ok(Date.now() - t0 < 500);
   // the model always rates the text as typed: the arcade block is part of its fixed prefix
   assert.equal(MOD_KLAERUNG.at(-1).text, ARCADE); assert.equal(MOD_KLAERUNG.at(-1).cache, true);
 });
@@ -175,36 +193,49 @@ test('Ja, so bauen: Bauauftrag als JSON fuer P3, genau die gesehene Liste; doppe
   assert.equal(s.k.auftrag(P, { id: f2.body.id }).status, 410);
 });
 
-test('Nachbessern: hoechstens 3x, im Server gezaehlt; der 4. Versuch wird abgelehnt, erst dann Melden', async () => {
+test('Nachbessern: hoechstens 3x, im Server gezaehlt; jedes erst nach einem NEUEN Ergebnis von P3; der 4. wird abgelehnt', async () => {
   const s = setup();
   const { a } = await toOrder(s);
   const id = a.body.auftrag;
   assert.equal(s.k.status(P, { auftrag: id }).body.error, 'kein-ergebnis');
   withResult(s, id);
   const st = s.k.status(P, { auftrag: id });
-  assert.equal(st.body.nachbessernLeft, 3); assert.equal(st.body.ergebnis.fehlt, 1);
+  assert.equal(st.body.nachbessernLeft, 3); assert.equal(st.body.ergebnis.fehlt, 1); assert.equal(st.body.kosten, 1);
   assert.equal((await s.k.melden(P, { auftrag: id, text: 'zu frueh' })).body.error, 'noch-nachbessern', 'report only after the repairs');
+  // three times in a row WITHOUT a new result: only the first counts, the counter is not used up without a rebuild
   assert.equal(s.k.nachbessern(P, { auftrag: id }).body.nachbessernLeft, 2);
-  assert.equal(s.k.nachbessern(P, { auftrag: id }).body.nachbessernLeft, 1);
-  assert.equal(s.k.nachbessern(P, { auftrag: id }).body.nachbessernLeft, 0);
+  assert.equal(s.k.nachbessern(P, { auftrag: id }).body.error, 'wird-nachgebessert');
+  assert.equal(s.k.nachbessern(P, { auftrag: id }).body.error, 'wird-nachgebessert');
+  assert.equal(s.store.get(id).nachbessert, 1);
+  const wait = s.k.status(P, { auftrag: id }).body;
+  assert.equal(wait.status, 'nachbessern'); assert.equal(wait.ergebnis, null); assert.equal(wait.nachbessernLeft, 2);
+  assert.equal(s.k.behalten(P, { auftrag: id }).body.error, 'wird-nachgebessert', 'keep only a result that exists');
+  // P3 writes a new result each time
+  withResult(s, id); assert.equal(s.k.nachbessern(P, { auftrag: id }).body.nachbessernLeft, 1);
+  withResult(s, id); assert.equal(s.k.nachbessern(P, { auftrag: id }).body.nachbessernLeft, 0);
+  withResult(s, id);
   const fourth = s.k.nachbessern(P, { auftrag: id });
   assert.equal(fourth.status, 409); assert.equal(fourth.body.error, 'limit');
   assert.equal(s.store.get(id).nachbessert, 3, 'the 4th try changed nothing');
+  assert.equal(s.store.get(id).ergebnisse.length, 3, 'earlier results are kept with the order');
   // a fresh server (restart) keeps the count: it lives with the order, not in the app or in memory
   const s2 = { ...s, k: createKlaerung({ env: { DUELL_KLAERUNG: 'on', DUELL_KLAERUNG_DIR: s.dir }, shared: Object.assign(createDuell({ env: {}, salt: 's', log: () => {} }).shared, { age16: () => true }), who: async () => P, llm: fakeLlm(), log: () => {} }) };
   assert.equal(s2.k.status(P, { auftrag: id }).body.nachbessernLeft, 0);
   assert.equal(s2.k.nachbessern(P, { auftrag: id }).body.error, 'limit');
+  s2.k.stop();
   // nothing missing: nothing to repair
   const s3 = setup(); const o3 = await toOrder(s3); withResult(s3, o3.a.body.auftrag, false);
   assert.equal(s3.k.nachbessern(P, { auftrag: o3.a.body.auftrag }).body.error, 'nichts-fehlt');
 });
 
+/** three repairs, each with a new result of P3 */
+function repairAll(s, id) { for (let i = 0; i < 3; i++) { withResult(s, id); assert.equal(s.k.nachbessern(P, { auftrag: id }).status, 200); } withResult(s, id); }
+
 test('Melden: Text optional, gleiche Moderation, gespeichert mit Liste und fehlt-Punkten, Harness-Datensatz, Pruefansicht; Karte kostenlos, Behalten bleibt', async () => {
   const s = setup({ llm: fakeLlm({ klaerung_fragen: FRAGEN, klaerung_liste: liste(), check: (req) => (/Idioten/.test(req.user) ? { json: { risk: 2, cats: ['harassment'], drink: 'none' } } : OK_MOD) }) });
   const { a } = await toOrder(s);
   const id = a.body.auftrag;
-  withResult(s, id);
-  for (let i = 0; i < 3; i++) s.k.nachbessern(P, { auftrag: id });
+  repairAll(s, id);
   assert.equal((await s.k.melden(P, { auftrag: id, text: 'x'.repeat(501) })).status, 400, 'max 500');
   const no = await s.k.melden(P, { auftrag: id, text: 'ihr seid Idioten' });
   assert.equal(no.status, 422, 'same moderation as the wish');
@@ -224,8 +255,7 @@ test('Melden: Text optional, gleiche Moderation, gespeichert mit Liste und fehlt
   assert.deepEqual(s.k.behalten(P, { auftrag: id }).body, { behalten: true, abgebucht: false, guthaben: 1 });
   assert.equal(s.k.nachbessern(P, { auftrag: id }).body.error, 'abgeschlossen');
   // no text at all is fine (no required fields)
-  const t = setup(); const o2 = await toOrder(t); withResult(t, o2.a.body.auftrag);
-  for (let i = 0; i < 3; i++) t.k.nachbessern(P, { auftrag: o2.a.body.auftrag });
+  const t = setup(); const o2 = await toOrder(t); repairAll(t, o2.a.body.auftrag);
   assert.equal((await t.k.melden(P, { auftrag: o2.a.body.auftrag })).body.gemeldet, true);
   assert.equal(t.store.meldungen()[0].text, '');
 
@@ -244,11 +274,94 @@ test('Melden: Text optional, gleiche Moderation, gespeichert mit Liste und fehlt
   } finally { await new Promise((r) => srv.close(r)); }
 });
 
-test('Tageskappe und Sperre nach harten Absagen', async () => {
-  const s = setup({ env: { DUELL_KLAERUNG_PER_DAY: '2' } });
-  await s.k.fragen(P, { satz: 'Space Invaders mit Segelbooten' }); await s.k.fragen(P, { satz: 'Space Invaders mit Segelbooten' });
+test('Tageskappe zaehlt echte Modellaufrufe; nach 3 Strikes nur Neues gesperrt, die gebaute Karte bleibt erreichbar; "an" ohne Login und ohne Kontodienst', async () => {
+  // fragen = check + generation = 2 calls; liste with one own answer = check + generation + CARD check = 3
+  const s = setup({ env: { DUELL_KLAERUNG_PER_DAY: '4' } });
+  const f = await s.k.fragen(P, { satz: 'Space Invaders mit Segelbooten' });
+  assert.equal(f.status, 200); assert.equal(s.llm.calls.length, 2);
+  const l = await s.k.liste(P, { id: f.body.id, antworten: ANT });
+  assert.equal(l.status, 429); assert.equal(l.body.error, 'daily-cap', 'the 5th model call is refused inside the request');
   assert.equal((await s.k.fragen(P, { satz: 'Space Invaders mit Segelbooten' })).body.error, 'daily-cap');
+  // three hard refusals: new things wait, the existing card does not
   const t = setup();
+  const { a } = await toOrder(t); const id = a.body.auftrag; withResult(t, id);
   for (let i = 0; i < 3; i++) assert.equal((await t.k.fragen(P, { satz: 'ein Spiel mit nackten Leuten' })).body.error, 'blocked');
   assert.equal((await t.k.fragen(P, { satz: 'Space Invaders mit Segelbooten' })).body.error, 'throttled');
+  assert.equal(t.k.nachbessern(P, { auftrag: id }).body.error, 'throttled', 'a repair is new');
+  assert.equal(t.k.status(P, { auftrag: id }).status, 200);
+  assert.equal(t.k.optin(P, { auftrag: id, push: true, mail: false }).status, 200);
+  assert.equal(t.k.behalten(P, { auftrag: id }).status, 200);
+  // the switch over HTTP: no login, and the account service down does not matter
+  const down = createKlaerung({ env: { DUELL_KLAERUNG: 'on', DUELL_KLAERUNG_DIR: t.dir }, shared: createDuell({ env: {}, salt: 's', log: () => {} }).shared, who: async () => ({ status: 503 }), llm: fakeLlm(), log: () => {} });
+  const srv = http.createServer(async (q, r) => { if (!(await down.route(q, r, new URL(q.url, 'http://x')))) r.writeHead(404).end(); });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  try {
+    const r = await fetch(`http://127.0.0.1:${srv.address().port}/api/duell/klaerung/an`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+    assert.equal(r.status, 200); assert.deepEqual(await r.json(), { on: true });
+    assert.equal((await fetch(`http://127.0.0.1:${srv.address().port}/api/duell/klaerung/status`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status, 503);
+  } finally { await new Promise((r) => srv.close(r)); down.stop(); }
+});
+
+test('Melden: nie nach Behalten (Server), nur einmal auch bei gleichzeitigen Anfragen', async () => {
+  const s = setup();
+  const { a } = await toOrder(s); const id = a.body.auftrag;
+  repairAll(s, id);
+  assert.equal(s.k.behalten(P, { auftrag: id }).status, 200);
+  const r = await s.k.melden(P, { auftrag: id, text: 'nach behalten' });
+  assert.equal(r.status, 409); assert.equal(r.body.error, 'abgeschlossen');
+  assert.equal(s.store.meldungen().length, 0);
+  // two reports at once, the check of the text slow: exactly one is stored
+  let release;
+  const gateCheck = new Promise((r) => { release = r; });
+  const slow = fakeLlm({ klaerung_fragen: FRAGEN, klaerung_liste: liste(), check: (req) => (/REPORT/.test(req.user) ? gateCheck.then(() => OK_MOD) : OK_MOD) });
+  const t = setup({ llm: slow });
+  const o = await toOrder(t); const tid = o.a.body.auftrag; repairAll(t, tid);
+  const p1 = t.k.melden(P, { auftrag: tid, text: 'erste Meldung' });
+  const p2 = t.k.melden(P, { auftrag: tid, text: 'zweite Meldung' });
+  // keep while the report is being checked: the re-read after the check sees it and refuses the report
+  release();
+  const [r1, r2] = await Promise.all([p1, p2]);
+  assert.deepEqual([r1.status, r2.status].sort(), [200, 409]); assert.equal([r1, r2].find((x) => x.status === 409).body.error, 'laeuft');
+  assert.equal(t.store.meldungen().length, 1);
+  const u = setup({ llm: fakeLlm({ klaerung_fragen: FRAGEN, klaerung_liste: liste(), check: (req) => (/REPORT/.test(req.user) ? new Promise((ok) => setTimeout(() => ok(OK_MOD), 30)) : OK_MOD) }) });
+  const o3 = await toOrder(u); const uid = o3.a.body.auftrag; repairAll(u, uid);
+  const pm = u.k.melden(P, { auftrag: uid, text: 'dauert' });
+  u.k.behalten(P, { auftrag: uid });
+  assert.equal((await pm).body.error, 'abgeschlossen', 'kept during the check: no report');
+  assert.equal(u.store.meldungen().length, 0);
+});
+
+test('Speicher: kaputte Dateien werden uebersprungen und protokolliert; harness.jsonl rotiert; TTL 180 Tage; Loeschen je Konto', async () => {
+  const lines = [];
+  const dir = mkdtempSync(join(tmpdir(), 'klaerung-store-'));
+  let t = Date.parse('2026-11-17T12:00:00Z');
+  const st = fileHandoff(dir, { log: (o) => lines.push(o), now: () => t });
+  const m = (id, owner, at) => ({ v: 1, id, owner, at, auftrag: 'X'.repeat(22), text: 'x'.repeat(200) });
+  st.meldung(m('A'.repeat(22), 'aEins', '2026-01-01T00:00:00.000Z'));
+  st.meldung(m('B'.repeat(22), 'aZwei', '2026-11-16T00:00:00.000Z'));
+  writeFileSync(join(dir, 'meldungen', 'C'.repeat(22) + '.json'), '{kaputt');
+  const got = st.meldungen();
+  assert.equal(got.length, 2); assert.ok(lines.some((l) => l.why === 'broken'), 'logged, not silent');
+  assert.equal(st.meldungen(1).length, 1, 'read lazily up to the limit');
+  st.put({ id: 'D'.repeat(22), owner: 'aEins', at: '2026-01-01T00:00:00.000Z' });
+  st.put({ id: 'E'.repeat(22), owner: 'aZwei', at: '2026-11-16T00:00:00.000Z' });
+  // retention: everything older than 180 days goes, also the harness lines
+  assert.equal(RETENTION_DAYS, 180);
+  const gone = st.purge(t - RETENTION_DAYS * 86400000);
+  assert.ok(gone >= 3, String(gone));
+  assert.equal(st.get('D'.repeat(22)), null); assert.ok(st.get('E'.repeat(22)));
+  assert.ok(!readFileSync(join(dir, 'meldungen', 'harness.jsonl'), 'utf8').includes('aEins'));
+  // per account
+  const fg = st.forget('aZwei'); assert.ok(fg >= 3, String(fg));
+  assert.equal(st.get('E'.repeat(22)), null); assert.equal(st.meldungen().length, 0);
+  assert.equal(readFileSync(join(dir, 'meldungen', 'harness.jsonl'), 'utf8'), '');
+  // rotation at the size limit
+  writeFileSync(join(dir, 'meldungen', 'harness.jsonl'), 'x'.repeat(HARNESS_MAX_BYTES));
+  t += 1000; st.meldung(m('F'.repeat(22), 'aDrei', '2026-11-17T00:00:00.000Z'));
+  const names = readdirSync(join(dir, 'meldungen')).filter((n) => n.startsWith('harness'));
+  assert.equal(names.length, 2); assert.ok(statSync(join(dir, 'meldungen', 'harness.jsonl')).size < 2000);
+  // the person deletes their own data through the server
+  const s = setup(); const { a } = await toOrder(s);
+  assert.ok(s.k.loeschen(P).body.geloescht >= 1); assert.equal(s.store.get(a.body.auftrag), null);
+  assert.equal(s.k.loeschen(null).status, 401);
 });
