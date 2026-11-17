@@ -238,3 +238,22 @@ test('Baukasten: bekannte Handy-Spieletitel sind Marken (Gold v2 t127) und werde
     assert.equal(cardCalls(llm).length, 0);
   }
 });
+
+test('Bau: zu langer Text – der Reparaturhinweis nennt Text, Laenge und Wortzahl (Modelle zaehlen keine Zeichen)', async () => {
+  const { langOf, readAnswer: ra } = await import('../lib/duell-bau.mjs');
+  const goal = 'Halte den Ball im Spiel gegen den Computer. Wer den Ball verpasst, verliert ein Leben. Der Letzte mit Leben gewinnt.';
+  assert.match(langOf({ goal }, ['goal: laenger als 90 Zeichen'])[0], /yours has 116: "Halte den Ball.*at most 12 words/);
+  assert.deepEqual(langOf({}, ['x: kaputt']), ['x: kaputt']);
+  const { BEISPIELE: B } = await import('../lib/vendor/mdi-baukasten/engines/baukasten/beispiele.js');
+  const r = ra({ ok: true, ...JSON.parse(JSON.stringify(B.pong)), goal }, (v) => v);
+  assert.match(r.bad, /yours has 116/);
+});
+
+test('Bau: Gegenvorschlag fuer einen Wunsch folgt seinen Worten (Schlange -> Schlangenspiel), sonst dem Takt', async () => {
+  const { gegenOf: g, wishKeyOf } = await import('../lib/duell-bau.mjs');
+  assert.equal(g(null, 'echtzeit', 'de', 'Ein Spiel wie Snake, die Schlange frisst Äpfel').satz, GEGEN.steer.satz.de);
+  assert.equal(g(null, 'echtzeit', 'en', 'Schlangenspiel ').satz, GEGEN.steer.satz.en);
+  assert.equal(wishKeyOf('Memory mit Hunden'), 'flip'); assert.equal(wishKeyOf('Hase hüpft über Steine'), 'jump'); assert.equal(wishKeyOf('Tic Tac Toe'), 'place');
+  assert.equal(g(null, 'zug', 'de', 'Kochrezept').satz, GEGEN.flip.satz.de, 'ohne Stichwort: wie bisher nach dem Takt');
+  assert.equal(g(null, 'echtzeit', 'de').satz, GEGEN.flap.satz.de);
+});
