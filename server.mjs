@@ -1105,7 +1105,7 @@ const STATS = createStats({ shared: DUELL.shared, auth: AUTH }); // card statist
 const PUSH = createPush({ shared: DUELL.shared, webFile: DUELL.cfg.webFile }); // push as a wake-up signal only (kind, no content), off without DUELL_VAPID_*, lib/duell-push.mjs
 // Freie Karte 2 P3/P4: build queue for the separate build worker (internal, token), result, credit, "Karte fertig" by push/mail
 // (opt-in only). Off unless DUELL_BAU=on; mail off without SMTP_* (lib/duell-mail.mjs). lib/duell-fk2-bau.mjs
-const BAU = createBau({ store: KLAERUNG.store, shared: DUELL.shared, push: PUSH, mail: createMail() });
+const BAU = createBau({ store: KLAERUNG.store, shared: DUELL.shared, push: PUSH, mail: createMail(), ki: KI });
 KLAERUNG.useBau(BAU);
 DECK.useStat(STATS); // the Statistik tab on /duell/pruefen reads STATS.readAdmin (no k mask, admin token only)
 // Deck, credit, moderation and statistics write debounced; 'exit' writes what is pending however the process ends (signal or another handler).

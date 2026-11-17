@@ -338,3 +338,18 @@ test('Bau-Netz: vom Netz des Workers beantwortet der oeffentliche Port nichts; o
   assert.equal(createBau({ env: { ...s.benv, DUELL_BAU_NETZ: '' }, store: s.k.store, log: () => {} }).on(), false);
   assert.equal(createBau({ env: { ...s.benv, DUELL_BAU_NETZ: '300.1.1.0/28' }, store: s.k.store, log: () => {} }).on(), false);
 });
+
+test('KI-Ausfall im Worker: ki_nicht_verfuegbar ohne Abbuchung, Klasse an die Betreiber-Warnung, unbekannte Klasse abgelehnt', async () => {
+  const s = setup();
+  const gemeldet = [];
+  const b2 = createBau({ env: s.benv, store: s.k.store, shared: s.shared, ki: { melde: async (k, i) => { gemeldet.push([k, i.model]); } }, log: () => {} });
+  s.k.useBau(b2);
+  const id = await order(s);
+  const job = b2.holen().body;
+  assert.equal((await b2.ergebnis({ auftrag: id, lease: job.lease, art: 'neu', ok: false, grund: 'ki_nicht_verfuegbar', ki: 'quatsch', ms: 1, usd: 0 })).status, 400);
+  assert.equal((await b2.ergebnis({ auftrag: id, lease: job.lease, art: 'neu', ok: false, grund: 'ki_nicht_verfuegbar', ki: 'ki-limit', ms: 1, usd: 0 })).status, 200);
+  const st = s.k.status(P, { auftrag: id }).body;
+  assert.deepEqual([st.status, st.grund, st.abgebucht, st.vorgemerkt], ['gescheitert', 'ki_nicht_verfuegbar', false, false]);
+  assert.deepEqual(s.spent, [], 'Vormerkung zurueck');
+  assert.deepEqual(gemeldet, [['ki-limit', 'fk2-bau-worker']]);
+});
