@@ -26,6 +26,7 @@ import { DEFAULT_REGISTRY_URL, REFUSAL, loadVerifiedManifest, readTrustRoot } fr
 import { createDuell } from './lib/duell.mjs';
 import { createShortLinks } from './lib/shortlink.mjs';
 import { createDuellAi } from './lib/duell-ai.mjs';
+import { createKiWaechter } from './lib/ki-ausfall.mjs';
 import { createDuellProfile } from './lib/duell-profile.mjs';
 import { createReports } from './lib/duell-report.mjs';
 import { createDeck } from './lib/duell-deck.mjs';
@@ -35,6 +36,8 @@ import { createMod } from './lib/duell-mod.mjs';
 import { createWeather } from './lib/duell-weather.mjs';
 import { createStats } from './lib/duell-stat.mjs';
 import { createBild } from './lib/duell-bild.mjs';
+import { createKlaerung } from './lib/duell-klaerung.mjs';
+import { createTesters } from './lib/duell-tester.mjs';
 import { createPush } from './lib/duell-push.mjs';
 import { createTemplateStore, prepareRun, cfgFromValues, logLine, MAX_BODY_BYTES } from './lib/templates.mjs';
 import { builderBlock, PB_CSS } from './lib/prompt-builder-page.mjs';
@@ -896,14 +899,15 @@ async function fetchStatus() {
 function handleStatus(res) {
   fetchStatus().then((j) => {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    if (!j) { res.end(JSON.stringify({ ok: false, reason: 'upstream-unreachable' })); return; }
+    // ki: the model of My Daily Idea (lib/ki-ausfall.mjs), only class and time: { ok, klasse, at }
+    if (!j) { res.end(JSON.stringify({ ok: false, reason: 'upstream-unreachable', ki: KI.status() })); return; }
     const svc = {};
     for (const [k, v] of Object.entries(j)) {
       if (k === 'ollama_backed' && v) { svc.ollama = { models: v.loaded_models || [], parallel: v.num_parallel_configured }; continue; }
       if (v && typeof v === 'object' && 'active_requests' in v) svc[k] = { active: v.active_requests, queued: v.queued_requests, p50: v.p50_latency_s };
     }
-    res.end(JSON.stringify({ ok: true, svc }));
-  }).catch(() => { try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, reason: 'upstream-error' })); } catch {} });
+    res.end(JSON.stringify({ ok: true, svc, ki: KI.status() }));
+  }).catch(() => { try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, reason: 'upstream-error', ki: KI.status() })); } catch {} });
 }
 
 // contractcheck: compare TWO user-uploaded PDFs (base64 JSON, no multipart parsing needed).
@@ -1082,13 +1086,17 @@ const INSTALLATIONS = createInstallations();
 const DUELL = createDuell({ llmEnv: ENV, root: __dir }); // public by design (no login), see lib/duell.mjs
 const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
 const SHORT = createShortLinks({ root: __dir, clientKey: DUELL.clientKey, metric: DUELL.shared.metric, free: () => DECK, auth: AUTH });   // public by design (no login needed), limits per account or device (M2); free cards open only while the deck says ok; see lib/shortlink.mjs
-const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather() }); // AI actions and their pots, lib/duell-ai.mjs
+// The model not answering (limit, credit, rate limit, outage, key): operator mail (OPS_ALERT_MAIL, SMTP_*) and the ki field of
+// /api/status, lib/ki-ausfall.mjs. Without OPS_ALERT_MAIL it warns in the log at start and at every event.
+const KI = createKiWaechter();
+const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather(), ki: KI }); // AI actions and their pots, lib/duell-ai.mjs
 // Free cards: credit for use and reach, graded moderation, the community deck (lib/duell-deck.mjs). W2 reaches them over shared.
 const CREDIT = createCredit(), MOD = createMod();
 const DECK = createDeck({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDIT, mod: MOD, blockLink: (id) => SHORT.block(id) });
 const VOUCHERS = createVouchers({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDIT }); // "Aufladen per Gutschein": codes only from DUELL_VOUCHERS
 Object.assign(DUELL.shared, { credit: CREDIT, mod: MOD, vouchers: VOUCHERS });
 const BILD = createBild({ shared: DUELL.shared, who: DUELL_AI.who, llm: DUELL_AI.cardLlm }); // KI-Bilder auf Wunsch (login, 30 s, checked before shown), lib/duell-bild.mjs
+const KLAERUNG = createKlaerung({ shared: DUELL.shared, who: DUELL_AI.who, llm: DUELL_AI.cardLlm, testers: createTesters({ acctOf: DUELL_AI.acctOf }) }); // Freie Karte 2 P1: Klaerungsdialog vor dem Bau (login, 16+, DUELL_KLAERUNG=on), lib/duell-klaerung.mjs
 const REPORTS = createReports({ shared: DUELL.shared, blockLink: (id) => SHORT.block(id), onCard: DECK, onBild: BILD }); // reporting AI content, seal check, reviewer view (lib/duell-report.mjs)
 const DUELL_PROFILE = createDuellProfile({ auth: AUTH, shared: DUELL.shared }); // profile under "Mein Stil": account (16+) or sync code, lib/duell-profile.mjs
 const STATS = createStats({ shared: DUELL.shared, auth: AUTH }); // card statistics, thumbs up/down; votes only with a verified account (lib/duell-stat.mjs)
@@ -1110,6 +1118,7 @@ async function route(req, res) {
   if (await DUELL_PROFILE.route(req, res, url)) return; // My Daily Idea profile, reads the login itself
   if (await REPORTS.route(req, res, url)) return; // report, seal check (public); reviewer routes need DUELL_ADMIN_TOKEN
   if (await BILD.route(req, res, url)) return; // KI-Bilder: /api/duell/bild/* (login), /duell/bild/<id> (public by id), lib/duell-bild.mjs
+  if (await KLAERUNG.route(req, res, url)) return; // Freie Karte 2: /api/duell/klaerung/* (login), lib/duell-klaerung.mjs
   if (await VOUCHERS.route(req, res, url)) return; // POST /api/duell/credit/redeem (login), lib/duell-voucher.mjs
   if (await DECK.route(req, res, url)) return; // community deck (public), use/thumbs/credit/appeal (login), review (DUELL_ADMIN_TOKEN)
   if (await PUSH.route(req, res, url)) return; // push: key, subscribe, unsubscribe, wake (public, a mark is the only address; own limits)
