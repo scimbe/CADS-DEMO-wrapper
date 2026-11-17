@@ -26,6 +26,7 @@ import { DEFAULT_REGISTRY_URL, REFUSAL, loadVerifiedManifest, readTrustRoot } fr
 import { createDuell } from './lib/duell.mjs';
 import { createShortLinks } from './lib/shortlink.mjs';
 import { createDuellAi } from './lib/duell-ai.mjs';
+import { createKiWaechter } from './lib/ki-ausfall.mjs';
 import { createDuellProfile } from './lib/duell-profile.mjs';
 import { createReports } from './lib/duell-report.mjs';
 import { createDeck } from './lib/duell-deck.mjs';
@@ -896,14 +897,15 @@ async function fetchStatus() {
 function handleStatus(res) {
   fetchStatus().then((j) => {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-    if (!j) { res.end(JSON.stringify({ ok: false, reason: 'upstream-unreachable' })); return; }
+    // ki: the model of My Daily Idea (lib/ki-ausfall.mjs), only class and time: { ok, klasse, at }
+    if (!j) { res.end(JSON.stringify({ ok: false, reason: 'upstream-unreachable', ki: KI.status() })); return; }
     const svc = {};
     for (const [k, v] of Object.entries(j)) {
       if (k === 'ollama_backed' && v) { svc.ollama = { models: v.loaded_models || [], parallel: v.num_parallel_configured }; continue; }
       if (v && typeof v === 'object' && 'active_requests' in v) svc[k] = { active: v.active_requests, queued: v.queued_requests, p50: v.p50_latency_s };
     }
-    res.end(JSON.stringify({ ok: true, svc }));
-  }).catch(() => { try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, reason: 'upstream-error' })); } catch {} });
+    res.end(JSON.stringify({ ok: true, svc, ki: KI.status() }));
+  }).catch(() => { try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, reason: 'upstream-error', ki: KI.status() })); } catch {} });
 }
 
 // contractcheck: compare TWO user-uploaded PDFs (base64 JSON, no multipart parsing needed).
@@ -1082,7 +1084,10 @@ const INSTALLATIONS = createInstallations();
 const DUELL = createDuell({ llmEnv: ENV, root: __dir }); // public by design (no login), see lib/duell.mjs
 const AUTH = createAuth({ noBanner: Object.entries(DEMOS).filter(([, d]) => d.type === 'browser-wasm').map(([slug]) => `/d/${slug}`) }); // DEMO_AUTH_MODE=gate: every /api/ route that runs something needs a bunsenbrenner login (lib/auth.mjs)
 const SHORT = createShortLinks({ root: __dir, clientKey: DUELL.clientKey, metric: DUELL.shared.metric, free: () => DECK, auth: AUTH });   // public by design (no login needed), limits per account or device (M2); free cards open only while the deck says ok; see lib/shortlink.mjs
-const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather() }); // AI actions and their pots, lib/duell-ai.mjs
+// The model not answering (limit, credit, rate limit, outage, key): operator mail (OPS_ALERT_MAIL, SMTP_*) and the ki field of
+// /api/status, lib/ki-ausfall.mjs. Without OPS_ALERT_MAIL it warns in the log at start and at every event.
+const KI = createKiWaechter();
+const DUELL_AI = createDuellAi({ llmEnv: ENV, shared: DUELL.shared, auth: AUTH, weather: createWeather(), ki: KI }); // AI actions and their pots, lib/duell-ai.mjs
 // Free cards: credit for use and reach, graded moderation, the community deck (lib/duell-deck.mjs). W2 reaches them over shared.
 const CREDIT = createCredit(), MOD = createMod();
 const DECK = createDeck({ shared: DUELL.shared, who: DUELL_AI.who, credit: CREDIT, mod: MOD, blockLink: (id) => SHORT.block(id) });

@@ -285,6 +285,17 @@ Code: `lib/duell-ai.mjs`, `lib/duell-pots.mjs`, `lib/duell-seal.mjs`, `lib/duell
   `ANTHROPIC_API_KEY` oder `DUELL_ANTHROPIC_KEY_FILE`, `DUELL_OLLAMA_BASE_URL`, `DUELL_OLLAMA_WINDOW` (z. B. `22-6`, leer = nie), `DUELL_CARD_BUDGET_USD`
   (Tagesbudget, Standard 2), `DUELL_CARD_BUDGET_FILE`, `DUELL_CARD_PRICE_AS` (Preiszeile fuer einen LiteLLM-Alias). Cache-Abnahme:
   `DUELL_ANTHROPIC_KEY_FILE=... node bin/duell-cache-check.mjs --n 20` (Trefferquote ab dem 2. Aufruf >= 90 %).
+- KI antwortet nicht (`lib/ki-ausfall.mjs`): HTTP-Fehler, Zeitueberschreitung und Netzfehler der Modell-Schicht bekommen eine Klasse
+  (`ki-limit`: 402, billing, Nutzungs-/Ausgabenlimit, Guthaben; `ki-ueberlastet`: 429, 529; `ki-ausfall`: 5xx, Zeit, Netz; `ki-key`: 401, 403).
+  Jeder KI-Endpunkt antwortet dann `503 { error: 'ki-nicht-verfuegbar', grund }`: kein Strike, keine Abbuchung, kein Tageskontingent, kein Ersatz.
+  Betreiber: Mail an `OPS_ALERT_MAIL` (SMTP `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_FROM`, Standard smtp.strato.de:465 TLS, no-reply@bunsenbrenner.org;
+  Passwort nur aus der Datei `SMTP_PASS_FILE`), je Klasse hoechstens 1 pro Stunde; ohne `OPS_ALERT_MAIL` WARN im Log beim Start und je Ereignis.
+  `/api/status` zeigt `ki: { ok, klasse, at }`, `bin/deploy-check.mjs` druckt `WARN ki <klasse>`. Aktive Pruefung auf dem Host: `bin/ki-pruefung.sh`
+  (1 Token Haiku, stuendlich per cron; Installation und Abschalten im Kopf des Skripts).
+- Tester-Schalter: `DUELL_TESTER_ACCTS` (Kommaliste von Login-E-Mail-Adressen) hebt nur die Tagesgrenze der Modellaufrufe der freien Karte
+  auf `DUELL_TESTER_CALLS_PER_DAY` (Standard 300, sonst `DUELL_CREATE_CALLS_PER_DAY` = 30). Ein Konto ist seine E-Mail (`who()`:
+  `'a' + HMAC(DUELL_AI_SALT, 'account:' + mail)`), nicht das Keycloak-Subjekt: wer sich mit einer anderen Adresse anmeldet (z. B. ueber HAW-GitLab
+  mit der Hochschul-Mail), braucht einen eigenen Eintrag. Im Log steht nur die Anzahl („Tester-Konten: N“); leer oder ungueltig: keine Tester, WARN.
 - Freie Karte, KI-Art `karte` (`lib/duell-karte.mjs`): nur mit Konto (sonst `401 login`), Alter 16+ serverseitig aus dem Profil des Kontos
   (16+-Erklaerung, eine Selbstauskunft, keine Altersverifikation, `lib/duell-profile.mjs`; sonst `403 age16`, ohne Profilspeicher `503 age-check-off`).
   18+ (Faehigkeiten „ab 18“, Geld einsammeln) ebenso nur aus der eigenen Angabe im Kontoprofil (`age18`, mit Tag; Selbstauskunft wie 16+,
