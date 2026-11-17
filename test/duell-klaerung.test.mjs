@@ -447,3 +447,18 @@ test('Bau-Worker: ohne angeschlossenen Bau (P3) sagt der Server "nicht-verfuegba
   assert.equal((await ohne()).bau, 'wartet');
   k.stop();
 });
+
+test('Ausgabebudget: Fragen und Liste mit GEN_MAX_TOKENS; eine abgeschnittene Antwort bekommt eine Runde "kuerzer" statt Reparatur', async () => {
+  const { GEN_MAX_TOKENS } = await import('../lib/duell-klaerung.mjs');
+  assert.ok(GEN_MAX_TOKENS >= 4096);
+  const calls = [];
+  let n = 0;
+  const llm = { calls, async generate(req) { calls.push(req); if (req.name === 'check') return OK_MOD; if (req.name === 'klaerung_liste' && n++ === 0) return { json: null, stop: 'max_tokens' }; return { json: req.name === 'klaerung_fragen' ? FRAGEN : liste(), stop: 'end_turn' }; } };
+  const s = setup({ llm });
+  const f = await s.k.fragen(P, { satz: 'Space Invaders mit Segelbooten', lang: 'de' });
+  const l = await s.k.liste(P, { id: f.body.id, antworten: ANT });
+  assert.equal(l.status, 200, JSON.stringify(l.body));
+  const gen = calls.filter((c) => c.name !== 'check');
+  assert.ok(gen.every((c) => c.maxTokens === GEN_MAX_TOKENS));
+  assert.match(gen.filter((c) => c.name === 'klaerung_liste')[1].user, /CUT OFF/);
+});
