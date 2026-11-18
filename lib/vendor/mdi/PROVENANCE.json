@@ -1,8 +1,8 @@
 {
   "repo": "scimbe/CADS-agent-marketplace",
   "path": "apps/mdi/src",
-  "track": "main",
-  "commit": "d1a21fbde872719f009d77f05530cbd2f830369a",
+  "track": "fix/kachel-bild-text",
+  "commit": "52805373d8e5b25d1240759863178bdbe12529aa",
   "generatedBy": "bin/vendor-mdi.mjs",
   "cards": [
     "baukasten",
@@ -63,7 +63,7 @@
     "app/link.js",
     "features/frei/klaerung.js"
   ],
-  "bundle": "242d5bfb44e0d6d4609c990eba0f5fdcdd60694055915e73f92603cccef6e9f4",
+  "bundle": "97dbf547d9a94903336cb26998792543dbfc8adbecba9cc7054fd628f56ca526",
   "files": {
     "app/link.js": "e93cba395118e3386b63b693ca37929d38822a5c890f06a6aa225cc1cea68b4a",
     "cards/baukasten-zug/card.js": "134f4fdafbc58602e085e2fade8a13baa7b16d74119a0d76c2d50170d2fc3c83",
@@ -264,7 +264,8 @@
     "engines/zug/widgets.js": "f4e784a3eef1ae5252ae40e43cedf809eac21a82054abced11f33d6390f1f835",
     "engines/zug/zug.js": "cd1fd44971731e30788decb37c09b7ef4edf5f6e0e40472fcaab9488e37064f4",
     "features/frei/doc.js": "695b0ff8f145cb7cf0b3121cf141288f62fac84cd193ef0bb5d5dd74b86623df",
-    "features/frei/klaerung.js": "f81be9ba8d205b8aa3dcff74d25b5f338920b192d65629ef514103005e2c4c69",
+    "features/frei/kachel-bilder.js": "c9fbf487d374d8c535b7883060848fd1190661b368e48df0e410328cf3e25603",
+    "features/frei/klaerung.js": "77111ff17f785f2475ad13167607ec842f01b5c55c785971c5ddc6ed362c838a",
     "gen/validators.js": "cdec81f6805002a84dc39e02e5614875984ac65331d6bc646313e4d23aea8031",
     "index.js": "03e6bc5c5ef723c363370a822e68c52b7ed59ec540eb871c02da572d1eb23a14"
   }

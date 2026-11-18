@@ -466,3 +466,30 @@ test('Ausgabebudget: Fragen und Liste mit GEN_MAX_TOKENS; eine abgeschnittene An
   assert.ok(GEN_MAX_TOKENS / 139 + 1.4 < 35, 'Frist deckt das volle Budget beim langsamen Zehntel');
   assert.match(gen.filter((c) => c.name === 'klaerung_liste')[1].user, /CUT OFF/);
 });
+
+test('B5: Bild und Label jeder Kachel passen zusammen; falsches Bild wird ersetzt oder neutral, protokolliert ohne Texte', async () => {
+  const RODELN = { ok: true, verstehe: 'ein Spiel. Du rodelst den Berg hinunter.', fragen: [
+    { frage: 'Wer fährt mit dir?', hinweis: '', kacheln: [{ label: 'Ein Bär', sub: '', emoji: '🐧' }, { label: 'Ein Eichhörnchen', sub: '', emoji: '🐇' }, { label: 'Ein Gürteltier', sub: '', emoji: '🐢' }] },
+    { frage: 'Womit fährst du?', hinweis: '', kacheln: [{ label: 'Mit dem Schlitten', sub: '', emoji: '🛷' }, { label: 'Mit Ski', sub: '', emoji: '⛷️' }] }] };
+  const logs = [], dir = mkdtempSync(join(tmpdir(), 'klaerung-'));
+  const d = createDuell({ env: {}, salt: 's', log: () => {}, llm: async () => '{}' });
+  Object.assign(d.shared, { age16: () => true, mod: { canCreate: () => ({ ok: true }) } });
+  const llm = fakeLlm({ klaerung_fragen: RODELN });
+  const k = createKlaerung({ env: { DUELL_KLAERUNG: 'on', DUELL_KLAERUNG_DIR: dir }, shared: d.shared, who: async () => P, llm, log: (o) => logs.push(o) });
+  const r = await k.fragen(P, { satz: 'Rodeln mit Tieren', lang: 'de' });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body.fragen.map((f) => f.kacheln.map((x) => x.emoji)), [['🐻', '🐿️', K.NEUTRAL], ['🛷', '⛷️']]);
+  assert.deepEqual(r.body.fragen.map((f) => f.kacheln.map((x) => x.label)), RODELN.fragen.map((f) => f.kacheln.map((x) => x.label)), 'Labels bleiben');
+  assert.equal(K.checkFragen({ ok: true, verstehe: r.body.verstehe, fragen: r.body.fragen }).ok, true, 'die App nimmt die Antwort an');
+  const ev = logs.filter((o) => o.event === 'duell-klaerung-bild');
+  assert.deepEqual(ev, [{ event: 'duell-klaerung-bild', wechsel: [{ von: '🐧', zu: '🐻', grund: 'getauscht' }, { von: '🐇', zu: '🐿️', grund: 'getauscht' }, { von: '🐢', zu: K.NEUTRAL, grund: 'neutral' }] }]);
+  assert.ok(!JSON.stringify(ev).includes('Bär'), 'keine Texte im Protokoll');
+  const gen = llm.calls.find((c) => c.name === 'klaerung_fragen');
+  assert.match(gen.system[0].text, /never take the nearest-looking animal/);
+  // passende Kacheln bleiben unveraendert und erzeugen kein Protokoll
+  const logs2 = [];
+  const k2 = createKlaerung({ env: { DUELL_KLAERUNG: 'on', DUELL_KLAERUNG_DIR: mkdtempSync(join(tmpdir(), 'klaerung-')) }, shared: d.shared, who: async () => P, llm: fakeLlm({ klaerung_fragen: { ...RODELN, fragen: [RODELN.fragen[1]] } }), log: (o) => logs2.push(o) });
+  const r2 = await k2.fragen(P, { satz: 'Rodeln mit Tieren', lang: 'de' });
+  assert.deepEqual(r2.body.fragen[0].kacheln.map((x) => x.emoji), ['🛷', '⛷️']);
+  assert.equal(logs2.filter((o) => o.event === 'duell-klaerung-bild').length, 0);
+});
