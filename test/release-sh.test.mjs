@@ -44,12 +44,13 @@ if (a[0] === 'exec' && a[2] === 'printenv') { const v = st.env[a[3]]; if (v === 
 process.exit(0);   // build, volume create
 `;
 
-function umgebung({ chownWirkt = true, containers = [], networks = {}, origin = '127.0.0.1:8794', agentLaeuft = true, cmdline = 'node /opt/ct-agent/index.js' } = {}) {
+function umgebung({ alsRoot = false, chownWirkt = true, containers = [], networks = {}, origin = '127.0.0.1:8794', agentLaeuft = true, cmdline = 'node /opt/ct-agent/index.js' } = {}) {
   const d = mkdtempSync(join(tmpdir(), 'release-sh-')), bin = join(d, 'bin'), proc = join(d, 'proc'), agent = join(d, 'spiel-agent'), secrets = join(d, 'secrets');
   for (const x of [bin, proc, join(agent, 'state'), secrets]) mkdirSync(x, { recursive: true });
   const stub = (n, body) => { writeFileSync(join(bin, n), body); chmodSync(join(bin, n), 0o755); };
   stub('docker', DOCKER);
   stub('ss', '#!/bin/sh\nexit 0\n');
+  if (alsRoot) stub('id', '#!/bin/sh\necho 0\n');
   stub('curl', '#!/bin/sh\nwhile [ $# -gt 0 ]; do if [ "$1" = -o ]; then echo "{}" > "$2"; fi; shift; done\n');
   stub('sha256sum', `#!/bin/sh\necho "${SOLL}  $1"\n`);
   // kill-Double: der Prozess endet (sein /proc-Ordner verschwindet)
@@ -161,7 +162,7 @@ test('B1 Volume: der Release setzt den Eigentuemer von mdi-bau-state auf den Use
   const schreib = r.calls.findIndex((c) => c.startsWith('run --rm') && c.includes(`--user ${ICH}`) && c.includes('sh -c'));
   const ersterDienst = r.calls.findIndex((c) => /^run -d |^network create /.test(c));
   assert.ok(chown >= 0 && schreib > chown && ersterDienst > schreib, r.calls.join('\n'));
-  assert.ok(r.calls[chown].includes('--network none') && r.calls[chown].includes('--cap-drop ALL') && r.calls[chown].includes('-v mdi-bau-state:/var/lib/mdi-bau'));
+  for (const i of [chown, schreib]) for (const f of ['--network none', '--cap-drop ALL', '--read-only', '--security-opt no-new-privileges', '--pids-limit 16', '-v mdi-bau-state:/var/lib/mdi-bau']) assert.ok(r.calls[i].includes(f), f + ' in ' + r.calls[i]);
   const worker = r.calls.find((c) => c.startsWith('run -d --name mdi-bau '));
   assert.ok(worker.includes(`-u ${ICH}`) && worker.includes('-v mdi-bau-state:/var/lib/mdi-bau'), 'the worker runs as the owner of the volume');
   assert.match(r.out, new RegExp(`ok   mdi-bau-state ist fuer ${ICH} beschreibbar`));
@@ -185,4 +186,13 @@ test('B1 Volume: der Trockenlauf zeigt chown und Schreibtest, fuehrt aber nichts
   assert.match(r.out, new RegExp(`\\+ docker run --rm --network none --user 0:0 .*chown -R ${ICH} /var/lib/mdi-bau`));
   assert.match(r.out, new RegExp(`\\+ Schreibtest als ${ICH} in mdi-bau-state`));
   assert.ok(!r.calls.some((c) => c.startsWith('run ')));
+});
+
+test('B1 Volume: als root bricht der Release vor allem anderen ab (Worker und Volume nie als root)', () => {
+  const u = umgebung({ containers: ['demos-wrapper'], alsRoot: true });
+  const r = u.run('--ausfuehren', '--double');
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /FEHLT release\.sh nicht als root ausfuehren/);
+  assert.ok(!r.calls.some((c) => /^(run|build|volume|network (create|connect)) /.test(c)), r.calls.join('\n'));
+  assert.equal(u.zustand().volOwner, '0:0');
 });

@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { createDuell } from '../lib/duell.mjs';
 import { createKlaerung } from '../lib/duell-klaerung.mjs';
 import { createBau, MAIL_TEXT, KARTE_KINDS, CODE_MAX, ausNetz, GRUND_SATZ } from '../lib/duell-fk2-bau.mjs';
+import { KARTE_NEUTRAL } from '../lib/duell-push.mjs';
 import { KARTE_KINDS as PUSH_KARTE } from '../lib/duell-push.mjs';
 import { HINWEISE as K_HINWEISE, BAU_GRUENDE as K_GRUENDE } from '../lib/vendor/mdi/features/frei/klaerung.js';
 
@@ -485,16 +486,78 @@ test('B2: jeder Grund des Workers hat einen eigenen kundentauglichen Satz (de, e
   assert.ok(MAIL_TEXT.de['karte-nicht'].text({ titel: 'T', link: 'L', grund: 'quatsch' }).includes(GRUND_SATZ.de.fehler), 'unknown reason: the general sentence');
 });
 
-test('B2: "Abgebucht ist nichts" nur, wenn es stimmt (Erstattung fehlgeschlagen -> Satz fehlt)', async () => {
+test('B2: "Abgebucht ist nichts" nur, wenn es stimmt: Erstattung fehlgeschlagen -> ehrlicher Satz in der Mail, Push neutral (Ergebnis und Lease-Pfad)', async () => {
+  for (const pfad of ['ergebnis', 'lease']) {
+    const s = setup();
+    const id = await order(s);
+    s.k.optin(P, { auftrag: id, push: true, mail: true, mark: MARK });
+    s.credit.refund = () => false;
+    if (pfad === 'ergebnis') {
+      const job = s.bau.holen().body;
+      await s.erg({ auftrag: id, lease: job.lease, art: 'neu', ok: false, grund: 'zeit', ms: 1, usd: 0 });
+    } else {
+      s.bau.holen(); s.tick(21 * 60000); s.bau.holen(); s.tick(21 * 60000); s.bau.holen();
+      await new Promise((ok) => setTimeout(ok, 5));
+    }
+    assert.equal(s.mails.length, 1, pfad);
+    assert.ok(s.mails[0].text.includes(GRUND_SATZ.de[pfad === 'ergebnis' ? 'zeit' : 'fehler'] + ' Dein Guthaben für diese Karte wird noch zurückgebucht, wir melden uns.'), pfad);
+    assert.doesNotMatch(s.mails[0].text, /Abgebucht ist nichts/, pfad);
+    assert.deepEqual(s.pushes, [[MARK, KARTE_NEUTRAL, id]], pfad + ': no "nothing charged" sentence by push');
+    assert.ok(s.logs.some((l) => l.why === 'refund-failed'), pfad);
+  }
+  assert.ok(!KARTE_KINDS.includes(KARTE_NEUTRAL), 'the service worker shows its neutral sentence for it');
+  assert.ok(MAIL_TEXT.en['karte-nicht'].text({ titel: 'T', link: 'L', grund: 'zeit', nichtsAbgebucht: false }).includes('Your credit for this card is still being given back'));
+});
+
+test('B2: Lease-Ablauf beim Nachbessern -> genau eine Benachrichtigung, vorige Version bleibt; spaetes Ergebnis nach dem Ablauf -> 409, keine zweite Mail', async () => {
   const s = setup();
   const id = await order(s);
   s.k.optin(P, { auftrag: id, push: false, mail: true });
-  s.credit.refund = () => false;
-  const job = s.bau.holen().body;
-  await s.erg({ auftrag: id, lease: job.lease, art: 'neu', ok: false, grund: 'zeit', ms: 1, usd: 0 });
+  await s.erg(okBody(s.bau.holen().body, ['p3']));
   assert.equal(s.mails.length, 1);
-  assert.ok(s.mails[0].text.includes(GRUND_SATZ.de.zeit));
-  assert.doesNotMatch(s.mails[0].text, /Abgebucht ist nichts/);
+  await s.k.nachbessern(P, { auftrag: id, text: 'Die Boote sollen schneller werden.' });
+  const job2 = s.bau.holen().body;
+  assert.equal(job2.art, 'nachbessern');
+  s.tick(21 * 60000); const job3 = s.bau.holen().body; assert.equal(job3.auftrag.id, id);
+  s.tick(21 * 60000); assert.equal(s.bau.holen().status, 204);
+  await new Promise((ok) => setTimeout(ok, 5));
+  assert.equal(s.mails.length, 2, 'exactly one notification for the repair');
+  assert.match(s.mails[1].text, /ein Punkt fehlt noch/, 'the previous version with its real count');
+  const st = s.k.status(P, { auftrag: id }).body;
+  assert.equal(st.status, 'fertig'); assert.equal(st.ergebnis.fehlt, 1);
+  // the worker answers late, after the final expiry: refused, nothing sent again
+  assert.equal((await s.erg(okBody(job3))).status, 409);
+  assert.equal((await s.erg({ auftrag: id, lease: job2.lease, art: 'nachbessern', ok: false, grund: 'zeit', ms: 1, usd: 0 })).status, 409);
+  assert.equal(s.mails.length, 2, 'no second mail');
+  // the same for a first build that ended "gescheitert" by expiry
+  const s2 = setup();
+  const id2 = await order(s2);
+  s2.k.optin(P, { auftrag: id2, push: true, mail: true, mark: MARK });
+  s2.bau.holen(); s2.tick(21 * 60000); const late = s2.bau.holen().body; s2.tick(21 * 60000); s2.bau.holen();
+  await new Promise((ok) => setTimeout(ok, 5));
+  assert.equal((await s2.erg(okBody(late))).status, 409);
+  assert.deepEqual([s2.mails.length, s2.pushes.length], [1, 1]);
+  assert.equal(s2.k.status(P, { auftrag: id2 }).body.status, 'gescheitert');
+});
+
+test('B2: Nachbessern ohne Vorversion (Modul weg) -> "Nachbessern hat nicht geklappt", keine Punktzahl, kein Angebot zum Nachbessern', async () => {
+  const s = setup();
+  const id = await order(s);
+  s.k.optin(P, { auftrag: id, push: true, mail: true, mark: MARK });
+  await s.erg(okBody(s.bau.holen().body, ['p3']));
+  await s.k.nachbessern(P, { auftrag: id, text: 'Die Boote sollen schneller werden.' });
+  const o = s.k.store.get(id); o.spiel = { sha256: 'e'.repeat(64) }; s.k.store.put(o);   // module gone
+  assert.equal(s.bau.holen().status, 204);
+  await new Promise((ok) => setTimeout(ok, 5));
+  assert.ok(s.logs.some((l) => l.why === 'no-previous-version'));
+  const m = s.mails.at(-1);
+  assert.equal(s.mails.length, 2);
+  assert.equal(m.subject, 'Deine Karte hat nicht geklappt');
+  assert.match(m.text, /das Nachbessern deiner Karte „Segelboot gegen Piraten“ hat leider nicht geklappt\.\nBeim Bauen ist bei uns etwas schiefgegangen\. An deinem Wunsch lag es nicht\. Abgebucht ist nichts\./);
+  assert.doesNotMatch(m.text, /Punkte? fehl|nachbessern lassen/);
+  assert.doesNotMatch(m.text, KUNDENTAUGLICH);
+  assert.deepEqual(s.pushes.at(-1), [MARK, 'karte-nicht', id]);
+  assert.deepEqual(s.spent, [[P.acct, 1]], 'still only reserved, nothing booked');
 });
 
 test('B1: /api/status-Feld bau meldet einen stillen Worker und Auftraege ohne Ergebnis, laut im Log, einmal je Wechsel', async () => {
@@ -514,8 +577,35 @@ test('B1: /api/status-Feld bau meldet einen stillen Worker und Auftraege ohne Er
   assert.ok(s.logs.some((l) => l.event === 'duell-bau' && l.why === 'lease-expired'));
   const job = s.bau.holen().body;
   await s.erg(okBody(job));
-  assert.equal(s.bau.status().ok, true, 'a result clears it');
+  assert.equal(s.bau.status().ok, true, 'a result after the expiry clears it');
   assert.ok(!JSON.stringify(s.bau.status()).includes(id), 'no order id on the public status');
   assert.deepEqual(createBau({ env: {}, store: s.k.store, log: () => {} }).status(), { on: false });
   assert.deepEqual(createBau({ env: { DUELL_BAU: 'on' }, store: s.k.store, log: () => {} }).status(), { on: false, ok: false, grund: 'konfiguration' });
+});
+
+test('B1 Review: ein gesund bauender Worker (Lease aktiv) ist nicht still, auch wenn ein zweiter Auftrag 14 Minuten wartet', async () => {
+  const s = setup();
+  const a = await order(s), b = await order(s);
+  assert.equal(s.bau.holen().body.auftrag.id, a);
+  for (let m = 0; m < 14; m++) { s.tick(60000); assert.equal(s.bau.status().ok, true, 'minute ' + (m + 1)); }
+  assert.deepEqual(s.bau._queue, [b], 'the second order waits');
+  assert.ok(!s.logs.some((l) => l.event === 'duell-bau-warnung'), 'no alarm');
+  const job = s.bau._leases.get(a);
+  assert.ok(job);
+});
+
+test('B1 Review: "ohne-ergebnis" gilt fuer ein Zeitfenster von 30 Minuten nach dem Ablauf, nicht fuer immer', async () => {
+  const s = setup();
+  await order(s);
+  s.bau.holen();
+  s.tick(21 * 60000);
+  assert.equal(s.bau.status().grund, 'ohne-ergebnis');
+  s.bau.holen();                // queued again and taken (the worker asks again)
+  s.tick(21 * 60000);           // expires a second time: the build ends "fehler"
+  assert.equal(s.bau.status().grund, 'ohne-ergebnis');
+  s.bau.holen();                // the worker keeps asking, nothing waits
+  s.tick(29 * 60000); s.bau.holen();
+  assert.equal(s.bau.status().grund, 'ohne-ergebnis', 'within 30 minutes of the last expiry');
+  s.tick(2 * 60000); s.bau.holen();
+  assert.deepEqual(s.bau.status(), { on: true, ok: true, grund: null, worker: new Date(Date.parse('2026-11-18T10:00:00Z') + 73 * 60000).toISOString() });
 });

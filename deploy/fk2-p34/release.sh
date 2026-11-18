@@ -96,10 +96,10 @@ netz_anlegen() {   # name intern(true|false) subnetz(leer = von Docker) -- Argum
 # Klappt der Schreibtest nicht, bricht der Release ab, bevor irgendein Dienst laeuft. Wiederholbar.
 volume_rechte() {
   do_ docker run --rm --network none --user 0:0 --cap-drop ALL --cap-add CHOWN --cap-add DAC_OVERRIDE \
-    -v "$BAU_STATE:$BAU_STATE_DIR" "mdi-bau:$TAG" chown -R "$BAU_UID:$BAU_GID" "$BAU_STATE_DIR"
+    --read-only --security-opt no-new-privileges --pids-limit 16 -v "$BAU_STATE:$BAU_STATE_DIR" "mdi-bau:$TAG" chown -R "$BAU_UID:$BAU_GID" "$BAU_STATE_DIR"
   say "+ Schreibtest als $BAU_UID:$BAU_GID in $BAU_STATE ($BAU_STATE_DIR)"
   [ "$RUN" = 1 ] || return 0
-  if docker run --rm --network none --user "$BAU_UID:$BAU_GID" --cap-drop ALL --read-only -v "$BAU_STATE:$BAU_STATE_DIR" "mdi-bau:$TAG" \
+  if docker run --rm --network none --user "$BAU_UID:$BAU_GID" --cap-drop ALL --read-only --security-opt no-new-privileges --pids-limit 16 -v "$BAU_STATE:$BAU_STATE_DIR" "mdi-bau:$TAG" \
       sh -c 'f="$1/.schreibtest" && echo ok > "$f.tmp" && mv "$f.tmp" "$f" && rm -f "$f"' schreibtest "$BAU_STATE_DIR"; then
     say "ok   $BAU_STATE ist fuer $BAU_UID:$BAU_GID beschreibbar"
   else
@@ -136,6 +136,8 @@ say "== Pruefen =="
 need "$SECRETS/fk2-bau.token"; need "$HIER/chromium-seccomp.sha256"
 [ "$DOUBLE" = 1 ] || need "$SECRETS/anthropic.key"
 need "$SPIEL_AGENT/.env"; need "$SPIEL_AGENT/start-on-boot.sh"; need "$SPIEL_AGENT_PID"
+# der Worker laeuft nie als root (er haelt Key und Token); das Volume bekommt keinen root-Eigentuemer "zur Sicherheit"
+if [ "$BAU_UID" = 0 ] || [ "$BAU_GID" = 0 ]; then say "FEHLT release.sh nicht als root ausfuehren (Worker und Volume liefen sonst als $BAU_UID:$BAU_GID)"; MISSING=1; else say "ok   Worker und Volume als $BAU_UID:$BAU_GID"; fi
 if docker exec "$WRAPPER" printenv DUELL_BAU 2>/dev/null | grep -qx on; then say "ok   $WRAPPER laeuft mit DUELL_BAU=on (Integrator)"; else say "FEHLT $WRAPPER mit DUELL_BAU=on (erst den Wrapper per Deploy-Muster tauschen)"; MISSING=1; fi
 if docker exec "$WRAPPER" printenv DUELL_BAU_NETZ 2>/dev/null | grep -qx "172.31.250.0/28"; then say "ok   DUELL_BAU_NETZ passt zu mdi-bau-net"; else say "FEHLT DUELL_BAU_NETZ=172.31.250.0/28 im Wrapper"; MISSING=1; fi
 if ss -ltn 2>/dev/null | grep -q '127.0.0.1:8795 '; then say "FEHLT 127.0.0.1:8795 ist schon belegt"; MISSING=1; else say "ok   127.0.0.1:8795 frei; 8794 bleibt der Wrapper"; fi
