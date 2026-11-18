@@ -1,0 +1,9 @@
+# Freie Karte 2 P3/P4: zusaetzliche docker-run-Argumente fuer den Produktions-Wrapper (zu den bisherigen; Port bleibt
+# -p 127.0.0.1:8794:<Container-Port>). Fuer den Integrator; release.sh ersetzt den Wrapper nicht.
+--env-file /home/<user>/demos-wrapper-secrets/smtp.env
+--env-file deploy/fk2-p34/wrapper-zusatz.env
+-v /home/<user>/demos-wrapper-secrets/fk2-bau.token:/run/secrets/fk2-bau.token:ro
+-v /home/<user>/demos-wrapper-secrets/smtp.pass:/run/secrets/smtp.pass:ro
+-v mdi-spiele:/data/spiele
+# KEIN -p fuer 8791: den internen Listener erreicht nur der Bau-Worker ueber das Netz mdi-bau-net (release.sh haengt den
+# laufenden Wrapper per "docker network connect" an, ohne Neustart).
