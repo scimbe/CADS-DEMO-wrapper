@@ -118,7 +118,6 @@ need "$SECRETS/fk2-bau.token"; need "$HIER/chromium-seccomp.sha256"
 need "$SPIEL_AGENT/.env"; need "$SPIEL_AGENT/start-on-boot.sh"; need "$SPIEL_AGENT_PID"
 if docker exec "$WRAPPER" printenv DUELL_BAU 2>/dev/null | grep -qx on; then say "ok   $WRAPPER laeuft mit DUELL_BAU=on (Integrator)"; else say "FEHLT $WRAPPER mit DUELL_BAU=on (erst den Wrapper per Deploy-Muster tauschen)"; MISSING=1; fi
 if docker exec "$WRAPPER" printenv DUELL_BAU_NETZ 2>/dev/null | grep -qx "172.31.250.0/28"; then say "ok   DUELL_BAU_NETZ passt zu mdi-bau-net"; else say "FEHLT DUELL_BAU_NETZ=172.31.250.0/28 im Wrapper"; MISSING=1; fi
-if docker exec "$WRAPPER" printenv DUELL_IP_HEADER 2>/dev/null | grep -q .; then say "ok   DUELL_IP_HEADER gesetzt"; else say "FEHLT DUELL_IP_HEADER im Wrapper (ohne ihn bleibt der Bau aus)"; MISSING=1; fi
 if ss -ltn 2>/dev/null | grep -q '127.0.0.1:8795 '; then say "FEHLT 127.0.0.1:8795 ist schon belegt"; MISSING=1; else say "ok   127.0.0.1:8795 frei; 8794 bleibt der Wrapper"; fi
 # was es schon gibt: Container dieses Skripts -> Abbruch (Zustand unbekannt, erst --rollback); Netze werden nur passend
 # weiterverwendet (netz_anlegen)

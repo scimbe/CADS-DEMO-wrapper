@@ -27,8 +27,11 @@ und labor-setup.com werden nicht angefasst.
 
 Getrennt: Fremder Code läuft nur in `mdi-pruef`, der weder Key noch Token sieht und kein Netz nach außen hat. Der Worker
 kommt nur über den Egress-Proxy hinaus, und der nur zu `api.anthropic.com:443`. Vom Wrapper erreicht der Worker nur den
-internen Listener (`/api/intern/fk2/*`); der öffentliche Port antwortet auf Anfragen aus `mdi-bau-net` (`DUELL_BAU_NETZ`) und auf
-`/api/intern/*` immer 404. Ohne `DUELL_IP_HEADER` oder `DUELL_BAU_NETZ` bleibt der Bau aus (fail closed).
+internen Listener (`/api/intern/fk2/*` auf `DUELL_BAU_PORT`). Dort zählen die Quell-Adresse des Sockets (muss in
+`DUELL_BAU_NETZ` liegen) und das Token (timing-safe verglichen), keine Kopfzeile. Der öffentliche Port antwortet auf
+`/api/intern/*` immer 404, gleich mit welchen Kopfzeilen, und auf Anfragen aus `mdi-bau-net` gar nicht. `DUELL_IP_HEADER`
+bleibt in Produktion bewusst leer (der Tunnel reicht TLS durch, es gibt keinen vertrauenswürdigen Client-IP-Header) und wird
+für den Bau nicht gebraucht. Ohne `DUELL_BAU_NETZ` oder ohne lesbares Token bleibt der Bau aus (fail closed).
 
 **Ports:** Der Produktions-Wrapper lauscht auf `127.0.0.1:8794`; bisher zeigen **beide** Tunnel dorthin (`demos-34a13a96` und
 `spiel-f29c55da`). Das bleibt für den Wrapper so. Neu lauscht nur der Spiel-Dienst auf `127.0.0.1:8795`, und beim Release wird
@@ -53,7 +56,7 @@ allein der `spiel-agent` auf 8795 umgestellt. 8794 wird nie freigemacht oder ges
 
 1. **Integrator:** Wrapper mit neuem Image austauschen, gleiche Env plus `wrapper-zusatz.env`, Mounts aus
    `wrapper-mounts.txt` (Token und `smtp.pass` read-only, Volume `mdi-spiele` schreibend, `--env-file smtp.env`).
-   `DUELL_IP_HEADER` bleibt gesetzt. deploy-check wie immer; bei Fehler automatischer Rollback.
+   `DUELL_IP_HEADER` bleibt wie bisher leer. deploy-check wie immer; bei Fehler automatischer Rollback.
 2. `./release.sh <tag>` (Trockenlauf) und prüfen, dann `./release.sh <tag> --ausfuehren`:
    1. Image `mdi-bau:<tag>` bauen.
    2. seccomp-Profil laden, sha256 prüfen.

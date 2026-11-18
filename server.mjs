@@ -1116,7 +1116,8 @@ http.createServer((req, res) => route(req, res).catch((e) => {
   console.log(JSON.stringify({ event: 'request-error', path: String(req.url).split('?')[0].slice(0, 120), error: String(e && e.message || e).slice(0, 200) }));
   if (res.headersSent) res.destroy(); else res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }).end('server error');
 })).listen(PORT, HOST, () => console.log(`wrapper on http://${HOST}:${PORT}`));
-// Freie Karte 2 P3: the build worker's only door, a second listener with nothing but /api/intern/fk2/* (token). It is never
+// Freie Karte 2 P3: the build worker's only door, a second listener with nothing but /api/intern/fk2/* (source address in
+// DUELL_BAU_NETZ and token). It is never
 // published: only the container network mdi-bau-net reaches it (deploy/fk2-p34). Without DUELL_BAU=on and its config it
 // does not exist.
 if (BAU.on()) {
@@ -1129,13 +1130,13 @@ if (BAU.on()) {
 async function route(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const p = url.pathname;
+  // Freie Karte 2: /api/intern/* never on this (public, tunnelled) port, before any other route and whatever headers the request
+  // carries; the build worker has its own listener (DUELL_BAU_PORT), and from its network this port answers nothing at all
+  if (BAU.oeffentlichGesperrt(p, req.socket.remoteAddress)) { req.resume(); res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('not found'); return; }
   if (await DUELL_AI.route(req, res, url)) return; // own limits and allowance, reads the login itself
   if (await DUELL_PROFILE.route(req, res, url)) return; // My Daily Idea profile, reads the login itself
   if (await REPORTS.route(req, res, url)) return; // report, seal check (public); reviewer routes need DUELL_ADMIN_TOKEN
   if (await BILD.route(req, res, url)) return; // KI-Bilder: /api/duell/bild/* (login), /duell/bild/<id> (public by id), lib/duell-bild.mjs
-  // Freie Karte 2: /api/intern/* never on this (public, tunnelled) port; the build worker has its own listener below, and from
-  // the worker's network (DUELL_BAU_NETZ) this port answers nothing at all
-  if (p.startsWith('/api/intern/') || (BAU.on() && BAU.ausBauNetz(req.socket.remoteAddress))) { req.resume(); res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('not found'); return; }
   if (await KLAERUNG.route(req, res, url)) return; // Freie Karte 2: /api/duell/klaerung/* (login), lib/duell-klaerung.mjs
   if (await VOUCHERS.route(req, res, url)) return; // POST /api/duell/credit/redeem (login), lib/duell-voucher.mjs
   if (await DECK.route(req, res, url)) return; // community deck (public), use/thumbs/credit/appeal (login), review (DUELL_ADMIN_TOKEN)

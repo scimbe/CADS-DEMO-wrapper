@@ -54,7 +54,8 @@ function umgebung({ containers = [], networks = {}, origin = '127.0.0.1:8794', a
   if (agentLaeuft) { mkdirSync(join(proc, '1111')); writeFileSync(join(proc, '1111', 'cmdline'), cmdline.replace(/ /g, '\0')); }
   writeFileSync(join(secrets, 'fk2-bau.token'), 'token\n');
   const state = join(d, 'state.json');
-  writeFileSync(state, JSON.stringify({ containers, networks, env: { DUELL_BAU: 'on', DUELL_BAU_NETZ: '172.31.250.0/28', DUELL_IP_HEADER: 'X-Real-IP' } }));
+  // DUELL_IP_HEADER wie in Produktion nicht gesetzt
+  writeFileSync(state, JSON.stringify({ containers, networks, env: { DUELL_BAU: 'on', DUELL_BAU_NETZ: '172.31.250.0/28' } }));
   const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, DOCKER_STATE: state, DOCKER_LOG: join(d, 'calls.log'), PROC: proc, KILL: join(bin, 'kill'),
     SECRETS: secrets, SPIEL_AGENT: agent, SECCOMP: join(d, 'mdi-bau', 'seccomp.json'), APP_SRC: d, HOME: d };
   const run = (...args) => {
@@ -99,6 +100,7 @@ test('Release: auf leerem Stand legt er alles an; ein zweiter Release bricht kla
   assert.deepEqual(Object.keys(u.zustand().networks).sort(), ['mdi-bau-net', 'mdi-egress-net', 'mdi-pruef-net']);
   assert.ok(u.zustand().networks['mdi-bau-net'].containers.includes('demos-wrapper'));
   assert.equal(u.origin(), '127.0.0.1:8795');
+  assert.doesNotMatch(r.out, /DUELL_IP_HEADER/, 'kein Check mehr auf DUELL_IP_HEADER (Hotfix)');
   r = u.run('--ausfuehren', '--double');
   assert.equal(r.code, 1);
   assert.match(r.out, /Container mdi-bau gibt es schon \(erst .*--rollback/);

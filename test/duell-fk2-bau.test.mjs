@@ -43,7 +43,7 @@ function setup({ guthaben = 5, env = {}, mailOn = true, pushOn = true } = {}) {
   const push = { on: () => pushOn, notify: async (mark, kind, auftrag) => { pushes.push([mark, kind, auftrag]); return 'sent'; } };
   const mail = { on: () => mailOn, send: async (m) => { mails.push(m); return { ok: true }; } };
   let t = Date.parse('2026-11-18T10:00:00Z');
-  const benv = { DUELL_BAU: 'on', DUELL_BAU_TOKEN_FILE: join(dir, 'token'), DUELL_SPIEL_ORIGIN: 'https://spiel-f29c55da.bunsenbrenner.org', DUELL_SPIEL_MODULE_DIR: join(dir, 'spiele'), DUELL_APP_URL: 'https://demos-34a13a96.bunsenbrenner.org/duell', DUELL_IP_HEADER: 'X-Real-IP', DUELL_BAU_NETZ: '172.31.250.0/28', ...env };
+  const benv = { DUELL_BAU: 'on', DUELL_BAU_TOKEN_FILE: join(dir, 'token'), DUELL_SPIEL_ORIGIN: 'https://spiel-f29c55da.bunsenbrenner.org', DUELL_SPIEL_MODULE_DIR: join(dir, 'spiele'), DUELL_APP_URL: 'https://demos-34a13a96.bunsenbrenner.org/duell', DUELL_BAU_NETZ: '172.31.250.0/28', ...env };
   const bau = createBau({ env: benv, store: k.store, shared: d.shared, push, mail, now: () => t, log: (o) => logs.push(o) });
   k.useBau(bau);
   // the worker gets its answer at once; the notification runs on its own (review S4): erg() waits for both
@@ -77,8 +77,8 @@ test('Auftrag: 1 Guthaben wird vorgemerkt (ohne Guthaben kein Auftrag), dann in 
   assert.deepEqual(s.bau._queue, [a.body.auftrag]);
 });
 
-test('Warteschlange intern: Token aus Datei, nie durch den Tunnel, nur POST; Lease, Ablauf, zweiter Ablauf ehrlich "fehler"', async () => {
-  const s = setup();
+test('Warteschlange intern: Token aus Datei, nur aus DUELL_BAU_NETZ, nur POST; Lease, Ablauf, zweiter Ablauf ehrlich "fehler"', async () => {
+  const s = setup({ env: { DUELL_BAU_NETZ: '127.0.0.0/8' } });   // der Test-Listener ist 127.0.0.1: hier das Netz des Workers
   const id = await order(s);
   const srv = http.createServer(async (q, r) => { if (!(await s.bau.route(q, r, new URL(q.url, 'http://x')))) r.writeHead(404).end(); });
   await new Promise((r) => srv.listen(0, '127.0.0.1', r));
@@ -86,7 +86,7 @@ test('Warteschlange intern: Token aus Datei, nie durch den Tunnel, nur POST; Lea
   const post = (p, body, h = {}) => fetch(base + p, { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + TOKEN, ...h }, body: JSON.stringify(body) });
   try {
     assert.equal((await post('holen', {}, { authorization: 'Bearer falsch-falsch-falsch-1' })).status, 401);
-    assert.equal((await post('holen', {}, { 'x-real-ip': '1.2.3.4' })).status, 404, 'through the public tunnel the route does not exist');
+    assert.equal((await post('holen', {}, { authorization: '', 'x-real-ip': '172.31.250.5', 'x-forwarded-for': '172.31.250.5' })).status, 401, 'ohne Token abgelehnt, Kopfzeilen zaehlen nicht');
     assert.equal((await fetch(base + 'holen')).status, 405);
     const r = await post('holen', {});
     assert.equal(r.status, 200);
@@ -314,10 +314,14 @@ test('Review S9: speichert der Store nicht, bewegt sich kein Guthaben (Melden, B
   s.k.store.put = put;
 });
 
-test('Review S5 und Nit 14: ohne DUELL_IP_HEADER bleibt der Bau aus; Zahlen des Workers geprueft; Module ohne Auftrag werden entfernt', async () => {
+test('Review S5 und Nit 14: DUELL_IP_HEADER spielt keine Rolle, ohne Token bleibt der Bau aus; Zahlen des Workers geprueft; Module ohne Auftrag werden entfernt', async () => {
   const s = setup();
-  const off = createBau({ env: { ...s.benv, DUELL_IP_HEADER: '' }, store: s.k.store, log: () => {} });
-  assert.equal(off.on(), false);
+  // Produktion: DUELL_IP_HEADER bewusst leer (Hotfix fix/fk2-bau-ohne-ipheader) – der Bau laeuft trotzdem, mit und ohne Wert
+  assert.equal(s.bau.on(), true);
+  assert.equal(createBau({ env: { ...s.benv, DUELL_IP_HEADER: 'X-Real-IP' }, store: s.k.store, log: () => {} }).on(), true);
+  // ohne lesbares Token (fehlt, Datei weg, zu kurz) bleibt er aus (fail closed)
+  writeFileSync(join(s.dir, 'kurz'), 'kurz\n');
+  for (const f of ['', join(s.dir, 'gibt-es-nicht'), join(s.dir, 'kurz')]) assert.equal(createBau({ env: { ...s.benv, DUELL_BAU_TOKEN_FILE: f }, store: s.k.store, log: () => {} }).on(), false, f);
   const id = await order(s);
   const job = s.bau.holen().body;
   for (const bad of [{ ms: -1 }, { ms: 'x' }, { usd: NaN }, { usd: 1e9 }]) assert.equal((await s.bau.ergebnis({ ...okBody(job), ...bad })).status, 400, JSON.stringify(bad));
@@ -396,4 +400,30 @@ test('Review Nit 9: ueberstimmt und Szenario-Anlaeufe werden geprueft, am Bau ge
   const j3 = u.bau.holen().body;
   await u.erg(okBody(j3));
   assert.deepEqual([u.k.store.get(id3).bau.ueberstimmt, u.k.store.get(id3).bau.szenarien], [0, []]);
+});
+
+test('Hotfix ohne DUELL_IP_HEADER: der Bau-Listener lehnt fremde Netze ab, auch mit Token und gefaelschten Kopfzeilen', async () => {
+  const s = setup();   // Netz des Workers 172.31.250.0/28, der Test ruft von 127.0.0.1
+  const id = await order(s);
+  const srv = http.createServer(async (q, r) => { if (!(await s.bau.route(q, r, new URL(q.url, 'http://x')))) r.writeHead(404).end(); });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${srv.address().port}/api/intern/fk2/`;
+  try {
+    for (const h of [{}, { 'x-real-ip': '172.31.250.5' }, { 'x-forwarded-for': '172.31.250.5' }, { forwarded: 'for=172.31.250.5' }]) {
+      const r = await fetch(base + 'holen', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + TOKEN, ...h }, body: '{}' });
+      assert.equal(r.status, 404, JSON.stringify(h));
+    }
+  } finally { srv.close(); }
+  assert.equal(s.k.status(P, { auftrag: id }).body.status, 'baut', 'nichts geholt');
+  assert.equal(s.k.store.get(id).bau.status, 'wartet');
+  // die Sperre des oeffentlichen Listeners (server.mjs): /api/intern/* immer, aus dem Netz des Workers alles
+  assert.equal(s.bau.oeffentlichGesperrt('/api/intern/fk2/holen', '203.0.113.9'), true);
+  assert.equal(s.bau.oeffentlichGesperrt('/api/intern/x', '127.0.0.1'), true);
+  assert.equal(s.bau.oeffentlichGesperrt('/duell', '172.31.250.5'), true);
+  assert.equal(s.bau.oeffentlichGesperrt('/duell', '203.0.113.9'), false);
+  // Bau aus: /api/intern/* bleibt gesperrt, das Netz des Workers zaehlt dann nicht
+  const aus = createBau({ env: { ...s.benv, DUELL_BAU_NETZ: '' }, store: s.k.store, log: () => {} });
+  assert.equal(aus.on(), false, 'ohne DUELL_BAU_NETZ bleibt der Bau aus');
+  assert.equal(aus.oeffentlichGesperrt('/api/intern/fk2/holen', '1.2.3.4'), true);
+  assert.equal(aus.oeffentlichGesperrt('/duell', '172.31.250.5'), false);
 });
