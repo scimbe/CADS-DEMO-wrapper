@@ -11,9 +11,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createDuell } from '../lib/duell.mjs';
 import { createKlaerung } from '../lib/duell-klaerung.mjs';
-import { createBau, MAIL_TEXT, KARTE_KINDS, CODE_MAX, ausNetz } from '../lib/duell-fk2-bau.mjs';
+import { createBau, MAIL_TEXT, KARTE_KINDS, CODE_MAX, ausNetz, GRUND_SATZ } from '../lib/duell-fk2-bau.mjs';
 import { KARTE_KINDS as PUSH_KARTE } from '../lib/duell-push.mjs';
-import { HINWEISE as K_HINWEISE } from '../lib/vendor/mdi/features/frei/klaerung.js';
+import { HINWEISE as K_HINWEISE, BAU_GRUENDE as K_GRUENDE } from '../lib/vendor/mdi/features/frei/klaerung.js';
 
 const P = { account: true, acct: 'aKonto12345', mail: 'lea@example.org' };
 const TOKEN = 'bau-token-1234567890abcdef';
@@ -426,4 +426,96 @@ test('Hotfix ohne DUELL_IP_HEADER: der Bau-Listener lehnt fremde Netze ab, auch 
   assert.equal(aus.on(), false, 'ohne DUELL_BAU_NETZ bleibt der Bau aus');
   assert.equal(aus.oeffentlichGesperrt('/api/intern/fk2/holen', '1.2.3.4'), true);
   assert.equal(aus.oeffentlichGesperrt('/duell', '172.31.250.5'), false);
+});
+
+// B2 (18.11.): the state volume of the worker was not writable, every build ended without a result, the lease ran out twice
+// and the build ended "gescheitert" -- without any notification. Now every end of a build notifies (opt-in only), with the
+// reason in plain words, "nichts abgebucht" only when true, and the link to the order; no error text, no path.
+const KUNDENTAUGLICH = /EACCES|ENOENT|\/var\/|\/tmp|\.json|\blease\b|stack|Error|undefined|\bnull\b|\bfehler\b|ki_nicht|nicht_geschafft|kein_spiel/;
+test('B2: Lease zweimal abgelaufen -> gescheitert mit Push und Mail (nur mit Haken), Grund in einfachen Worten, nichts abgebucht, Link', async () => {
+  const s = setup();
+  const id = await order(s);
+  assert.equal(s.k.optin(P, { auftrag: id, push: true, mail: true, mark: MARK }).status, 200);
+  assert.equal(s.bau.holen().body.auftrag.id, id);
+  s.tick(21 * 60000);
+  assert.equal(s.bau.holen().body.auftrag.id, id, 'once more');
+  assert.deepEqual(s.pushes, [], 'queued again: nothing sent yet');
+  s.tick(21 * 60000);
+  assert.equal(s.bau.holen().status, 204);
+  await new Promise((ok) => setTimeout(ok, 5));
+  const st = s.k.status(P, { auftrag: id }).body;
+  assert.equal(st.status, 'gescheitert'); assert.equal(st.grund, 'fehler'); assert.equal(st.abgebucht, false);
+  assert.deepEqual(s.spent, [], 'the reservation went back');
+  assert.deepEqual(s.pushes, [[MARK, 'karte-nicht', id]]);
+  assert.equal(s.mails.length, 1);
+  const m = s.mails[0];
+  assert.equal(m.to, P.mail); assert.equal(m.subject, 'Deine Karte hat nicht geklappt');
+  assert.match(m.text, /„Segelboot gegen Piraten“ hat leider nicht geklappt\.\nBeim Bauen ist bei uns etwas schiefgegangen\. An deinem Wunsch lag es nicht\. Abgebucht ist nichts\./);
+  assert.ok(m.text.includes(`https://demos-34a13a96.bunsenbrenner.org/duell?go=fertig&auftrag=${id}`));
+  assert.doesNotMatch(m.text, KUNDENTAUGLICH);
+  assert.ok(!JSON.stringify(s.k.store.get(id)).includes(P.mail), 'settled: the address is gone');
+  // without the tick nothing goes out
+  const s2 = setup();
+  await order(s2); s2.bau.holen(); s2.tick(21 * 60000); s2.bau.holen(); s2.tick(21 * 60000); s2.bau.holen();
+  await new Promise((ok) => setTimeout(ok, 5));
+  assert.deepEqual([s2.pushes, s2.mails], [[], []]);
+});
+
+test('B2: jeder Grund des Workers hat einen eigenen kundentauglichen Satz (de, en), nur der gewaehlte Kanal', async () => {
+  const s = setup();
+  for (const grund of K_GRUENDE) {
+    const id = await order(s);
+    assert.equal(s.k.optin(P, { auftrag: id, push: false, mail: true }).status, 200);
+    const job = s.bau.holen().body;
+    const b = { auftrag: id, lease: job.lease, art: 'neu', ok: false, grund, ms: 1, usd: 0, ...(grund === 'ki_nicht_verfuegbar' ? { ki: 'ki-limit' } : {}) };
+    assert.equal((await s.erg(b)).status, 200);
+    const m = s.mails.at(-1);
+    assert.ok(m.text.includes(GRUND_SATZ.de[grund] + ' Abgebucht ist nichts.'), grund);
+    assert.ok(m.text.includes('?go=fertig&auftrag=' + id), grund);
+    assert.doesNotMatch(m.text, KUNDENTAUGLICH, grund);
+  }
+  assert.equal(s.mails.length, K_GRUENDE.length);
+  assert.deepEqual(s.pushes, [], 'push not ticked: no push');
+  assert.deepEqual(Object.keys(GRUND_SATZ.de).sort(), [...K_GRUENDE].sort());
+  assert.deepEqual(Object.keys(GRUND_SATZ.en).sort(), [...K_GRUENDE].sort());
+  for (const g of K_GRUENDE) {
+    const en = MAIL_TEXT.en['karte-nicht'].text({ titel: 'T', link: 'L', grund: g });
+    assert.ok(en.includes(GRUND_SATZ.en[g] + ' Nothing is charged.'), g); assert.doesNotMatch(en, KUNDENTAUGLICH, g);
+  }
+  assert.ok(MAIL_TEXT.de['karte-nicht'].text({ titel: 'T', link: 'L', grund: 'quatsch' }).includes(GRUND_SATZ.de.fehler), 'unknown reason: the general sentence');
+});
+
+test('B2: "Abgebucht ist nichts" nur, wenn es stimmt (Erstattung fehlgeschlagen -> Satz fehlt)', async () => {
+  const s = setup();
+  const id = await order(s);
+  s.k.optin(P, { auftrag: id, push: false, mail: true });
+  s.credit.refund = () => false;
+  const job = s.bau.holen().body;
+  await s.erg({ auftrag: id, lease: job.lease, art: 'neu', ok: false, grund: 'zeit', ms: 1, usd: 0 });
+  assert.equal(s.mails.length, 1);
+  assert.ok(s.mails[0].text.includes(GRUND_SATZ.de.zeit));
+  assert.doesNotMatch(s.mails[0].text, /Abgebucht ist nichts/);
+});
+
+test('B1: /api/status-Feld bau meldet einen stillen Worker und Auftraege ohne Ergebnis, laut im Log, einmal je Wechsel', async () => {
+  const s = setup();
+  assert.deepEqual(s.bau.status(), { on: true, ok: true, grund: null, worker: null }, 'nothing waits: ok');
+  const id = await order(s);
+  s.tick(3 * 60000);
+  assert.deepEqual(s.bau.status(), { on: true, ok: false, grund: 'worker-still', worker: null }, 'an order waits, the worker never asked');
+  s.bau.status();
+  assert.equal(s.logs.filter((l) => l.event === 'duell-bau-warnung' && l.grund === 'worker-still').length, 1, 'logged once');
+  assert.equal(s.bau.holen().body.auftrag.id, id);
+  assert.equal(s.bau.status().ok, true, 'the worker asked: ok again');
+  assert.ok(s.logs.some((l) => l.event === 'duell-bau-warnung' && l.ok === true));
+  s.tick(21 * 60000);   // it took the order and never answered (as on 18.11. with the unwritable volume)
+  const st = s.bau.status();
+  assert.equal(st.ok, false); assert.equal(st.grund, 'ohne-ergebnis');
+  assert.ok(s.logs.some((l) => l.event === 'duell-bau' && l.why === 'lease-expired'));
+  const job = s.bau.holen().body;
+  await s.erg(okBody(job));
+  assert.equal(s.bau.status().ok, true, 'a result clears it');
+  assert.ok(!JSON.stringify(s.bau.status()).includes(id), 'no order id on the public status');
+  assert.deepEqual(createBau({ env: {}, store: s.k.store, log: () => {} }).status(), { on: false });
+  assert.deepEqual(createBau({ env: { DUELL_BAU: 'on' }, store: s.k.store, log: () => {} }).status(), { on: false, ok: false, grund: 'konfiguration' });
 });

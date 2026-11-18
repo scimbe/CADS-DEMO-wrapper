@@ -32,12 +32,19 @@ if (a[0] === 'network' && a[1] === 'rm') { for (const n of a.slice(2)) { if (!st
 if (a[0] === 'network' && a[1] === 'disconnect') { const n = st.networks[a[2]]; if (!n || !n.containers.includes(a[3])) process.exit(1); n.containers = n.containers.filter((x) => x !== a[3]); save(); process.exit(0); }
 if (a[0] === 'network' && a[1] === 'connect') { const n = st.networks[a[a.length - 2]]; if (!n) process.exit(1); n.containers.push(last); save(); process.exit(0); }
 if (a[0] === 'network' && a[1] === 'create') { if (st.networks[last]) process.exit(1); st.networks[last] = { internal: a.includes('--internal'), subnet: a.includes('--subnet') ? a[a.indexOf('--subnet') + 1] : '172.18.0.0/16', containers: [] }; save(); process.exit(0); }
+// Einmal-Container (--rm) fuer das Volume des Bau-Workers: chown setzt den Eigentuemer (ausser chownWirkt=false), der
+// Schreibtest gelingt nur als dieser Eigentuemer
+if (a[0] === 'run' && a.includes('--rm')) {
+  if (a.includes('chown')) { if (st.chownWirkt !== false) st.volOwner = a[a.indexOf('chown') + 2]; save(); process.exit(0); }
+  if (a.includes('sh')) process.exit(st.volOwner === a[a.indexOf('--user') + 1] ? 0 : 1);
+  process.exit(0);
+}
 if (a[0] === 'run') { const name = a[a.indexOf('--name') + 1]; if (st.containers.includes(name)) process.exit(1); st.containers.push(name); if (a.includes('--network')) st.networks[a[a.indexOf('--network') + 1]].containers.push(name); save(); process.exit(0); }
 if (a[0] === 'exec' && a[2] === 'printenv') { const v = st.env[a[3]]; if (v === undefined) process.exit(1); out(v); }
 process.exit(0);   // build, volume create
 `;
 
-function umgebung({ containers = [], networks = {}, origin = '127.0.0.1:8794', agentLaeuft = true, cmdline = 'node /opt/ct-agent/index.js' } = {}) {
+function umgebung({ chownWirkt = true, containers = [], networks = {}, origin = '127.0.0.1:8794', agentLaeuft = true, cmdline = 'node /opt/ct-agent/index.js' } = {}) {
   const d = mkdtempSync(join(tmpdir(), 'release-sh-')), bin = join(d, 'bin'), proc = join(d, 'proc'), agent = join(d, 'spiel-agent'), secrets = join(d, 'secrets');
   for (const x of [bin, proc, join(agent, 'state'), secrets]) mkdirSync(x, { recursive: true });
   const stub = (n, body) => { writeFileSync(join(bin, n), body); chmodSync(join(bin, n), 0o755); };
@@ -55,7 +62,7 @@ function umgebung({ containers = [], networks = {}, origin = '127.0.0.1:8794', a
   writeFileSync(join(secrets, 'fk2-bau.token'), 'token\n');
   const state = join(d, 'state.json');
   // DUELL_IP_HEADER wie in Produktion nicht gesetzt
-  writeFileSync(state, JSON.stringify({ containers, networks, env: { DUELL_BAU: 'on', DUELL_BAU_NETZ: '172.31.250.0/28' } }));
+  writeFileSync(state, JSON.stringify({ chownWirkt, volOwner: '0:0', containers, networks, env: { DUELL_BAU: 'on', DUELL_BAU_NETZ: '172.31.250.0/28' } }));
   const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, DOCKER_STATE: state, DOCKER_LOG: join(d, 'calls.log'), PROC: proc, KILL: join(bin, 'kill'),
     SECRETS: secrets, SPIEL_AGENT: agent, SECCOMP: join(d, 'mdi-bau', 'seccomp.json'), APP_SRC: d, HOME: d };
   const run = (...args) => {
@@ -112,7 +119,7 @@ test('Release: ein vorhandenes Netz wird nur passend weiterverwendet, sonst Abbr
   let r = falsch.run('--ausfuehren', '--double');
   assert.equal(r.code, 1);
   assert.match(r.out, /ABBRUCH: Netz mdi-bau-net gibt es schon mit internal=false/);
-  assert.ok(!r.calls.some((c) => c.startsWith('run ')), 'kein Container gestartet');
+  assert.ok(!r.calls.some((c) => c.startsWith('run -d ')), 'kein Dienst gestartet (nur die Einmal-Container fuer das Volume)');
   const passt = umgebung({ containers: ['demos-wrapper'], networks: { 'mdi-bau-net': { internal: true, subnet: '172.31.250.0/28', containers: ['demos-wrapper'] } } });
   r = passt.run('--ausfuehren', '--double');
   assert.equal(r.code, 0, r.out);
@@ -143,4 +150,39 @@ test('Trockenlauf: aendert nichts', () => {
   assert.equal(r.code, 0, r.out);
   assert.deepEqual(veraendert(r.calls), []);
   assert.match(r.out, /Trockenlauf: nichts ausgefuehrt/);
+});
+
+const ICH = `${process.getuid()}:${process.getgid()}`;
+test('B1 Volume: der Release setzt den Eigentuemer von mdi-bau-state auf den User des Workers und prueft per Schreibtest, bevor ein Dienst laeuft', () => {
+  const u = umgebung({ containers: ['demos-wrapper'] });
+  const r = u.run('--ausfuehren', '--double');
+  assert.equal(r.code, 0, r.out);
+  const chown = r.calls.findIndex((c) => c.startsWith('run --rm') && c.includes('--user 0:0') && c.includes(`chown -R ${ICH} /var/lib/mdi-bau`));
+  const schreib = r.calls.findIndex((c) => c.startsWith('run --rm') && c.includes(`--user ${ICH}`) && c.includes('sh -c'));
+  const ersterDienst = r.calls.findIndex((c) => /^run -d |^network create /.test(c));
+  assert.ok(chown >= 0 && schreib > chown && ersterDienst > schreib, r.calls.join('\n'));
+  assert.ok(r.calls[chown].includes('--network none') && r.calls[chown].includes('--cap-drop ALL') && r.calls[chown].includes('-v mdi-bau-state:/var/lib/mdi-bau'));
+  const worker = r.calls.find((c) => c.startsWith('run -d --name mdi-bau '));
+  assert.ok(worker.includes(`-u ${ICH}`) && worker.includes('-v mdi-bau-state:/var/lib/mdi-bau'), 'the worker runs as the owner of the volume');
+  assert.match(r.out, new RegExp(`ok   mdi-bau-state ist fuer ${ICH} beschreibbar`));
+  assert.equal(u.zustand().volOwner, ICH);
+});
+
+test('B1 Volume: bleibt es root (Schreibtest scheitert), bricht der Release ab: kein Netz, kein Dienst, spiel-agent unveraendert', () => {
+  const u = umgebung({ containers: ['demos-wrapper'], chownWirkt: false });
+  const r = u.run('--ausfuehren', '--double');
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, new RegExp(`ABBRUCH: mdi-bau-state ist fuer ${ICH} nicht beschreibbar; kein Dienst gestartet`));
+  assert.ok(!r.calls.some((c) => /^run -d |^network (create|connect) /.test(c)), r.calls.join('\n'));
+  assert.deepEqual(u.zustand().networks, {}); assert.deepEqual(u.zustand().containers, ['demos-wrapper']);
+  assert.equal(u.origin(), '127.0.0.1:8794'); assert.equal(u.gestartet(), false);
+});
+
+test('B1 Volume: der Trockenlauf zeigt chown und Schreibtest, fuehrt aber nichts aus', () => {
+  const u = umgebung({ containers: ['demos-wrapper'] });
+  const r = u.run('--double');
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, new RegExp(`\\+ docker run --rm --network none --user 0:0 .*chown -R ${ICH} /var/lib/mdi-bau`));
+  assert.match(r.out, new RegExp(`\\+ Schreibtest als ${ICH} in mdi-bau-state`));
+  assert.ok(!r.calls.some((c) => c.startsWith('run ')));
 });

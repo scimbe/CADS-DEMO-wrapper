@@ -59,6 +59,8 @@ test('unknown demo -> 404, existing endpoints still answer', async () => {
   if (!st.ok) assert.ok(st.reason, 'a failed status says why');
   // the model's state (lib/ki-ausfall.mjs): only class and time, here nothing has failed yet
   assert.deepEqual(st.ki, { ok: true, klasse: null, at: null });
+  // the build worker's health (lib/duell-fk2-bau.mjs): off without DUELL_BAU=on
+  assert.deepEqual(st.bau, { on: false });
   const plan = await fetch(base + '/api/plan?demo=nope', { method: 'POST', body: '{}' });
   assert.equal(plan.status, 404);
 });

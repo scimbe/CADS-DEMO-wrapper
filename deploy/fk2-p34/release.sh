@@ -36,6 +36,9 @@ PRUEF_NET="mdi-pruef-net"    # --internal: Worker, Pruef-Dienst
 EGRESS_NET="mdi-egress-net"  # normales Netz: nur der Egress-Proxy
 INTERN_PORT=8791                                                   # DUELL_BAU_PORT im Wrapper (wrapper-zusatz.env)
 STAMP="$(date -u +%Y%m%d%H%M)"
+BAU_STATE="mdi-bau-state"; BAU_STATE_DIR="/var/lib/mdi-bau"
+# der Bau-Worker laeuft als Eigentuemer der Geheimnis-Dateien (Modus 600), nicht als pwuser des Images
+BAU_UID="$(id -u)"; BAU_GID="$(id -g)"
 
 say() { printf '%s\n' "$*"; }
 do_() { say "+ $*"; if [ "$RUN" = 1 ]; then "$@"; fi; }
@@ -87,6 +90,23 @@ netz_anlegen() {   # name intern(true|false) subnetz(leer = von Docker) -- Argum
   do_ docker network create "$@" "$name"
 }
 
+# Volume des Bau-Workers (Kostenbuch je Tag): ein neues Volume gehoert root, weil der Mountpunkt im Image fehlt; der Worker
+# laeuft aber als BAU_UID:BAU_GID. Am 18.11. scheiterte darum jeder Bau (EACCES auf kosten-*.json.tmp). Darum: Eigentuemer
+# setzen (Einmal-Container, ohne Netz, nur CHOWN) und danach als genau dieser User schreiben (tmp + rename wie der Worker).
+# Klappt der Schreibtest nicht, bricht der Release ab, bevor irgendein Dienst laeuft. Wiederholbar.
+volume_rechte() {
+  do_ docker run --rm --network none --user 0:0 --cap-drop ALL --cap-add CHOWN --cap-add DAC_OVERRIDE \
+    -v "$BAU_STATE:$BAU_STATE_DIR" "mdi-bau:$TAG" chown -R "$BAU_UID:$BAU_GID" "$BAU_STATE_DIR"
+  say "+ Schreibtest als $BAU_UID:$BAU_GID in $BAU_STATE ($BAU_STATE_DIR)"
+  [ "$RUN" = 1 ] || return 0
+  if docker run --rm --network none --user "$BAU_UID:$BAU_GID" --cap-drop ALL --read-only -v "$BAU_STATE:$BAU_STATE_DIR" "mdi-bau:$TAG" \
+      sh -c 'f="$1/.schreibtest" && echo ok > "$f.tmp" && mv "$f.tmp" "$f" && rm -f "$f"' schreibtest "$BAU_STATE_DIR"; then
+    say "ok   $BAU_STATE ist fuer $BAU_UID:$BAU_GID beschreibbar"
+  else
+    say "ABBRUCH: $BAU_STATE ist fuer $BAU_UID:$BAU_GID nicht beschreibbar; kein Dienst gestartet (Eigentuemer pruefen: docker run --rm -v $BAU_STATE:/v mdi-bau:$TAG ls -ln /v)"; exit 1
+  fi
+}
+
 # seccomp-Profil laden und pruefen (nur diese URL, nur mit passender sha256)
 seccomp_holen() {
   local soll; soll="$(awk 'NR==1 {print $1}' "$HIER/chromium-seccomp.sha256")"
@@ -129,7 +149,8 @@ df -h / | tail -1 | awk '{ if ($5+0 >= 95) print "WARNUNG Platte zu " $5 " voll:
 
 say "== 1 Image fuer Bau-Worker, Pruef-Dienst und Spiel-Dienst =="
 do_ docker build -f "$APP_SRC/apps/mdi/bau/Dockerfile" -t "mdi-bau:$TAG" "$APP_SRC/apps/mdi"
-do_ docker volume create mdi-bau-state
+do_ docker volume create "$BAU_STATE"
+volume_rechte
 
 seccomp_holen
 
@@ -165,13 +186,13 @@ do_ docker network connect --alias mdi-egress "$BAU_NET" mdi-egress
 say "== 6 Bau-Worker: Key und Token, kein Browser, kein Port, nur --internal-Netze =="
 KEY_ARGS=(-v "$SECRETS/anthropic.key:/run/secrets/anthropic.key:ro" -e MDI_ANTHROPIC_KEY_FILE=/run/secrets/anthropic.key)
 [ "$DOUBLE" = 1 ] && KEY_ARGS=(-e MDI_BAU_MODELL_DOUBLE=1)
-# als Eigentuemer der Geheimnis-Dateien (Modus 600), nicht als pwuser des Images
-do_ docker run -d --name mdi-bau --restart unless-stopped -u "$(id -u):$(id -g)" --network "$BAU_NET" \
+# als BAU_UID:BAU_GID (Eigentuemer der Geheimnis-Dateien und, seit volume_rechte, des Volumes)
+do_ docker run -d --name mdi-bau --restart unless-stopped -u "$BAU_UID:$BAU_GID" --network "$BAU_NET" \
   --cap-drop ALL --security-opt no-new-privileges --pids-limit 128 --memory 512m --cpus 1 --read-only --tmpfs /tmp:size=64m \
-  -v mdi-bau-state:/var/lib/mdi-bau \
+  -v "$BAU_STATE:$BAU_STATE_DIR" \
   -v "$SECRETS/fk2-bau.token:/run/secrets/fk2-bau.token:ro" "${KEY_ARGS[@]}" \
   -e MDI_BAU_QUEUE_URL="http://demos-wrapper:$INTERN_PORT" -e MDI_BAU_PRUEF_URL="http://mdi-pruef:8796" -e HTTPS_PROXY="http://mdi-egress:3128" \
-  -e MDI_BAU_TOKEN_FILE=/run/secrets/fk2-bau.token -e MDI_BAU_STATE_DIR=/var/lib/mdi-bau \
+  -e MDI_BAU_TOKEN_FILE=/run/secrets/fk2-bau.token -e MDI_BAU_STATE_DIR="$BAU_STATE_DIR" \
   -e MDI_BAU_MODELL_PLANER=claude-haiku-5-5 -e MDI_BAU_MODELL_BAUER=claude-haiku-5-5 -e MDI_BAU_MODELL_ABNAHME=claude-haiku-5-5 \
   "mdi-bau:$TAG"
 do_ docker network connect "$PRUEF_NET" mdi-bau
