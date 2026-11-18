@@ -1,8 +1,8 @@
 {
   "repo": "scimbe/CADS-agent-marketplace",
   "path": "apps/mdi/src",
-  "track": "fix/kachel-bild-text",
-  "commit": "52805373d8e5b25d1240759863178bdbe12529aa",
+  "track": "main",
+  "commit": "a28de8d5f3cad12bc38760e269669fbd06a3a361",
   "generatedBy": "bin/vendor-mdi.mjs",
   "cards": [
     "baukasten",
