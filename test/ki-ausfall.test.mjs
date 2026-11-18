@@ -81,18 +81,22 @@ test('createLlm: each class is thrown as ki-nicht-verfuegbar with its grund, the
   assert.equal(ki.gemeldet.length, 0);
 });
 
-test('createLlm: timeout and broken connection are ki-ausfall (and booked at the worst case, as before); count_tokens too; LiteLLM 429 too', async () => {
+test('createLlm: our own deadline is a timeout, not a model outage (Delta-Review 5); a broken connection is ki-ausfall; count_tokens too; LiteLLM 429 too', async () => {
   const ki = fakeWaechter();
   const hang = (url, init) => new Promise((_, no) => init.signal.addEventListener('abort', () => no(Object.assign(new Error('This operation was aborted'), { name: 'AbortError' }))));
-  const llm = createLlm({ env: { ANTHROPIC_API_KEY: 'k' }, fetchImpl: hang, log: quiet, ki });
-  await assert.rejects(llm.generate({ system: 'S', user: 'u', timeoutMs: 20 }), (e) => e.grund === 'ki-ausfall');
+  const lines = [];
+  const llm = createLlm({ env: { ANTHROPIC_API_KEY: 'k' }, fetchImpl: hang, log: (o) => lines.push(o), ki });
+  await assert.rejects(llm.generate({ system: 'S', user: 'u', timeoutMs: 20 }), (e) => e.code === 'timeout' && !e.grund);
   assert.ok(llm.budget().usd > 0, 'an answer we never read may be billed: booked');
+  assert.equal(ki.gemeldet.length, 0, 'no operator warning when only our deadline was too short');
+  assert.equal(llm.stats().timeouts, 1);
+  assert.ok(lines.some((l) => l.event === 'duell-llm' && l.why === 'timeout'));
   const net = createLlm({ env: { ANTHROPIC_API_KEY: 'k' }, fetchImpl: async () => { throw new TypeError('fetch failed'); }, log: quiet, ki });
   await assert.rejects(net.generate({ system: 'S', user: 'u' }), (e) => e.grund === 'ki-ausfall');
   await assert.rejects(net.countTokens({ system: 'S', user: 'u' }), (e) => e.grund === 'ki-ausfall');
   const lite = createLlm({ env: { DUELL_CARD_PROVIDER: 'litellm', DUELL_CARD_MODEL: 'anthropic/claude-haiku-5-5' }, llmEnv: { LITELLM_BASE_URL: 'http://l' }, fetchImpl: async () => antwort(429, FAELLE[5].body), log: quiet, ki });
   await assert.rejects(lite.generate({ system: 'S', user: 'u' }), (e) => e.grund === 'ki-ueberlastet');
-  assert.deepEqual(ki.gemeldet.map((g) => g.k), ['ki-ausfall', 'ki-ausfall', 'ki-ausfall', 'ki-ueberlastet']);
+  assert.deepEqual(ki.gemeldet.map((g) => g.k), ['ki-ausfall', 'ki-ausfall', 'ki-ueberlastet']);
   // an answer that came: the watcher hears that too (status back to ok)
   const fine = createLlm({ env: { ANTHROPIC_API_KEY: 'k' }, fetchImpl: async () => antwort(200, JSON.stringify({ content: [{ type: 'text', text: '{"x":1}' }], stop_reason: 'end_turn', usage: {} })), log: quiet, ki });
   await fine.generate({ system: 'S', user: 'u' });

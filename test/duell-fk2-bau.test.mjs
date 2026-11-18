@@ -13,6 +13,7 @@ import { createDuell } from '../lib/duell.mjs';
 import { createKlaerung } from '../lib/duell-klaerung.mjs';
 import { createBau, MAIL_TEXT, KARTE_KINDS, CODE_MAX, ausNetz } from '../lib/duell-fk2-bau.mjs';
 import { KARTE_KINDS as PUSH_KARTE } from '../lib/duell-push.mjs';
+import { HINWEISE as K_HINWEISE } from '../lib/vendor/mdi/features/frei/klaerung.js';
 
 const P = { account: true, acct: 'aKonto12345', mail: 'lea@example.org' };
 const TOKEN = 'bau-token-1234567890abcdef';
@@ -352,4 +353,47 @@ test('KI-Ausfall im Worker: ki_nicht_verfuegbar ohne Abbuchung, Klasse an die Be
   assert.deepEqual([st.status, st.grund, st.abgebucht, st.vorgemerkt], ['gescheitert', 'ki_nicht_verfuegbar', false, false]);
   assert.deepEqual(s.spent, [], 'Vormerkung zurueck');
   assert.deepEqual(gemeldet, [['ki-limit', 'fk2-bau-worker']]);
+});
+
+test('Delta-Review 3: ein KI-Ausfall beim Nachbessern verbraucht keinen der 3 Versuche; ehrlicher Hinweis, vorige Version bleibt', async () => {
+  const s = setup();
+  const id = await order(s);
+  const job = s.bau.holen().body;
+  await s.erg(okBody(job, ['p3']));
+  assert.equal((await s.k.nachbessern(P, { auftrag: id, text: '' })).body.nachbessernLeft, 2);
+  const job2 = s.bau.holen().body;
+  assert.equal(job2.art, 'nachbessern');
+  assert.equal((await s.erg({ auftrag: id, lease: job2.lease, art: 'nachbessern', ok: false, grund: 'ki_nicht_verfuegbar', ki: 'ki-ueberlastet', alt: true, ms: 1, usd: 0 })).status, 200);
+  const st = s.k.status(P, { auftrag: id }).body;
+  assert.deepEqual([st.status, st.hinweis, st.nachbessernLeft, st.ergebnis.fehlt, st.abgebucht], ['fertig', 'ki_nicht_erreichbar', 3, 1, false]);
+  assert.ok(K_HINWEISE.includes('ki_nicht_erreichbar'), 'der Vertrag der App kennt den Hinweis');
+  // ein Fehlschlag aus anderem Grund zaehlt weiter
+  await s.k.nachbessern(P, { auftrag: id, text: '' });
+  const job3 = s.bau.holen().body;
+  await s.erg({ auftrag: id, lease: job3.lease, art: 'nachbessern', ok: false, grund: 'nicht_geschafft', alt: true, ms: 1, usd: 0 });
+  assert.deepEqual([s.k.status(P, { auftrag: id }).body.hinweis, s.k.status(P, { auftrag: id }).body.nachbessernLeft], ['nachbessern_nicht_geschafft', 2]);
+});
+
+test('Review Nit 9: ueberstimmt und Szenario-Anlaeufe werden geprueft, am Bau gespeichert und geloggt', async () => {
+  const s = setup();
+  const id = await order(s);
+  const job = s.bau.holen().body;
+  const sz = [{ id: 'p1', ok: true, grund: null, anlauf: 2, kontrolle: false }, { id: 'p2', ok: false, grund: 'von_allein', anlauf: 2, kontrolle: true }];
+  assert.equal((await s.erg({ ...okBody(job, ['p2']), ueberstimmt: 9, szenarien: sz })).status, 200);
+  assert.equal(s.k.status(P, { auftrag: id }).body.status, 'gescheitert', 'unplausible Kennzahl: kein Ergebnis');
+  assert.ok(s.logs.some((l) => l.why === 'result-kennzahlen'));
+  const t = setup();
+  const id2 = await order(t);
+  const j2 = t.bau.holen().body;
+  await t.erg({ ...okBody(j2, ['p2']), ueberstimmt: 1, szenarien: sz });
+  const bau = t.k.store.get(id2).bau;
+  assert.deepEqual([bau.ueberstimmt, bau.szenarien], [1, sz]);
+  const l = t.logs.find((x) => x.event === 'duell-bau' && x.ok === true);
+  assert.deepEqual([l.ueberstimmt, l.szenarien], [1, 'p1:ok@2 p2:von_allein@2k']);
+  // ohne Felder (aelterer Worker): 0 und leer
+  const u = setup();
+  const id3 = await order(u);
+  const j3 = u.bau.holen().body;
+  await u.erg(okBody(j3));
+  assert.deepEqual([u.k.store.get(id3).bau.ueberstimmt, u.k.store.get(id3).bau.szenarien], [0, []]);
 });

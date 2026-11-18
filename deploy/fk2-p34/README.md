@@ -67,6 +67,10 @@ allein der `spiel-agent` auf 8795 umgestellt. 8794 wird nie freigemacht oder ges
    7. Bau-Worker in `mdi-bau-net`, dann zusätzlich in `mdi-pruef-net`; `HTTPS_PROXY=http://mdi-egress:3128`.
    8. spiel-agent: `CT_AGENT_ORIGIN=127.0.0.1:8795` in `.env` (Sicherung `.env.bak-<zeit>`), den Prozess aus der PID-Datei
       beenden, nur wenn `/proc/<pid>/cmdline` `ct-agent` enthält, auf sein Ende warten, `start-on-boot.sh`. Kein `pkill`.
+      Ist die PID kein laufender ct-agent, bricht das Skript ab (`.env` unverändert, nichts gestartet).
+   Vor Schritt 1 prüft das Skript den Bestand: Gibt es einen der vier Container schon, bricht es ab (erst `--rollback`);
+   ein vorhandenes Netz wird nur weiterverwendet, wenn `internal` (und bei `mdi-bau-net` das Subnetz) passt; ein schon
+   angehängter Wrapper bleibt angehängt.
 3. **Live-Prüfung wie ein Nutzer** (Tester-Konto): Satz → Fragen → Liste → „Ja, so bauen“ (1 Guthaben vorgemerkt) →
    E-Mail bzw. Mitteilung anhaken (Mitteilung erst nach Erlaubnis des Browsers) → Mail mit Link `?go=fertig&auftrag=…` →
    Ergebnis mit „ausprobiert“/„nicht automatisch prüfbar“ → „Probe spielen“ → Nachbessern mit eigenem Text → neues Ergebnis.
@@ -81,6 +85,9 @@ allein der `spiel-agent` auf 8795 umgestellt. 8794 wird nie freigemacht oder ges
   - stellt `CT_AGENT_ORIGIN` des spiel-agent auf `127.0.0.1:8794` zurück (gleicher Neustart wie oben),
   - entfernt `mdi-bau`, `mdi-pruef`, `mdi-egress` und `mdi-spiel-dienst`,
   - trennt den Wrapper von `mdi-bau-net` und entfernt alle drei Netze.
+  - Jeder Schritt läuft nur, wenn es das Teil noch gibt: ein abgebrochener Release lässt sich so vollständig und beliebig oft
+    zurücknehmen. Scheitert nur der spiel-agent (PID kein ct-agent), räumt der Rollback trotzdem Container und Netze ab und
+    endet mit Fehler, damit der Agent von Hand geprüft wird.
 - Den Wrapper selbst rollt der Integrator mit seinem Muster zurück.
 - Die Auftragsdateien bleiben; Aufträge im Zustand `wartet` werden beim nächsten Release gebaut. Vorgemerktes Guthaben bleibt
   vorgemerkt, bis der Bau endet; ein Rollback bucht nichts ab und nichts zurück.

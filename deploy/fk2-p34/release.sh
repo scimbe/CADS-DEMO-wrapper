@@ -43,23 +43,48 @@ MISSING=0
 need() { if [ -s "$1" ]; then say "ok   $1"; else say "FEHLT $1"; MISSING=1; fi; }
 
 # spiel-agent: Origin in .env umstellen, den Agent ueber seine PID-Datei beenden (nur wenn die PID wirklich ct-agent ist),
-# auf das Ende warten und mit start-on-boot.sh neu starten (kein pkill; Review S6)
+# auf das Ende warten und mit start-on-boot.sh neu starten (kein pkill; Review S6). Ist die PID kein laufender ct-agent, bricht
+# es ab, ohne etwas zu starten (Delta-Review 4): ein zweiter Agent neben einem unbekannten Prozess waere schlimmer. Steht der
+# Origin schon auf dem Ziel und laeuft der Agent, ist nichts zu tun (wiederholbar). Rueckgabe 1 statt exit, damit ein Rollback
+# die uebrigen Schritte trotzdem macht.
+PROC="${PROC:-/proc}"
+ist_agent() { [ -r "$PROC/$1/cmdline" ] && tr '\0' ' ' < "$PROC/$1/cmdline" | grep -q 'ct-agent'; }
 agent_origin() {
-  local ziel="$1"
-  say "+ sed -i 's#^CT_AGENT_ORIGIN=.*#CT_AGENT_ORIGIN=$ziel#' $SPIEL_AGENT/.env   (Sicherung .env.bak-$STAMP)"
-  say "+ kill \$(cat $SPIEL_AGENT_PID)  (nur wenn /proc/<pid>/cmdline ct-agent enthaelt), warten, $SPIEL_AGENT/start-on-boot.sh"
+  local ziel="$1" pid
+  pid="$(cat "$SPIEL_AGENT_PID" 2>/dev/null || true)"
+  if grep -qx "CT_AGENT_ORIGIN=$ziel" "$SPIEL_AGENT/.env" && [ -n "$pid" ] && ist_agent "$pid"; then say "ok   spiel-agent steht schon auf $ziel und laeuft"; return 0; fi
+  say "+ CT_AGENT_ORIGIN=$ziel in $SPIEL_AGENT/.env   (Sicherung .env.bak-$STAMP)"
+  say "+ kill \$(cat $SPIEL_AGENT_PID)  (nur wenn $PROC/<pid>/cmdline ct-agent enthaelt, sonst Abbruch), warten, $SPIEL_AGENT/start-on-boot.sh"
   [ "$RUN" = 1 ] || return 0
+  if [ -z "$pid" ] || ! ist_agent "$pid"; then say "ABBRUCH: PID '${pid}' aus $SPIEL_AGENT_PID ist kein laufender ct-agent; .env unveraendert, nichts beendet, nichts gestartet"; return 1; fi
   cp "$SPIEL_AGENT/.env" "$SPIEL_AGENT/.env.bak-$STAMP"
-  sed -i "s#^CT_AGENT_ORIGIN=.*#CT_AGENT_ORIGIN=$ziel#" "$SPIEL_AGENT/.env"
-  local pid; pid="$(cat "$SPIEL_AGENT_PID")"
-  if [ -r "/proc/$pid/cmdline" ] && tr '\0' ' ' < "/proc/$pid/cmdline" | grep -q 'ct-agent'; then
-    kill "$pid"
-    for _ in $(seq 1 40); do [ -d "/proc/$pid" ] || break; sleep 0.5; done
-    if [ -d "/proc/$pid" ]; then say "ABBRUCH: ct-agent ($pid) endet nicht; nichts neu gestartet"; exit 1; fi
-  else
-    say "HINWEIS: PID $pid ist kein laufender ct-agent; es wird nichts beendet"
-  fi
+  sed "s#^CT_AGENT_ORIGIN=.*#CT_AGENT_ORIGIN=$ziel#" "$SPIEL_AGENT/.env.bak-$STAMP" > "$SPIEL_AGENT/.env"
+  "${KILL:-kill}" "$pid"
+  for _ in $(seq 1 40); do [ -d "$PROC/$pid" ] || break; sleep 0.5; done
+  if [ -d "$PROC/$pid" ]; then say "ABBRUCH: ct-agent ($pid) endet nicht; nichts neu gestartet"; return 1; fi
   "$SPIEL_AGENT/start-on-boot.sh"
+}
+
+# Docker-Bestand: was es schon gibt (nur lesen)
+gibt_container() { docker container inspect "$1" >/dev/null 2>&1; }
+gibt_netz() { docker network inspect "$1" >/dev/null 2>&1; }
+netz_intern() { docker network inspect -f '{{.Internal}}' "$1" 2>/dev/null; }
+netz_subnetz() { docker network inspect -f '{{range .IPAM.Config}}{{.Subnet}} {{end}}' "$1" 2>/dev/null | tr -s ' ' | sed 's/ $//'; }
+haengt_an() { docker network inspect -f '{{range .Containers}}{{.Name}} {{end}}' "$1" 2>/dev/null | tr ' ' '\n' | grep -qx "$2"; }
+# Rollback-Schritte: jeder nur, wenn es das Teil noch gibt; so laesst sich ein abgebrochener Release vollstaendig und beliebig
+# oft zuruecknehmen (Delta-Review 4)
+weg_container() { if gibt_container "$1"; then do_ docker rm -f "$1"; else say "ok   Container $1 gibt es nicht (mehr)"; fi; }
+weg_anhang() { if gibt_netz "$1" && haengt_an "$1" "$2"; then do_ docker network disconnect "$1" "$2"; else say "ok   $2 haengt nicht an $1"; fi; }
+weg_netz() { if gibt_netz "$1"; then do_ docker network rm "$1"; else say "ok   Netz $1 gibt es nicht (mehr)"; fi; }
+# Release: ein Netz, das es schon gibt, wird nur weiterverwendet, wenn es passt; sonst klarer Abbruch
+netz_anlegen() {   # name intern(true|false) subnetz(leer = von Docker) -- Argumente fuer docker network create
+  local name="$1" intern="$2" subnetz="$3"; shift 3
+  if gibt_netz "$name"; then
+    local i s; i="$(netz_intern "$name")"; s="$(netz_subnetz "$name")"
+    if [ "$i" = "$intern" ] && { [ -z "$subnetz" ] || [ "$s" = "$subnetz" ]; }; then say "ok   Netz $name gibt es schon (internal=$i ${s}), wird weiterverwendet"; return 0; fi
+    say "ABBRUCH: Netz $name gibt es schon mit internal=$i ${s} statt internal=$intern ${subnetz} (erst --rollback)"; exit 1
+  fi
+  do_ docker network create "$@" "$name"
 }
 
 # seccomp-Profil laden und pruefen (nur diese URL, nur mit passender sha256)
@@ -78,10 +103,12 @@ if [ "$ROLLBACK" = 1 ]; then
   say "== Rollback Freie Karte 2 P3/P4 (nur die Teile dieses Skripts; den Wrapper rollt der Integrator zurueck) =="
   need "$SPIEL_AGENT/.env"; need "$SPIEL_AGENT/start-on-boot.sh"; need "$SPIEL_AGENT_PID"
   [ "$MISSING" = 0 ] || { say "Abbruch: Voraussetzungen fuer den Rollback fehlen."; exit 1; }
-  agent_origin "127.0.0.1:8794"            # Spiel-Ursprung wieder wie vorher auf den Wrapper
-  do_ docker rm -f mdi-bau mdi-pruef mdi-egress mdi-spiel-dienst
-  do_ docker network disconnect "$BAU_NET" "$WRAPPER"
-  do_ docker network rm "$BAU_NET" "$PRUEF_NET" "$EGRESS_NET"
+  AGENT=0
+  agent_origin "127.0.0.1:8794" || AGENT=1   # Spiel-Ursprung wieder wie vorher auf den Wrapper
+  for c in mdi-bau mdi-pruef mdi-egress mdi-spiel-dienst; do weg_container "$c"; done
+  weg_anhang "$BAU_NET" "$WRAPPER"
+  for n in "$BAU_NET" "$PRUEF_NET" "$EGRESS_NET"; do weg_netz "$n"; done
+  if [ "$AGENT" = 1 ]; then say "Rollback ohne spiel-agent: Container und Netze sind weg, den Agent bitte von Hand pruefen."; exit 1; fi
   exit 0
 fi
 
@@ -93,6 +120,11 @@ if docker exec "$WRAPPER" printenv DUELL_BAU 2>/dev/null | grep -qx on; then say
 if docker exec "$WRAPPER" printenv DUELL_BAU_NETZ 2>/dev/null | grep -qx "172.31.250.0/28"; then say "ok   DUELL_BAU_NETZ passt zu mdi-bau-net"; else say "FEHLT DUELL_BAU_NETZ=172.31.250.0/28 im Wrapper"; MISSING=1; fi
 if docker exec "$WRAPPER" printenv DUELL_IP_HEADER 2>/dev/null | grep -q .; then say "ok   DUELL_IP_HEADER gesetzt"; else say "FEHLT DUELL_IP_HEADER im Wrapper (ohne ihn bleibt der Bau aus)"; MISSING=1; fi
 if ss -ltn 2>/dev/null | grep -q '127.0.0.1:8795 '; then say "FEHLT 127.0.0.1:8795 ist schon belegt"; MISSING=1; else say "ok   127.0.0.1:8795 frei; 8794 bleibt der Wrapper"; fi
+# was es schon gibt: Container dieses Skripts -> Abbruch (Zustand unbekannt, erst --rollback); Netze werden nur passend
+# weiterverwendet (netz_anlegen)
+for c in mdi-bau mdi-pruef mdi-egress mdi-spiel-dienst; do
+  if gibt_container "$c"; then say "FEHLT Container $c gibt es schon (erst ./release.sh $TAG --rollback --ausfuehren)"; MISSING=1; fi
+done
 df -h / | tail -1 | awk '{ if ($5+0 >= 95) print "WARNUNG Platte zu " $5 " voll: alte Images entfernen"; else print "ok   Platte " $5 }'
 [ "$MISSING" = 0 ] || { say "Abbruch: Voraussetzungen fehlen."; exit 1; }
 
@@ -103,10 +135,10 @@ do_ docker volume create mdi-bau-state
 seccomp_holen
 
 say "== 2 Netze; den laufenden Wrapper anhaengen (ohne Neustart) =="
-do_ docker network create --internal --subnet "$BAU_SUBNET" "$BAU_NET"   # Worker <-> Wrapper (intern 8791) und Egress-Proxy, kein Ausgang
-do_ docker network create --internal "$PRUEF_NET"                     # Worker <-> Pruef-Dienst, kein Ausgang
-do_ docker network create "$EGRESS_NET"                               # nur der Egress-Proxy kommt hinaus
-do_ docker network connect --alias demos-wrapper "$BAU_NET" "$WRAPPER"
+netz_anlegen "$BAU_NET" true "$BAU_SUBNET" --internal --subnet "$BAU_SUBNET"   # Worker <-> Wrapper (intern 8791) und Egress-Proxy, kein Ausgang
+netz_anlegen "$PRUEF_NET" true "" --internal                                 # Worker <-> Pruef-Dienst, kein Ausgang
+netz_anlegen "$EGRESS_NET" false ""                                          # nur der Egress-Proxy kommt hinaus
+if gibt_netz "$BAU_NET" && haengt_an "$BAU_NET" "$WRAPPER"; then say "ok   $WRAPPER haengt schon an $BAU_NET"; else do_ docker network connect --alias demos-wrapper "$BAU_NET" "$WRAPPER"; fi
 
 say "== 3 Statischer Spiel-Dienst auf 127.0.0.1:8795 (nur Rahmen und Module, read-only) =="
 do_ docker run -d --name mdi-spiel-dienst --restart unless-stopped \
@@ -146,7 +178,7 @@ do_ docker run -d --name mdi-bau --restart unless-stopped -u "$(id -u):$(id -g)"
 do_ docker network connect "$PRUEF_NET" mdi-bau
 
 say "== 7 Spiel-Ursprung auf den Spiel-Dienst umstellen (nur der spiel-agent; demos-34a13a96 bleibt auf 8794) =="
-agent_origin "127.0.0.1:8795"
+agent_origin "127.0.0.1:8795" || exit 1
 
 say "== 8 Pruefen (wie ein Nutzer, siehe README) =="
 say "+ curl -sI $SPIEL_ORIGIN/frame.html   (Content-Security-Policy mit sandbox allow-scripts, frame-ancestors der App)"

@@ -460,5 +460,8 @@ test('Ausgabebudget: Fragen und Liste mit GEN_MAX_TOKENS; eine abgeschnittene An
   assert.equal(l.status, 200, JSON.stringify(l.body));
   const gen = calls.filter((c) => c.name !== 'check');
   assert.ok(gen.every((c) => c.maxTokens === GEN_MAX_TOKENS));
+  // Delta-Review 5: 4096 Tokens bei A10-Durchsatz p10 139 Tokens/s brauchen ~31 s; die Frist je Generierung ist 35 s
+  assert.ok(gen.every((c) => c.timeoutMs === 35000));
+  assert.ok(GEN_MAX_TOKENS / 139 + 1.4 < 35, 'Frist deckt das volle Budget beim langsamen Zehntel');
   assert.match(gen.filter((c) => c.name === 'klaerung_liste')[1].user, /CUT OFF/);
 });

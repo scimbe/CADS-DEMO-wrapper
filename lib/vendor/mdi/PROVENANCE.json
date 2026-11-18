@@ -2,7 +2,7 @@
   "repo": "scimbe/CADS-agent-marketplace",
   "path": "apps/mdi/src",
   "track": "feat/fk2-p34",
-  "commit": "bd5f55c89c22eb2e45c36fd5101aefda6a828a5e",
+  "commit": "1d0c179fece5a0a691785022622017ba4ee65c7d",
   "generatedBy": "bin/vendor-mdi.mjs",
   "cards": [
     "baukasten",
@@ -63,7 +63,7 @@
     "app/link.js",
     "features/frei/klaerung.js"
   ],
-  "bundle": "901529f573007fd41babc8ef1e44b4264385e85ac803615be3562a95b8d2e4c3",
+  "bundle": "242d5bfb44e0d6d4609c990eba0f5fdcdd60694055915e73f92603cccef6e9f4",
   "files": {
     "app/link.js": "e93cba395118e3386b63b693ca37929d38822a5c890f06a6aa225cc1cea68b4a",
     "cards/baukasten-zug/card.js": "134f4fdafbc58602e085e2fade8a13baa7b16d74119a0d76c2d50170d2fc3c83",
@@ -264,7 +264,7 @@
     "engines/zug/widgets.js": "f4e784a3eef1ae5252ae40e43cedf809eac21a82054abced11f33d6390f1f835",
     "engines/zug/zug.js": "cd1fd44971731e30788decb37c09b7ef4edf5f6e0e40472fcaab9488e37064f4",
     "features/frei/doc.js": "695b0ff8f145cb7cf0b3121cf141288f62fac84cd193ef0bb5d5dd74b86623df",
-    "features/frei/klaerung.js": "7f67155d20293bc425c0e4c3abc04a2332ac643bbdabe35898e69d5428e573bc",
+    "features/frei/klaerung.js": "f81be9ba8d205b8aa3dcff74d25b5f338920b192d65629ef514103005e2c4c69",
     "gen/validators.js": "cdec81f6805002a84dc39e02e5614875984ac65331d6bc646313e4d23aea8031",
     "index.js": "03e6bc5c5ef723c363370a822e68c52b7ed59ec540eb871c02da572d1eb23a14"
   }
