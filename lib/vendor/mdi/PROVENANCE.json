@@ -1,8 +1,8 @@
 {
   "repo": "scimbe/CADS-agent-marketplace",
   "path": "apps/mdi/src",
-  "track": "feat/fk2-p34",
-  "commit": "1d0c179fece5a0a691785022622017ba4ee65c7d",
+  "track": "main",
+  "commit": "d1a21fbde872719f009d77f05530cbd2f830369a",
   "generatedBy": "bin/vendor-mdi.mjs",
   "cards": [
     "baukasten",
