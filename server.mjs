@@ -902,14 +902,15 @@ function handleStatus(res) {
   fetchStatus().then((j) => {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
     // ki: the model of My Daily Idea (lib/ki-ausfall.mjs), only class and time: { ok, klasse, at }
-    if (!j) { res.end(JSON.stringify({ ok: false, reason: 'upstream-unreachable', ki: KI.status() })); return; }
+    // bau: health of the Freie-Karte-2 build worker (lib/duell-fk2-bau.mjs status()), only { on, ok, grund, worker }
+    if (!j) { res.end(JSON.stringify({ ok: false, reason: 'upstream-unreachable', ki: KI.status(), bau: BAU.status() })); return; }
     const svc = {};
     for (const [k, v] of Object.entries(j)) {
       if (k === 'ollama_backed' && v) { svc.ollama = { models: v.loaded_models || [], parallel: v.num_parallel_configured }; continue; }
       if (v && typeof v === 'object' && 'active_requests' in v) svc[k] = { active: v.active_requests, queued: v.queued_requests, p50: v.p50_latency_s };
     }
-    res.end(JSON.stringify({ ok: true, svc, ki: KI.status() }));
-  }).catch(() => { try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, reason: 'upstream-error', ki: KI.status() })); } catch {} });
+    res.end(JSON.stringify({ ok: true, svc, ki: KI.status(), bau: BAU.status() }));
+  }).catch(() => { try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, reason: 'upstream-error', ki: KI.status(), bau: BAU.status() })); } catch {} });
 }
 
 // contractcheck: compare TWO user-uploaded PDFs (base64 JSON, no multipart parsing needed).
@@ -1121,6 +1122,8 @@ http.createServer((req, res) => route(req, res).catch((e) => {
 // published: only the container network mdi-bau-net reaches it (deploy/fk2-p34). Without DUELL_BAU=on and its config it
 // does not exist.
 if (BAU.on()) {
+  // a silent worker or orders taken without a result are logged once per change even when nobody reads /api/status
+  setInterval(() => BAU.status(), 60000).unref();
   http.createServer((req, res) => BAU.route(req, res, new URL(req.url, 'http://intern')).then((ours) => { if (!ours) { req.resume(); res.writeHead(404).end(); } }).catch((e) => {
     console.log(JSON.stringify({ event: 'bau-request-error', error: String(e && e.message || e).slice(0, 200) }));
     if (res.headersSent) res.destroy(); else res.writeHead(500).end();

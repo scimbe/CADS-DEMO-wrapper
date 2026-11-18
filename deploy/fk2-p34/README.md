@@ -58,7 +58,11 @@ allein der `spiel-agent` auf 8795 umgestellt. 8794 wird nie freigemacht oder ges
    `wrapper-mounts.txt` (Token und `smtp.pass` read-only, Volume `mdi-spiele` schreibend, `--env-file smtp.env`).
    `DUELL_IP_HEADER` bleibt wie bisher leer. deploy-check wie immer; bei Fehler automatischer Rollback.
 2. `./release.sh <tag>` (Trockenlauf) und prüfen, dann `./release.sh <tag> --ausfuehren`:
-   1. Image `mdi-bau:<tag>` bauen.
+   1. Image `mdi-bau:<tag>` bauen, Volume `mdi-bau-state` anlegen, seinen Eigentümer per Einmal-Container (ohne Netz,
+      read-only, `no-new-privileges`, `--pids-limit 16`, nur `CHOWN`/`DAC_OVERRIDE`) auf den User des Workers (`id -u`:`id -g`)
+      setzen und als dieser User einen Schreibtest machen (tmp + rename wie das Kostenbuch). Scheitert der Test, bricht das
+      Skript ab, bevor ein Netz oder Dienst angelegt ist. Als root ausgeführt bricht es schon bei der Prüfung ab. Hintergrund:
+      ein neues Volume gehört root; am 18.11. scheiterte deshalb jeder Bau (`EACCES` auf `kosten-*.json.tmp`).
    2. seccomp-Profil laden, sha256 prüfen.
    3. Netze `mdi-bau-net` (`--internal`, 172.31.250.0/28 = `DUELL_BAU_NETZ`), `mdi-pruef-net` (`--internal`) und
       `mdi-egress-net` (normal) anlegen, den laufenden Wrapper mit `docker network connect --alias demos-wrapper` anhängen
@@ -99,7 +103,16 @@ allein der `spiel-agent` auf 8795 umgestellt. 8794 wird nie freigemacht oder ges
 
 - Worker (`apps/mdi/bau/konfig.mjs`): je Lauf höchstens 0,25 $ (Reserve vor jedem Aufruf), je UTC-Tag höchstens 5 $;
   Bauzeit hart 15 Minuten; Lease im Wrapper 20 Minuten, eine verlorene Lease kommt einmal zurück, beim zweiten Mal endet der
-  Bau ehrlich mit „fehler“.
+  Bau ehrlich mit „fehler“ – mit Mitteilung bzw. Mail, wenn angehakt (Grund in einfachen Worten, Link zum Auftrag).
+  „Abgebucht ist nichts“ nur, wenn es stimmt; scheitert die Erstattung, sagt die Mail „Dein Guthaben für diese Karte wird noch
+  zurückgebucht, wir melden uns.“ und der Push ist neutral (`karte-info`, ohne Satz zum Guthaben; Log `refund-failed`).
+- Wrapper `/api/status`, Feld `bau`: `{ on, ok, grund, worker }` (`worker` = letzte Nachfrage des Workers). `grund`:
+  - `worker-still`: Aufträge warten, **keine Lease ist aktiv** und der Worker hat seit 2 Minuten nicht nachgefragt. Ein Worker,
+    der gerade baut (bis 15 Minuten), hält eine Lease und gilt nicht als still.
+  - `ohne-ergebnis`: in den letzten 30 Minuten ist eine Lease ohne Ergebnis abgelaufen (er hat einen Auftrag geholt und nie
+    geantwortet, z. B. weil sein Volume nicht beschreibbar ist), und seitdem kam kein Ergebnis. Danach von selbst wieder ok.
+  - `konfiguration`: `DUELL_BAU=on`, aber die Konfiguration fehlt (der Bau bleibt aus).
+  Jeder Wechsel steht einmal im Log (`duell-bau-warnung`); der Wrapper prüft jede Minute, auch ohne Abruf.
 - Guthaben: 1 bei der Bestellung vorgemerkt; gebucht bei Erfolg oder „So behalten“; freigegeben ohne Spiel, nach einer
   Meldung, beim Löschen oder nach 30 Tagen ohne Entscheidung (`VORMERK_TAGE`). Wird danach eine Nachbesserung ein voller
   Erfolg, wird erneut vorgemerkt und gebucht; ohne Guthaben bleibt die vorige Version (Hinweis „guthaben_fehlt“).
